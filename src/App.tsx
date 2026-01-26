@@ -14,6 +14,7 @@ import Enterprise from "./pages/Enterprise";
 import ExpertServices from "./pages/enterprise/ExpertServices";
 import DockerImages from "./pages/enterprise/DockerImages";
 import Training from "./pages/enterprise/Training";
+import Marketplace from "./pages/Marketplace";
 import Resources from "./pages/Resources";
 import CommunityContent from "./pages/resources/CommunityContent";
 import Login from "./pages/Login";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/enterprise/expert-services" element={<ExpertServices />} />
             <Route path="/enterprise/docker-images" element={<DockerImages />} />
             <Route path="/enterprise/training" element={<Training />} />
+            <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/resources/community-content" element={<CommunityContent />} />
             <Route path="/login" element={<Login />} />
