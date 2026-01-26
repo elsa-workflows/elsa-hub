@@ -1,357 +1,214 @@
 
-# Expert Services Credit System - Final Corrections
+# Organization Dashboard Implementation Plan
 
 ## Overview
 
-This document incorporates three critical corrections to the implementation plan that prevent real-world failure modes:
+Create a dedicated dashboard page for each organization that displays:
+1. **Credit Balance** - Total, used, available, and expiring soon credits
+2. **Purchase History** - Orders and invoices with status and receipt links
+3. **Team Members** - Organization members with roles and management options
 
-1. **Lock key type correction** - `hashtext()` returns `INTEGER` (int4), not `BIGINT`
-2. **service_role EXECUTE permission** - Required for external scheduling via REST RPC
-3. **GitHub Actions headers** - Correct header pattern for Supabase REST API
+The dashboard will be accessible by clicking on an organization from the Account page, with a route pattern of `/org/:slug`.
 
 ---
 
-## 1. Advisory Lock Type Correction
+## Architecture
 
-### Issue
-
-The documentation incorrectly states that `hashtext()` produces a `BIGINT` lock key. In PostgreSQL, `hashtext()` returns `int4` (INTEGER).
-
-### Corrections
-
-**Documentation update:**
-
-Replace:
-> "produces a consistent BIGINT lock key..."
-
-With:
-> "produces a consistent INTEGER lock key (int4), which is used consistently across functions."
-
-**Variable declaration in `process_expired_credit_lots`:**
-
-```sql
-DECLARE
-  _lot RECORD;
-  _lots_count INTEGER := 0;
-  _minutes_count INTEGER := 0;
-  _remaining_to_expire INTEGER;
-  _lock_key INTEGER;  -- Correct: int4, not BIGINT
-BEGIN
+### Route Structure
+```text
+/org/:slug              -> OrganizationDashboard (main dashboard)
+/org/:slug/team         -> Future: dedicated team management
+/org/:slug/billing      -> Future: dedicated billing page
 ```
 
-**Lock Key Consistency section update:**
+### Data Flow
+```text
+OrganizationDashboard
+  |
+  +-- useOrganizationDashboard(slug)
+  |     |
+  |     +-- Fetch organization by slug
+  |     +-- Verify membership via RLS
+  |     +-- Fetch credit balance via RPC
+  |     +-- Fetch orders with bundle info
+  |     +-- Fetch invoices
+  |     +-- Fetch team members
+  |
+  +-- CreditBalanceCard
+  +-- PurchaseHistoryTable
+  +-- TeamMembersCard
+```
+
+---
+
+## Implementation Steps
+
+### Phase 1: Hook and Data Layer
+
+**Create `src/hooks/useOrganizationDashboard.ts`**
+
+A custom hook that fetches all dashboard data for an organization:
+
+- **Organization details**: Fetches the organization by slug, verifies the user has access (RLS handles this automatically)
+- **Credit balance**: Calls the `get_credit_balance` RPC function, which returns balance per service provider
+- **Purchase history**: Fetches from `orders` table joined with `credit_bundles` for bundle names
+- **Invoices**: Fetches from `invoices` table for receipt URLs and payment status
+- **Team members**: Fetches from `organization_members` table
+
+The hook will return typed data with loading and error states.
+
+---
+
+### Phase 2: Dashboard Components
+
+**1. `src/components/organization/CreditBalanceCard.tsx`**
+
+Displays credit balance information:
+- Available hours (prominent display)
+- Total hours purchased
+- Hours used
+- Hours expiring within 30 days (warning indicator)
+- Visual progress bar showing usage
+- Grouped by service provider (if multiple providers)
+
+**2. `src/components/organization/PurchaseHistoryTable.tsx`**
+
+A table showing purchase history:
+- Date
+- Bundle name
+- Amount (formatted currency)
+- Status badge (pending, paid, cancelled)
+- Receipt link (from invoice's `stripe_receipt_url`)
+
+Uses the existing Table components from shadcn/ui.
+
+**3. `src/components/organization/TeamMembersCard.tsx`**
+
+Displays team members:
+- Member email (from user_id, we'll need to handle this)
+- Role with icon (Owner, Admin, Member)
+- Joined date
+- For admins/owners: ability to manage roles (future enhancement)
+
+Note: Since we can't query `auth.users` directly, we'll display user_id initially and add a profiles table integration later if needed.
+
+---
+
+### Phase 3: Dashboard Page
+
+**Create `src/pages/OrganizationDashboard.tsx`**
+
+Main dashboard page that:
+- Extracts `slug` from URL params
+- Uses `useOrganizationDashboard` hook
+- Shows loading skeleton while fetching
+- Displays 404-style message if organization not found or no access
+- Renders three sections in a responsive grid layout:
+  - Credit Balance (full width on mobile, 1/3 on desktop)
+  - Purchase History (full width, scrollable table)
+  - Team Members (full width on mobile, 1/3 on desktop)
+
+Layout: Uses existing `Layout` component for consistent navigation/footer.
+
+---
+
+### Phase 4: Navigation Integration
+
+**Update `src/components/account/OrganizationList.tsx`**
+
+- Make organization cards clickable
+- Navigate to `/org/:slug` when clicked
+- Add subtle arrow indicator
+
+**Update `src/App.tsx`**
+
+- Add route: `/org/:slug` -> `OrganizationDashboard`
+
+---
+
+## Technical Details
+
+### Credit Balance Display Logic
+
+The `get_credit_balance` RPC returns data grouped by `service_provider_id`. For display:
+- Convert minutes to hours (divide by 60, round to 1 decimal)
+- Show provider name by joining with `service_providers` table
+- Aggregate totals if showing combined view
+
+### RLS Considerations
+
+All queries are protected by existing RLS policies:
+- `organizations`: `is_org_member(id)` for SELECT
+- `orders`: `is_org_member(organization_id)` for SELECT
+- `invoices`: `is_org_member(organization_id)` for SELECT
+- `organization_members`: `is_org_member(organization_id)` for SELECT
+- `get_credit_balance`: Requires authenticated user, verified in function
+
+No additional RLS policies needed.
+
+### Type Safety
+
+Create TypeScript interfaces for:
+- `CreditBalance` - matches RPC return type
+- `OrderWithBundle` - order joined with credit_bundle
+- `TeamMember` - organization_member with role
+
+---
+
+## File Structure
 
 ```text
-### Lock Key Formula
-
-Both functions MUST use the identical lock key formula for mutual exclusion:
-
-The formula `hashtext(provider_id::TEXT || ':' || org_id::TEXT)` returns an 
-INTEGER lock key (int4) and must be used consistently across both work 
-allocation and expiry processing.
-
--- In create_work_log_and_allocate:
-PERFORM pg_advisory_xact_lock(
-  hashtext(_provider_id::TEXT || ':' || _org_id::TEXT)
-);
-
--- In process_expired_credit_lots:
-_lock_key := hashtext(_lot.service_provider_id::TEXT || ':' || _lot.organization_id::TEXT);
-PERFORM pg_advisory_xact_lock(_lock_key);
+src/
+  components/
+    organization/
+      index.ts
+      CreditBalanceCard.tsx
+      PurchaseHistoryTable.tsx
+      TeamMembersCard.tsx
+  hooks/
+    useOrganizationDashboard.ts
+  pages/
+    OrganizationDashboard.tsx
 ```
 
 ---
 
-## 2. service_role EXECUTE Permission
+## UI/UX Design
 
-### Issue
-
-External scheduling via REST RPC (`/rest/v1/rpc/process_expired_credit_lots`) requires the executing database role to have `EXECUTE` permission. The service-role JWT maps to the PostgreSQL role `service_role`. Without granting execute to this role, external schedulers will receive 401/403 errors.
-
-### Correction
-
-**Updated RPC permission hardening:**
-
-```sql
--- ============================================
--- process_expired_credit_lots: system/scheduler only
--- ============================================
-
--- Revoke from PUBLIC (no anonymous or general access)
-REVOKE ALL ON FUNCTION public.process_expired_credit_lots() FROM PUBLIC;
-
--- Grant to service_role for external scheduling (GitHub Actions, admin edge functions)
-GRANT EXECUTE ON FUNCTION public.process_expired_credit_lots() TO service_role;
-
--- Do NOT grant to authenticated users - this is system-only
-```
-
-**Documentation note:**
-
+### Dashboard Layout (Desktop)
 ```text
-### Permissions for process_expired_credit_lots
-
-- REVOKED from PUBLIC: Prevents anonymous and general access
-- GRANTED to service_role: Enables execution via:
-  - pg_cron (runs as postgres superuser - always has access)
-  - GitHub Actions using service role key
-  - Admin edge functions using service role client
-- NOT GRANTED to authenticated: End users cannot trigger expiry processing
++------------------------------------------+
+|  < Back to Account    Organization Name  |
++------------------------------------------+
+|                                          |
+|  +----------------+  +----------------+  |
+|  | Credit Balance |  | Team Members   |  |
+|  | [=======   ]   |  | - user@... Own |  |
+|  | 45h available  |  | - user@... Adm |  |
+|  | 5h expiring    |  | + Invite       |  |
+|  +----------------+  +----------------+  |
+|                                          |
+|  +--------------------------------------+|
+|  | Purchase History                     ||
+|  |--------------------------------------|
+|  | Date       | Bundle    | Amount |Sta||
+|  | Jan 15     | 10 Hours  | $500   | P ||
+|  | Dec 01     | 20 Hours  | $900   | P ||
+|  +--------------------------------------+|
++------------------------------------------+
 ```
+
+### Mobile Layout
+All cards stack vertically in a single column.
 
 ---
 
-## 3. GitHub Actions Headers Correction
+## Dependencies
 
-### Issue
+Uses existing packages:
+- `lucide-react` for icons (Clock, Users, Receipt, CreditCard, AlertTriangle)
+- `@/components/ui/*` for Card, Table, Badge, Button, Progress
+- `react-router-dom` for navigation
+- `date-fns` for date formatting
 
-The example uses the service role key as both `apikey` and Bearer token. While this may work, it's non-standard and invites confusion. The correct pattern separates the keys by purpose.
-
-### Correction
-
-**Updated GitHub Actions workflow:**
-
-```yaml
-name: Process Expired Credits
-on:
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 02:00 UTC
-  workflow_dispatch:  # Manual trigger
-
-jobs:
-  expire-credits:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Execute expiry function
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          curl -X POST "$SUPABASE_URL/rest/v1/rpc/process_expired_credit_lots" \
-            -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Content-Type: application/json"
-```
-
-**Security note to add:**
-
-```text
-### Header Pattern for Supabase REST API
-
-- `apikey`: Use the anon key (identifies the project)
-- `Authorization: Bearer`: Use the service role key (authenticates with elevated privileges)
-
-CRITICAL: The service role key must NEVER be used client-side. It bypasses 
-Row Level Security and has full database access. Store it only in secure 
-server-side environments (CI/CD secrets, edge function secrets).
-```
-
----
-
-## 4. Complete Updated Permission SQL
-
-Incorporating all corrections:
-
-```sql
--- ============================================
--- RPC PERMISSION HARDENING (FINAL)
--- ============================================
-
--- create_work_log_and_allocate: authenticated users only
-REVOKE ALL ON FUNCTION public.create_work_log_and_allocate(
-  UUID, UUID, TIMESTAMPTZ, work_category, TEXT, INTEGER
-) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.create_work_log_and_allocate(
-  UUID, UUID, TIMESTAMPTZ, work_category, TEXT, INTEGER
-) TO authenticated;
-
--- create_credit_adjustment: authenticated users only
-REVOKE ALL ON FUNCTION public.create_credit_adjustment(
-  UUID, UUID, TEXT, INTEGER, TEXT, TEXT
-) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.create_credit_adjustment(
-  UUID, UUID, TEXT, INTEGER, TEXT, TEXT
-) TO authenticated;
-
--- get_credit_balance: authenticated users only
-REVOKE ALL ON FUNCTION public.get_credit_balance(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.get_credit_balance(UUID) TO authenticated;
-
--- process_expired_credit_lots: system/scheduler only
-REVOKE ALL ON FUNCTION public.process_expired_credit_lots() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.process_expired_credit_lots() TO service_role;
--- Do NOT grant to authenticated users
-```
-
----
-
-## 5. Updated process_expired_credit_lots Function
-
-With correct variable type:
-
-```sql
-CREATE OR REPLACE FUNCTION public.process_expired_credit_lots()
-RETURNS TABLE (
-  lots_expired INTEGER,
-  total_minutes_expired INTEGER
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  _lot RECORD;
-  _lots_count INTEGER := 0;
-  _minutes_count INTEGER := 0;
-  _remaining_to_expire INTEGER;
-  _lock_key INTEGER;  -- CORRECTED: int4, not BIGINT
-BEGIN
-  FOR _lot IN
-    SELECT 
-      id, 
-      service_provider_id, 
-      organization_id, 
-      minutes_remaining
-    FROM credit_lots
-    WHERE status = 'active'
-      AND expires_at <= NOW()
-      AND minutes_remaining > 0
-    ORDER BY service_provider_id, organization_id, id
-    FOR UPDATE SKIP LOCKED
-  LOOP
-    -- Acquire advisory lock (INTEGER key from hashtext)
-    _lock_key := hashtext(_lot.service_provider_id::TEXT || ':' || _lot.organization_id::TEXT);
-    PERFORM pg_advisory_xact_lock(_lock_key);
-    
-    -- Re-check after lock
-    SELECT minutes_remaining INTO _remaining_to_expire
-    FROM credit_lots
-    WHERE id = _lot.id
-      AND status = 'active'
-      AND minutes_remaining > 0
-    FOR UPDATE;
-    
-    IF _remaining_to_expire IS NULL OR _remaining_to_expire <= 0 THEN
-      CONTINUE;
-    END IF;
-    
-    -- Create ledger entry
-    INSERT INTO credit_ledger_entries (
-      service_provider_id,
-      organization_id,
-      entry_type,
-      minutes_delta,
-      reason_code,
-      notes,
-      related_credit_lot_id,
-      actor_type
-    ) VALUES (
-      _lot.service_provider_id,
-      _lot.organization_id,
-      'debit',
-      -_remaining_to_expire,
-      'expiry',
-      format('Credits expired after 24-month validity period. Lot ID: %s', _lot.id),
-      _lot.id,
-      'system'
-    );
-    
-    -- Create audit event
-    INSERT INTO audit_events (
-      service_provider_id,
-      organization_id,
-      actor_type,
-      entity_type,
-      entity_id,
-      action,
-      before_json,
-      after_json
-    ) VALUES (
-      _lot.service_provider_id,
-      _lot.organization_id,
-      'system',
-      'credit_lot',
-      _lot.id,
-      'expired',
-      jsonb_build_object('minutes_remaining', _remaining_to_expire, 'status', 'active'),
-      jsonb_build_object('minutes_remaining', 0, 'status', 'expired')
-    );
-    
-    -- Update lot
-    UPDATE credit_lots
-    SET minutes_remaining = 0, status = 'expired'
-    WHERE id = _lot.id;
-    
-    _lots_count := _lots_count + 1;
-    _minutes_count := _minutes_count + _remaining_to_expire;
-  END LOOP;
-  
-  RETURN QUERY SELECT _lots_count, _minutes_count;
-END;
-$$;
-
--- Apply permissions
-REVOKE ALL ON FUNCTION public.process_expired_credit_lots() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.process_expired_credit_lots() TO service_role;
-```
-
----
-
-## 6. Optional Enhancement: Deterministic Invoice Timestamps
-
-For production robustness, derive `paid_at` from the order rather than generating it fresh:
-
-```typescript
-// After updating order to paid, use the stored timestamp
-const { data: updatedOrder } = await supabase
-  .from("orders")
-  .select("paid_at")
-  .eq("id", orderId)
-  .single();
-
-const paidAt = updatedOrder?.paid_at || now;
-
-// Invoice upsert with deterministic timestamp
-await supabase
-  .from("invoices")
-  .upsert({
-    service_provider_id: order.service_provider_id,
-    organization_id: order.organization_id,
-    order_id: orderId,
-    stripe_receipt_url: receiptUrl,
-    status: "paid",
-    total_cents: order.amount_cents,
-    currency: order.currency,
-    issued_at: paidAt,  // From order, not fresh now()
-    paid_at: paidAt,
-  }, {
-    onConflict: "order_id",
-  });
-```
-
-This ensures multiple webhook deliveries don't cause timestamp drift.
-
----
-
-## Summary of Corrections
-
-| Issue | Fix |
-|-------|-----|
-| Lock key type | Changed `BIGINT` to `INTEGER` in docs and code |
-| service_role permission | Added `GRANT EXECUTE ... TO service_role` |
-| GitHub Actions headers | Use anon key for `apikey`, service role for `Authorization` |
-| Invoice timestamps | Optional: derive from order.paid_at |
-
----
-
-## Final Implementation Status
-
-With these corrections applied, the Expert Services Credit System plan is production-ready for implementation. The plan now correctly handles:
-
-- Type-safe advisory locking
-- Proper role-based execution permissions
-- Standard Supabase REST API authentication patterns
-- Idempotent webhook processing with receipt retry
-- Concurrency-safe credit allocation and expiry
-- Complete audit trail for all credit movements
+No new dependencies required.
