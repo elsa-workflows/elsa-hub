@@ -18,7 +18,7 @@ import { BookOpen, Zap, Bot, Puzzle, Megaphone, MessageSquare, ArrowRight } from
  * ============================================================================
  * URL AUDIT REPORT (Last audited: 2025-01-25)
  * ============================================================================
- * 
+ *
  * | Card Title                                      | Old URL                                                                 | New URL                                                                                                  | Reason              |
  * |-------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|---------------------|
  * | Orchestrating Intelligent Agents                | medium.com/@sipke/...7a8b9c0d1e2f                                      | sipkeschoorstra.medium.com/orchestrating-intelligent-agents-with-elsa-workflows-f3346b91dc17            | Wrong Medium domain |
@@ -30,7 +30,7 @@ import { BookOpen, Zap, Bot, Puzzle, Megaphone, MessageSquare, ArrowRight } from
  * | Elsa 3.1 – Elevating Reliability                | medium.com/@sipke/...2a3b4c5d6e7f                                      | sipkeschoorstra.medium.com/elsa-3-1-9e7a516f3f8f                                                        | Placeholder slug    |
  * | Reusing Triggers in Elsa Workflows 3.5          | medium.com/@sipke/...8g9h0i1j2k3l                                      | sipkeschoorstra.medium.com/reusing-triggers-in-elsa-workflows-3-5-d86a484f40b3                          | Placeholder slug    |
  * | Orchard Core and Elsa Workflows Demo            | youtube.com/watch?v=orchard-core-elsa-demo (placeholder)               | youtube.com/watch?v=5jWR5fWhNrk                                                                         | Placeholder URL     |
- * 
+ *
  * Verified working URLs (no changes needed):
  * - Elsa 3.0 – Unleash the power of workflows: sipkeschoorstra.medium.com/elsa-3-0-2b341e7cbfa7
  * - Introducing Elsa Workflows 3: cantinhode.net (cleaned tracking params)
@@ -39,7 +39,7 @@ import { BookOpen, Zap, Bot, Puzzle, Megaphone, MessageSquare, ArrowRight } from
  * - Configure External Authentication: medium.com/@djay93_42000/configure-external-authentication-in-elsa-workflows-environment-c8f91b6bd3ae
  * - Choosing the Right Workflow Engine: dev.to/mohammad_anzawi/choosing-the-right-workflow-engine-for-business-approval-systems-3klf
  * - ABP Community Talks YouTube: youtube.com/watch?v=fBPfbZwONKI
- * 
+ *
  * ============================================================================
  */
 
@@ -195,7 +195,7 @@ const releaseNotesResources: CommunityResource[] = [
     title: "Orchard Core and Elsa Workflows Demo",
     description:
       "Demo showing Elsa integration into Orchard Core with visual workflow creation and content publish events.",
-    href: "https://www.youtube.com/watch?v=5jWR5fWhNrk",
+    href: "https://www.youtube.com/watch?v=yO8Fr6vebSU",
     source: "Lombiq/Orchard Dojo",
     author: "Sipke Schoorstra",
     type: "video",
