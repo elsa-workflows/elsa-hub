@@ -427,7 +427,7 @@ export default function ExpertServices() {
                   className="gap-2 bg-background text-foreground hover:bg-background/90"
                   asChild
                 >
-                  <a href="mailto:enterprise@elsa-workflows.io?subject=Skywalker%20Digital%20-%20Expert%20Services%20Inquiry">
+                  <a href="mailto:info@skywalker-digital.com?subject=Skywalker%20Digital%20-%20Expert%20Services%20Inquiry">
                     Get Started
                     <ArrowRight className="h-4 w-4" />
                   </a>
@@ -438,7 +438,7 @@ export default function ExpertServices() {
                   className="text-primary-foreground hover:bg-primary-foreground/10"
                   asChild
                 >
-                  <a href="mailto:enterprise@elsa-workflows.io?subject=Skywalker%20Digital%20-%20Expert%20Services%20Question">
+                  <a href="mailto:info@skywalker-digital.com?subject=Skywalker%20Digital%20-%20Expert%20Services%20Question">
                     Have Questions?
                   </a>
                 </Button>
