@@ -1,5 +1,32 @@
+import { Users, Container, GraduationCap } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
-import { ServiceCard, NeutralityDisclaimer } from "@/components/enterprise";
+import { CategoryCard, NeutralityDisclaimer } from "@/components/enterprise";
+
+const categories = [
+  {
+    title: "Expert Advisory & Engineering",
+    description:
+      "Architecture review, workflow design, production troubleshooting, and hands-on pairing with Elsa experts.",
+    icon: Users,
+    href: "/enterprise/expert-services",
+  },
+  {
+    title: "Enterprise Docker Images",
+    description:
+      "Production-grade container images with regular updates, security patches, and documentation.",
+    icon: Container,
+    href: "/enterprise/docker-images",
+    comingSoon: true,
+  },
+  {
+    title: "Training & Academy",
+    description:
+      "Courses, workshops, and educational resources for teams working with Elsa Workflows.",
+    icon: GraduationCap,
+    href: "/enterprise/training",
+    comingSoon: true,
+  },
+];
 
 export default function Enterprise() {
   return (
@@ -20,56 +47,20 @@ export default function Enterprise() {
         </div>
       </section>
 
-      {/* Expert Advisory & Engineering */}
+      {/* Category Cards Grid */}
       <section className="py-12 md:py-16">
         <div className="container">
-          <h2 className="text-2xl md:text-3xl font-bold mb-8">
-            Expert Advisory & Engineering
-          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ServiceCard
-              title="Elsa Workflows Expert Services"
-              description="Direct access to deep Elsa expertise. Architecture review, workflow design, production troubleshooting, and hands-on pairing."
-              provider="Skywalker Digital"
-              href="/enterprise/expert-services"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Enterprise Docker Images */}
-      <section className="py-12 md:py-16 bg-surface-subtle">
-        <div className="container">
-          <h2 className="text-2xl md:text-3xl font-bold mb-8">
-            Enterprise Docker Images
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ServiceCard
-              title="Enterprise Docker Images"
-              description="Production-grade container images for Elsa Workflows with regular updates and documentation."
-              provider="Skywalker Digital"
-              href="/enterprise/docker-images"
-              tag="Coming Soon"
-              comingSoon
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Training & Academy */}
-      <section className="py-12 md:py-16">
-        <div className="container">
-          <h2 className="text-2xl md:text-3xl font-bold mb-8">
-            Training & Academy
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ServiceCard
-              title="Training & Academy"
-              description="Courses, workshops, and educational resources for teams working with Elsa Workflows."
-              href="/enterprise/training"
-              tag="Coming Soon"
-              comingSoon
-            />
+            {categories.map((category) => (
+              <CategoryCard
+                key={category.href}
+                title={category.title}
+                description={category.description}
+                icon={category.icon}
+                href={category.href}
+                comingSoon={category.comingSoon}
+              />
+            ))}
           </div>
         </div>
       </section>
