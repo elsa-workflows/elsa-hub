@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -18,14 +18,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-
     // Set up auth state listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -46,9 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (!supabase) {
-      return { error: new Error("Backend not configured") };
-    }
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -57,9 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    if (!supabase) {
-      return { error: new Error("Backend not configured") };
-    }
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -71,9 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGitHub = async () => {
-    if (!supabase) {
-      return { error: new Error("Backend not configured") };
-    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {
@@ -84,9 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
   };
 
   return (
@@ -95,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         loading,
-        isConfigured: isSupabaseConfigured,
+        isConfigured: true,
         signIn,
         signUp,
         signInWithGitHub,
