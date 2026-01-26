@@ -1,4 +1,5 @@
-import { Building2, Crown, Users, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Building2, Crown, Users, ShieldCheck, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -52,29 +53,34 @@ export function OrganizationList({ organizations, loading }: OrganizationListPro
   return (
     <div className="space-y-3">
       {organizations.map((org) => (
-        <Card key={org.id} className="hover:bg-muted/30 transition-colors cursor-pointer">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  {org.logo_url ? (
-                    <img src={org.logo_url} alt={org.name} className="h-6 w-6 rounded" />
-                  ) : (
-                    <Building2 className="h-5 w-5 text-primary" />
-                  )}
+        <Link key={org.id} to={`/org/${org.slug}`}>
+          <Card className="hover:bg-muted/30 transition-colors cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    {org.logo_url ? (
+                      <img src={org.logo_url} alt={org.name} className="h-6 w-6 rounded" />
+                    ) : (
+                      <Building2 className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">{org.name}</p>
+                    <p className="text-sm text-muted-foreground">/{org.slug}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{org.name}</p>
-                  <p className="text-sm text-muted-foreground">/{org.slug}</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="gap-1">
+                    {roleIcons[org.role]}
+                    {roleLabels[org.role] || org.role}
+                  </Badge>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
-              <Badge variant="secondary" className="gap-1">
-                {roleIcons[org.role]}
-                {roleLabels[org.role] || org.role}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
       ))}
     </div>
   );
