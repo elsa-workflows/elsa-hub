@@ -14,16 +14,723 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_events: {
+        Row: {
+          action: string
+          actor_type: Database["public"]["Enums"]["actor_type"]
+          actor_user_id: string | null
+          after_json: Json | null
+          before_json: Json | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          organization_id: string | null
+          service_provider_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_type: Database["public"]["Enums"]["actor_type"]
+          actor_user_id?: string | null
+          after_json?: Json | null
+          before_json?: Json | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          organization_id?: string | null
+          service_provider_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_type?: Database["public"]["Enums"]["actor_type"]
+          actor_user_id?: string | null
+          after_json?: Json | null
+          before_json?: Json | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          organization_id?: string | null
+          service_provider_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_events_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_bundles: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          hours: number
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          service_provider_id: string
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          hours: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents: number
+          service_provider_id: string
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          hours?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          service_provider_id?: string
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_bundles_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_ledger_entries: {
+        Row: {
+          actor_type: Database["public"]["Enums"]["actor_type"]
+          actor_user_id: string | null
+          created_at: string
+          entry_type: Database["public"]["Enums"]["ledger_entry_type"]
+          id: string
+          minutes_delta: number
+          notes: string | null
+          organization_id: string
+          reason_code: Database["public"]["Enums"]["ledger_reason_code"]
+          related_credit_lot_id: string | null
+          related_order_id: string | null
+          related_work_log_id: string | null
+          service_provider_id: string
+        }
+        Insert: {
+          actor_type?: Database["public"]["Enums"]["actor_type"]
+          actor_user_id?: string | null
+          created_at?: string
+          entry_type: Database["public"]["Enums"]["ledger_entry_type"]
+          id?: string
+          minutes_delta: number
+          notes?: string | null
+          organization_id: string
+          reason_code: Database["public"]["Enums"]["ledger_reason_code"]
+          related_credit_lot_id?: string | null
+          related_order_id?: string | null
+          related_work_log_id?: string | null
+          service_provider_id: string
+        }
+        Update: {
+          actor_type?: Database["public"]["Enums"]["actor_type"]
+          actor_user_id?: string | null
+          created_at?: string
+          entry_type?: Database["public"]["Enums"]["ledger_entry_type"]
+          id?: string
+          minutes_delta?: number
+          notes?: string | null
+          organization_id?: string
+          reason_code?: Database["public"]["Enums"]["ledger_reason_code"]
+          related_credit_lot_id?: string | null
+          related_order_id?: string | null
+          related_work_log_id?: string | null
+          service_provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_entries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_ledger_entries_related_credit_lot_id_fkey"
+            columns: ["related_credit_lot_id"]
+            isOneToOne: false
+            referencedRelation: "credit_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_ledger_entries_related_order_id_fkey"
+            columns: ["related_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_ledger_entries_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_related_work_log"
+            columns: ["related_work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_lots: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          minutes_purchased: number
+          minutes_remaining: number
+          order_id: string | null
+          organization_id: string
+          purchased_at: string
+          service_provider_id: string
+          status: Database["public"]["Enums"]["credit_lot_status"]
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          minutes_purchased: number
+          minutes_remaining: number
+          order_id?: string | null
+          organization_id: string
+          purchased_at?: string
+          service_provider_id: string
+          status?: Database["public"]["Enums"]["credit_lot_status"]
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          minutes_purchased?: number
+          minutes_remaining?: number
+          order_id?: string | null
+          organization_id?: string
+          purchased_at?: string
+          service_provider_id?: string
+          status?: Database["public"]["Enums"]["credit_lot_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_lots_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_lots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_lots_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          issued_at: string | null
+          order_id: string | null
+          organization_id: string
+          paid_at: string | null
+          service_provider_id: string
+          status: Database["public"]["Enums"]["invoice_status"]
+          stripe_invoice_id: string | null
+          stripe_receipt_url: string | null
+          total_cents: number
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          issued_at?: string | null
+          order_id?: string | null
+          organization_id: string
+          paid_at?: string | null
+          service_provider_id: string
+          status?: Database["public"]["Enums"]["invoice_status"]
+          stripe_invoice_id?: string | null
+          stripe_receipt_url?: string | null
+          total_cents: number
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          issued_at?: string | null
+          order_id?: string | null
+          organization_id?: string
+          paid_at?: string | null
+          service_provider_id?: string
+          status?: Database["public"]["Enums"]["invoice_status"]
+          stripe_invoice_id?: string | null
+          stripe_receipt_url?: string | null
+          total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lot_consumptions: {
+        Row: {
+          adjustment_ledger_entry_id: string | null
+          created_at: string
+          credit_lot_id: string
+          id: string
+          minutes_consumed: number
+          work_log_id: string | null
+        }
+        Insert: {
+          adjustment_ledger_entry_id?: string | null
+          created_at?: string
+          credit_lot_id: string
+          id?: string
+          minutes_consumed: number
+          work_log_id?: string | null
+        }
+        Update: {
+          adjustment_ledger_entry_id?: string | null
+          created_at?: string
+          credit_lot_id?: string
+          id?: string
+          minutes_consumed?: number
+          work_log_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lot_consumptions_adjustment_ledger_entry_id_fkey"
+            columns: ["adjustment_ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "credit_ledger_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_consumptions_credit_lot_id_fkey"
+            columns: ["credit_lot_id"]
+            isOneToOne: false
+            referencedRelation: "credit_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lot_consumptions_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          created_by: string | null
+          credit_bundle_id: string
+          currency: string
+          id: string
+          organization_id: string
+          paid_at: string | null
+          service_provider_id: string
+          status: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          created_by?: string | null
+          credit_bundle_id: string
+          currency?: string
+          id?: string
+          organization_id: string
+          paid_at?: string | null
+          service_provider_id: string
+          status?: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          created_by?: string | null
+          credit_bundle_id?: string
+          currency?: string
+          id?: string
+          organization_id?: string
+          paid_at?: string | null
+          service_provider_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_credit_bundle_id_fkey"
+            columns: ["credit_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_customers: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          service_provider_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          service_provider_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          service_provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_customers_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["provider_role"]
+          service_provider_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["provider_role"]
+          service_provider_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["provider_role"]
+          service_provider_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_members_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_providers: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      work_logs: {
+        Row: {
+          category: Database["public"]["Enums"]["work_category"]
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          is_billable: boolean
+          minutes_spent: number
+          organization_id: string
+          performed_at: string
+          performed_by: string
+          service_provider_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["work_category"]
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          is_billable?: boolean
+          minutes_spent: number
+          organization_id: string
+          performed_at: string
+          performed_by: string
+          service_provider_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["work_category"]
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          is_billable?: boolean
+          minutes_spent?: number
+          organization_id?: string
+          performed_at?: string
+          performed_by?: string
+          service_provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_credit_adjustment: {
+        Args: {
+          p_adjustment_type: string
+          p_minutes: number
+          p_notes: string
+          p_org_id: string
+          p_provider_id: string
+          p_reason_code: string
+        }
+        Returns: string
+      }
+      create_work_log_and_allocate: {
+        Args: {
+          p_category: Database["public"]["Enums"]["work_category"]
+          p_description: string
+          p_minutes: number
+          p_org_id: string
+          p_performed_at: string
+          p_provider_id: string
+        }
+        Returns: string
+      }
+      get_credit_balance: {
+        Args: { p_org_id: string }
+        Returns: {
+          available_minutes: number
+          expiring_soon_minutes: number
+          service_provider_id: string
+          total_minutes: number
+          used_minutes: number
+        }[]
+      }
+      get_user_provider_id: { Args: never; Returns: string }
+      is_org_admin: { Args: { p_org_id: string }; Returns: boolean }
+      is_org_member: { Args: { p_org_id: string }; Returns: boolean }
+      is_provider_admin: { Args: { p_provider_id: string }; Returns: boolean }
+      is_provider_customer: { Args: { p_org_id: string }; Returns: boolean }
+      is_provider_member: { Args: { p_provider_id: string }; Returns: boolean }
+      process_expired_credit_lots: {
+        Args: never
+        Returns: {
+          lots_expired: number
+          total_minutes_expired: number
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      actor_type: "user" | "system"
+      credit_lot_status: "active" | "exhausted" | "expired"
+      invoice_status: "draft" | "issued" | "paid" | "void"
+      ledger_entry_type: "credit" | "debit"
+      ledger_reason_code:
+        | "purchase"
+        | "usage"
+        | "adjustment"
+        | "expiry"
+        | "refund"
+      order_status: "pending" | "paid" | "cancelled" | "refunded"
+      org_role: "owner" | "admin" | "member"
+      provider_role: "owner" | "admin" | "member"
+      work_category:
+        | "development"
+        | "consulting"
+        | "training"
+        | "support"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +857,28 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      actor_type: ["user", "system"],
+      credit_lot_status: ["active", "exhausted", "expired"],
+      invoice_status: ["draft", "issued", "paid", "void"],
+      ledger_entry_type: ["credit", "debit"],
+      ledger_reason_code: [
+        "purchase",
+        "usage",
+        "adjustment",
+        "expiry",
+        "refund",
+      ],
+      order_status: ["pending", "paid", "cancelled", "refunded"],
+      org_role: ["owner", "admin", "member"],
+      provider_role: ["owner", "admin", "member"],
+      work_category: [
+        "development",
+        "consulting",
+        "training",
+        "support",
+        "other",
+      ],
+    },
   },
 } as const
