@@ -1,4 +1,4 @@
-import { Users, Container, GraduationCap } from "lucide-react";
+import { Users, Container, GraduationCap, Cloud } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { CategoryCard, NeutralityDisclaimer } from "@/components/enterprise";
 
@@ -16,6 +16,14 @@ const categories = [
       "Production-grade container images with regular updates, security patches, and documentation.",
     icon: Container,
     href: "/enterprise/docker-images",
+    comingSoon: true,
+  },
+  {
+    title: "Cloud & Managed Services",
+    description:
+      "Managed workflow engine in the cloud or bring your own. Enterprise-grade hosting with seamless management.",
+    icon: Cloud,
+    href: "/enterprise/cloud-services",
     comingSoon: true,
   },
   {
