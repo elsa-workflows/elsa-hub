@@ -13,6 +13,7 @@ import Docker from "./pages/get-started/Docker";
 import Enterprise from "./pages/Enterprise";
 import ExpertServices from "./pages/enterprise/ExpertServices";
 import DockerImages from "./pages/enterprise/DockerImages";
+import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
 import Marketplace from "./pages/Marketplace";
 import Resources from "./pages/Resources";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/enterprise" element={<Enterprise />} />
             <Route path="/enterprise/expert-services" element={<ExpertServices />} />
             <Route path="/enterprise/docker-images" element={<DockerImages />} />
+            <Route path="/enterprise/cloud-services" element={<CloudServices />} />
             <Route path="/enterprise/training" element={<Training />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/resources" element={<Resources />} />
