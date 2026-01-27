@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface CreditBalance {
   service_provider_id: string;
@@ -29,6 +30,14 @@ export interface TeamMember {
   created_at: string;
 }
 
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  status: string;
+}
+
 export interface OrganizationDashboardData {
   organization: {
     id: string;
@@ -39,9 +48,14 @@ export interface OrganizationDashboardData {
   creditBalances: CreditBalance[];
   orders: OrderWithBundle[];
   teamMembers: TeamMember[];
+  pendingInvitations: PendingInvitation[];
+  isAdmin: boolean;
 }
 
 export function useOrganizationDashboard(slug: string | undefined) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   // Fetch organization by slug
   const organizationQuery = useQuery({
     queryKey: ["organization", slug],
@@ -171,6 +185,44 @@ export function useOrganizationDashboard(slug: string | undefined) {
     enabled: !!orgId,
   });
 
+  // Check if current user is admin
+  const isAdminQuery = useQuery({
+    queryKey: ["is-org-admin", orgId],
+    queryFn: async () => {
+      if (!orgId) return false;
+      
+      const { data, error } = await supabase.rpc("is_org_admin", {
+        p_org_id: orgId,
+      });
+      
+      if (error) return false;
+      return data === true;
+    },
+    enabled: !!orgId && !!user,
+  });
+
+  // Fetch pending invitations (only if admin)
+  const invitationsQuery = useQuery({
+    queryKey: ["pending-invitations", orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      
+      const { data, error } = await supabase
+        .from("invitations")
+        .select("id, email, role, expires_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching invitations:", error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!orgId && isAdminQuery.data === true,
+  });
+
   const isLoading = 
     organizationQuery.isLoading || 
     creditBalanceQuery.isLoading || 
@@ -183,13 +235,20 @@ export function useOrganizationDashboard(slug: string | undefined) {
     ordersQuery.error || 
     teamMembersQuery.error;
 
+  const refetchInvitations = () => {
+    queryClient.invalidateQueries({ queryKey: ["pending-invitations", orgId] });
+  };
+
   return {
     organization: organizationQuery.data || null,
     creditBalances: creditBalanceQuery.data || [],
     orders: ordersQuery.data || [],
     teamMembers: teamMembersQuery.data || [],
+    pendingInvitations: invitationsQuery.data || [],
+    isAdmin: isAdminQuery.data === true,
     isLoading,
     error,
     notFound: !organizationQuery.isLoading && !organizationQuery.data,
+    refetchInvitations,
   };
 }
