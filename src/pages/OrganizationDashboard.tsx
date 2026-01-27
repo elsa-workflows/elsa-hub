@@ -7,7 +7,17 @@ import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard } from "@/comp
 
 export default function OrganizationDashboard() {
   const { slug } = useParams<{ slug: string }>();
-  const { organization, creditBalances, orders, teamMembers, isLoading, notFound } = useOrganizationDashboard(slug);
+  const { 
+    organization, 
+    creditBalances, 
+    orders, 
+    teamMembers, 
+    pendingInvitations,
+    isAdmin,
+    isLoading, 
+    notFound,
+    refetchInvitations,
+  } = useOrganizationDashboard(slug);
 
   if (notFound && !isLoading) {
     return (
@@ -69,7 +79,15 @@ export default function OrganizationDashboard() {
           {/* Dashboard Grid */}
           <div className="grid gap-6 md:grid-cols-2">
             <CreditBalanceCard balances={creditBalances} loading={isLoading} />
-            <TeamMembersCard members={teamMembers} loading={isLoading} />
+            <TeamMembersCard 
+              members={teamMembers} 
+              loading={isLoading}
+              organizationId={organization?.id}
+              organizationName={organization?.name}
+              isAdmin={isAdmin}
+              pendingInvitations={pendingInvitations}
+              onInviteSent={refetchInvitations}
+            />
           </div>
 
           {/* Purchase History - Full Width */}
