@@ -136,7 +136,7 @@ export default function ExpertServices() {
             <p className="text-lg text-muted-foreground">
               Get expert guidance, unblock your team, and build with confidence. 
               Whether you need architectural clarity, hands-on pairing, or production troubleshooting — 
-              Skywalker Digital is here to help.
+              <a href="https://www.skywalker-digital.com/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Skywalker Digital</a> is here to help.
             </p>
           </div>
         </div>
