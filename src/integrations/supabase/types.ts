@@ -277,6 +277,7 @@ export type Database = {
           role: Database["public"]["Enums"]["org_role"]
           status: string
           token: string
+          token_hash: string | null
         }
         Insert: {
           created_at?: string
@@ -288,6 +289,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["org_role"]
           status?: string
           token: string
+          token_hash?: string | null
         }
         Update: {
           created_at?: string
@@ -299,6 +301,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["org_role"]
           status?: string
           token?: string
+          token_hash?: string | null
         }
         Relationships: [
           {
@@ -706,7 +709,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      invitations_secure: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          expires_at: string | null
+          id: string | null
+          invited_by: string | null
+          organization_id: string | null
+          role: Database["public"]["Enums"]["org_role"] | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: never
+          expires_at?: string | null
+          id?: string | null
+          invited_by?: string | null
+          organization_id?: string | null
+          role?: Database["public"]["Enums"]["org_role"] | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: never
+          expires_at?: string | null
+          id?: string | null
+          invited_by?: string | null
+          organization_id?: string | null
+          role?: Database["public"]["Enums"]["org_role"] | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
@@ -756,6 +799,7 @@ export type Database = {
         }[]
       }
       get_user_provider_id: { Args: never; Returns: string }
+      hash_invitation_token: { Args: { p_token: string }; Returns: string }
       is_org_admin: { Args: { p_org_id: string }; Returns: boolean }
       is_org_member: { Args: { p_org_id: string }; Returns: boolean }
       is_provider_admin: { Args: { p_provider_id: string }; Returns: boolean }

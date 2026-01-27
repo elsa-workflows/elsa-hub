@@ -202,13 +202,14 @@ export function useOrganizationDashboard(slug: string | undefined) {
   });
 
   // Fetch pending invitations (only if admin)
+  // Uses secure view that masks emails from admins who didn't create the invitation
   const invitationsQuery = useQuery({
     queryKey: ["pending-invitations", orgId],
     queryFn: async () => {
       if (!orgId) return [];
       
       const { data, error } = await supabase
-        .from("invitations")
+        .from("invitations_secure")
         .select("id, email, role, expires_at, status")
         .eq("organization_id", orgId)
         .eq("status", "pending")
