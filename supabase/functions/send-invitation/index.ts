@@ -129,14 +129,22 @@ const handler = async (req: Request): Promise<Response> => {
     const token_value = crypto.randomUUID() + "-" + crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    // Create invitation
+    // Hash the token using SHA-256 for secure storage
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token_value);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const token_hash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+    // Create invitation with hashed token (plaintext token is NOT stored)
     const { data: invitation, error: inviteError } = await serviceClient
       .from("invitations")
       .insert({
         organization_id: organizationId,
         email: email.toLowerCase(),
         role,
-        token: token_value,
+        token: null, // No longer storing plaintext token
+        token_hash: token_hash,
         invited_by: userId,
         expires_at: expiresAt.toISOString(),
         status: "pending",
