@@ -35,8 +35,10 @@ const roleLabels: Record<string, string> = {
   member: "Member",
 };
 
-function truncateUuid(uuid: string): string {
-  return `${uuid.slice(0, 8)}...`;
+function getDisplayName(member: TeamMember): string {
+  if (member.display_name) return member.display_name;
+  if (member.email) return member.email;
+  return `${member.user_id.slice(0, 8)}...`;
 }
 
 export function TeamMembersCard({ 
@@ -110,8 +112,8 @@ export function TeamMembersCard({
                     <User className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm font-mono">
-                      {truncateUuid(member.user_id)}
+                    <p className="font-medium text-sm">
+                      {getDisplayName(member)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Joined {format(new Date(member.created_at), "MMM d, yyyy")}
