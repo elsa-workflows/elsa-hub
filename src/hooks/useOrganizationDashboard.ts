@@ -28,6 +28,8 @@ export interface TeamMember {
   user_id: string;
   role: string;
   created_at: string;
+  email: string | null;
+  display_name: string | null;
 }
 
 export interface PendingInvitation {
@@ -167,20 +169,35 @@ export function useOrganizationDashboard(slug: string | undefined) {
     enabled: !!orgId,
   });
 
-  // Fetch team members
+  // Fetch team members with profile info
   const teamMembersQuery = useQuery({
     queryKey: ["team-members", orgId],
     queryFn: async () => {
       if (!orgId) return [];
       
-      const { data, error } = await supabase
+      const { data: members, error } = await supabase
         .from("organization_members")
         .select("id, user_id, role, created_at")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: true });
       
       if (error) throw error;
-      return data || [];
+      if (!members || members.length === 0) return [];
+
+      // Fetch profiles for all members
+      const userIds = members.map(m => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, email, display_name")
+        .in("user_id", userIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      
+      return members.map(member => ({
+        ...member,
+        email: profileMap.get(member.user_id)?.email || null,
+        display_name: profileMap.get(member.user_id)?.display_name || null,
+      }));
     },
     enabled: !!orgId,
   });
