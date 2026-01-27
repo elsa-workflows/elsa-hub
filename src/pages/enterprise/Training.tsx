@@ -118,7 +118,7 @@ export default function Training() {
             <p className="text-sm text-muted-foreground">
               Interested in offering Elsa Workflows training?{" "}
               <a 
-                href="mailto:enterprise@elsa-workflows.io?subject=Training%20Provider%20Inquiry" 
+                href="mailto:info@skywalker-digital.com?subject=Training%20Provider%20Inquiry" 
                 className="text-primary hover:underline"
               >
                 Get in touch
@@ -145,7 +145,7 @@ export default function Training() {
                 to discuss your team's learning needs.
               </p>
               <Button size="lg" className="gap-2" asChild>
-                <a href="mailto:enterprise@elsa-workflows.io?subject=Training%20Inquiry">
+                <a href="mailto:info@skywalker-digital.com?subject=Training%20Inquiry">
                   Contact Us
                   <ArrowRight className="h-4 w-4" />
                 </a>
