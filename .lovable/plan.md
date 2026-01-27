@@ -1,35 +1,64 @@
 
-# Hyperlink Skywalker Digital References
+# Fix Scroll Position on Route Navigation
 
-## Overview
-Add a hyperlink to "Skywalker Digital" where it appears in prose text on the Expert Services page, while keeping the badge as-is for cleaner visual design.
+## Problem
+When navigating between internal pages using React Router, the scroll position remains at the current location instead of resetting to the top of the page. This creates a poor user experience, especially when clicking links from the bottom of a page.
 
-## Changes
+## Solution
+Create a `ScrollToTop` component that listens for route changes and scrolls the window to the top whenever the location pathname changes.
 
-### File: `src/pages/enterprise/ExpertServices.tsx`
+## Implementation
 
-**What will be changed:**
+### New File: `src/components/ScrollToTop.tsx`
 
-1. **Line 139 (Hero paragraph)** - Wrap "Skywalker Digital" in an anchor tag:
-   - Current: `Skywalker Digital is here to help.`
-   - Updated: Link "Skywalker Digital" to `https://www.skywalker-digital.com/`
-   - Style: Use subtle link styling (`underline underline-offset-2` or similar) that fits the muted text context
+Create a simple component that:
+- Uses React Router's `useLocation` hook to detect route changes
+- Uses `useEffect` to scroll to top when `pathname` changes
+- Returns `null` (renders nothing visible)
 
-2. **Line 127-129 (Badge)** - Leave unchanged
-   - Badges work best as static labels
-   - Hyperlinking would require custom styling that may look awkward
-   - The website link in the paragraph provides sufficient discoverability
+```tsx
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
-## Implementation Details
+export function ScrollToTop() {
+  const { pathname } = useLocation();
 
-The link will:
-- Open in a new tab (`target="_blank"`)
-- Include security attributes (`rel="noopener noreferrer"`)
-- Use appropriate styling to indicate it's clickable while maintaining the muted foreground color scheme
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
-## Visual Result
+  return null;
+}
+```
 
-The hero section will read:
-> "Get expert guidance, unblock your team, and build with confidence. Whether you need architectural clarity, hands-on pairing, or production troubleshooting — [Skywalker Digital](link) is here to help."
+### Update: `src/App.tsx`
 
-The badge above will remain as a static label: `Provided by Skywalker Digital`
+Add the `ScrollToTop` component inside the `BrowserRouter` (it must be a child of the router to access location):
+
+```tsx
+import { ScrollToTop } from "@/components/ScrollToTop";
+
+// Inside BrowserRouter, before Routes:
+<BrowserRouter>
+  <ScrollToTop />
+  <AuthProvider>
+    <Routes>
+      ...
+    </Routes>
+  </AuthProvider>
+</BrowserRouter>
+```
+
+## Why This Approach
+
+- **Simple and reliable** - This pattern is the recommended approach for React Router v6
+- **No dependencies** - Uses only React and React Router hooks
+- **Minimal footprint** - Single small component with one effect
+- **Automatic** - Works globally for all route changes without modifying individual pages
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `src/components/ScrollToTop.tsx` | New file |
+| `src/App.tsx` | Import and add `<ScrollToTop />` component |
