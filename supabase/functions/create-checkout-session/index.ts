@@ -40,6 +40,7 @@ serve(async (req) => {
       );
     }
     const userId = claimsData.claims.sub;
+    const userEmail = claimsData.claims.email as string | undefined;
 
     // Parse request body
     const { bundleId, organizationId } = await req.json();
@@ -74,10 +75,10 @@ serve(async (req) => {
       );
     }
 
-    // Fetch bundle details
+    // Fetch bundle details including billing_type and monthly_hours
     const { data: bundle, error: bundleError } = await userClient
       .from("credit_bundles")
-      .select("id, name, hours, price_cents, currency, stripe_price_id, service_provider_id, is_active")
+      .select("id, name, hours, monthly_hours, price_cents, currency, stripe_price_id, service_provider_id, is_active, billing_type, recurring_interval")
       .eq("id", bundleId)
       .single();
     if (bundleError || !bundle) {
@@ -99,57 +100,100 @@ serve(async (req) => {
       );
     }
 
+    // Determine checkout mode based on billing type
+    const isSubscription = bundle.billing_type === "recurring";
+    const mode = isSubscription ? "subscription" : "payment";
+
     // Create service client for privileged operations
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
-
-    // Create pending order
-    const { data: order, error: orderError } = await serviceClient
-      .from("orders")
-      .insert({
-        organization_id: organizationId,
-        service_provider_id: bundle.service_provider_id,
-        credit_bundle_id: bundle.id,
-        amount_cents: bundle.price_cents,
-        currency: bundle.currency,
-        status: "pending",
-        created_by: userId,
-      })
-      .select()
-      .single();
-    if (orderError) {
-      console.error("Order creation error:", orderError);
-      return new Response(
-        JSON.stringify({ error: "Failed to create order" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       apiVersion: "2025-08-27.basil",
     });
 
+    // For subscriptions, we need to get or create a Stripe customer
+    let stripeCustomerId: string | undefined;
+    if (isSubscription && userEmail) {
+      // Check if customer already exists
+      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+      if (customers.data.length > 0) {
+        stripeCustomerId = customers.data[0].id;
+      } else {
+        // Create new customer
+        const customer = await stripe.customers.create({
+          email: userEmail,
+          metadata: {
+            organization_id: organizationId,
+            user_id: userId,
+          },
+        });
+        stripeCustomerId = customer.id;
+      }
+    }
+
+    // For one-time payments, create pending order
+    // For subscriptions, we don't create an order until the subscription is confirmed
+    let orderId: string | undefined;
+    if (!isSubscription) {
+      const { data: order, error: orderError } = await serviceClient
+        .from("orders")
+        .insert({
+          organization_id: organizationId,
+          service_provider_id: bundle.service_provider_id,
+          credit_bundle_id: bundle.id,
+          amount_cents: bundle.price_cents,
+          currency: bundle.currency,
+          status: "pending",
+          created_by: userId,
+        })
+        .select()
+        .single();
+      if (orderError) {
+        console.error("Order creation error:", orderError);
+        return new Response(
+          JSON.stringify({ error: "Failed to create order" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      orderId = order.id;
+    }
+
     // Create Stripe Checkout session
     const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
+    
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+      mode,
       line_items: [{ price: bundle.stripe_price_id, quantity: 1 }],
       metadata: {
-        order_id: order.id,
         organization_id: organizationId,
         service_provider_id: bundle.service_provider_id,
         bundle_id: bundle.id,
+        billing_type: bundle.billing_type || "one_time",
+        ...(orderId && { order_id: orderId }),
       },
       success_url: `${origin}/org/${org.slug}?payment=success`,
       cancel_url: `${origin}/enterprise/expert-services?payment=cancelled`,
-    });
+    };
 
-    // Update order with checkout session ID
-    await serviceClient
-      .from("orders")
-      .update({ stripe_checkout_session_id: session.id })
-      .eq("id", order.id);
+    // For subscriptions, attach customer
+    if (isSubscription && stripeCustomerId) {
+      sessionConfig.customer = stripeCustomerId;
+    } else if (!isSubscription && userEmail) {
+      // For one-time payments, prefill email
+      sessionConfig.customer_email = userEmail;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
+
+    // Update order with checkout session ID (for one-time payments only)
+    if (orderId) {
+      await serviceClient
+        .from("orders")
+        .update({ stripe_checkout_session_id: session.id })
+        .eq("id", orderId);
+    }
 
     return new Response(
       JSON.stringify({ checkoutUrl: session.url }),

@@ -4,7 +4,8 @@ import { ArrowLeft, Building2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
-import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard } from "@/components/organization";
+import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard } from "@/components/organization";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { toast } from "sonner";
 
 export default function OrganizationDashboard() {
@@ -21,6 +22,9 @@ export default function OrganizationDashboard() {
     notFound,
     refetchInvitations,
   } = useOrganizationDashboard(slug);
+
+  // Fetch subscriptions
+  const { data: subscriptions, isLoading: subscriptionsLoading } = useSubscriptions(organization?.id);
 
   // Handle payment success from URL params
   useEffect(() => {
@@ -103,6 +107,14 @@ export default function OrganizationDashboard() {
               onInviteSent={refetchInvitations}
             />
           </div>
+
+          {/* Active Subscriptions */}
+          <SubscriptionCard 
+            subscriptions={subscriptions || []} 
+            loading={subscriptionsLoading}
+            isAdmin={isAdmin}
+            organizationId={organization?.id}
+          />
 
           {/* Purchase History - Full Width */}
           <PurchaseHistoryTable orders={orders} loading={isLoading} />

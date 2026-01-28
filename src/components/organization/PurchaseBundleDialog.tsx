@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, CreditCard, Loader2, AlertCircle, Check } from "lucide-react";
+import { Building2, CreditCard, Loader2, AlertCircle, Check, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -71,12 +71,17 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
     }
   };
 
-  const formatPrice = (cents: number, currency: string) => {
-    return new Intl.NumberFormat("en-US", {
+  const formatPrice = (cents: number, currency: string, isRecurring?: boolean, interval?: string | null) => {
+    const formatted = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency.toUpperCase(),
       minimumFractionDigits: 0,
     }).format(cents / 100);
+    
+    if (isRecurring && interval) {
+      return `${formatted}/${interval}`;
+    }
+    return formatted;
   };
 
   // Not logged in - redirect to login with return URL
@@ -128,13 +133,20 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
     );
   }
 
+  const isSubscription = selectedBundle?.billing_type === "recurring";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Purchase Service Credits</DialogTitle>
+          <DialogTitle>
+            {isSubscription ? "Subscribe to Service" : "Purchase Service Credits"}
+          </DialogTitle>
           <DialogDescription>
-            Select a bundle and complete your purchase to get started.
+            {isSubscription 
+              ? "Select a subscription plan and complete your signup."
+              : "Select a bundle and complete your purchase to get started."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -143,15 +155,15 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Purchasing as
+              {isSubscription ? "Subscribing as" : "Purchasing as"}
             </label>
             <OrganizationSelector className="w-full" />
             {selectedOrganization && !isAdmin && (
               <Alert variant="destructive" className="mt-2">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Only organization admins can purchase credits. Contact an admin of{" "}
-                  <strong>{selectedOrganization.name}</strong> to make this purchase.
+                  Only organization admins can {isSubscription ? "subscribe" : "purchase credits"}. Contact an admin of{" "}
+                  <strong>{selectedOrganization.name}</strong> to make this {isSubscription ? "subscription" : "purchase"}.
                 </AlertDescription>
               </Alert>
             )}
@@ -169,6 +181,9 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
                 <div className="grid gap-3">
                   {bundles?.map((bundle) => {
                     const isConfigured = !!bundle.stripe_price_id;
+                    const isRecurring = bundle.billing_type === "recurring";
+                    const hours = isRecurring ? bundle.monthly_hours : bundle.hours;
+                    
                     return (
                       <Card
                         key={bundle.id}
@@ -193,20 +208,29 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
                             >
                               {selectedBundle?.id === bundle.id ? (
                                 <Check className="h-5 w-5" />
+                              ) : isRecurring ? (
+                                <RefreshCw className="h-5 w-5 text-muted-foreground" />
                               ) : (
                                 <CreditCard className="h-5 w-5 text-muted-foreground" />
                               )}
                             </div>
                             <div>
-                              <div className="font-medium">{bundle.name}</div>
+                              <div className="font-medium flex items-center gap-2">
+                                {bundle.name}
+                                {isRecurring && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Subscription
+                                  </Badge>
+                                )}
+                              </div>
                               <div className="text-sm text-muted-foreground">
-                                {bundle.hours} hours of expert time
+                                {hours} hours{isRecurring ? " per month" : " of expert time"}
                               </div>
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold">
-                              {formatPrice(bundle.price_cents, bundle.currency)}
+                              {formatPrice(bundle.price_cents, bundle.currency, isRecurring, bundle.recurring_interval)}
                             </div>
                             {!isConfigured && (
                               <Badge variant="secondary" className="text-xs">
@@ -244,6 +268,11 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Processing...
+              </>
+            ) : isSubscription ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Subscribe
               </>
             ) : (
               <>
