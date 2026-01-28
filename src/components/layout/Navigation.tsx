@@ -89,9 +89,9 @@ export function Navigation() {
                 <>
                   <NotificationBell />
                   <Button variant="ghost" size="sm" className="gap-2" asChild>
-                    <Link to="/account">
+                    <Link to="/dashboard">
                       <User className="h-4 w-4" />
-                      Account
+                      Dashboard
                     </Link>
                   </Button>
                   <Button
@@ -149,12 +149,12 @@ export function Navigation() {
                   {user ? (
                     <>
                       <Link
-                        to="/account"
+                        to="/dashboard"
                         onClick={() => setOpen(false)}
                         className="px-4 py-3 text-lg font-medium rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
                       >
                         <User className="h-4 w-4" />
-                        Account
+                        Dashboard
                       </Link>
                       <button
                         onClick={() => {
