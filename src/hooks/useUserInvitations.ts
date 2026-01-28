@@ -25,6 +25,7 @@ export function useUserInvitations() {
     queryFn: async () => {
       if (!user?.email) return [];
 
+      // Only fetch invitations sent TO the current user (not ones they created as admin)
       const { data, error } = await supabase
         .from("invitations")
         .select(`
@@ -36,6 +37,7 @@ export function useUserInvitations() {
           organizations!inner(name, slug)
         `)
         .eq("status", "pending")
+        .ilike("email", user.email) // Filter to only show invitations for this user's email
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
 
