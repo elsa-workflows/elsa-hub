@@ -25,25 +25,21 @@ export function useUserInvitations() {
     queryFn: async () => {
       if (!user?.email || !session?.access_token) return [];
 
-      console.log("Fetching invitations for email:", user.email);
-
       // Verify the Supabase client has the current session
       const { data: currentSession } = await supabase.auth.getSession();
       if (!currentSession.session) {
-        console.warn("No active Supabase session, skipping invitation fetch");
         return [];
       }
 
       // Verify the session matches the expected user
       const sessionEmail = currentSession.session.user?.email;
       if (sessionEmail?.toLowerCase() !== user.email.toLowerCase()) {
-        console.warn("Session email mismatch:", sessionEmail, "vs expected:", user.email);
         return [];
       }
 
-      console.log("Supabase session verified for:", sessionEmail);
-
       // Only fetch invitations sent TO the current user (not ones they created as admin)
+      // IMPORTANT: Use regular join (not !inner) because the invitee may not have RLS access 
+      // to the organizations table yet (they're not a member until they accept)
       const { data, error } = await supabase
         .from("invitations")
         .select(`
@@ -52,7 +48,7 @@ export function useUserInvitations() {
           role,
           expires_at,
           created_at,
-          organizations!inner(name, slug)
+          organizations(name, slug)
         `)
         .eq("status", "pending")
         .ilike("email", user.email) // Filter to only show invitations for this user's email
@@ -63,8 +59,6 @@ export function useUserInvitations() {
         console.error("Error fetching invitations:", error);
         return [];
       }
-
-      console.log("Invitations query returned:", data?.length || 0, "results");
 
       return (data || []).map((inv: any) => ({
         id: inv.id,
