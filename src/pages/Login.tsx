@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,7 +31,11 @@ export default function Login() {
   const [isGitHubLoading, setIsGitHubLoading] = useState(false);
   const { signIn, signInWithGitHub } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Get redirect URL from query params
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -57,15 +61,20 @@ export default function Login() {
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
-      navigate("/");
+      navigate(redirectTo);
     }
   };
 
   const handleGitHubLogin = async () => {
     setIsGitHubLoading(true);
+    // Store redirect URL for after OAuth callback
+    if (redirectTo !== "/") {
+      sessionStorage.setItem("authRedirect", redirectTo);
+    }
     const { error } = await signInWithGitHub();
     if (error) {
       setIsGitHubLoading(false);
+      sessionStorage.removeItem("authRedirect");
       toast({
         variant: "destructive",
         title: "Login failed",

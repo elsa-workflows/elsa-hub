@@ -83,18 +83,38 @@ const notIncluded = [
 export default function ExpertServices() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
   const { data: bundles, isLoading: bundlesLoading } = useCreditBundles();
 
-  // Handle payment status from URL params
+  // Handle URL params on mount (payment status and bundleId for returning from login)
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
+    const bundleId = searchParams.get("bundleId");
+    
     if (paymentStatus === "cancelled") {
       toast.info("Payment cancelled", {
         description: "Your payment was cancelled. No charges were made.",
       });
-      setSearchParams({});
+      setSearchParams((prev) => {
+        prev.delete("payment");
+        return prev;
+      });
+    }
+    
+    if (bundleId) {
+      setSelectedBundleId(bundleId);
+      setPurchaseDialogOpen(true);
+      setSearchParams((prev) => {
+        prev.delete("bundleId");
+        return prev;
+      });
     }
   }, [searchParams, setSearchParams]);
+
+  const handleBundleClick = (bundleId: string) => {
+    setSelectedBundleId(bundleId);
+    setPurchaseDialogOpen(true);
+  };
 
   const formatPrice = (cents: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
@@ -287,11 +307,12 @@ export default function ExpertServices() {
                   return (
                     <Card
                       key={bundle.id}
+                      onClick={() => handleBundleClick(bundle.id)}
                       className={cn(
-                        "relative overflow-visible transition-shadow",
+                        "relative overflow-visible transition-all cursor-pointer",
                         isPopular
-                          ? "border-primary shadow-lg md:-translate-y-2"
-                          : "hover:shadow-md"
+                          ? "border-primary shadow-lg md:-translate-y-2 hover:shadow-xl"
+                          : "hover:shadow-md hover:border-primary/50"
                       )}
                     >
                       {isPopular && (
@@ -320,14 +341,6 @@ export default function ExpertServices() {
                 })}
               </div>
             )}
-
-            {/* Purchase CTA */}
-            <div className="mt-12 text-center">
-              <Button size="lg" className="gap-2" onClick={() => setPurchaseDialogOpen(true)}>
-                <CreditCard className="h-4 w-4" />
-                Purchase Credits
-              </Button>
-            </div>
           </div>
         </div>
       </section>
@@ -480,7 +493,11 @@ export default function ExpertServices() {
       </section>
 
       {/* Purchase Dialog */}
-      <PurchaseBundleDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} />
+      <PurchaseBundleDialog
+        open={purchaseDialogOpen}
+        onOpenChange={setPurchaseDialogOpen}
+        preSelectedBundleId={selectedBundleId}
+      />
     </Layout>
   );
 }
