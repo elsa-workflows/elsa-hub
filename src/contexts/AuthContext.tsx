@@ -35,6 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
           queryClient.clear();
           
+          // Clear stale organization context from localStorage
+          localStorage.removeItem("selected_organization");
+          
           // Force refresh session to ensure the Supabase client has the latest token
           if (event === "SIGNED_IN" && session) {
             supabase.auth.refreshSession();

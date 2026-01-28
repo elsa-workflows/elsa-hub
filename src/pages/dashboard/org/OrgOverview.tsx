@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 export default function OrgOverview() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { 
     organization, 
     creditBalances, 
@@ -37,6 +38,16 @@ export default function OrgOverview() {
     }
   }, [searchParams, setSearchParams]);
 
+  // Auto-redirect to dashboard when org not found after a short delay
+  useEffect(() => {
+    if (notFound && !isLoading) {
+      const timeout = setTimeout(() => {
+        navigate("/dashboard", { replace: true });
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [notFound, isLoading, navigate]);
+
   if (notFound && !isLoading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center px-4">
@@ -45,6 +56,7 @@ export default function OrgOverview() {
         <p className="text-muted-foreground mb-6">
           This organization doesn't exist or you don't have access to it.
         </p>
+        <p className="text-sm text-muted-foreground mb-4">Redirecting to dashboard...</p>
         <Button asChild>
           <Link to="/dashboard">Go to Dashboard</Link>
         </Button>
