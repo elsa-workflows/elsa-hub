@@ -73,40 +73,49 @@ export type Database = {
       }
       credit_bundles: {
         Row: {
+          billing_type: Database["public"]["Enums"]["billing_type"]
           created_at: string
           currency: string
           description: string | null
           hours: number
           id: string
           is_active: boolean
+          monthly_hours: number | null
           name: string
           price_cents: number
+          recurring_interval: string | null
           service_provider_id: string
           stripe_price_id: string | null
           updated_at: string
         }
         Insert: {
+          billing_type?: Database["public"]["Enums"]["billing_type"]
           created_at?: string
           currency?: string
           description?: string | null
           hours: number
           id?: string
           is_active?: boolean
+          monthly_hours?: number | null
           name: string
           price_cents: number
+          recurring_interval?: string | null
           service_provider_id: string
           stripe_price_id?: string | null
           updated_at?: string
         }
         Update: {
+          billing_type?: Database["public"]["Enums"]["billing_type"]
           created_at?: string
           currency?: string
           description?: string | null
           hours?: number
           id?: string
           is_active?: boolean
+          monthly_hours?: number | null
           name?: string
           price_cents?: number
+          recurring_interval?: string | null
           service_provider_id?: string
           stripe_price_id?: string | null
           updated_at?: string
@@ -207,6 +216,7 @@ export type Database = {
       }
       credit_lots: {
         Row: {
+          billing_period_start: string | null
           created_at: string
           expires_at: string
           id: string
@@ -217,8 +227,10 @@ export type Database = {
           purchased_at: string
           service_provider_id: string
           status: Database["public"]["Enums"]["credit_lot_status"]
+          subscription_id: string | null
         }
         Insert: {
+          billing_period_start?: string | null
           created_at?: string
           expires_at: string
           id?: string
@@ -229,8 +241,10 @@ export type Database = {
           purchased_at?: string
           service_provider_id: string
           status?: Database["public"]["Enums"]["credit_lot_status"]
+          subscription_id?: string | null
         }
         Update: {
+          billing_period_start?: string | null
           created_at?: string
           expires_at?: string
           id?: string
@@ -241,6 +255,7 @@ export type Database = {
           purchased_at?: string
           service_provider_id?: string
           status?: Database["public"]["Enums"]["credit_lot_status"]
+          subscription_id?: string | null
         }
         Relationships: [
           {
@@ -262,6 +277,13 @@ export type Database = {
             columns: ["service_provider_id"]
             isOneToOne: false
             referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_lots_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -683,6 +705,73 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          credit_bundle_id: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          organization_id: string
+          service_provider_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          credit_bundle_id: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          organization_id: string
+          service_provider_id: string
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          credit_bundle_id?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          organization_id?: string
+          service_provider_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_credit_bundle_id_fkey"
+            columns: ["credit_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_logs: {
         Row: {
           category: Database["public"]["Enums"]["work_category"]
@@ -848,6 +937,7 @@ export type Database = {
     }
     Enums: {
       actor_type: "user" | "system"
+      billing_type: "one_time" | "recurring"
       credit_lot_status: "active" | "exhausted" | "expired"
       invoice_status: "draft" | "issued" | "paid" | "void"
       ledger_entry_type: "credit" | "debit"
@@ -857,6 +947,7 @@ export type Database = {
         | "adjustment"
         | "expiry"
         | "refund"
+        | "subscription_credit"
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
       provider_role: "owner" | "admin" | "member"
@@ -994,6 +1085,7 @@ export const Constants = {
   public: {
     Enums: {
       actor_type: ["user", "system"],
+      billing_type: ["one_time", "recurring"],
       credit_lot_status: ["active", "exhausted", "expired"],
       invoice_status: ["draft", "issued", "paid", "void"],
       ledger_entry_type: ["credit", "debit"],
@@ -1003,6 +1095,7 @@ export const Constants = {
         "adjustment",
         "expiry",
         "refund",
+        "subscription_credit",
       ],
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],

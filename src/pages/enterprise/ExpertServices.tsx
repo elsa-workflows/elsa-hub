@@ -302,7 +302,7 @@ export default function ExpertServices() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {bundles?.map((bundle, index) => {
+                {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
                   const isPopular = index === 1; // Second bundle is "popular"
                   return (
                     <Card
@@ -346,54 +346,65 @@ export default function ExpertServices() {
       </section>
 
       {/* Ongoing Advisory */}
-      <section className="py-16 md:py-24">
-        <div className="container">
-          <div className="max-w-4xl mx-auto">
-            <Card className="border-2 border-dashed">
-              <CardContent className="p-8 md:p-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                  <div>
-                    <Badge variant="secondary" className="mb-4">Optional</Badge>
-                    <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                      Ongoing Advisory
-                    </h2>
-                    <p className="text-muted-foreground mb-6">
-                      For teams running Elsa in production who want continuous expert access 
-                      and retained context.
-                    </p>
-                    <div className="text-3xl font-bold">
-                      €2,000<span className="text-lg font-normal text-muted-foreground">/month</span>
+      {(() => {
+        const subscriptionBundle = bundles?.find(b => b.billing_type === "recurring");
+        if (!subscriptionBundle) return null;
+        
+        return (
+          <section className="py-16 md:py-24">
+            <div className="container">
+              <div className="max-w-4xl mx-auto">
+                <Card 
+                  className="border-2 border-primary/30 cursor-pointer transition-all hover:border-primary hover:shadow-lg"
+                  onClick={() => handleBundleClick(subscriptionBundle.id)}
+                >
+                  <CardContent className="p-8 md:p-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                      <div>
+                        <Badge variant="secondary" className="mb-4">Subscription</Badge>
+                        <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                          {subscriptionBundle.name}
+                        </h2>
+                        <p className="text-muted-foreground mb-6">
+                          For teams running Elsa in production who want continuous expert access 
+                          and retained context.
+                        </p>
+                        <div className="text-3xl font-bold">
+                          {formatPrice(subscriptionBundle.price_cents, subscriptionBundle.currency)}
+                          <span className="text-lg font-normal text-muted-foreground">/{subscriptionBundle.recurring_interval}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <ul className="space-y-3">
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{subscriptionBundle.monthly_hours} Service Credits per month</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Priority scheduling</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Async Q&A access</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Continuity and retained context</span>
+                          </li>
+                        </ul>
+                        <p className="text-sm text-muted-foreground mt-4">
+                          Extra credits can be purchased separately.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span>6 Service Credits per month</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span>Priority scheduling</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span>Async Q&A access</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                        <span>Continuity and retained context</span>
-                      </li>
-                    </ul>
-                    <p className="text-sm text-muted-foreground mt-4">
-                      Extra credits can be purchased separately.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Working Together */}
       <section className="py-16 md:py-24 bg-surface-subtle">
