@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationBell } from "@/components/notifications";
 import elsaLogo from "@/assets/elsa-logo.png";
 
 const navItems = [
@@ -86,6 +87,7 @@ export function Navigation() {
             <>
               {user ? (
                 <>
+                  <NotificationBell />
                   <Button variant="ghost" size="sm" className="gap-2" asChild>
                     <Link to="/account">
                       <User className="h-4 w-4" />
