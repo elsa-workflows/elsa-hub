@@ -276,14 +276,14 @@ export default function ExpertServices() {
                 <Card
                   key={bundle.name}
                   className={cn(
-                    "relative transition-shadow",
+                    "relative overflow-visible transition-shadow",
                     bundle.popular
                       ? "border-primary shadow-lg md:-translate-y-2"
                       : "hover:shadow-md"
                   )}
                 >
                   {bundle.popular && (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                       Most Popular
                     </Badge>
                   )}
