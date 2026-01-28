@@ -922,6 +922,10 @@ export type Database = {
       }
       get_user_provider_id: { Args: never; Returns: string }
       hash_invitation_token: { Args: { p_token: string }; Returns: string }
+      ignore_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
       is_org_admin: { Args: { p_org_id: string }; Returns: boolean }
       is_org_member: { Args: { p_org_id: string }; Returns: boolean }
       is_provider_admin: { Args: { p_provider_id: string }; Returns: boolean }
