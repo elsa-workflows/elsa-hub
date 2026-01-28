@@ -1,13 +1,20 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Building2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
+import { useAuth } from "@/contexts/AuthContext";
+import { LeaveOrganizationDialog, DeleteOrganizationDialog } from "@/components/organization";
 
 export default function OrgSettings() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const { organization, isLoading, notFound, isAdmin } = useOrganizationDashboard(slug);
+  const { user } = useAuth();
+  const { organization, teamMembers, isLoading, notFound, isAdmin } = useOrganizationDashboard(slug);
+
+  // Find current user's role
+  const currentMember = teamMembers.find(m => m.user_id === user?.id);
+  const userRole = currentMember?.role || "member";
+  const isOwner = userRole === "owner";
 
   if (notFound && !isLoading) {
     return (
@@ -73,19 +80,27 @@ export default function OrgSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Leave Organization */}
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div>
                 <p className="font-medium">Leave Organization</p>
                 <p className="text-sm text-muted-foreground">
-                  Remove yourself from this organization
+                  {isOwner 
+                    ? "Owners cannot leave. Transfer ownership first or delete the organization."
+                    : "Remove yourself from this organization"}
                 </p>
               </div>
-              <Button variant="outline" disabled>
-                Leave
-              </Button>
+              {organization && (
+                <LeaveOrganizationDialog
+                  organizationId={organization.id}
+                  organizationName={organization.name}
+                  userRole={userRole}
+                />
+              )}
             </div>
             
-            {isAdmin && (
+            {/* Delete Organization (owner only) */}
+            {isOwner && (
               <div className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg">
                 <div>
                   <p className="font-medium text-destructive">Delete Organization</p>
@@ -93,9 +108,12 @@ export default function OrgSettings() {
                     Permanently delete this organization and all its data
                   </p>
                 </div>
-                <Button variant="destructive" disabled>
-                  Delete
-                </Button>
+                {organization && (
+                  <DeleteOrganizationDialog
+                    organizationId={organization.id}
+                    organizationName={organization.name}
+                  />
+                )}
               </div>
             )}
           </CardContent>
