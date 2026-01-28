@@ -1,270 +1,178 @@
 
-# Platform-Wide Purchasing System Implementation
 
-## Executive Summary
+# Plan: Clickable Bundle Cards with Direct Purchase Flow
 
-This plan implements the complete Stripe-powered purchasing flow for service credit bundles. The database schema, RLS policies, and fulfillment logic are already in place. We need to: (1) configure Stripe, (2) create two edge functions for checkout/webhooks, and (3) add purchasing UI to the Expert Services page.
+## Overview
 
-## Current State Analysis
+Transform the bundle cards on the Expert Services page to be directly clickable, initiating the purchase flow for the selected bundle. The "Purchase Credits" button will be removed, and the dialog will open with the clicked bundle pre-selected.
 
-**Already Implemented:**
-- Full database schema (orders, invoices, credit_bundles, credit_lots, ledger)
-- RLS policies enforcing org/provider access rules
-- RPC functions for credit balance and allocation
-- Idempotency indexes for safe webhook handling
-- Pre-seeded provider (Skywalker Digital) and 4 credit bundles
-- Organization dashboard showing credit balances and purchase history
-- 24-month credit expiry policy
+## User Flow
 
-**Missing:**
-- Stripe secret key configuration
-- Edge functions for checkout flow
-- Purchase UI components
-
----
-
-## Implementation Plan
-
-### Phase 1: Stripe Configuration
-
-#### 1.1 Add Stripe Secret Key
-Use the Lovable secrets tool to add `STRIPE_SECRET_KEY` to the project.
-
-#### 1.2 Update Credit Bundles with Stripe Price IDs
-After Stripe products are created, update the `credit_bundles` table with corresponding `stripe_price_id` values.
-
----
-
-### Phase 2: Edge Functions
-
-#### 2.1 Create `create-checkout-session` Edge Function
-
-**Purpose:** Create a Stripe Checkout session for purchasing credit bundles
-
-**Location:** `supabase/functions/create-checkout-session/index.ts`
-
-**Logic:**
 ```text
-1. Verify authentication (JWT validation)
-2. Parse request: { bundleId, organizationId }
-3. Validate user is org admin for the organization
-4. Fetch bundle details (verify active, get price_cents, stripe_price_id)
-5. Create pending order in Supabase:
-   - status: 'pending'
-   - organization_id, service_provider_id, credit_bundle_id
-   - amount_cents, currency
-   - created_by: user_id
-6. Create Stripe Checkout Session:
-   - mode: 'payment'
-   - line_items: [{ price: stripe_price_id, quantity: 1 }]
-   - metadata: { order_id, organization_id, service_provider_id, bundle_id }
-   - success_url: /org/{slug}?payment=success
-   - cancel_url: /enterprise/expert-services?payment=cancelled
-7. Update order with stripe_checkout_session_id
-8. Return { checkoutUrl }
++------------------+     +----------------+     +------------------+
+| User clicks      | --> | Authenticated? | --> | Dialog opens     |
+| bundle card      |     |                |     | with bundle      |
++------------------+     +-------+--------+     | pre-selected     |
+                               |                +------------------+
+                               | No
+                               v
+                     +------------------+     +------------------+
+                     | Redirect to      | --> | After login,     |
+                     | /login?redirect= |     | return to page   |
+                     | /enterprise/     |     | & auto-open      |
+                     | expert-services  |     | dialog           |
+                     | &bundleId=xxx    |     +------------------+
+                     +------------------+
 ```
 
-**Config:** `supabase/config.toml`
-```toml
-[functions.create-checkout-session]
-verify_jwt = false
-```
+## Implementation Steps
 
-#### 2.2 Create `stripe-webhook` Edge Function
-
-**Purpose:** Handle Stripe webhook events for payment fulfillment
-
-**Location:** `supabase/functions/stripe-webhook/index.ts`
-
-**Logic:**
-```text
-1. Verify Stripe webhook signature
-2. Handle 'checkout.session.completed' event:
-   a. Extract order_id from metadata
-   b. Load order - if already 'paid', attempt receipt URL update only
-   c. Update order: status='paid', paid_at=now, stripe_payment_intent_id
-   d. Upsert provider_customers relationship
-   e. Create credit_lot:
-      - minutes_purchased = bundle.hours * 60
-      - expires_at = now + 24 months
-   f. Create credit_ledger_entry (credit, reason='purchase')
-   g. Upsert invoice with stripe_receipt_url
-   h. Create audit_event
-```
-
-**Receipt URL Retrieval:**
-```text
-PaymentIntent → expand latest_charge → Charge.receipt_url
-```
-
-**Config:**
-```toml
-[functions.stripe-webhook]
-verify_jwt = false
-```
-
----
-
-### Phase 3: Frontend Implementation
-
-#### 3.1 Create `OrganizationContext` Provider
-
-**Purpose:** Track which organization the user is currently acting as
-
-**Location:** `src/contexts/OrganizationContext.tsx`
-
-**Features:**
-- Store selected organization (id, name, slug)
-- Persist to localStorage
-- Auto-select if user has only one organization
-- Provide `selectOrganization()` function
-
-#### 3.2 Create `OrganizationSelector` Component
-
-**Purpose:** Allow users to switch between organizations
-
-**Location:** `src/components/organization/OrganizationSelector.tsx`
-
-**Features:**
-- Dropdown showing user's organizations
-- Visual indicator of current selection
-- Used in header/navigation when relevant
-
-#### 3.3 Create `PurchaseBundleDialog` Component
-
-**Purpose:** Modal for selecting and purchasing a credit bundle
-
-**Location:** `src/components/organization/PurchaseBundleDialog.tsx`
-
-**Features:**
-- Display available bundles from database (not hardcoded)
-- Show "Purchasing as: {Organization Name}"
-- If no organization selected, prompt to select one
-- If user is not org admin, show "Ask an Org Admin" message
-- Submit button calls `create-checkout-session` edge function
-- Redirect to Stripe Checkout on success
-
-#### 3.4 Update Expert Services Page
-
-**Location:** `src/pages/enterprise/ExpertServices.tsx`
+### 1. Update ExpertServices.tsx
 
 **Changes:**
-- Replace hardcoded bundles with database fetch
-- Add "Purchase Credits" button that opens `PurchaseBundleDialog`
-- Handle payment success/cancelled query params with toast notifications
+- Add state for the pre-selected bundle ID: `selectedBundleId`
+- Make each bundle card clickable with an `onClick` handler
+- Add visual feedback (cursor-pointer, hover effects) to indicate cards are interactive
+- Remove the "Purchase Credits" button and its container div
+- Pass the `selectedBundleId` to `PurchaseBundleDialog` as a new prop
+- On page load, check URL params for `bundleId` to auto-open the dialog (for returning from login)
 
-#### 3.5 Create Success/Cancel Handlers
+### 2. Update PurchaseBundleDialog.tsx
 
-Add query param handling for payment status on:
-- `/org/{slug}?payment=success` - Show success toast
-- `/enterprise/expert-services?payment=cancelled` - Show cancellation toast
+**Changes:**
+- Accept a new optional prop: `preSelectedBundleId?: string`
+- When the dialog opens with a `preSelectedBundleId`, automatically select that bundle
+- Use a `useEffect` to sync the pre-selected bundle when the dialog opens
+- Keep existing behavior for org selection and admin checks
 
----
+### 3. Update Login.tsx
 
-### Phase 4: Database Updates
+**Changes:**
+- Extract `redirect` query parameter from URL
+- After successful login, navigate to the redirect URL instead of "/"
+- Handle both email/password login and GitHub OAuth redirects
 
-#### 4.1 Update Stripe Price IDs
+### 4. Update AuthContext.tsx (if needed)
 
-After creating products in Stripe Dashboard, run SQL to update bundles:
-```sql
-UPDATE credit_bundles 
-SET stripe_price_id = 'price_xxx' 
-WHERE id = 'bundle-uuid';
-```
+**Changes:**
+- Ensure the OAuth redirect URL includes the original redirect parameter for GitHub login
 
 ---
 
 ## Technical Details
 
-### Edge Function: create-checkout-session
+### ExpertServices.tsx Changes
 
-| Input | Type | Required |
-|-------|------|----------|
-| bundleId | UUID | Yes |
-| organizationId | UUID | Yes |
+```typescript
+// New state
+const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
 
-| Output | Type |
-|--------|------|
-| checkoutUrl | string |
+// Check URL params on mount for returning from login
+useEffect(() => {
+  const bundleId = searchParams.get("bundleId");
+  if (bundleId) {
+    setSelectedBundleId(bundleId);
+    setPurchaseDialogOpen(true);
+    // Clean up URL
+    setSearchParams((prev) => {
+      prev.delete("bundleId");
+      return prev;
+    });
+  }
+}, []);
 
-### Edge Function: stripe-webhook
+// Bundle card click handler
+const handleBundleClick = (bundle: CreditBundle) => {
+  setSelectedBundleId(bundle.id);
+  setPurchaseDialogOpen(true);
+};
 
-| Event | Action |
-|-------|--------|
-| checkout.session.completed | Full fulfillment flow |
-| checkout.session.expired | Mark order as cancelled |
+// Card gets onClick and cursor styling
+<Card
+  onClick={() => handleBundleClick(bundle)}
+  className="cursor-pointer ..."
+>
+```
 
-### Security Model
+### PurchaseBundleDialog.tsx Changes
 
-| Actor | Can Purchase | Can View Orders | Can View Credits |
-|-------|--------------|-----------------|------------------|
-| Org Admin | Yes | Own org | Own org |
-| Org Member | No | Own org | Own org |
-| Provider Admin | No | Customers | Customers |
-| Provider Member | No | No | No |
+```typescript
+interface PurchaseBundleDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  preSelectedBundleId?: string | null;
+}
 
----
+// Auto-select bundle when dialog opens
+useEffect(() => {
+  if (open && preSelectedBundleId && bundles) {
+    const bundle = bundles.find(b => b.id === preSelectedBundleId);
+    if (bundle) setSelectedBundle(bundle);
+  }
+}, [open, preSelectedBundleId, bundles]);
 
-## File Changes Summary
+// For unauthenticated users, redirect to login with return URL
+if (!user) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      ...
+      <Button onClick={() => {
+        const returnUrl = `/enterprise/expert-services${preSelectedBundleId ? `?bundleId=${preSelectedBundleId}` : ''}`;
+        navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+      }}>Sign In</Button>
+    </Dialog>
+  );
+}
+```
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/functions/create-checkout-session/index.ts` | Create | Checkout session creation |
-| `supabase/functions/create-checkout-session/deno.json` | Create | Deno config |
-| `supabase/functions/stripe-webhook/index.ts` | Create | Webhook handler |
-| `supabase/functions/stripe-webhook/deno.json` | Create | Deno config |
-| `supabase/config.toml` | Edit | Add function configs |
-| `src/contexts/OrganizationContext.tsx` | Create | Organization selection state |
-| `src/components/organization/OrganizationSelector.tsx` | Create | Org selection dropdown |
-| `src/components/organization/PurchaseBundleDialog.tsx` | Create | Purchase flow modal |
-| `src/hooks/useCreditBundles.ts` | Create | Fetch bundles from DB |
-| `src/pages/enterprise/ExpertServices.tsx` | Edit | Add purchase flow |
-| `src/pages/OrganizationDashboard.tsx` | Edit | Handle success param |
-| `src/App.tsx` | Edit | Add OrganizationProvider |
+### Login.tsx Changes
 
----
+```typescript
+const [searchParams] = useSearchParams();
+const redirectTo = searchParams.get("redirect") || "/";
 
-## Extensibility Notes
+// In onSubmit success handler:
+navigate(redirectTo);
 
-The current implementation uses `credit_bundle_id` in orders. For future product types (subscriptions, training, digital products):
+// For GitHub OAuth, store redirect in sessionStorage before OAuth
+const handleGitHubLogin = async () => {
+  if (redirectTo !== "/") {
+    sessionStorage.setItem("authRedirect", redirectTo);
+  }
+  // ... existing code
+};
+```
 
-1. **Current state is sufficient for Phase 1** - credit bundles work with existing schema
-2. **Future extension**: Add `offering_type` enum and polymorphic fulfillment logic in the webhook
-3. The order/invoice model is already generic and will work for all product types
+### AuthContext.tsx Changes
 
----
-
-## Sequence Diagram: Purchase Flow
-
-```text
-User                    Frontend              Edge Function          Stripe              Supabase
-  |                         |                       |                   |                    |
-  |-- Click "Purchase" ---> |                       |                   |                    |
-  |                         |-- POST /create-checkout-session -------> |                    |
-  |                         |                       |-- Verify admin ------------> is_org_admin
-  |                         |                       |-- Create order ----------------------> INSERT orders
-  |                         |                       |-- Create session --> |                |
-  |                         |                       | <-- session.url --- |                |
-  |                         | <-- { checkoutUrl } --|                   |                    |
-  |<-- Redirect to Stripe --|                       |                   |                    |
-  |                         |                       |                   |                    |
-  |-- Complete payment ----------------------------> |                   |                    |
-  |                         |                       |                   |                    |
-  |                         |                       | <-- webhook ------|                    |
-  |                         |                       |-- Update order ----------------------> UPDATE orders
-  |                         |                       |-- Create credit_lot -----------------> INSERT credit_lots
-  |                         |                       |-- Create ledger entry ---------------> INSERT ledger
-  |                         |                       |-- Create invoice --------------------> INSERT invoices
-  |                         |                       |-- Return 200 --> |                    |
-  |                         |                       |                   |                    |
-  |<-- Redirect to success -|                       |                   |                    |
+```typescript
+// After OAuth callback, check for stored redirect
+useEffect(() => {
+  // On auth state change to logged in
+  const redirect = sessionStorage.getItem("authRedirect");
+  if (redirect) {
+    sessionStorage.removeItem("authRedirect");
+    navigate(redirect);
+  }
+}, [user]);
 ```
 
 ---
 
-## Prerequisites Before Implementation
+## Files to Modify
 
-1. **Stripe Account**: Must be configured with products/prices matching the bundles
-2. **STRIPE_SECRET_KEY**: Must be added as a Supabase secret
-3. **STRIPE_WEBHOOK_SECRET**: Must be added for signature verification
-4. **Stripe Price IDs**: Must be set in `credit_bundles` table after products are created
+| File | Changes |
+|------|---------|
+| `src/pages/enterprise/ExpertServices.tsx` | Add click handlers to bundle cards, remove Purchase Credits button, pass pre-selected bundle to dialog |
+| `src/components/organization/PurchaseBundleDialog.tsx` | Accept `preSelectedBundleId` prop, auto-select bundle, update login redirect with return URL |
+| `src/pages/Login.tsx` | Handle `redirect` query param, navigate to redirect URL after login |
+| `src/contexts/AuthContext.tsx` | Handle redirect after OAuth login using sessionStorage |
+
+## Edge Cases Handled
+
+- **User not logged in**: Redirected to login with return URL containing bundle ID
+- **User has no organization**: Dialog shows "create organization" prompt (existing behavior)
+- **User is not org admin**: Dialog shows admin-required warning (existing behavior)
+- **Bundle not configured** (no Stripe price): Card shows visual indication, click still works but purchase button disabled
+- **Direct URL access with bundleId param**: Dialog auto-opens with bundle pre-selected
+
