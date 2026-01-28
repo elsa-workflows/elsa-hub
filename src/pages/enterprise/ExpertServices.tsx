@@ -289,11 +289,14 @@ export default function ExpertServices() {
       <section className="py-16 md:py-24 bg-surface-subtle">
         <div className="container">
           <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-center">
-              Service Credit Bundles
-            </h2>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-center">
+                Service Credit Bundles
+              </h2>
+              <Badge variant="warning">Sandbox</Badge>
+            </div>
             <p className="text-muted-foreground text-center mb-12">
-              Choose the bundle that fits your needs.
+              Choose the bundle that fits your needs. Payments are currently in test mode.
             </p>
             
             {bundlesLoading ? (
@@ -358,10 +361,13 @@ export default function ExpertServices() {
                   className="border-2 border-primary/30 cursor-pointer transition-all hover:border-primary hover:shadow-lg"
                   onClick={() => handleBundleClick(subscriptionBundle.id)}
                 >
-                  <CardContent className="p-8 md:p-12">
+                    <CardContent className="p-8 md:p-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                       <div>
-                        <Badge variant="secondary" className="mb-4">Subscription</Badge>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Badge variant="secondary">Subscription</Badge>
+                          <Badge variant="warning">Sandbox</Badge>
+                        </div>
                         <h2 className="text-2xl md:text-3xl font-bold mb-4">
                           {subscriptionBundle.name}
                         </h2>
