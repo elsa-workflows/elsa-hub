@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer } from "@/components/enterprise";
+import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
+import { useCreditBundles } from "@/hooks/useCreditBundles";
+import { toast } from "sonner";
 import {
   ArrowRight,
   Check,
@@ -24,6 +28,8 @@ import {
   Calendar,
   Zap,
   AlertTriangle,
+  CreditCard,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,30 +63,6 @@ const engagementFormats = [
   { icon: Search, label: "Short investigations or debugging sessions" },
 ];
 
-const bundles = [
-  {
-    name: "Guidance Pack",
-    credits: 10,
-    price: 1800,
-    description: "Best for architecture reviews, early design validation, and focused expert guidance.",
-    popular: false,
-  },
-  {
-    name: "Implementation Pack",
-    credits: 20,
-    price: 3400,
-    description: "Best for active development, troubleshooting, pairing, and deeper technical involvement.",
-    popular: true,
-  },
-  {
-    name: "Delivery Pack",
-    credits: 40,
-    price: 6400,
-    description: "Best for production systems, larger initiatives, and ongoing architectural or engineering support.",
-    popular: false,
-  },
-];
-
 const howWeWork = [
   "Enablement over replacement — we guide, you build",
   "Guidance, reviews, and proof-of-concepts",
@@ -99,6 +81,29 @@ const notIncluded = [
 ];
 
 export default function ExpertServices() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const { data: bundles, isLoading: bundlesLoading } = useCreditBundles();
+
+  // Handle payment status from URL params
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "cancelled") {
+      toast.info("Payment cancelled", {
+        description: "Your payment was cancelled. No charges were made.",
+      });
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
+
+  const formatPrice = (cents: number, currency: string) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+      minimumFractionDigits: 0,
+    }).format(cents / 100);
+  };
+
   return (
     <Layout>
       {/* Breadcrumb */}
@@ -271,38 +276,57 @@ export default function ExpertServices() {
               Choose the bundle that fits your needs.
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {bundles.map((bundle) => (
-                <Card
-                  key={bundle.name}
-                  className={cn(
-                    "relative overflow-visible transition-shadow",
-                    bundle.popular
-                      ? "border-primary shadow-lg md:-translate-y-2"
-                      : "hover:shadow-md"
-                  )}
-                >
-                  {bundle.popular && (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground">
-                      Most Popular
-                    </Badge>
-                  )}
-                  <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-xl">{bundle.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-center">
-                    <div className="mb-4">
-                      <span className="text-4xl font-bold">€{bundle.price.toLocaleString()}</span>
-                    </div>
-                    <p className="text-2xl font-semibold text-primary mb-4">
-                      {bundle.credits} Credits
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      {bundle.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+            {bundlesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {bundles?.map((bundle, index) => {
+                  const isPopular = index === 1; // Second bundle is "popular"
+                  return (
+                    <Card
+                      key={bundle.id}
+                      className={cn(
+                        "relative overflow-visible transition-shadow",
+                        isPopular
+                          ? "border-primary shadow-lg md:-translate-y-2"
+                          : "hover:shadow-md"
+                      )}
+                    >
+                      {isPopular && (
+                        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground">
+                          Popular
+                        </Badge>
+                      )}
+                      <CardHeader className="text-center pb-2">
+                        <CardTitle className="text-lg">{bundle.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-center">
+                        <div className="mb-4">
+                          <span className="text-3xl font-bold">
+                            {formatPrice(bundle.price_cents, bundle.currency)}
+                          </span>
+                        </div>
+                        <p className="text-xl font-semibold text-primary mb-4">
+                          {bundle.hours} Hours
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {bundle.description || `${bundle.hours} hours of expert consulting time`}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Purchase CTA */}
+            <div className="mt-12 text-center">
+              <Button size="lg" className="gap-2" onClick={() => setPurchaseDialogOpen(true)}>
+                <CreditCard className="h-4 w-4" />
+                Purchase Credits
+              </Button>
             </div>
           </div>
         </div>
@@ -454,6 +478,9 @@ export default function ExpertServices() {
           <NeutralityDisclaimer />
         </div>
       </section>
+
+      {/* Purchase Dialog */}
+      <PurchaseBundleDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} />
     </Layout>
   );
 }

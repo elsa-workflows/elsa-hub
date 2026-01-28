@@ -1,12 +1,15 @@
-import { useParams, Link } from "react-router-dom";
+import { useEffect } from "react";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard } from "@/components/organization";
+import { toast } from "sonner";
 
 export default function OrganizationDashboard() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { 
     organization, 
     creditBalances, 
@@ -18,6 +21,17 @@ export default function OrganizationDashboard() {
     notFound,
     refetchInvitations,
   } = useOrganizationDashboard(slug);
+
+  // Handle payment success from URL params
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      toast.success("Payment successful!", {
+        description: "Your credits have been added to your account.",
+      });
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   if (notFound && !isLoading) {
     return (
