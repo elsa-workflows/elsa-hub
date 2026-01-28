@@ -15,17 +15,18 @@ export interface UserInvitation {
 }
 
 export function useUserInvitations() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: invitations = [], isLoading } = useQuery({
-    queryKey: ["user-invitations", user?.email],
+    queryKey: ["user-invitations", user?.email, session?.access_token],
     queryFn: async () => {
-      if (!user?.email) return [];
+      if (!user?.email || !session?.access_token) return [];
 
       console.log("Fetching invitations for email:", user.email);
+      console.log("Using session token:", session.access_token.substring(0, 50) + "...");
 
       // Only fetch invitations sent TO the current user (not ones they created as admin)
       const { data, error } = await supabase
@@ -48,6 +49,8 @@ export function useUserInvitations() {
         return [];
       }
 
+      console.log("Invitations query returned:", data?.length || 0, "results");
+
       return (data || []).map((inv: any) => ({
         id: inv.id,
         organization_id: inv.organization_id,
@@ -58,7 +61,7 @@ export function useUserInvitations() {
         created_at: inv.created_at,
       })) as UserInvitation[];
     },
-    enabled: !!user?.email,
+    enabled: !!user?.email && !!session?.access_token,
     staleTime: 0, // Always fetch fresh data on mount/account switch
     refetchInterval: 30000, // Refetch every 30 seconds
   });
