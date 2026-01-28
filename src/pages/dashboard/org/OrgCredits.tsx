@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
-import { CreditLotsTable } from "@/components/organization";
+import { CreditLotsTable, WorkLogsTable } from "@/components/organization";
 import { supabase } from "@/integrations/supabase/client";
 
 function minutesToHours(minutes: number): string {
@@ -44,6 +44,53 @@ export default function OrgCredits() {
       return lots.map(lot => ({
         ...lot,
         provider_name: providerMap.get(lot.service_provider_id) || "Unknown Provider",
+      }));
+    },
+    enabled: !!organization?.id,
+  });
+
+  // Fetch work logs for this organization
+  const workLogsQuery = useQuery({
+    queryKey: ["org-work-logs", organization?.id],
+    queryFn: async () => {
+      if (!organization?.id) return [];
+
+      const { data: logs, error } = await supabase
+        .from("work_logs")
+        .select("id, service_provider_id, performed_by, performed_at, category, description, minutes_spent")
+        .eq("organization_id", organization.id)
+        .order("performed_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      if (!logs || logs.length === 0) return [];
+
+      // Fetch provider names
+      const providerIds = [...new Set(logs.map((l) => l.service_provider_id))];
+      const { data: providers } = await supabase
+        .from("service_providers")
+        .select("id, name")
+        .in("id", providerIds);
+      const providerMap = new Map(providers?.map((p) => [p.id, p.name]) || []);
+
+      // Fetch performer names
+      const performerIds = [...new Set(logs.map((l) => l.performed_by))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, email")
+        .in("user_id", performerIds);
+      const profileMap = new Map(
+        profiles?.map((p) => [p.user_id, p.display_name || p.email]) || []
+      );
+
+      return logs.map((log) => ({
+        id: log.id,
+        performed_at: log.performed_at,
+        category: log.category,
+        description: log.description,
+        minutes_spent: log.minutes_spent,
+        performer_name: profileMap.get(log.performed_by) || null,
+        provider_name: providerMap.get(log.service_provider_id) || "Unknown",
       }));
     },
     enabled: !!organization?.id,
@@ -249,6 +296,15 @@ export default function OrgCredits() {
 
       {/* Credit Lots Table */}
       <CreditLotsTable lots={lotsQuery.data || []} loading={lotsQuery.isLoading} />
+
+      {/* Work Logs Table */}
+      <WorkLogsTable
+        logs={workLogsQuery.data || []}
+        loading={workLogsQuery.isLoading}
+        showProvider={creditBalances.length > 1}
+        emptyMessage="No work logged yet"
+        emptySubMessage="Work performed by your service provider will appear here."
+      />
     </div>
   );
 }
