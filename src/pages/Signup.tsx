@@ -60,11 +60,8 @@ export default function Signup() {
         description: error.message,
       });
     } else {
-      toast({
-        title: "Account created!",
-        description: "You have successfully signed up.",
-      });
-      navigate("/");
+      // Redirect to confirm email page instead of home
+      navigate(`/signup/confirm-email?email=${encodeURIComponent(values.email)}`);
     }
   };
 

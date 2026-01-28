@@ -22,6 +22,8 @@ import Resources from "./pages/Resources";
 import CommunityContent from "./pages/resources/CommunityContent";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ConfirmEmail from "./pages/signup/ConfirmEmail";
+import AuthCallback from "./pages/auth/AuthCallback";
 import Account from "./pages/Account";
 import OrganizationDashboard from "./pages/OrganizationDashboard";
 import AcceptInvitation from "./pages/AcceptInvitation";
@@ -55,6 +57,8 @@ const App = () => (
               <Route path="/resources/community-content" element={<CommunityContent />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/account" element={<Account />} />
               <Route path="/org/:slug" element={<OrganizationDashboard />} />
               <Route path="/invite/:token" element={<AcceptInvitation />} />
