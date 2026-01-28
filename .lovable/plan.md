@@ -1,142 +1,99 @@
 
+# Fix: Invitation Notifications Not Appearing After Account Switch
 
-# Plan: Improve Email Signup and Confirmation UX
+## Problem Summary
+When switching from `skywalkertdp@gmail.com` to `sipkeschoorstra@outlook.com`, the invitation notifications don't appear. Investigation reveals that:
+- The invitation exists in the database and is valid
+- Network requests continue to use the OLD user's JWT token and email filter
+- The client-side state isn't properly refreshing after login
 
-## Overview
+## Root Cause
+The Supabase auth client and React Query cache retain stale data after account switches. While `queryClient.invalidateQueries()` is called on `SIGNED_IN`, the queries re-run immediately with potentially stale user data before the new session is fully established.
 
-Improve the user experience for email-based signup by:
-1. Redirecting users to a "Check your email" page after signing up
-2. Creating an activation callback page that confirms their account is now active
+## Solution
 
-## Current Flow vs. New Flow
+### Step 1: Clear React Query Cache Completely on Auth Change
+Instead of just invalidating queries, completely clear and reset the cache when auth state changes to force fresh fetches.
 
-```text
-CURRENT FLOW:
-User signs up → Toast "Account created!" → Redirect to Home
-               (User doesn't know they need to confirm email)
+**File**: `src/contexts/AuthContext.tsx`
+- Replace `queryClient.invalidateQueries()` with `queryClient.clear()` to remove all cached data
+- This ensures no stale user-specific data persists across account switches
 
-User clicks email link → Redirect to Home (no feedback)
+### Step 2: Add Session Refresh on Account Switch  
+Force a full session refresh when a sign-in event occurs to ensure the Supabase client has the latest token.
 
-NEW FLOW:
-User signs up → Redirect to /signup/confirm-email
-               (Clear message: "Check your inbox, also check spam")
+**File**: `src/contexts/AuthContext.tsx`
+- After detecting `SIGNED_IN` event, call `supabase.auth.refreshSession()` to ensure the latest token is used
 
-User clicks email link → Redirect to /auth/callback
-                        (Shows "Account activated!" with login button)
-```
+### Step 3: Delay Query Execution Until User State is Confirmed
+Add a small delay or use the session object directly from the auth event instead of relying on the context state.
 
-## Implementation Steps
+**File**: `src/hooks/useUserInvitations.ts`
+- Use `session?.user?.email` from the auth event directly if possible
+- OR add a `staleTime: 0` to force fresh fetches
 
-### Step 1: Create Confirm Email Page
+### Step 4: Add Debug Logging (Temporary)
+Add console logging to track which email is being used for the invitation query to help diagnose if the issue persists.
 
-Create a new page at `/signup/confirm-email` that:
-- Displays a clear message about checking their inbox
-- Shows the email address they registered with (passed via query param)
-- Reminds them to check spam/junk folder
-- Provides a link to go back to login
+## Implementation Details
 
-**UI Elements:**
-- Mail icon in a circular container
-- "Check your email" title
-- Description explaining the confirmation email was sent
-- Tip about checking spam folder
-- "Back to Sign In" button
-
-### Step 2: Create Auth Callback Page
-
-Create a new page at `/auth/callback` that:
-- Handles the Supabase email confirmation redirect
-- Detects the `type` parameter from the URL (Supabase passes `type=signup` for confirmations)
-- Shows "Account Activated" success message
-- Provides a button to sign in
-- Handles edge cases (invalid/expired links)
-
-The auth callback will use Supabase's `exchangeCodeForSession` or parse the URL hash to complete the verification.
-
-### Step 3: Update Signup Flow
-
-Modify `Signup.tsx` to:
-- After successful signup, redirect to `/signup/confirm-email?email={email}` instead of `/`
-- Remove the immediate "success" toast (since account isn't fully created yet)
-
-### Step 4: Update Auth Context
-
-Modify `AuthContext.tsx` to:
-- Change `emailRedirectTo` in signUp to point to `/auth/callback` instead of root
-- This ensures Supabase redirects to our callback page after email confirmation
-
-### Step 5: Add Routes
-
-Update `App.tsx` to:
-- Add route for `/signup/confirm-email`
-- Add route for `/auth/callback`
-
-## Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/pages/signup/ConfirmEmail.tsx` | Create | "Check your inbox" page |
-| `src/pages/auth/AuthCallback.tsx` | Create | Email confirmation callback handler |
-| `src/pages/Signup.tsx` | Modify | Redirect to confirm-email page after signup |
-| `src/contexts/AuthContext.tsx` | Modify | Update emailRedirectTo URL |
-| `src/App.tsx` | Modify | Add new routes |
-
-## Page Designs
-
-### Confirm Email Page (`/signup/confirm-email`)
-
-- Centered card layout (matching existing auth pages)
-- Mail envelope icon with primary color background circle
-- Title: "Check your email"
-- Description: "We've sent a confirmation link to **{email}**. Click the link in the email to activate your account."
-- Info box: "Didn't receive the email? Check your spam folder, or try signing up again."
-- Button: "Back to Sign In" (links to `/login`)
-
-### Auth Callback Page (`/auth/callback`)
-
-Shows different states:
-1. **Loading**: Spinner while processing the callback
-2. **Success**: Green checkmark, "Account Activated!", "Your email has been verified and your account is now active.", "Sign In" button
-3. **Error**: Red X icon, error message, "Go to Home" button
-
-## Technical Details
-
-### Supabase Email Confirmation Flow
-
-When a user clicks the confirmation link from their email:
-1. Supabase redirects to `{emailRedirectTo}#access_token=...&type=signup...`
-2. The hash fragment contains the auth tokens
-3. The app needs to call `supabase.auth.getSession()` or let the auth listener handle it
-4. The `type=signup` parameter indicates this is an email confirmation (vs password reset, etc.)
-
-### AuthCallback Implementation
-
+### AuthContext Changes
 ```typescript
-// Pseudocode for auth callback
-useEffect(() => {
-  // Get type from URL hash (Supabase puts params in hash)
-  const hashParams = new URLSearchParams(window.location.hash.substring(1));
-  const type = hashParams.get('type');
-  const error = hashParams.get('error');
+// In onAuthStateChange callback
+if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+  // Clear ALL cached data to prevent stale user-specific data
+  queryClient.clear();
   
-  if (error) {
-    setStatus('error');
-    return;
+  // Force refresh session to ensure latest token
+  if (event === "SIGNED_IN" && session) {
+    supabase.auth.refreshSession();
   }
-  
-  // The auth listener will automatically pick up the session
-  // We just need to detect when auth state changes to SIGNED_IN
-  if (type === 'signup') {
-    // This is an email confirmation
-    setStatus('activated');
-  }
-}, []);
+}
 ```
 
-## Edge Cases Handled
+### useUserInvitations Changes  
+```typescript
+const { data: invitations = [], isLoading } = useQuery({
+  queryKey: ["user-invitations", user?.email],
+  queryFn: async () => {
+    if (!user?.email) return [];
+    
+    console.log("Fetching invitations for email:", user.email); // Debug log
+    
+    const { data, error } = await supabase
+      .from("invitations")
+      .select(...)
+      .eq("status", "pending")
+      .ilike("email", user.email)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    // ...
+  },
+  enabled: !!user?.email,
+  staleTime: 0, // Always fetch fresh data
+  refetchInterval: 30000,
+});
+```
 
-- **Invalid/expired link**: Show error message with link to sign up again
-- **Already confirmed**: User is already logged in, show success and redirect
-- **Network errors**: Show error state with retry option
-- **Missing email in query param**: Show generic message without specific email
+## Files to Modify
+| File | Change |
+|------|--------|
+| `src/contexts/AuthContext.tsx` | Use `queryClient.clear()` instead of `invalidateQueries()` and add session refresh |
+| `src/hooks/useUserInvitations.ts` | Add `staleTime: 0` and debug logging |
 
+## Testing Steps
+1. Log in as `skywalkertdp@gmail.com`
+2. Sign out completely  
+3. Log in as `sipkeschoorstra@outlook.com`
+4. Verify the notification bell appears with the pending invitation
+5. Check browser console for debug log confirming correct email is being queried
+6. Accept the invitation to confirm full flow works
+
+## Alternative: Full Page Reload
+If the above doesn't work, the nuclear option is to force a full page reload after sign-in:
+```typescript
+if (event === "SIGNED_IN") {
+  window.location.reload();
+}
+```
+This is less elegant but guarantees a fresh state. We should avoid this if possible.
