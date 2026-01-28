@@ -1,235 +1,142 @@
 
 
-# Plan: Activate Ongoing Advisory Subscription Bundle
+# Plan: Improve Email Signup and Confirmation UX
 
 ## Overview
 
-Transform the static "Ongoing Advisory" section on the Expert Services page into a purchasable recurring subscription product at €2,000/month with 6 hours of credits granted each billing cycle.
+Improve the user experience for email-based signup by:
+1. Redirecting users to a "Check your email" page after signing up
+2. Creating an activation callback page that confirms their account is now active
 
-## Current State
-
-- **One-time purchases work**: Users can click bundle cards, open purchase dialog, and complete Stripe Checkout
-- **Ongoing Advisory section**: Currently static display with no purchase functionality
-- **Database**: `credit_bundles` table only supports one-time purchases (has `hours` column but no recurring billing fields)
-
-## New Subscription Flow
+## Current Flow vs. New Flow
 
 ```text
-User clicks "Subscribe":
-  1. PurchaseBundleDialog opens with subscription bundle
-  2. create-checkout-session detects billing_type = 'recurring'
-  3. Stripe Checkout opens in subscription mode
-  4. User completes payment
+CURRENT FLOW:
+User signs up → Toast "Account created!" → Redirect to Home
+               (User doesn't know they need to confirm email)
 
-checkout.session.completed (subscription):
-  5. Create subscription record in new subscriptions table
-  6. Create first month's credit lot (6 hours)
-  7. Create ledger entry (reason: subscription_credit)
+User clicks email link → Redirect to Home (no feedback)
 
-Each month (invoice.paid):
-  8. Verify subscription is active
-  9. Create new credit lot for the period
-  10. Update subscription period dates
+NEW FLOW:
+User signs up → Redirect to /signup/confirm-email
+               (Clear message: "Check your inbox, also check spam")
+
+User clicks email link → Redirect to /auth/callback
+                        (Shows "Account activated!" with login button)
 ```
 
 ## Implementation Steps
 
-### Step 1: Database Schema Changes
+### Step 1: Create Confirm Email Page
 
-**New `billing_type` enum:**
-- `one_time` (default for existing bundles)
-- `recurring` (for subscriptions)
+Create a new page at `/signup/confirm-email` that:
+- Displays a clear message about checking their inbox
+- Shows the email address they registered with (passed via query param)
+- Reminds them to check spam/junk folder
+- Provides a link to go back to login
 
-**Modify `credit_bundles` table:**
-| Column | Type | Description |
-|--------|------|-------------|
-| `billing_type` | ENUM | `one_time` or `recurring` |
-| `recurring_interval` | TEXT | `month`, `year`, etc. (null for one_time) |
-| `monthly_hours` | INTEGER | Hours granted each month (for recurring) |
+**UI Elements:**
+- Mail icon in a circular container
+- "Check your email" title
+- Description explaining the confirmation email was sent
+- Tip about checking spam folder
+- "Back to Sign In" button
 
-Note: The existing `hours` column remains for one-time bundles; `monthly_hours` is used for recurring bundles.
+### Step 2: Create Auth Callback Page
 
-**New `subscriptions` table:**
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | UUID | Primary key |
-| `organization_id` | UUID | FK to organizations |
-| `service_provider_id` | UUID | FK to service_providers |
-| `credit_bundle_id` | UUID | FK to credit_bundles |
-| `stripe_subscription_id` | TEXT | Stripe subscription ID (unique) |
-| `stripe_customer_id` | TEXT | Stripe customer ID |
-| `status` | TEXT | active, canceled, past_due, paused |
-| `current_period_start` | TIMESTAMPTZ | Current billing period start |
-| `current_period_end` | TIMESTAMPTZ | Current billing period end |
-| `cancel_at_period_end` | BOOLEAN | Will cancel at period end |
-| `created_at` | TIMESTAMPTZ | Record creation |
-| `updated_at` | TIMESTAMPTZ | Last update |
+Create a new page at `/auth/callback` that:
+- Handles the Supabase email confirmation redirect
+- Detects the `type` parameter from the URL (Supabase passes `type=signup` for confirmations)
+- Shows "Account Activated" success message
+- Provides a button to sign in
+- Handles edge cases (invalid/expired links)
 
-**Modify `credit_lots` table:**
-- Add `subscription_id` column (FK to subscriptions, nullable)
-- Add `billing_period_start` column for tracking which period the credits belong to
+The auth callback will use Supabase's `exchangeCodeForSession` or parse the URL hash to complete the verification.
 
-**Add `subscription_credit` to `ledger_reason_code` enum**
+### Step 3: Update Signup Flow
 
-**RLS policies for subscriptions:**
-- Org members can SELECT their subscriptions
-- Provider members can SELECT customer subscriptions
-- No INSERT/UPDATE/DELETE from client (service role only)
+Modify `Signup.tsx` to:
+- After successful signup, redirect to `/signup/confirm-email?email={email}` instead of `/`
+- Remove the immediate "success" toast (since account isn't fully created yet)
 
-**Insert Ongoing Advisory bundle:**
-```sql
-INSERT INTO credit_bundles (
-  service_provider_id, name, description, billing_type, 
-  recurring_interval, monthly_hours, price_cents, currency, 
-  stripe_price_id, is_active
-) VALUES (
-  '11111111-1111-1111-1111-111111111111',
-  'Ongoing Advisory',
-  '6 hours per month, priority scheduling, and async Q&A access',
-  'recurring',
-  'month',
-  6,
-  200000,
-  'eur',
-  NULL, -- Set after Stripe product creation
-  true
-);
-```
+### Step 4: Update Auth Context
 
-### Step 2: Create Stripe Subscription Product
+Modify `AuthContext.tsx` to:
+- Change `emailRedirectTo` in signUp to point to `/auth/callback` instead of root
+- This ensures Supabase redirects to our callback page after email confirmation
 
-Use Stripe tools to create:
-- **Product**: Ongoing Advisory
-- **Price**: €2,000/month (200000 cents EUR, recurring monthly)
+### Step 5: Add Routes
 
-Then update the bundle's `stripe_price_id` with the new price ID.
-
-### Step 3: Update Edge Functions
-
-**create-checkout-session/index.ts changes:**
-1. Fetch `billing_type` and `monthly_hours` from bundle
-2. Determine `mode`: `"subscription"` for recurring, `"payment"` for one_time
-3. For subscriptions:
-   - Get or create Stripe customer for the organization
-   - Store customer ID in metadata
-4. Create Stripe Checkout session with appropriate mode
-5. Return checkout URL
-
-Key code changes:
-```typescript
-const mode = bundle.billing_type === 'recurring' ? 'subscription' : 'payment';
-
-// For subscriptions, get/create Stripe customer
-let customerId: string | undefined;
-if (mode === 'subscription') {
-  // Look up org admin's email, find or create Stripe customer
-}
-
-const session = await stripe.checkout.sessions.create({
-  mode,
-  customer: customerId,
-  line_items: [{ price: bundle.stripe_price_id, quantity: 1 }],
-  metadata: { order_id, organization_id, service_provider_id, bundle_id, billing_type },
-  // ...
-});
-```
-
-**stripe-webhook/index.ts changes:**
-Add handlers for subscription events:
-
-| Event | Action |
-|-------|--------|
-| `checkout.session.completed` (mode=subscription) | Create subscription record, grant first month's credits (6 hours, 24-month expiry) |
-| `invoice.paid` (for subscription renewals) | Grant monthly credits for the new billing period |
-| `customer.subscription.updated` | Update subscription status, handle cancellations |
-| `customer.subscription.deleted` | Mark subscription as canceled |
-
-The webhook must distinguish between one-time payment completions (existing logic) and subscription completions (new logic).
-
-**New customer-portal/index.ts function:**
-Create an edge function that generates Stripe Customer Portal sessions so users can manage their subscriptions (cancel, update payment method).
-
-### Step 4: Update Frontend Hooks
-
-**Modify useCreditBundles.ts:**
-- Add `billing_type`, `recurring_interval`, `monthly_hours` to the query and interface
-
-**New useSubscriptions.ts hook:**
-- Fetch active subscriptions for an organization
-- Return subscription status, renewal date, bundle info
-
-### Step 5: Update Frontend Components
-
-**ExpertServices.tsx:**
-- Include `billing_type` in the bundles query
-- Make the Ongoing Advisory card clickable (like one-time bundles)
-- Show "Subscribe" instead of a one-time price for recurring bundles
-- Pass the bundle ID to PurchaseBundleDialog when clicked
-
-**PurchaseBundleDialog.tsx:**
-- Display both one-time and recurring bundles in the selection list
-- Show "€2,000/month" and "Subscribe" for recurring bundles
-- Show "6 hours per month" instead of total hours for recurring
-- Change button text to "Subscribe" for recurring bundles
-
-**OrganizationDashboard.tsx:**
-- Add new "Active Subscriptions" card section
-- Display subscription status, next renewal date, monthly hours
-- Add "Manage Subscription" button linking to Stripe Customer Portal
-
-**New SubscriptionCard.tsx component:**
-- Display subscription details (bundle name, status, renewal date)
-- Show visual indicator for status (active = green, past_due = yellow, canceled = gray)
-- "Manage Subscription" button (only for admins)
-
-### Step 6: Webhook Events Configuration
-
-Ensure these events are configured in the Stripe webhook:
-- `checkout.session.completed` (already configured)
-- `checkout.session.expired` (already configured)
-- `invoice.paid` (new - for subscription renewals)
-- `customer.subscription.updated` (new - for status changes)
-- `customer.subscription.deleted` (new - for cancellations)
+Update `App.tsx` to:
+- Add route for `/signup/confirm-email`
+- Add route for `/auth/callback`
 
 ## Files to Create/Modify
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/migrations/xxx.sql` | Create | Schema changes: enum, subscriptions table, alter credit_bundles/credit_lots |
-| `supabase/functions/create-checkout-session/index.ts` | Modify | Support subscription mode, customer management |
-| `supabase/functions/stripe-webhook/index.ts` | Modify | Handle subscription lifecycle events |
-| `supabase/functions/customer-portal/index.ts` | Create | Stripe Customer Portal access |
-| `supabase/config.toml` | Modify | Add customer-portal function config |
-| `src/hooks/useCreditBundles.ts` | Modify | Include billing_type, recurring_interval, monthly_hours |
-| `src/hooks/useSubscriptions.ts` | Create | Fetch active subscriptions |
-| `src/hooks/useOrganizationDashboard.ts` | Modify | Include subscriptions data |
-| `src/pages/enterprise/ExpertServices.tsx` | Modify | Make Ongoing Advisory clickable, show subscription UI |
-| `src/components/organization/PurchaseBundleDialog.tsx` | Modify | Handle subscription bundles differently |
-| `src/components/organization/SubscriptionCard.tsx` | Create | Display subscription status |
-| `src/components/organization/index.ts` | Modify | Export SubscriptionCard |
-| `src/pages/OrganizationDashboard.tsx` | Modify | Add subscriptions section |
+| `src/pages/signup/ConfirmEmail.tsx` | Create | "Check your inbox" page |
+| `src/pages/auth/AuthCallback.tsx` | Create | Email confirmation callback handler |
+| `src/pages/Signup.tsx` | Modify | Redirect to confirm-email page after signup |
+| `src/contexts/AuthContext.tsx` | Modify | Update emailRedirectTo URL |
+| `src/App.tsx` | Modify | Add new routes |
 
-## Subscription Credit Behavior
+## Page Designs
 
-- **Expiry**: Subscription credits have the same 24-month expiry as one-time credits
-- **Accumulation**: Unused credits roll over (within the 24-month window)
-- **Cancellation**: Upon cancellation, no new credits are granted but existing credits remain usable until expiry
-- **FIFO consumption**: Credits are consumed oldest-first (same as one-time credits)
+### Confirm Email Page (`/signup/confirm-email`)
 
-## Edge Cases
+- Centered card layout (matching existing auth pages)
+- Mail envelope icon with primary color background circle
+- Title: "Check your email"
+- Description: "We've sent a confirmation link to **{email}**. Click the link in the email to activate your account."
+- Info box: "Didn't receive the email? Check your spam folder, or try signing up again."
+- Button: "Back to Sign In" (links to `/login`)
 
-- **User not logged in**: Redirect to login with return URL (existing behavior)
-- **User has no org**: Prompt to create org (existing behavior)
-- **User not admin**: Show admin-required warning (existing behavior)
-- **Payment failure**: Stripe handles retries; subscription status updates via webhook
-- **Multiple subscriptions**: An org can have multiple active subscriptions (different bundles)
-- **Duplicate webhook delivery**: Idempotent handling via unique constraints and status checks
+### Auth Callback Page (`/auth/callback`)
 
-## Security Considerations
+Shows different states:
+1. **Loading**: Spinner while processing the callback
+2. **Success**: Green checkmark, "Account Activated!", "Your email has been verified and your account is now active.", "Sign In" button
+3. **Error**: Red X icon, error message, "Go to Home" button
 
-- Only org admins can subscribe
-- Subscriptions table is read-only for authenticated users
-- Only service role can INSERT/UPDATE subscriptions (via webhook)
-- Webhook signature verification for all Stripe events
-- Customer Portal sessions validated against authenticated user's Stripe customer ID
+## Technical Details
+
+### Supabase Email Confirmation Flow
+
+When a user clicks the confirmation link from their email:
+1. Supabase redirects to `{emailRedirectTo}#access_token=...&type=signup...`
+2. The hash fragment contains the auth tokens
+3. The app needs to call `supabase.auth.getSession()` or let the auth listener handle it
+4. The `type=signup` parameter indicates this is an email confirmation (vs password reset, etc.)
+
+### AuthCallback Implementation
+
+```typescript
+// Pseudocode for auth callback
+useEffect(() => {
+  // Get type from URL hash (Supabase puts params in hash)
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const type = hashParams.get('type');
+  const error = hashParams.get('error');
+  
+  if (error) {
+    setStatus('error');
+    return;
+  }
+  
+  // The auth listener will automatically pick up the session
+  // We just need to detect when auth state changes to SIGNED_IN
+  if (type === 'signup') {
+    // This is an email confirmation
+    setStatus('activated');
+  }
+}, []);
+```
+
+## Edge Cases Handled
+
+- **Invalid/expired link**: Show error message with link to sign up again
+- **Already confirmed**: User is already logged in, show success and redirect
+- **Network errors**: Show error state with retry option
+- **Missing email in query param**: Show generic message without specific email
 
