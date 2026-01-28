@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
+import { LogWorkDialog } from "@/components/provider";
 
 function minutesToHours(minutes: number): string {
   const hours = minutes / 60;
@@ -31,10 +32,15 @@ const categoryColors: Record<string, "default" | "secondary" | "outline"> = {
 
 export default function ProviderWorkLogs() {
   const { slug } = useParams<{ slug: string }>();
-  const { provider, workLogs, customers, isLoading, notFound } = useProviderDashboard(slug);
+  const { provider, workLogs, customers, isLoading, notFound, refetchWorkLogs, refetchCustomers } = useProviderDashboard(slug);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [customerFilter, setCustomerFilter] = useState<string>("all");
+
+  const handleWorkLogSuccess = () => {
+    refetchWorkLogs();
+    refetchCustomers(); // Refetch to update credit balances
+  };
 
   const filteredLogs = useMemo(() => {
     return workLogs.filter((log) => {
@@ -75,10 +81,19 @@ export default function ProviderWorkLogs() {
             Track and manage logged hours for {provider?.name}
           </p>
         </div>
-        <Button disabled>
-          <Plus className="h-4 w-4 mr-2" />
-          Log Hours
-        </Button>
+        {provider && (
+          <LogWorkDialog
+            providerId={provider.id}
+            customers={customers}
+            onSuccess={handleWorkLogSuccess}
+            trigger={
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Log Hours
+              </Button>
+            }
+          />
+        )}
       </div>
 
       {/* Summary Stats */}

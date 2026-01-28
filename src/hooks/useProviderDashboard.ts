@@ -227,6 +227,10 @@ export function useProviderDashboard(slug: string | undefined) {
     workLogsQuery.isLoading ||
     bundlesQuery.isLoading;
 
+  const refetchWorkLogs = () => workLogsQuery.refetch();
+  const refetchCustomers = () => customersQuery.refetch();
+  const refetchBundles = () => bundlesQuery.refetch();
+
   return {
     provider: providerQuery.data || null,
     customers: customersQuery.data || [],
@@ -236,5 +240,8 @@ export function useProviderDashboard(slug: string | undefined) {
     isAdmin: isAdminQuery.data === true,
     isLoading,
     notFound: !providerQuery.isLoading && !providerQuery.data,
+    refetchWorkLogs,
+    refetchCustomers,
+    refetchBundles,
   };
 }
