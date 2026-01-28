@@ -43,13 +43,13 @@ export function InvitationCard({
           <p className="font-medium text-sm truncate">
             {invitation.organization_name}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             You're invited to join as{" "}
             <Badge variant="secondary" className="ml-1 gap-1 text-xs py-0 px-1.5">
               {roleIcons[invitation.role]}
               {roleLabels[invitation.role] || invitation.role}
             </Badge>
-          </p>
+          </div>
           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
             <Clock className="h-3 w-3" />
             Expires {format(new Date(invitation.expires_at), "MMM d, yyyy")}
