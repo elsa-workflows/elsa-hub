@@ -136,14 +136,14 @@ const handler = async (req: Request): Promise<Response> => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const token_hash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 
-    // Create invitation with hashed token (plaintext token is NOT stored)
+    // Create invitation with both token (for URL) and hash (for secure lookup)
     const { data: invitation, error: inviteError } = await serviceClient
       .from("invitations")
       .insert({
         organization_id: organizationId,
         email: email.toLowerCase(),
         role,
-        token: null, // No longer storing plaintext token
+        token: token_value,
         token_hash: token_hash,
         invited_by: userId,
         expires_at: expiresAt.toISOString(),
