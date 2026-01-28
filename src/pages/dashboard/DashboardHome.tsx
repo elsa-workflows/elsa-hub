@@ -14,14 +14,22 @@ export default function DashboardHome() {
   const { providers, loading: providersLoading } = useProviderMemberships();
 
   const loading = orgsLoading || providersLoading;
-  const hasOnlyOneOrg = organizations.length === 1 && providers.length === 0;
+  const hasOnlyOrgs = organizations.length >= 1 && providers.length === 0;
+  const hasOnlyProviders = organizations.length === 0 && providers.length >= 1;
 
-  // Auto-redirect if user has only one org
+  // Auto-redirect based on membership context
   useEffect(() => {
-    if (!loading && hasOnlyOneOrg) {
+    if (loading) return;
+    
+    if (hasOnlyOrgs) {
+      // Redirect to first org when user only has organizations
       navigate(`/dashboard/org/${organizations[0].slug}`, { replace: true });
+    } else if (hasOnlyProviders) {
+      // Redirect to first provider when user only has provider memberships
+      navigate(`/dashboard/provider/${providers[0].slug}`, { replace: true });
     }
-  }, [loading, hasOnlyOneOrg, organizations, navigate]);
+    // If both exist, show the selector page
+  }, [loading, hasOnlyOrgs, hasOnlyProviders, organizations, providers, navigate]);
 
   if (loading) {
     return (
