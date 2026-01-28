@@ -283,7 +283,7 @@ export default function ExpertServices() {
                   )}
                 >
                   {bundle.popular && (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground">
                       Most Popular
                     </Badge>
                   )}
