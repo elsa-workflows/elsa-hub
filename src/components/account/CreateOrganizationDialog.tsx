@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CreateOrganizationDialogProps {
   onCreateOrganization: (name: string, slug: string) => Promise<unknown>;
+  trigger?: React.ReactNode;
 }
 
 function generateSlug(name: string): string {
@@ -27,7 +28,7 @@ function generateSlug(name: string): string {
     .trim();
 }
 
-export function CreateOrganizationDialog({ onCreateOrganization }: CreateOrganizationDialogProps) {
+export function CreateOrganizationDialog({ onCreateOrganization, trigger }: CreateOrganizationDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -76,10 +77,12 @@ export function CreateOrganizationDialog({ onCreateOrganization }: CreateOrganiz
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Organization
-        </Button>
+        {trigger || (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Organization
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
