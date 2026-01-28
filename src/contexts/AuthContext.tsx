@@ -31,9 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Invalidate all queries when auth state changes (login/logout/user switch)
+        // Clear ALL cached data to prevent stale user-specific data across account switches
         if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-          queryClient.invalidateQueries();
+          queryClient.clear();
+          
+          // Force refresh session to ensure the Supabase client has the latest token
+          if (event === "SIGNED_IN" && session) {
+            supabase.auth.refreshSession();
+          }
         }
 
         // Handle OAuth redirect - check for stored redirect URL

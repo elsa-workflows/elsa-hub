@@ -25,6 +25,8 @@ export function useUserInvitations() {
     queryFn: async () => {
       if (!user?.email) return [];
 
+      console.log("Fetching invitations for email:", user.email);
+
       // Only fetch invitations sent TO the current user (not ones they created as admin)
       const { data, error } = await supabase
         .from("invitations")
@@ -57,6 +59,7 @@ export function useUserInvitations() {
       })) as UserInvitation[];
     },
     enabled: !!user?.email,
+    staleTime: 0, // Always fetch fresh data on mount/account switch
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
