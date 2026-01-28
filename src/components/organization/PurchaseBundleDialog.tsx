@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, CreditCard, Loader2, AlertCircle, Check } from "lucide-react";
 import {
@@ -22,9 +22,10 @@ import { cn } from "@/lib/utils";
 interface PurchaseBundleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preSelectedBundleId?: string | null;
 }
 
-export function PurchaseBundleDialog({ open, onOpenChange }: PurchaseBundleDialogProps) {
+export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }: PurchaseBundleDialogProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { selectedOrganization, organizations, isAdmin } = useOrganization();
@@ -32,6 +33,16 @@ export function PurchaseBundleDialog({ open, onOpenChange }: PurchaseBundleDialo
   const [selectedBundle, setSelectedBundle] = useState<CreditBundle | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-select bundle when dialog opens with a pre-selected bundle
+  useEffect(() => {
+    if (open && preSelectedBundleId && bundles) {
+      const bundle = bundles.find(b => b.id === preSelectedBundleId);
+      if (bundle) {
+        setSelectedBundle(bundle);
+      }
+    }
+  }, [open, preSelectedBundleId, bundles]);
 
   const handlePurchase = async () => {
     if (!selectedBundle || !selectedOrganization) return;
@@ -68,7 +79,12 @@ export function PurchaseBundleDialog({ open, onOpenChange }: PurchaseBundleDialo
     }).format(cents / 100);
   };
 
-  // Not logged in
+  // Not logged in - redirect to login with return URL
+  const handleSignInRedirect = () => {
+    const returnUrl = `/enterprise/expert-services${preSelectedBundleId ? `?bundleId=${preSelectedBundleId}` : ''}`;
+    navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+  };
+
   if (!user) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,7 +99,7 @@ export function PurchaseBundleDialog({ open, onOpenChange }: PurchaseBundleDialo
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={() => navigate("/login")}>Sign In</Button>
+            <Button onClick={handleSignInRedirect}>Sign In</Button>
           </div>
         </DialogContent>
       </Dialog>
