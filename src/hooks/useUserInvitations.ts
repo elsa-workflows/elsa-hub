@@ -26,7 +26,22 @@ export function useUserInvitations() {
       if (!user?.email || !session?.access_token) return [];
 
       console.log("Fetching invitations for email:", user.email);
-      console.log("Using session token:", session.access_token.substring(0, 50) + "...");
+
+      // Verify the Supabase client has the current session
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (!currentSession.session) {
+        console.warn("No active Supabase session, skipping invitation fetch");
+        return [];
+      }
+
+      // Verify the session matches the expected user
+      const sessionEmail = currentSession.session.user?.email;
+      if (sessionEmail?.toLowerCase() !== user.email.toLowerCase()) {
+        console.warn("Session email mismatch:", sessionEmail, "vs expected:", user.email);
+        return [];
+      }
+
+      console.log("Supabase session verified for:", sessionEmail);
 
       // Only fetch invitations sent TO the current user (not ones they created as admin)
       const { data, error } = await supabase
