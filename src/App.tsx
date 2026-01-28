@@ -39,6 +39,10 @@ import OrgCredits from "./pages/dashboard/org/OrgCredits";
 import OrgTeam from "./pages/dashboard/org/OrgTeam";
 import OrgSettings from "./pages/dashboard/org/OrgSettings";
 import ProviderOverview from "./pages/dashboard/provider/ProviderOverview";
+import ProviderCustomers from "./pages/dashboard/provider/ProviderCustomers";
+import ProviderWorkLogs from "./pages/dashboard/provider/ProviderWorkLogs";
+import ProviderBundles from "./pages/dashboard/provider/ProviderBundles";
+import ProviderSettings from "./pages/dashboard/provider/ProviderSettings";
 
 const queryClient = new QueryClient();
 
@@ -83,7 +87,10 @@ const App = () => (
                 <Route path="org/:slug/team" element={<OrgTeam />} />
                 <Route path="org/:slug/settings" element={<OrgSettings />} />
                 <Route path="provider/:slug" element={<ProviderOverview />} />
-                <Route path="provider/:slug/*" element={<ProviderOverview />} />
+                <Route path="provider/:slug/customers" element={<ProviderCustomers />} />
+                <Route path="provider/:slug/work-logs" element={<ProviderWorkLogs />} />
+                <Route path="provider/:slug/bundles" element={<ProviderBundles />} />
+                <Route path="provider/:slug/settings" element={<ProviderSettings />} />
               </Route>
 
               {/* Backward Compatibility Redirects */}
