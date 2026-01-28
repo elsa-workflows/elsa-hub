@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
@@ -20,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const hasHandledRedirect = useRef(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Set up auth state listener BEFORE checking session
@@ -28,6 +30,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Invalidate all queries when auth state changes (login/logout/user switch)
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+          queryClient.invalidateQueries();
+        }
 
         // Handle OAuth redirect - check for stored redirect URL
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
