@@ -235,7 +235,7 @@ export default function ExpertServices() {
                   </li>
                   <li className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-primary" />
-                    <span>Credits valid for 12 months</span>
+                    <span>Credits valid for 24 months</span>
                   </li>
                 </ul>
               </div>
