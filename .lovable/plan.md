@@ -1,293 +1,86 @@
 
+# Smart Dashboard Redirect After Login
 
-# Dashboard UI/UX Overhaul: Implementation Plan
+## Problem Analysis
 
-## Overview
+When you log in, the app may try to redirect you back to a specific organization URL (like `/dashboard/org/some-slug`) that was saved from a previous session. If you're a different user, or the organization no longer exists in your memberships, you see the "Organization Not Found" error.
 
-This plan introduces a modern, sidebar-based dashboard architecture for authenticated users, inspired by Catalyst's clean layout while maintaining the existing Elsa Workflows visual identity. The new structure will provide clear navigation for organization members and service providers, with the ability to switch contexts seamlessly.
+**Root cause**: The login redirect preserves the full URL path, including organization-specific slugs that may not be valid for the current user.
 
-## Architecture Decisions
+## Proposed Solution
 
-### Route Structure
-- `/dashboard/` - Dashboard home with context selector
-- `/dashboard/org/:slug/` - Organization overview (default landing)
-- `/dashboard/org/:slug/orders` - Purchase history
-- `/dashboard/org/:slug/credits` - Credit usage and expiration
-- `/dashboard/org/:slug/team` - Team members and invitations
-- `/dashboard/org/:slug/settings` - Organization settings (rename, leave org)
-- `/dashboard/provider/:slug/` - Provider overview
-- `/dashboard/provider/:slug/customers` - Customer organizations
-- `/dashboard/provider/:slug/work-logs` - Log and view hours
-- `/dashboard/provider/:slug/bundles` - Manage credit packages
-- `/dashboard/settings` - Personal profile and account settings
+Implement a **smart redirect system** that:
+1. After login, always land on `/dashboard` first
+2. The Dashboard Home page then intelligently auto-redirects based on your actual memberships
+3. Improve the auto-redirect logic to work for more scenarios
 
-### Context Switching
-Users who belong to multiple organizations AND/OR are members of a service provider will see a unified context switcher at the top of the sidebar. This dropdown will list:
-- **My Organizations** section with all orgs
-- **Service Provider** section (if applicable)
-- **+ Create Organization** action
+## Implementation Steps
 
-This approach lets users quickly switch between contexts without navigating away.
+### Step 1: Improve Auto-Redirect Logic in DashboardHome
 
-## Visual Design
+Current behavior only auto-redirects if you have **exactly 1 org and 0 providers**. We'll enhance this to:
+- Auto-redirect to the first org if you have **1 or more orgs and 0 providers**
+- Auto-redirect to the first provider if you have **0 orgs and 1 or more providers**
+- Keep the selector page only when you have **both orgs and providers** (true multi-context)
 
 ```text
-+--------------------------------------------------+
-|  [=] Elsa Workflows     [Bell] [User Avatar]     |  <- Compact header
-+--------------------------------------------------+
-|  [Context  |                                     |
-|   Switcher]|   Page Content Area                 |
-|  --------- |                                     |
-|            |   - Cards, tables, forms            |
-|  Overview  |   - Contextual actions              |
-|  Orders    |   - Full-width layout               |
-|  Credits   |                                     |
-|  Team      |                                     |
-|  Settings  |                                     |
-|            |                                     |
-|  --------- |                                     |
-|  Profile   |                                     |
-+------------+-------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│                    Login Successful                         │
+│                          │                                  │
+│                          ▼                                  │
+│                    /dashboard                               │
+│                          │                                  │
+│              ┌───────────┴───────────┐                      │
+│              │   Fetch Memberships   │                      │
+│              └───────────┬───────────┘                      │
+│                          │                                  │
+│          ┌───────────────┼───────────────┐                  │
+│          ▼               ▼               ▼                  │
+│    Only Orgs?      Both Types?     Only Providers?          │
+│          │               │               │                  │
+│          ▼               ▼               ▼                  │
+│   Auto-redirect    Show Selector   Auto-redirect            │
+│   to first org         Page        to first provider        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Sidebar Behavior
-- Collapsible to icon-only mode on desktop (Cmd+B shortcut)
-- Opens as a sheet/drawer on mobile devices
-- Active route highlighted with primary color
-- Tooltips shown when collapsed
+### Step 2: Clear Stale Organization State on Auth Change
 
-## Implementation Phases
+When users switch accounts, we should clear the `selected_organization` from localStorage to prevent stale data. This happens in the `AuthContext` on `SIGNED_IN` and `SIGNED_OUT` events.
 
-### Phase 1: Foundation (This Implementation)
-Create the core dashboard infrastructure and migrate existing organization features.
+### Step 3: Handle Invalid Org/Provider Gracefully
 
-### Phase 2: Organization Enhancements
-Break the current monolithic dashboard into dedicated pages with enhanced features like "Leave organization."
-
-### Phase 3: Service Provider Portal
-Build provider-specific pages for work logging and customer management.
+Update the "Not Found" experience in `OrgOverview` (and similar provider pages) to automatically redirect back to `/dashboard` after a short delay, or provide a clearer path forward.
 
 ---
 
-## Technical Implementation
+## Technical Details
 
-### New Files to Create
+### File Changes
 
-#### 1. Dashboard Layout Components
+**1. `src/pages/dashboard/DashboardHome.tsx`**
+- Modify auto-redirect logic:
+  - If `organizations.length >= 1` AND `providers.length === 0`: redirect to first org
+  - If `organizations.length === 0` AND `providers.length >= 1`: redirect to first provider
+  - Otherwise (both exist): show the selector page
 
-**`src/components/dashboard/DashboardLayout.tsx`**
-- Wraps all dashboard routes
-- Contains `SidebarProvider` from the existing Shadcn sidebar
-- Renders `DashboardSidebar` and `DashboardHeader`
-- Provides a scrollable content area with consistent padding
+**2. `src/contexts/AuthContext.tsx`**
+- Add `localStorage.removeItem("selected_organization")` on `SIGNED_IN` and `SIGNED_OUT` events to clear stale organization context
 
-**`src/components/dashboard/DashboardSidebar.tsx`**
-- Renders the sidebar navigation based on current context
-- Uses the `useDashboardContext` hook to determine which menu items to show
-- Implements collapsible groups for org vs provider navigation
-- Footer section with Profile link and theme toggle (future)
-
-**`src/components/dashboard/ContextSwitcher.tsx`**
-- Dropdown component at the top of the sidebar
-- Lists all organizations the user belongs to (from `useOrganizations`)
-- Lists service providers the user is a member of (new hook: `useProviderMemberships`)
-- Shows current selection with logo/icon, name, and role badge
-- Navigates to the selected context's overview page on selection
-
-**`src/components/dashboard/DashboardHeader.tsx`**
-- Compact header with sidebar toggle button, logo, notification bell, and user menu
-- User menu includes Profile settings and Sign out actions
-- Replaces the full marketing navigation inside dashboard routes
-
-**`src/components/dashboard/index.ts`**
-- Barrel export file for dashboard components
-
-#### 2. Dashboard Context
-
-**`src/contexts/DashboardContext.tsx`**
-- Manages the current dashboard context (organization or provider)
-- Stores context type (`org` | `provider`) and the entity's slug
-- Derived from URL parameters using `useParams`
-- Provides navigation helpers for switching contexts
-
-#### 3. New Hooks
-
-**`src/hooks/useProviderMemberships.ts`**
-- Fetches service providers where the current user is a member
-- Returns provider id, name, slug, role, and logo
-- Used by ContextSwitcher to populate the provider section
-
-#### 4. Dashboard Pages
-
-**`src/pages/dashboard/DashboardHome.tsx`**
-- Landing page when navigating to `/dashboard/`
-- If user has one org and no provider access, redirects to that org's overview
-- Otherwise shows a selection grid of all available contexts
-
-**`src/pages/dashboard/settings/ProfileSettings.tsx`**
-- Personal account settings (email, display name, avatar)
-- Sign out button
-- Moved from the current Account page
-
-**`src/pages/dashboard/org/OrgOverview.tsx`**
-- Migrated from current OrganizationDashboard
-- Shows credit summary, recent orders, team preview
-- Links to detailed pages
-
-**`src/pages/dashboard/org/OrgOrders.tsx`**
-- Full purchase history with filtering and search
-- Receipt download links
-- Pagination for large datasets
-
-**`src/pages/dashboard/org/OrgCredits.tsx`**
-- Detailed credit usage breakdown by lot
-- Expiration warnings
-- Usage chart over time
-
-**`src/pages/dashboard/org/OrgTeam.tsx`**
-- Full team management page
-- Invite members, view pending invitations
-- Role management (for admins)
-- Remove members
-
-**`src/pages/dashboard/org/OrgSettings.tsx`**
-- Organization name and slug management
-- Logo upload (future)
-- "Leave organization" action
-- "Delete organization" for owners (with confirmation)
-
-**Provider Pages (Phase 3 - stubbed initially):**
-- `src/pages/dashboard/provider/ProviderOverview.tsx`
-- `src/pages/dashboard/provider/ProviderCustomers.tsx`
-- `src/pages/dashboard/provider/ProviderWorkLogs.tsx`
-- `src/pages/dashboard/provider/ProviderBundles.tsx`
-
-### File Modifications
-
-#### `src/App.tsx`
-- Add new dashboard routes under `/dashboard/*`
-- Keep existing `/org/:slug` and `/account` as redirects to new paths
-- Wrap dashboard routes with `DashboardLayout`
-
-#### `src/contexts/OrganizationContext.tsx`
-- Keep existing functionality
-- May extend to include current dashboard context or rely on new DashboardContext
-
-#### `src/components/layout/Navigation.tsx`
-- Update "Account" link to point to `/dashboard/`
-- No other changes needed (marketing nav stays unchanged)
-
-#### `src/pages/Account.tsx`
-- Convert to a redirect component that sends to `/dashboard/settings`
-- Or keep as a minimal page that redirects based on context
-
-### Navigation Menu Items
-
-**Organization Context:**
-| Label | Icon | Route |
-|-------|------|-------|
-| Overview | `LayoutDashboard` | `/dashboard/org/:slug` |
-| Orders | `Receipt` | `/dashboard/org/:slug/orders` |
-| Credits | `Coins` | `/dashboard/org/:slug/credits` |
-| Team | `Users` | `/dashboard/org/:slug/team` |
-| Settings | `Settings` | `/dashboard/org/:slug/settings` |
-
-**Provider Context:**
-| Label | Icon | Route |
-|-------|------|-------|
-| Overview | `LayoutDashboard` | `/dashboard/provider/:slug` |
-| Customers | `Building2` | `/dashboard/provider/:slug/customers` |
-| Work Logs | `Clock` | `/dashboard/provider/:slug/work-logs` |
-| Bundles | `Package` | `/dashboard/provider/:slug/bundles` |
-| Settings | `Settings` | `/dashboard/provider/:slug/settings` |
-
-**Footer (always visible):**
-| Label | Icon | Route |
-|-------|------|-------|
-| Profile | `User` | `/dashboard/settings` |
-
-### Backward Compatibility
-
-To avoid breaking existing links and bookmarks:
-
-1. **`/account`** - Redirects to `/dashboard/settings` (or `/dashboard/` if no default org)
-2. **`/org/:slug`** - Redirects to `/dashboard/org/:slug`
-
-These redirects will be implemented as simple components using `Navigate` from react-router-dom.
-
-### Route Protection
-
-All `/dashboard/*` routes will check for authentication:
-- If not authenticated, redirect to `/login` with a return URL
-- This logic will be handled in `DashboardLayout`
+**3. `src/pages/dashboard/org/OrgOverview.tsx`** (optional enhancement)
+- Add an auto-redirect after 3 seconds when "Organization Not Found" is shown
+- Or simply make the "Go to Dashboard" button more prominent
 
 ---
 
-## File Structure Summary
+## Expected Behavior After Implementation
 
-```text
-src/
-  components/
-    dashboard/
-      index.ts
-      DashboardLayout.tsx
-      DashboardSidebar.tsx
-      DashboardHeader.tsx
-      ContextSwitcher.tsx
-  contexts/
-    DashboardContext.tsx       (new)
-    AuthContext.tsx            (existing)
-    OrganizationContext.tsx    (existing)
-  hooks/
-    useProviderMemberships.ts  (new)
-    useOrganizations.ts        (existing)
-    useOrganizationDashboard.ts (existing)
-  pages/
-    dashboard/
-      DashboardHome.tsx
-      settings/
-        ProfileSettings.tsx
-      org/
-        OrgOverview.tsx
-        OrgOrders.tsx
-        OrgCredits.tsx
-        OrgTeam.tsx
-        OrgSettings.tsx
-      provider/               (stubbed for Phase 3)
-        ProviderOverview.tsx
-        ProviderCustomers.tsx
-        ProviderWorkLogs.tsx
-        ProviderBundles.tsx
-    Account.tsx               (becomes redirect)
-    OrganizationDashboard.tsx (becomes redirect)
-```
+| Scenario | Current Behavior | New Behavior |
+|----------|------------------|--------------|
+| Login with 1 org, 0 providers | Auto-redirect to org | Same (unchanged) |
+| Login with 2+ orgs, 0 providers | Show selector | Auto-redirect to first org |
+| Login with 0 orgs, 1+ providers | Show selector | Auto-redirect to first provider |
+| Login with 1+ orgs AND 1+ providers | Show selector | Same (unchanged) |
+| Different user logs in with stale localStorage | May see "Not Found" | Cleared state, clean redirect |
 
----
-
-## Implementation Order
-
-1. **Create DashboardContext** - Foundation for context management
-2. **Create useProviderMemberships hook** - Fetch provider data
-3. **Create dashboard layout components** - DashboardLayout, DashboardSidebar, DashboardHeader, ContextSwitcher
-4. **Create DashboardHome page** - Entry point with context selection
-5. **Create ProfileSettings page** - Personal account settings
-6. **Create OrgOverview page** - Migrate from OrganizationDashboard
-7. **Create OrgOrders, OrgCredits, OrgTeam, OrgSettings pages** - Break out functionality
-8. **Update App.tsx routing** - Add new routes and redirects
-9. **Create redirect components** - For /account and /org/:slug
-10. **Stub provider pages** - Placeholder for Phase 3
-11. **Test navigation flows** - Ensure smooth transitions and active states
-
----
-
-## Design Tokens
-
-The existing CSS variables in `src/index.css` already define sidebar-specific tokens:
-- `--sidebar-background`
-- `--sidebar-foreground`
-- `--sidebar-primary`
-- `--sidebar-accent`
-- `--sidebar-border`
-
-These will be used to maintain visual consistency with the overall theme.
-
+This approach ensures a smooth landing experience after login while still respecting the multi-context selector when users genuinely need to choose between organization and provider roles.
