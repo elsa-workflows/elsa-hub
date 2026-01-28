@@ -34,8 +34,8 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // Get redirect URL from query params
-  const redirectTo = searchParams.get("redirect") || "/";
+  // Get redirect URL from query params, default to dashboard
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),

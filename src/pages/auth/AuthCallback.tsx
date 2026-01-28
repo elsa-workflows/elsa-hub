@@ -39,6 +39,11 @@ export default function AuthCallback() {
 
         if (data.session) {
           // User is now authenticated
+          // Check for stored redirect URL (from OAuth flow)
+          const storedRedirect = sessionStorage.getItem("authRedirect");
+          sessionStorage.removeItem("authRedirect");
+          const redirectTo = storedRedirect || "/dashboard";
+
           if (type === "signup" || type === "email") {
             // Email confirmation successful
             setStatus("success");
@@ -46,8 +51,8 @@ export default function AuthCallback() {
             // Password recovery - redirect to password reset page
             navigate("/reset-password");
           } else {
-            // Other auth types, show success
-            setStatus("success");
+            // OAuth login or other auth types - redirect to dashboard
+            navigate(redirectTo);
           }
         } else {
           // No session but no error - might be loading
@@ -61,7 +66,9 @@ export default function AuthCallback() {
           const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === "SIGNED_IN" && session) {
               clearTimeout(timeout);
-              setStatus("success");
+              const storedRedirect = sessionStorage.getItem("authRedirect");
+              sessionStorage.removeItem("authRedirect");
+              navigate(storedRedirect || "/dashboard");
               subscription.unsubscribe();
             }
           });
