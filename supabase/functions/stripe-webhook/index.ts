@@ -245,6 +245,16 @@ async function handleOneTimePaymentCheckout(
     },
   });
 
+  // Send notification to provider admins
+  await sendPurchaseNotification(supabase, {
+    providerId: order.service_provider_id,
+    organizationId: order.organization_id,
+    bundleName: order.credit_bundles.name,
+    hours: order.credit_bundles.hours,
+    amountCents: order.amount_cents,
+    currency: order.currency,
+  });
+
   console.log(`Order ${orderId} fulfilled successfully`);
 }
 
@@ -569,5 +579,77 @@ async function tryUpdateReceiptUrl(
     }
   } catch (err) {
     console.error("Failed to update receipt URL:", err);
+  }
+}
+
+// Helper to send purchase notification
+async function sendPurchaseNotification(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  params: {
+    providerId: string;
+    organizationId: string;
+    bundleName: string;
+    hours: number;
+    amountCents: number;
+    currency: string;
+  }
+) {
+  const { providerId, organizationId, bundleName, hours, amountCents, currency } = params;
+
+  try {
+    // Get organization name
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("name")
+      .eq("id", organizationId)
+      .single();
+
+    // Get provider admins
+    const { data: admins } = await supabase
+      .from("provider_members")
+      .select("user_id")
+      .eq("service_provider_id", providerId)
+      .in("role", ["owner", "admin"]);
+
+    if (!admins || admins.length === 0) {
+      console.log("No provider admins to notify");
+      return;
+    }
+
+    // Format amount
+    const formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    });
+    const amountFormatted = formatter.format(amountCents / 100);
+
+    // Send notification via edge function
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        type: "purchase_completed",
+        recipientUserIds: admins.map((a: { user_id: string }) => a.user_id),
+        data: {
+          organizationName: org?.name || "Unknown Organization",
+          bundleName,
+          hours,
+          amountFormatted,
+        },
+      }),
+    });
+
+    const result = await response.json();
+    console.log("Purchase notification result:", result);
+  } catch (error) {
+    console.error("Failed to send purchase notification:", error);
+    // Don't throw - notification failure shouldn't fail the webhook
   }
 }

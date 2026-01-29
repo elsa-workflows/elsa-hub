@@ -127,6 +127,26 @@ export function LogWorkDialog({
 
       if (error) throw error;
 
+      // Send notification to org members (fire and forget)
+      const customer = customers.find(c => c.organization_id === values.customerId);
+      supabase.functions.invoke("send-notification", {
+        body: {
+          type: "work_logged",
+          organizationId: values.customerId,
+          data: {
+            providerName: "Skywalker Digital", // TODO: Get from context
+            category: workCategories.find(c => c.value === values.category)?.label || values.category,
+            description: values.description.trim(),
+            hours: values.hours,
+            minutes: values.minutes,
+            creditsUrl: customer ? `https://elsa-hub.lovable.app/dashboard/org/${customer.organization_id}/credits` : undefined,
+          },
+        },
+      }).catch((err) => {
+        console.error("Failed to send work notification:", err);
+        // Don't fail the operation if notification fails
+      });
+
       toast({
         title: "Work logged successfully",
         description: `${values.hours}h ${values.minutes}m logged for ${workCategories.find(c => c.value === values.category)?.label}`,

@@ -33,6 +33,7 @@ import NotFound from "./pages/NotFound";
 import { DashboardLayout } from "@/components/dashboard";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import ProfileSettings from "./pages/dashboard/settings/ProfileSettings";
+import NotificationSettings from "./pages/dashboard/settings/NotificationSettings";
 import OrgOverview from "./pages/dashboard/org/OrgOverview";
 import OrgOrders from "./pages/dashboard/org/OrgOrders";
 import OrgCredits from "./pages/dashboard/org/OrgCredits";
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<DashboardHome />} />
                 <Route path="settings" element={<ProfileSettings />} />
+                <Route path="settings/notifications" element={<NotificationSettings />} />
                 <Route path="org/:slug" element={<OrgOverview />} />
                 <Route path="org/:slug/orders" element={<OrgOrders />} />
                 <Route path="org/:slug/credits" element={<OrgCredits />} />
