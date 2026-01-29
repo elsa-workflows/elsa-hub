@@ -80,9 +80,12 @@ export type Database = {
           hours: number
           id: string
           is_active: boolean
+          monthly_consumption_cap_minutes: number | null
           monthly_hours: number | null
           name: string
           price_cents: number
+          priority_level: string | null
+          recommended_monthly_minutes: number | null
           recurring_interval: string | null
           service_provider_id: string
           stripe_price_id: string | null
@@ -96,9 +99,12 @@ export type Database = {
           hours: number
           id?: string
           is_active?: boolean
+          monthly_consumption_cap_minutes?: number | null
           monthly_hours?: number | null
           name: string
           price_cents: number
+          priority_level?: string | null
+          recommended_monthly_minutes?: number | null
           recurring_interval?: string | null
           service_provider_id: string
           stripe_price_id?: string | null
@@ -112,9 +118,12 @@ export type Database = {
           hours?: number
           id?: string
           is_active?: boolean
+          monthly_consumption_cap_minutes?: number | null
           monthly_hours?: number | null
           name?: string
           price_cents?: number
+          priority_level?: string | null
+          recommended_monthly_minutes?: number | null
           recurring_interval?: string | null
           service_provider_id?: string
           stripe_price_id?: string | null
@@ -713,27 +722,51 @@ export type Database = {
       }
       service_providers: {
         Row: {
+          accepting_new_purchases: boolean
+          availability_status: string | null
+          capacity_threshold_percent: number | null
           created_at: string
+          enforce_capacity_gating: boolean
+          enforce_consumption_caps: boolean
+          estimated_lead_time_days: number | null
           id: string
           logo_url: string | null
           name: string
+          purchase_pause_message: string | null
           slug: string
+          total_available_minutes_per_month: number | null
           updated_at: string
         }
         Insert: {
+          accepting_new_purchases?: boolean
+          availability_status?: string | null
+          capacity_threshold_percent?: number | null
           created_at?: string
+          enforce_capacity_gating?: boolean
+          enforce_consumption_caps?: boolean
+          estimated_lead_time_days?: number | null
           id?: string
           logo_url?: string | null
           name: string
+          purchase_pause_message?: string | null
           slug: string
+          total_available_minutes_per_month?: number | null
           updated_at?: string
         }
         Update: {
+          accepting_new_purchases?: boolean
+          availability_status?: string | null
+          capacity_threshold_percent?: number | null
           created_at?: string
+          enforce_capacity_gating?: boolean
+          enforce_consumption_caps?: boolean
+          estimated_lead_time_days?: number | null
           id?: string
           logo_url?: string | null
           name?: string
+          purchase_pause_message?: string | null
           slug?: string
+          total_available_minutes_per_month?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -951,6 +984,16 @@ export type Database = {
           organization_slug: string
           role: Database["public"]["Enums"]["org_role"]
           status: string
+        }[]
+      }
+      get_provider_capacity_metrics: {
+        Args: { p_provider_id: string }
+        Returns: {
+          projected_monthly_load: number
+          recent_monthly_consumption: number
+          sold_unused_minutes: number
+          total_capacity: number
+          utilization_percent: number
         }[]
       }
       get_user_provider_id: { Args: never; Returns: string }

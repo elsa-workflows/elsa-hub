@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, CreditCard, Loader2, AlertCircle, Check, RefreshCw } from "lucide-react";
+import { Building2, CreditCard, Loader2, AlertCircle, Check, RefreshCw, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCreditBundles, CreditBundle } from "@/hooks/useCreditBundles";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { AvailabilityDisclaimer } from "@/components/enterprise";
 
 interface PurchaseBundleDialogProps {
   open: boolean;
@@ -254,6 +255,11 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
             </Alert>
           )}
         </div>
+
+        {/* Availability disclaimer before checkout */}
+        {selectedBundle && selectedOrganization && isAdmin && (
+          <AvailabilityDisclaimer className="mt-2" />
+        )}
 
         {/* Footer */}
         <div className="flex justify-end gap-3 pt-2">

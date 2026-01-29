@@ -100,6 +100,32 @@ serve(async (req) => {
       );
     }
 
+    // =============================================
+    // PHASE 1: Check if provider is accepting new purchases (intake pause)
+    // =============================================
+    const { data: providerSettings, error: providerError } = await userClient
+      .from("service_providers")
+      .select("accepting_new_purchases, purchase_pause_message, enforce_capacity_gating, total_available_minutes_per_month, capacity_threshold_percent")
+      .eq("id", bundle.service_provider_id)
+      .single();
+
+    if (providerError) {
+      console.error("Provider settings error:", providerError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify provider availability" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!providerSettings?.accepting_new_purchases) {
+      const message = providerSettings?.purchase_pause_message || 
+        "We're temporarily limiting new purchases to ensure quality and availability.";
+      return new Response(
+        JSON.stringify({ error: message }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Determine checkout mode based on billing type
     const isSubscription = bundle.billing_type === "recurring";
     const mode = isSubscription ? "subscription" : "payment";
@@ -107,6 +133,30 @@ serve(async (req) => {
     // Create service client for privileged operations
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // =============================================
+    // PHASE 3: Capacity-aware checkout guard (only if enabled)
+    // =============================================
+    if (providerSettings?.enforce_capacity_gating && providerSettings?.total_available_minutes_per_month) {
+      const { data: capacityMetrics, error: capacityError } = await serviceClient.rpc(
+        "get_provider_capacity_metrics",
+        { p_provider_id: bundle.service_provider_id }
+      );
+
+      if (!capacityError && capacityMetrics && capacityMetrics.length > 0) {
+        const metrics = capacityMetrics[0];
+        const threshold = providerSettings.capacity_threshold_percent || 90;
+        
+        if (metrics.utilization_percent >= threshold) {
+          return new Response(
+            JSON.stringify({ 
+              error: "We're currently at capacity. Please contact us to discuss availability." 
+            }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {

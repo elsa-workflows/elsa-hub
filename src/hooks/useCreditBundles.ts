@@ -13,6 +13,11 @@ export interface CreditBundle {
   billing_type: "one_time" | "recurring";
   recurring_interval: string | null;
   monthly_hours: number | null;
+  // Phase 1: Soft guidance
+  recommended_monthly_minutes: number | null;
+  // Phase 2: Consumption caps
+  monthly_consumption_cap_minutes: number | null;
+  priority_level: "standard" | "priority";
 }
 
 export function useCreditBundles() {
@@ -21,7 +26,7 @@ export function useCreditBundles() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("credit_bundles")
-        .select("id, name, hours, price_cents, currency, description, stripe_price_id, service_provider_id, billing_type, recurring_interval, monthly_hours")
+        .select("id, name, hours, price_cents, currency, description, stripe_price_id, service_provider_id, billing_type, recurring_interval, monthly_hours, recommended_monthly_minutes, monthly_consumption_cap_minutes, priority_level")
         .eq("is_active", true)
         .order("billing_type", { ascending: true })
         .order("hours", { ascending: true });
