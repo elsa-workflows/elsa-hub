@@ -1,210 +1,152 @@
 
 
-# Email Notifications System (Phase 1 - Pragmatic Approach)
+# Fix Stripe Webhook Subscription Date Handling
 
-## Philosophy
+## Problem Summary
 
-Build the simplest notification system that solves real problems today. Skip the channels abstraction until users actually request it.
+A customer (`skywalkertdp+customer@gmail.com`) purchased the "Ongoing Advisory" subscription (€2,000/month), but the order doesn't appear in the system. The subscription exists in Stripe and is active, but the webhook failed to create records in Supabase.
 
-## Notification Events
+### Root Cause
 
-| Event | Who Gets Notified | Priority |
-|-------|-------------------|----------|
-| Credits purchased | Provider team (admins) | High |
-| Work logged | Org members | High |
-| Subscription renewed | Provider team + Org admins | Medium |
-| Credits expiring soon | Org admins | Medium (future) |
+The `stripe-webhook` edge function uses Stripe API version `2025-08-27.basil`, which introduced a **breaking change**: the `current_period_start` and `current_period_end` fields were moved from the top-level Subscription object to the nested `items.data[]` array.
 
-## Database Design
-
-### New Table: `notification_preferences`
-
-```sql
-CREATE TABLE notification_preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
-  email_enabled BOOLEAN NOT NULL DEFAULT true,
-  
-  -- Granular toggles (all default to true)
-  notify_purchase BOOLEAN NOT NULL DEFAULT true,      -- Provider: when credits purchased
-  notify_work_logged BOOLEAN NOT NULL DEFAULT true,   -- Org: when work is logged
-  notify_subscription BOOLEAN NOT NULL DEFAULT true,  -- Both: subscription events
-  
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- RLS: Users can only see/edit their own preferences
-ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own preferences"
-  ON notification_preferences FOR SELECT
-  USING (user_id = auth.uid());
-
-CREATE POLICY "Users can update own preferences"
-  ON notification_preferences FOR UPDATE
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Users can insert own preferences"
-  ON notification_preferences FOR INSERT
-  WITH CHECK (user_id = auth.uid());
-
--- Auto-create preferences for new users (via trigger on profiles)
-CREATE OR REPLACE FUNCTION create_default_notification_preferences()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO notification_preferences (user_id)
-  VALUES (NEW.user_id)
-  ON CONFLICT (user_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_profile_created
-  AFTER INSERT ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION create_default_notification_preferences();
+**Current code (broken):**
+```typescript
+const periodStart = new Date(subscription.current_period_start * 1000).toISOString();
+const periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
 ```
 
-## Edge Function: `send-notification`
+Since `subscription.current_period_start` is now `undefined`, this becomes:
+```typescript
+new Date(undefined * 1000).toISOString()  // RangeError: Invalid time value
+```
 
-A reusable edge function that handles all notification emails:
+## Solution
 
-```text
-POST /functions/v1/send-notification
-{
-  "type": "purchase_completed" | "work_logged" | "subscription_renewed",
-  "recipientUserIds": ["uuid1", "uuid2"],
-  "data": { ... event-specific data ... }
+Update the webhook to extract period dates from the subscription items array instead of the top level.
+
+### Changes Required
+
+**File: `supabase/functions/stripe-webhook/index.ts`**
+
+#### 1. Add helper function to safely extract period dates
+
+```typescript
+// Helper to extract period dates from subscription (handles API version differences)
+function getSubscriptionPeriodDates(subscription: Stripe.Subscription): { periodStart: string; periodEnd: string } {
+  // In API version 2025-08-27.basil, dates are on items, not top level
+  const item = subscription.items?.data?.[0];
+  
+  const startTimestamp = item?.current_period_start ?? subscription.current_period_start;
+  const endTimestamp = item?.current_period_end ?? subscription.current_period_end;
+  
+  if (!startTimestamp || !endTimestamp) {
+    throw new Error("Missing period dates in subscription");
+  }
+  
+  return {
+    periodStart: new Date(startTimestamp * 1000).toISOString(),
+    periodEnd: new Date(endTimestamp * 1000).toISOString(),
+  };
 }
 ```
 
-The function will:
-1. Fetch notification preferences for all recipient user IDs
-2. Filter out users with notifications disabled
-3. Fetch email addresses from profiles
-4. Send templated emails via Resend
-5. Log delivery attempts (optional, for debugging)
+#### 2. Update `handleSubscriptionCheckout` (around line 307-308)
 
-## Integration Points
-
-### 1. Stripe Webhook (Purchase Completed)
-
-After creating credit lot and ledger entry, call `send-notification`:
-
+**Before:**
 ```typescript
-// In handleOneTimePaymentCheckout, after audit_events insert:
-const providerAdmins = await getProviderAdmins(supabase, order.service_provider_id);
-await sendNotification(supabase, resend, {
-  type: "purchase_completed",
-  recipientUserIds: providerAdmins.map(a => a.user_id),
-  data: {
-    organizationName: orgName,
-    bundleName: order.credit_bundles.name,
-    hours: order.credit_bundles.hours,
-    amountFormatted: formatCurrency(order.amount_cents, order.currency),
-  }
-});
+const periodStart = new Date(subscription.current_period_start * 1000).toISOString();
+const periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
 ```
 
-### 2. Work Log RPC (Work Logged)
-
-Two options:
-- **Option A**: Add notification call inside the RPC function (requires `pg_net` or a separate trigger)
-- **Option B**: Create a webhook/edge function that fires after work is logged
-
-Recommend **Option B** for simplicity - have the frontend call `send-notification` after successful work log:
-
+**After:**
 ```typescript
-// In LogWorkDialog.tsx, after successful RPC call:
-await supabase.functions.invoke("send-notification", {
-  body: {
-    type: "work_logged",
-    organizationId: values.customerId,
-    data: {
-      providerName: "Skywalker Digital",
-      category: values.category,
-      description: values.description,
-      minutesSpent: totalMinutes,
-      performerName: "John Doe"
-    }
-  }
-});
+const { periodStart, periodEnd } = getSubscriptionPeriodDates(subscription);
 ```
 
-## Email Templates
+#### 3. Update `handleInvoicePaid` (around line 402, 416)
 
-### Purchase Completed (to Provider)
-
-```
-Subject: 💰 New credit purchase from {Organization Name}
-
-{Organization Name} just purchased {Bundle Name} ({Hours} hours).
-
-Amount: {AmountFormatted}
-
-View in Dashboard: [Link to provider dashboard]
+**Before:**
+```typescript
+const periodStart = new Date(invoice.period_start * 1000).toISOString();
+// ...
+const periodEnd = new Date(invoice.period_end * 1000).toISOString();
 ```
 
-### Work Logged (to Organization)
-
-```
-Subject: ⏱️ {Provider Name} logged work on your account
-
-{Performer Name} from {Provider Name} logged {Hours}h {Minutes}m of work.
-
-Category: {Category}
-Description: {Description}
-
-View Details: [Link to org credits page]
+**After:**
+```typescript
+// Invoice period dates are still on the invoice object, but add null check
+const periodStart = invoice.period_start 
+  ? new Date(invoice.period_start * 1000).toISOString() 
+  : new Date().toISOString();
+const periodEnd = invoice.period_end 
+  ? new Date(invoice.period_end * 1000).toISOString() 
+  : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 ```
 
-## Frontend: Notification Settings Page
+#### 4. Update `handleSubscriptionUpdated` (around line 450-451)
 
-Add a new route `/dashboard/settings/notifications` with:
+**Before:**
+```typescript
+current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+```
 
-1. Master toggle: "Receive email notifications"
-2. Individual toggles:
-   - "Credit purchases" (for provider roles)
-   - "Work logged" (for org roles)
-   - "Subscription updates" (both)
+**After:**
+```typescript
+const { periodStart, periodEnd } = getSubscriptionPeriodDates(subscription);
+// Then use periodStart and periodEnd in the update
+```
 
-## File Changes Summary
+## Manual Recovery Steps
 
-### New Files
+After fixing the webhook, manually create the subscription record for the customer who already paid:
 
-| File | Purpose |
-|------|---------|
-| `supabase/migrations/XXXX_notification_preferences.sql` | Create table + RLS + trigger |
-| `supabase/functions/send-notification/index.ts` | Notification dispatch function |
-| `src/pages/dashboard/settings/NotificationSettings.tsx` | Preferences UI |
-| `src/hooks/useNotificationPreferences.ts` | Fetch/update preferences |
+```sql
+-- Create subscription record for existing Stripe subscription
+INSERT INTO subscriptions (
+  organization_id,
+  service_provider_id,
+  credit_bundle_id,
+  stripe_subscription_id,
+  stripe_customer_id,
+  status,
+  current_period_start,
+  current_period_end,
+  cancel_at_period_end
+) VALUES (
+  'b22b8945-3364-45fb-a41c-19894dce4a07',  -- Customer org
+  '11111111-1111-1111-1111-111111111111',  -- Skywalker Digital
+  (SELECT id FROM credit_bundles WHERE stripe_price_id = 'price_1Sue2iR90AfIREKG7Ra1D17c'),
+  'sub_1Sup6PR90AfIREKGp0yztMms',
+  'cus_TsaGSjYHzlJv3a',
+  'active',
+  '2026-01-29T06:53:14Z',
+  '2026-02-28T06:53:14Z',
+  false
+);
+```
 
-### Modified Files
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/stripe-webhook/index.ts` | Call send-notification after purchase |
-| `src/components/provider/LogWorkDialog.tsx` | Call send-notification after work log |
-| `src/App.tsx` | Add route for notification settings |
-| `src/pages/dashboard/settings/ProfileSettings.tsx` | Link to notification settings |
+Then grant the initial credits via the `grantSubscriptionCredits` logic or manually.
 
 ## Implementation Order
 
-1. **Database**: Create `notification_preferences` table with trigger
-2. **Edge Function**: Build `send-notification` with email templates
-3. **Webhook Integration**: Add notification calls to Stripe webhook
-4. **Work Log Integration**: Add notification call to LogWorkDialog
-5. **Settings UI**: Create notification preferences page
-6. **Testing**: Verify end-to-end flow for both event types
+1. Update the `stripe-webhook` edge function with the fix
+2. Deploy the updated function
+3. Run the SQL to create the missing subscription record
+4. Grant initial credits for the first billing period
+5. Test with a new subscription to verify the fix works
 
-## Future Considerations (Phase 2)
+## Files Modified
 
-When/if needed, the system can be extended with:
-- **Digest mode**: Batch notifications into daily/weekly summaries
-- **In-app notifications**: Add a notifications table and bell icon with history
-- **Channels abstraction**: Only if users specifically request Slack/Discord
+| File | Changes |
+|------|---------|
+| `supabase/functions/stripe-webhook/index.ts` | Add helper function, update 3 locations to use it |
 
-The current `notification_preferences` table structure is intentionally simple but can be extended with additional columns for granular control or delivery channels.
+## Verification
+
+After deployment:
+1. Check edge function logs for any new errors
+2. Verify the subscription appears in the customer's dashboard
+3. Test a new subscription purchase end-to-end
 
