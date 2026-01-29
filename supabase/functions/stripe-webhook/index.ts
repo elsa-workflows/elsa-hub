@@ -8,6 +8,30 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, stripe-signature",
 };
 
+// Helper to extract period dates from subscription (handles API version 2025-08-27.basil changes)
+// In this API version, current_period_start/end moved from Subscription to items.data[]
+function getSubscriptionPeriodDates(subscription: Stripe.Subscription): { periodStart: string; periodEnd: string } {
+  const item = subscription.items?.data?.[0];
+  
+  // Try items first (new API), then fallback to top-level (old API)
+  const startTimestamp = item?.current_period_start ?? (subscription as unknown as { current_period_start?: number }).current_period_start;
+  const endTimestamp = item?.current_period_end ?? (subscription as unknown as { current_period_end?: number }).current_period_end;
+  
+  if (!startTimestamp || !endTimestamp) {
+    console.error("Missing period dates in subscription:", JSON.stringify({
+      hasItems: !!subscription.items?.data?.length,
+      itemStart: item?.current_period_start,
+      itemEnd: item?.current_period_end,
+    }));
+    throw new Error("Missing period dates in subscription");
+  }
+  
+  return {
+    periodStart: new Date(startTimestamp * 1000).toISOString(),
+    periodEnd: new Date(endTimestamp * 1000).toISOString(),
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -304,8 +328,7 @@ async function handleSubscriptionCheckout(
   }
 
   const now = new Date().toISOString();
-  const periodStart = new Date(subscription.current_period_start * 1000).toISOString();
-  const periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+  const { periodStart, periodEnd } = getSubscriptionPeriodDates(subscription);
 
   // Create subscription record
   const { data: subRecord, error: subError } = await supabase
@@ -399,7 +422,10 @@ async function handleInvoicePaid(
   }
 
   // Check if we already granted credits for this period (idempotency)
-  const periodStart = new Date(invoice.period_start * 1000).toISOString();
+  // Add null check for period dates
+  const periodStart = invoice.period_start 
+    ? new Date(invoice.period_start * 1000).toISOString() 
+    : new Date().toISOString();
   const { data: existingLot } = await supabase
     .from("credit_lots")
     .select("id")
@@ -413,7 +439,9 @@ async function handleInvoicePaid(
   }
 
   // Update subscription period dates
-  const periodEnd = new Date(invoice.period_end * 1000).toISOString();
+  const periodEnd = invoice.period_end 
+    ? new Date(invoice.period_end * 1000).toISOString() 
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   await supabase
     .from("subscriptions")
     .update({
@@ -442,13 +470,15 @@ async function handleSubscriptionUpdated(
   supabase: any,
   subscription: Stripe.Subscription
 ) {
+  const { periodStart, periodEnd } = getSubscriptionPeriodDates(subscription);
+  
   const { error } = await supabase
     .from("subscriptions")
     .update({
       status: subscription.status,
       cancel_at_period_end: subscription.cancel_at_period_end,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: periodStart,
+      current_period_end: periodEnd,
     })
     .eq("stripe_subscription_id", subscription.id);
 
