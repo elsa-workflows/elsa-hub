@@ -121,10 +121,14 @@ export default function OrgOverview() {
         organizationId={organization?.id}
       />
 
-      {/* Recent Orders - Preview */}
-      <PurchaseHistoryTable orders={orders?.slice(0, 5) || []} loading={isLoading} />
+      {/* Recent Purchases - Preview */}
+      <PurchaseHistoryTable 
+        orders={orders?.slice(0, 5) || []} 
+        subscriptions={subscriptions || []} 
+        loading={isLoading || subscriptionsLoading} 
+      />
       
-      {orders && orders.length > 5 && (
+      {((orders && orders.length > 5) || (subscriptions && subscriptions.length > 0)) && (
         <div className="flex justify-center">
           <Button variant="outline" asChild>
             <Link to={`/dashboard/org/${slug}/orders`}>
