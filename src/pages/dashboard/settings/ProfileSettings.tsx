@@ -1,5 +1,5 @@
-import { useNavigate } from "react-router-dom";
-import { User, LogOut, Mail, Calendar } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { User, LogOut, Mail, Calendar, Bell, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,9 +64,23 @@ export default function ProfileSettings() {
               <div>
                 <p className="text-sm text-muted-foreground">Member since</p>
                 <p className="font-medium">{createdAt}</p>
-              </div>
             </div>
           </div>
+
+          <Link 
+            to="/dashboard/settings/notifications"
+            className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm text-muted-foreground">Notifications</p>
+                <p className="font-medium">Manage email preferences</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Link>
+        </div>
 
           <Button
             variant="outline"
