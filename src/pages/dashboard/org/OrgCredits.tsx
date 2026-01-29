@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
-import { CreditLotsTable, WorkLogsTable } from "@/components/organization";
+import { CreditLotsTable, WorkLogsTable, UsageSummaryCard } from "@/components/organization";
 import { UsagePacingCard } from "@/components/organization/UsagePacingCard";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -148,6 +148,13 @@ export default function OrgCredits() {
           </Button>
         )}
       </div>
+
+      {/* Usage Summary Card */}
+      <UsageSummaryCard
+        organizationId={organization?.id}
+        availableMinutes={totals.available}
+        serviceProviderId={creditBalances.length === 1 ? creditBalances[0].service_provider_id : undefined}
+      />
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
