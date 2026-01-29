@@ -9,6 +9,7 @@ import {
   Clock,
   Package,
   User,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const orgNavItems = [
 
 const providerNavItems = [
   { label: "Overview", icon: LayoutDashboard, path: "" },
+  { label: "Usage", icon: BarChart3, path: "usage" },
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Customers", icon: Building2, path: "customers" },
   { label: "Work Logs", icon: Clock, path: "work-logs" },

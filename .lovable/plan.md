@@ -2,7 +2,7 @@
 
 # Usage Visibility for Service Credits - Implementation Plan
 
-## Overview
+**Status: ✅ IMPLEMENTED**
 
 This plan implements a read/aggregation layer for usage visibility that allows customers and providers to understand how credits are consumed over time. The implementation uses existing `work_logs` data without introducing new tables or domain concepts.
 
