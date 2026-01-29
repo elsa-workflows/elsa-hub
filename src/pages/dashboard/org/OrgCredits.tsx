@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { CreditLotsTable, WorkLogsTable } from "@/components/organization";
+import { UsagePacingCard } from "@/components/organization/UsagePacingCard";
 import { supabase } from "@/integrations/supabase/client";
 
 function minutesToHours(minutes: number): string {
@@ -234,6 +235,14 @@ export default function OrgCredits() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Phase 2: Usage Pacing Transparency */}
+      {organization?.id && (
+        <UsagePacingCard 
+          organizationId={organization.id}
+          serviceProviderId={creditBalances.length === 1 ? creditBalances[0].service_provider_id : undefined}
+        />
       )}
 
       {/* Per-Provider Breakdown */}

@@ -12,7 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { NeutralityDisclaimer } from "@/components/enterprise";
+import { NeutralityDisclaimer, AvailabilityDisclaimer } from "@/components/enterprise";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
 import { useCreditBundles } from "@/hooks/useCreditBundles";
 import { toast } from "sonner";
@@ -263,6 +263,10 @@ export default function ExpertServices() {
                     <span>Credits valid for 24 months</span>
                   </li>
                 </ul>
+                {/* Phase 1: Availability disclaimer */}
+                <div className="mt-6">
+                  <AvailabilityDisclaimer variant="compact" />
+                </div>
               </div>
               
               {/* Engagement formats */}
@@ -332,9 +336,14 @@ export default function ExpertServices() {
                             {formatPrice(bundle.price_cents, bundle.currency)}
                           </span>
                         </div>
-                        <p className="text-xl font-semibold text-primary mb-4">
+                        <p className="text-xl font-semibold text-primary mb-2">
                           {bundle.hours} Hours
                         </p>
+                        {bundle.recommended_monthly_minutes && (
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Recommended: {Math.round(bundle.recommended_monthly_minutes / 60)}h/month
+                          </p>
+                        )}
                         <p className="text-muted-foreground text-sm">
                           {bundle.description || `${bundle.hours} hours of expert consulting time`}
                         </p>

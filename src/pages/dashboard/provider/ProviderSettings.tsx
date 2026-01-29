@@ -1,10 +1,18 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Settings, Users, Crown, ShieldCheck, User } from "lucide-react";
+import { Building2, Settings, Users, Crown, ShieldCheck, User, ShoppingBag, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 const roleIcons: Record<string, React.ReactNode> = {
   owner: <Crown className="h-3 w-3" />,
@@ -21,6 +29,67 @@ const roleLabels: Record<string, string> = {
 export default function ProviderSettings() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, teamMembers, isLoading, notFound, isAdmin } = useProviderDashboard(slug);
+  const queryClient = useQueryClient();
+  
+  // Local state for intake pause toggle
+  const [acceptingPurchases, setAcceptingPurchases] = useState<boolean | null>(null);
+  const [pauseMessage, setPauseMessage] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Initialize state from provider data
+  const currentAccepting = acceptingPurchases ?? provider?.accepting_new_purchases ?? true;
+  const currentMessage = pauseMessage || provider?.purchase_pause_message || "";
+  
+  const handleIntakePauseToggle = async (checked: boolean) => {
+    if (!provider?.id || !isAdmin) return;
+    
+    setAcceptingPurchases(checked);
+    setIsSaving(true);
+    
+    try {
+      const { error } = await supabase
+        .from("service_providers")
+        .update({ 
+          accepting_new_purchases: checked,
+          purchase_pause_message: checked ? null : (currentMessage || null)
+        })
+        .eq("id", provider.id);
+      
+      if (error) throw error;
+      
+      toast.success(checked ? "Now accepting new purchases" : "Purchases paused");
+      queryClient.invalidateQueries({ queryKey: ["provider", slug] });
+    } catch (err) {
+      console.error("Failed to update intake status:", err);
+      toast.error("Failed to update status");
+      setAcceptingPurchases(!checked); // revert
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const handlePauseMessageSave = async () => {
+    if (!provider?.id || !isAdmin) return;
+    
+    setIsSaving(true);
+    
+    try {
+      const { error } = await supabase
+        .from("service_providers")
+        .update({ purchase_pause_message: pauseMessage || null })
+        .eq("id", provider.id);
+      
+      if (error) throw error;
+      
+      toast.success("Pause message updated");
+      queryClient.invalidateQueries({ queryKey: ["provider", slug] });
+    } catch (err) {
+      console.error("Failed to update pause message:", err);
+      toast.error("Failed to update message");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (notFound && !isLoading) {
     return (
@@ -76,6 +145,67 @@ export default function ProviderSettings() {
             )}
           </CardContent>
         </Card>
+
+        {/* Intake Pause Control - Phase 1 Emergency Brake */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingBag className="h-5 w-5" />
+                Purchase Intake
+              </CardTitle>
+              <CardDescription>Control whether new credit purchases are accepted</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="accepting-purchases">Accepting new purchases</Label>
+                  <p className="text-sm text-muted-foreground">
+                    When disabled, customers cannot purchase new credits
+                  </p>
+                </div>
+                <Switch
+                  id="accepting-purchases"
+                  checked={currentAccepting}
+                  onCheckedChange={handleIntakePauseToggle}
+                  disabled={isSaving}
+                />
+              </div>
+              
+              {!currentAccepting && (
+                <>
+                  <Alert className="border-warning/50 bg-warning/5">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <AlertDescription>
+                      New purchases are currently paused. Customers will see a message explaining this when attempting to check out.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="pause-message">Custom pause message (optional)</Label>
+                    <Textarea
+                      id="pause-message"
+                      placeholder="We're temporarily limiting new purchases to ensure quality and availability."
+                      value={currentMessage}
+                      onChange={(e) => setPauseMessage(e.target.value)}
+                      rows={3}
+                    />
+                    <div className="flex justify-end">
+                      <Button 
+                        size="sm" 
+                        onClick={handlePauseMessageSave}
+                        disabled={isSaving || currentMessage === (provider?.purchase_pause_message || "")}
+                      >
+                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Save Message
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Team Members */}
         <Card>

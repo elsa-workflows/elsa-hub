@@ -39,6 +39,21 @@ export interface ProviderBundle {
   is_active: boolean;
   stripe_price_id: string | null;
   created_at: string;
+  // Phase 1-2 safeguard fields
+  recommended_monthly_minutes: number | null;
+  monthly_consumption_cap_minutes: number | null;
+  priority_level: string;
+}
+
+export interface ProviderSettings {
+  accepting_new_purchases: boolean;
+  purchase_pause_message: string | null;
+  availability_status: string | null;
+  estimated_lead_time_days: number | null;
+  enforce_consumption_caps: boolean;
+  total_available_minutes_per_month: number | null;
+  capacity_threshold_percent: number | null;
+  enforce_capacity_gating: boolean;
 }
 
 export function useProviderDashboard(slug: string | undefined) {
@@ -51,7 +66,7 @@ export function useProviderDashboard(slug: string | undefined) {
       if (!slug) return null;
       const { data, error } = await supabase
         .from("service_providers")
-        .select("id, name, slug, logo_url")
+        .select("id, name, slug, logo_url, accepting_new_purchases, purchase_pause_message, availability_status, estimated_lead_time_days, enforce_consumption_caps, total_available_minutes_per_month, capacity_threshold_percent, enforce_capacity_gating")
         .eq("slug", slug)
         .maybeSingle();
       

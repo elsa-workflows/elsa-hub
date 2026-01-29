@@ -11,3 +11,4 @@ export { OrganizationSelector } from "./OrganizationSelector";
 export { PurchaseBundleDialog } from "./PurchaseBundleDialog";
 export { SubscriptionCard } from "./SubscriptionCard";
 export { WorkLogsTable } from "./WorkLogsTable";
+export { UsagePacingCard } from "./UsagePacingCard";
