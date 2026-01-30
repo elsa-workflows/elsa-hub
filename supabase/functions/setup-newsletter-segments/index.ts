@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
       throw new Error("RESEND_API_KEY not configured");
     }
 
-    // Delete the production-docker audience
-    const response = await fetch("https://api.resend.com/audiences/1c7a46e4-20a1-4021-8e9a-14b25cd05491", {
+    // Delete the duplicate "general" audience
+    const response = await fetch("https://api.resend.com/audiences/ca32f69c-4a6d-4371-890d-32f781fcbf96", {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
