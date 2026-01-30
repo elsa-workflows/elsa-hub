@@ -1,85 +1,143 @@
-# Polymorphic Notification Platform - Implementation Complete ✅
+
+# Multi-Provider Authentication Management
 
 ## Overview
+Add a "Connected Accounts" section to the Profile Settings page where users can manage multiple authentication methods. This allows users who signed up with email/password to connect GitHub (and future providers), and users who signed up with GitHub to add email/password login.
 
-A unified, extensible notification system that:
-- ✅ Stores all notifications in a single polymorphic `notifications` table
-- ✅ Triggers emails for each notification type based on user preferences
-- ✅ Provides a unified in-app notification center (replacing invitation-only bell)
-- ✅ Supports multiple notification categories with type-safe payloads
+## Architecture
 
----
+### How It Works
+Supabase's `user.identities` array contains all connected auth providers. We'll:
+1. Read this array to show which providers are connected
+2. Use `supabase.auth.linkIdentity()` to connect OAuth providers
+3. Use `supabase.auth.updateUser({ password })` to add password auth for OAuth-only users
+4. Use `supabase.auth.unlinkIdentity()` to disconnect providers (with safeguards)
 
-## Completed Implementation
+### Provider Configuration
+A centralized config makes adding future providers (Google, Microsoft, Apple) trivial:
 
-### Database Schema ✅
-
-1. **`notifications` table** with:
-   - `id`, `user_id`, `type` (enum), `title`, `message`
-   - `payload` (JSONB) for type-specific data
-   - `action_url`, `read_at`, `dismissed_at`, `created_at`
-   - RLS policies for user-specific access
-   - Indexes for efficient queries
-
-2. **`notification_preferences`** updated with:
-   - `notify_org_invitation` column
-   - `notify_intro_call` column
-
-### Notification Types ✅
-
-| Type | Description | Trigger |
-|------|-------------|---------|
-| `org_invitation` | Team invite | `send-invitation` edge function |
-| `provider_invitation` | Future: provider team invite | - |
-| `work_logged` | Work logged on org account | `LogWorkDialog` → `create-notification` |
-| `purchase_completed` | Customer purchased credits | `stripe-webhook` |
-| `subscription_renewed` | Subscription renewed | `stripe-webhook` |
-| `intro_call_submitted` | Intake form submitted | `IntroCallIntakeDialog` → `create-notification` |
-
-### Edge Functions ✅
-
-1. **`create-notification`** - Centralized notification creator:
-   - Creates DB records
-   - Checks user preferences
-   - Sends emails via Resend
-   - Auto-populates provider admins for `intro_call_submitted`
-
-2. **`send-invitation`** - Updated to also create in-app notifications
-
-3. **`stripe-webhook`** - Updated to use new notification system
-
-### UI Components ✅
-
-1. **`NotificationBell`** - Refactored to query `notifications` table
-2. **`NotificationCard`** - Polymorphic card with type-specific actions
-3. **`useNotifications` hook** - Centralized notification state management
-4. **`NotificationSettings`** - Updated with new preference toggles
-
-### Files Created/Modified
-
-| File | Action |
-|------|--------|
-| `supabase/functions/create-notification/index.ts` | Created |
-| `supabase/functions/create-notification/deno.json` | Created |
-| `src/types/notifications.ts` | Created |
-| `src/hooks/useNotifications.ts` | Created |
-| `src/components/notifications/NotificationBell.tsx` | Rewritten |
-| `src/components/notifications/NotificationCard.tsx` | Created |
-| `src/components/notifications/index.ts` | Updated |
-| `src/hooks/useNotificationPreferences.ts` | Updated |
-| `src/pages/dashboard/settings/NotificationSettings.tsx` | Updated |
-| `src/components/enterprise/IntroCallIntakeDialog.tsx` | Updated |
-| `src/components/provider/LogWorkDialog.tsx` | Updated |
-| `supabase/functions/send-invitation/index.ts` | Updated |
-| `supabase/functions/stripe-webhook/index.ts` | Updated |
-| `supabase/config.toml` | Updated |
+```text
+providers = [
+  { id: "email", name: "Email & Password", icon: Mail },
+  { id: "github", name: "GitHub", icon: Github },
+  // Future: { id: "google", name: "Google", icon: ... }
+]
+```
 
 ---
 
-## Future Enhancements
+## Implementation Steps
 
-- [ ] Supabase Realtime for instant notification updates
-- [ ] Notification history page
-- [ ] Provider invitation notifications
-- [ ] Batch notification creation for efficiency
-- [ ] Notification deduplication logic
+### 1. Create Connected Accounts Component
+**File:** `src/components/settings/ConnectedAccountsCard.tsx`
+
+A new card component that:
+- Displays all available auth providers with their connection status
+- Shows "Connected" badge with disconnect option for linked providers
+- Shows "Connect" button for unlinked providers
+- Includes a form to set up email/password for OAuth-only users
+
+### 2. Create Auth Providers Hook
+**File:** `src/hooks/useAuthProviders.ts`
+
+A custom hook that:
+- Reads `user.identities` to determine connected providers
+- Provides `linkProvider(providerId)` function for OAuth linking
+- Provides `unlinkProvider(identity)` function with safety checks
+- Provides `setupEmailPassword(password)` for adding password auth
+- Handles loading and error states
+
+### 3. Update Auth Context
+**File:** `src/contexts/AuthContext.tsx`
+
+Add new methods to the context:
+- `linkOAuthProvider(provider)` - Initiates OAuth linking flow
+- `getUserIdentities()` - Returns user's connected identities
+
+### 4. Create Set Password Dialog
+**File:** `src/components/settings/SetPasswordDialog.tsx`
+
+A dialog for OAuth-only users to add email/password login:
+- Password and confirm password fields
+- Validation (min 6 chars, matching passwords)
+- Uses `supabase.auth.updateUser({ password })`
+
+### 5. Update Profile Settings Page
+**File:** `src/pages/dashboard/settings/ProfileSettings.tsx`
+
+Add the new Connected Accounts section between the account info and the sign out button.
+
+### 6. Handle OAuth Linking Callback
+**File:** `src/pages/auth/AuthCallback.tsx`
+
+Update to handle identity linking callbacks:
+- Detect `type=link` in URL hash
+- Show appropriate success/error message
+- Redirect back to profile settings
+
+---
+
+## UI Design
+
+```text
++-----------------------------------------------+
+|  Connected Accounts                           |
+|  Manage your login methods                    |
++-----------------------------------------------+
+|                                               |
+|  [Mail Icon]  Email & Password                |
+|  you@example.com                              |
+|  [Connected ✓] or [Set Up Password]           |
+|                                               |
+|  -------------------------------------------- |
+|                                               |
+|  [GitHub Icon]  GitHub                        |
+|  Not connected                                |
+|  [Connect GitHub]                             |
+|                                               |
++-----------------------------------------------+
+```
+
+---
+
+## Technical Details
+
+### Provider Detection Logic
+```text
+hasEmailProvider = identities.some(i => i.provider === "email")
+hasGitHubProvider = identities.some(i => i.provider === "github")
+```
+
+### Safety Rules
+- Users must have at least one provider connected (prevent lockout)
+- Show warning when disconnecting the last provider
+- Require re-authentication for sensitive operations (future enhancement)
+
+### OAuth Linking Flow
+1. User clicks "Connect GitHub"
+2. Call `supabase.auth.linkIdentity({ provider: 'github' })`
+3. User is redirected to GitHub for authorization
+4. On return, AuthCallback detects linking and shows success
+5. User is redirected back to Profile Settings
+
+---
+
+## Files to Create
+1. `src/components/settings/ConnectedAccountsCard.tsx` - Main UI component
+2. `src/components/settings/SetPasswordDialog.tsx` - Password setup dialog
+3. `src/hooks/useAuthProviders.ts` - Hook for provider management
+4. `src/components/settings/index.ts` - Export barrel file
+
+## Files to Modify
+1. `src/contexts/AuthContext.tsx` - Add linking methods
+2. `src/pages/dashboard/settings/ProfileSettings.tsx` - Add connected accounts section
+3. `src/pages/auth/AuthCallback.tsx` - Handle linking callbacks
+
+---
+
+## Extensibility for Future Providers
+Adding a new provider (e.g., Google) requires only:
+1. Enable the provider in Supabase dashboard
+2. Add entry to the providers config array
+3. No other code changes needed
+
