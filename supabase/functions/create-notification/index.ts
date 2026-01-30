@@ -105,16 +105,28 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Auto-populate recipients for intro_call_submitted if not provided
-    if ((!recipientUserIds || recipientUserIds.length === 0) && type === "intro_call_submitted") {
-      // Get all provider admins (currently just one provider: Skywalker Digital)
-      const { data: admins } = await supabase
+    // Auto-populate recipients and actionUrl for intro_call_submitted if not provided
+    if (type === "intro_call_submitted") {
+      // Get all provider admins with their provider info
+      const { data: adminMemberships } = await supabase
         .from("provider_members")
-        .select("user_id")
+        .select("user_id, service_provider_id, service_providers(slug)")
         .in("role", ["owner", "admin"]);
 
-      recipientUserIds = admins?.map((a) => a.user_id) || [];
-      console.log(`Auto-populated ${recipientUserIds.length} provider admins for intro_call notification`);
+      if (!recipientUserIds || recipientUserIds.length === 0) {
+        recipientUserIds = adminMemberships?.map((a) => a.user_id) || [];
+        console.log(`Auto-populated ${recipientUserIds.length} provider admins for intro_call notification`);
+      }
+
+      // Auto-set the actionUrl to the first provider's customers page if not set or incorrect
+      if (adminMemberships && adminMemberships.length > 0) {
+        const membership = adminMemberships[0];
+        const providerData = membership.service_providers as unknown as { slug: string } | null;
+        if (providerData?.slug) {
+          actionUrl = `/dashboard/provider/${providerData.slug}/customers`;
+          console.log(`Auto-set actionUrl to: ${actionUrl}`);
+        }
+      }
     }
 
     if (!recipientUserIds?.length) {
