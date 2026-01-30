@@ -85,6 +85,7 @@ interface Customer {
 
 interface LogWorkDialogProps {
   providerId: string;
+  providerName: string;
   customers: Customer[];
   onSuccess: () => void;
   trigger?: React.ReactNode;
@@ -92,6 +93,7 @@ interface LogWorkDialogProps {
 
 export function LogWorkDialog({
   providerId,
+  providerName,
   customers,
   onSuccess,
   trigger,
@@ -136,7 +138,7 @@ export function LogWorkDialog({
           title: "Work Logged",
           message: `${values.hours}h ${values.minutes}m of ${workCategories.find(c => c.value === values.category)?.label || values.category} work was logged`,
           payload: {
-            provider_name: "Skywalker Digital", // TODO: Get from context
+            provider_name: providerName,
             category: workCategories.find(c => c.value === values.category)?.label || values.category,
             description: values.description.trim(),
             minutes: totalMinutes,
