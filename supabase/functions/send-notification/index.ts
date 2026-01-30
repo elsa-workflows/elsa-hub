@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { buildEmailTemplate, formatDuration, formatCurrency } from "../_shared/emailTemplate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,12 +26,25 @@ interface NotificationRequest {
   data: Record<string, unknown>;
 }
 
-interface EmailTemplate {
+interface EmailContent {
   subject: string;
-  html: string;
+  preheader?: string;
+  title: string;
+  content: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  unsubscribeType: "all" | "newsletter" | "work_logged" | "purchase" | "subscription";
 }
 
-// deno-lint-ignore no-explicit-any
+// SHA-256 hash function for token generation
+async function sha256(message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 function getProviderDashboardUrl(): string {
   return "https://elsa-hub.lovable.app/dashboard";
 }
@@ -39,102 +53,124 @@ function getOrgCreditsUrl(slug: string): string {
   return `https://elsa-hub.lovable.app/dashboard/org/${slug}/credits`;
 }
 
-function generateEmailTemplate(
+function generateEmailContent(
   type: NotificationType,
   data: Record<string, unknown>
-): EmailTemplate {
+): EmailContent {
   switch (type) {
-    case "purchase_completed":
+    case "purchase_completed": {
+      const hours = data.hours as number;
+      const amount = data.amountFormatted as string || formatCurrency(data.amountCents as number || 0, data.currency as string);
+      
       return {
         subject: `💰 New credit purchase from ${data.organizationName}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #1a1a2e;">New Credit Purchase</h1>
-            <p style="font-size: 16px; color: #333;">
-              <strong>${data.organizationName}</strong> just purchased <strong>${data.bundleName}</strong> (${data.hours} hours).
-            </p>
-            <p style="font-size: 18px; color: #16a34a; font-weight: bold;">
-              Amount: ${data.amountFormatted}
-            </p>
-            <p style="margin-top: 24px;">
-              <a href="${getProviderDashboardUrl()}" 
-                 style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                View in Dashboard
-              </a>
-            </p>
-            <p style="color: #666; font-size: 14px; margin-top: 32px;">
-              This email was sent from Elsa Hub.
-            </p>
-          </div>
+        preheader: `${data.organizationName} purchased ${hours} hours of credits`,
+        title: "New Credit Purchase",
+        content: `
+          <p style="margin: 0 0 16px;">
+            <strong>${data.organizationName}</strong> just purchased <strong>${data.bundleName}</strong>.
+          </p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f5; border-radius: 12px; margin: 20px 0;">
+            <tr>
+              <td style="padding: 20px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding: 8px 0; color: #71717a; font-size: 14px;">Hours Purchased</td>
+                    <td align="right" style="padding: 8px 0; font-weight: 600; color: #18181b;">${hours} hours</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #71717a; font-size: 14px;">Amount</td>
+                    <td align="right" style="padding: 8px 0; font-weight: 700; font-size: 18px; color: #16a34a;">${amount}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         `,
+        ctaText: "View in Dashboard",
+        ctaUrl: getProviderDashboardUrl(),
+        unsubscribeType: "purchase",
       };
+    }
 
-    case "work_logged":
+    case "work_logged": {
+      const totalMinutes = data.totalMinutes as number || ((data.hours as number || 0) * 60 + (data.minutes as number || 0));
+      const duration = formatDuration(totalMinutes);
+      const category = (data.category as string || "work").charAt(0).toUpperCase() + (data.category as string || "work").slice(1);
+      
       return {
-        subject: `⏱️ ${data.providerName} logged work on your account`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #1a1a2e;">Work Logged</h1>
-            <p style="font-size: 16px; color: #333;">
-              <strong>${data.performerName || data.providerName}</strong> logged 
-              <strong>${data.hours}h ${data.minutes}m</strong> of work on your account.
-            </p>
-            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Category</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${data.category}</strong></td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Description</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">${data.description}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee; color: #666;">Time Spent</td>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>${data.hours}h ${data.minutes}m</strong></td>
-              </tr>
-            </table>
-            <p style="margin-top: 24px;">
-              <a href="${data.creditsUrl || getProviderDashboardUrl()}" 
-                 style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                View Details
-              </a>
-            </p>
-            <p style="color: #666; font-size: 14px; margin-top: 32px;">
-              This email was sent from Elsa Hub.
-            </p>
-          </div>
+        subject: `⏱️ ${data.providerName || "Provider"} logged ${duration} of work`,
+        preheader: `${duration} of ${data.category} logged to your account`,
+        title: "Work Logged",
+        content: `
+          <p style="margin: 0 0 16px;">
+            <strong>${data.performerName || data.providerName}</strong> logged work on your account.
+          </p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f5; border-radius: 12px; margin: 20px 0;">
+            <tr>
+              <td style="padding: 20px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding: 8px 0; color: #71717a; font-size: 14px;">Time Spent</td>
+                    <td align="right" style="padding: 8px 0; font-weight: 700; font-size: 18px; color: #6366f1;">${duration}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #71717a; font-size: 14px;">Category</td>
+                    <td align="right" style="padding: 8px 0; font-weight: 600; color: #18181b;">${category}</td>
+                  </tr>
+                  ${data.description ? `
+                  <tr>
+                    <td colspan="2" style="padding: 12px 0 0; border-top: 1px solid #e4e4e7; margin-top: 8px;">
+                      <p style="margin: 8px 0 0; color: #3f3f46; font-size: 14px; line-height: 1.5;">${data.description}</p>
+                    </td>
+                  </tr>
+                  ` : ""}
+                </table>
+              </td>
+            </tr>
+          </table>
         `,
+        ctaText: "View Credit Balance",
+        ctaUrl: data.creditsUrl as string || data.orgSlug ? getOrgCreditsUrl(data.orgSlug as string) : getProviderDashboardUrl(),
+        unsubscribeType: "work_logged",
       };
+    }
 
-    case "subscription_renewed":
+    case "subscription_renewed": {
+      const monthlyHours = data.monthlyHours as number;
+      
       return {
-        subject: `🔄 Subscription renewed for ${data.organizationName || "your organization"}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #1a1a2e;">Subscription Renewed</h1>
-            <p style="font-size: 16px; color: #333;">
-              The subscription for <strong>${data.organizationName}</strong> has been renewed.
-            </p>
-            <p style="font-size: 16px; color: #333;">
-              <strong>${data.monthlyHours}</strong> hours have been credited to the account.
-            </p>
-            <p style="margin-top: 24px;">
-              <a href="${getProviderDashboardUrl()}" 
-                 style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                View in Dashboard
-              </a>
-            </p>
-            <p style="color: #666; font-size: 14px; margin-top: 32px;">
-              This email was sent from Elsa Hub.
-            </p>
-          </div>
+        subject: `🔄 Subscription renewed - ${monthlyHours} hours credited`,
+        preheader: `Your subscription for ${data.organizationName} has been renewed`,
+        title: "Subscription Renewed",
+        content: `
+          <p style="margin: 0 0 16px;">
+            Great news! The subscription for <strong>${data.organizationName}</strong> has been successfully renewed.
+          </p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); background: #dcfce7; border-radius: 12px; margin: 20px 0;">
+            <tr>
+              <td align="center" style="padding: 24px;">
+                <p style="margin: 0; font-size: 14px; color: #166534;">Hours Credited</p>
+                <p style="margin: 8px 0 0; font-size: 32px; font-weight: 700; color: #15803d;">${monthlyHours} hours</p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 16px 0 0; color: #52525b;">
+            These credits are now available and ready to use.
+          </p>
         `,
+        ctaText: "View in Dashboard",
+        ctaUrl: getProviderDashboardUrl(),
+        unsubscribeType: "subscription",
       };
+    }
 
     default:
       return {
         subject: "Notification from Elsa Hub",
-        html: `<p>You have a new notification from Elsa Hub.</p>`,
+        title: "Notification",
+        content: "<p>You have a new notification from Elsa Hub.</p>",
+        unsubscribeType: "all",
       };
   }
 }
@@ -242,11 +278,11 @@ serve(async (req) => {
       .select("user_id, email, display_name")
       .in("user_id", enabledUserIds);
 
-    const emails = profiles
+    const emailRecipients = profiles
       ?.filter((p) => p.email)
-      .map((p) => p.email as string) || [];
+      .map((p) => ({ userId: p.user_id, email: p.email as string })) || [];
 
-    if (emails.length === 0) {
+    if (emailRecipients.length === 0) {
       console.log("No email addresses found for recipients");
       return new Response(
         JSON.stringify({ sent: 0, message: "No email addresses found" }),
@@ -254,19 +290,42 @@ serve(async (req) => {
       );
     }
 
-    // Generate email template
-    const template = generateEmailTemplate(type, data);
+    // Generate email content
+    const emailContent = generateEmailContent(type, data);
 
-    // Send emails
+    // Send emails with unique unsubscribe tokens per recipient
     const results = await Promise.allSettled(
-      emails.map((email) =>
-        resend.emails.send({
-          from: "Elsa Hub <notifications@elsa-workflows.io>",
+      emailRecipients.map(async ({ userId, email }) => {
+        // Generate unique unsubscribe token for this user
+        const tokenValue = crypto.randomUUID();
+        const tokenHash = await sha256(tokenValue);
+
+        // Store token in database
+        await supabase.from("unsubscribe_tokens").insert({
+          user_id: userId,
+          token_hash: tokenHash,
+        });
+
+        // Build email with template
+        const { html, headers } = buildEmailTemplate({
+          preheader: emailContent.preheader,
+          title: emailContent.title,
+          content: emailContent.content,
+          ctaText: emailContent.ctaText,
+          ctaUrl: emailContent.ctaUrl,
+          unsubscribeToken: tokenValue,
+          unsubscribeType: emailContent.unsubscribeType,
+        });
+
+        // Send email with RFC 8058 headers
+        return resend.emails.send({
+          from: "Elsa Workflows <notifications@elsa-workflows.io>",
           to: [email],
-          subject: template.subject,
-          html: template.html,
-        })
-      )
+          subject: emailContent.subject,
+          html,
+          headers,
+        });
+      })
     );
 
     const sent = results.filter((r) => r.status === "fulfilled").length;
@@ -275,7 +334,7 @@ serve(async (req) => {
     console.log(`Notifications sent: ${sent} succeeded, ${failed} failed`);
 
     return new Response(
-      JSON.stringify({ sent, failed, total: emails.length }),
+      JSON.stringify({ sent, failed, total: emailRecipients.length }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
