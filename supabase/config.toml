@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.setup-newsletter-segments]
 verify_jwt = false
+
+[functions.subscribe-newsletter]
+verify_jwt = false

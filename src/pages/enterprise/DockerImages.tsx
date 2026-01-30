@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer } from "@/components/enterprise";
+import { NewsletterSubscribeDialog } from "@/components/newsletter";
 import { ArrowRight, Check, Container, RefreshCw, BookOpen, Bell } from "lucide-react";
 
 const features = [
@@ -33,6 +35,8 @@ const features = [
 ];
 
 export default function DockerImages() {
+  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+
   return (
     <Layout>
       {/* Breadcrumb */}
@@ -111,16 +115,23 @@ export default function DockerImages() {
                 Enterprise Docker Images are coming soon. Get in touch to be notified 
                 when they become available or to discuss your requirements.
               </p>
-              <Button size="lg" className="gap-2" asChild>
-                <a href="mailto:info@skywalker-digital.com?subject=Enterprise%20Docker%20Images%20-%20Interest">
-                  Notify Me
-                  <ArrowRight className="h-4 w-4" />
-                </a>
+              <Button size="lg" className="gap-2" onClick={() => setNotifyDialogOpen(true)}>
+                Notify Me
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
         </div>
       </section>
+
+      <NewsletterSubscribeDialog
+        open={notifyDialogOpen}
+        onOpenChange={setNotifyDialogOpen}
+        title="Get Notified"
+        description="Be the first to know when Production Docker Images become available."
+        buttonText="Notify Me"
+        successMessage="You're on the list! We'll notify you when Docker Images are ready."
+      />
 
       {/* Neutrality Disclaimer */}
       <section className="py-16 md:py-24">

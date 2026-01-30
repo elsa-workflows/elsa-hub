@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer } from "@/components/enterprise";
+import { NewsletterSubscribeDialog } from "@/components/newsletter";
 import { ArrowRight, GraduationCap, Video, Users, BookOpen, Award, Mail } from "lucide-react";
 
 const trainingFormats = [
@@ -38,6 +40,8 @@ const trainingFormats = [
 ];
 
 export default function Training() {
+  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+
   return (
     <Layout>
       {/* Breadcrumb */}
@@ -144,16 +148,23 @@ export default function Training() {
                 While formal training programs are being developed, you can reach out 
                 to discuss your team's learning needs.
               </p>
-              <Button size="lg" className="gap-2" asChild>
-                <a href="mailto:info@skywalker-digital.com?subject=Training%20Inquiry">
-                  Contact Us
-                  <ArrowRight className="h-4 w-4" />
-                </a>
+              <Button size="lg" className="gap-2" onClick={() => setNotifyDialogOpen(true)}>
+                Notify Me
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
         </div>
       </section>
+
+      <NewsletterSubscribeDialog
+        open={notifyDialogOpen}
+        onOpenChange={setNotifyDialogOpen}
+        title="Get Notified"
+        description="Be the first to know when Training & Academy programs become available."
+        buttonText="Notify Me"
+        successMessage="You're on the list! We'll notify you when Training programs launch."
+      />
 
       {/* Neutrality Disclaimer */}
       <section className="pb-16 md:pb-24">
