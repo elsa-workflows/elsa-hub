@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Package, DollarSign, Clock, Repeat, Plus } from "lucide-react";
+import { Building2, Package, DollarSign, Clock, Repeat, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
+import { useBundleManagement, type BundleFormData } from "@/hooks/useBundleManagement";
+import { EditBundleDialog } from "@/components/provider/EditBundleDialog";
 
 function formatCurrency(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
@@ -14,9 +17,27 @@ function formatCurrency(cents: number, currency: string): string {
   }).format(cents / 100);
 }
 
+interface Bundle {
+  id: string;
+  name: string;
+  description: string | null;
+  hours: number;
+  monthly_hours: number | null;
+  price_cents: number;
+  currency: string;
+  billing_type: "one_time" | "recurring";
+  recurring_interval: string | null;
+  stripe_price_id: string | null;
+  is_active: boolean;
+}
+
 export default function ProviderBundles() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, bundles, isLoading, notFound, isAdmin } = useProviderDashboard(slug);
+  const { createBundle, updateBundle, toggleActive, isCreating, isUpdating, isToggling } = useBundleManagement(provider?.id);
+  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingBundle, setEditingBundle] = useState<Bundle | null>(null);
 
   if (notFound && !isLoading) {
     return (
@@ -33,8 +54,36 @@ export default function ProviderBundles() {
     );
   }
 
-  const oneTimeBundles = bundles.filter(b => b.billing_type === "one_time");
-  const recurringBundles = bundles.filter(b => b.billing_type === "recurring");
+  const handleCreateClick = () => {
+    setEditingBundle(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditClick = (bundle: Bundle) => {
+    setEditingBundle(bundle);
+    setDialogOpen(true);
+  };
+
+  const handleSave = (data: BundleFormData) => {
+    if (editingBundle) {
+      updateBundle.mutate(
+        { id: editingBundle.id, ...data },
+        { onSuccess: () => setDialogOpen(false) }
+      );
+    } else if (provider) {
+      createBundle.mutate(
+        { ...data, service_provider_id: provider.id },
+        { onSuccess: () => setDialogOpen(false) }
+      );
+    }
+  };
+
+  const handleToggle = (bundle: Bundle) => {
+    toggleActive.mutate({ id: bundle.id, is_active: !bundle.is_active });
+  };
+
+  const oneTimeBundles = bundles.filter(b => b.billing_type === "one_time") as Bundle[];
+  const recurringBundles = bundles.filter(b => b.billing_type === "recurring") as Bundle[];
   const activeBundles = bundles.filter(b => b.is_active).length;
 
   return (
@@ -47,7 +96,7 @@ export default function ProviderBundles() {
           </p>
         </div>
         {isAdmin && (
-          <Button disabled>
+          <Button onClick={handleCreateClick}>
             <Plus className="h-4 w-4 mr-2" />
             Create Bundle
           </Button>
@@ -135,18 +184,24 @@ export default function ProviderBundles() {
                   <TableHead>Price</TableHead>
                   <TableHead>Stripe Price ID</TableHead>
                   <TableHead className="text-right">Active</TableHead>
+                  {isAdmin && <TableHead className="w-[50px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {oneTimeBundles.map((bundle) => (
-                  <TableRow key={bundle.id}>
+                  <TableRow key={bundle.id} className={!bundle.is_active ? "opacity-60" : ""}>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{bundle.name}</p>
-                        {bundle.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {bundle.description}
-                          </p>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <p className="font-medium">{bundle.name}</p>
+                          {bundle.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {bundle.description}
+                            </p>
+                          )}
+                        </div>
+                        {!bundle.is_active && (
+                          <Badge variant="secondary" className="text-xs">Inactive</Badge>
                         )}
                       </div>
                     </TableCell>
@@ -165,8 +220,23 @@ export default function ProviderBundles() {
                       </code>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Switch checked={bundle.is_active} disabled />
+                      <Switch
+                        checked={bundle.is_active}
+                        onCheckedChange={() => handleToggle(bundle)}
+                        disabled={!isAdmin || isToggling}
+                      />
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(bundle)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -205,18 +275,24 @@ export default function ProviderBundles() {
                   <TableHead>Price</TableHead>
                   <TableHead>Interval</TableHead>
                   <TableHead className="text-right">Active</TableHead>
+                  {isAdmin && <TableHead className="w-[50px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recurringBundles.map((bundle) => (
-                  <TableRow key={bundle.id}>
+                  <TableRow key={bundle.id} className={!bundle.is_active ? "opacity-60" : ""}>
                     <TableCell>
-                      <div>
-                        <p className="font-medium">{bundle.name}</p>
-                        {bundle.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {bundle.description}
-                          </p>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <p className="font-medium">{bundle.name}</p>
+                          {bundle.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {bundle.description}
+                            </p>
+                          )}
+                        </div>
+                        {!bundle.is_active && (
+                          <Badge variant="secondary" className="text-xs">Inactive</Badge>
                         )}
                       </div>
                     </TableCell>
@@ -235,8 +311,23 @@ export default function ProviderBundles() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Switch checked={bundle.is_active} disabled />
+                      <Switch
+                        checked={bundle.is_active}
+                        onCheckedChange={() => handleToggle(bundle)}
+                        disabled={!isAdmin || isToggling}
+                      />
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(bundle)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -244,6 +335,15 @@ export default function ProviderBundles() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit/Create Dialog */}
+      <EditBundleDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        bundle={editingBundle}
+        onSave={handleSave}
+        isSaving={isCreating || isUpdating}
+      />
     </div>
   );
 }
