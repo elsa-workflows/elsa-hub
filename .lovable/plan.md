@@ -1,195 +1,317 @@
 
 
-# Usage Visibility for Service Credits - Implementation Plan
+# Expert Services Page Rework - Implementation Plan
 
-**Status: ✅ IMPLEMENTED**
+## Overview
 
-This plan implements a read/aggregation layer for usage visibility that allows customers and providers to understand how credits are consumed over time. The implementation uses existing `work_logs` data without introducing new tables or domain concepts.
+Rework the Expert Services page to signal enterprise-grade expertise with correct pricing and firm boundaries. The changes involve copy rewrites, pricing updates (both UI and database), and tone refinement throughout.
 
-## Architecture Principles
+## Current State Analysis
 
-- **Summaries first**: Aggregated views by default, drill-down optional
-- **Read-only**: No write permissions introduced
-- **RLS-compliant**: All queries respect existing Row Level Security
-- **Terminology**: "usage", "credits consumed", "work logged" (no "burn" or "timesheets")
+**Existing pricing in database:**
+- Starter Pack: $400 (5h) - $80/hr
+- Growth Pack: $750 (10h) - $75/hr
+- Scale Pack: $1,625 (25h) - $65/hr
+- Enterprise Pack: $2,750 (50h) - $55/hr
+- Ongoing Advisory: €2,000/month (6h) - €333/hr
 
----
-
-## Phase 1 - Customer-Facing Usage View
-
-### 1.1 Usage Summary Component
-
-Create a new `OrgUsageSummary` component for the organization dashboard that shows:
-
-**Stats Cards:**
-- Total credits consumed in selected period
-- Credits remaining (from existing `creditBalances`)
-- Number of work entries in the period
-- Optional: Breakdown by work category
-
-**Period Selector:**
-- Current month (default)
-- Previous month
-- Custom date range (start/end picker)
-
-**Location:** Add to `OrgCredits.tsx` above the existing Usage Pacing Card
-
-### 1.2 New Hook: `useOrgUsageSummary`
-
-Create a hook that fetches aggregated usage data:
-
-```typescript
-interface UsageSummaryData {
-  totalMinutesConsumed: number;
-  entryCount: number;
-  periodStart: Date;
-  periodEnd: Date;
-  byCategory: Record<string, { minutes: number; count: number }>;
-}
-
-function useOrgUsageSummary(
-  organizationId: string | undefined,
-  period: 'current_month' | 'previous_month' | 'custom',
-  customRange?: { start: Date; end: Date },
-  serviceProviderId?: string
-)
-```
-
-This hook queries `work_logs` with:
-- `organization_id` filter
-- `performed_at` date range filter
-- Optional `service_provider_id` filter
-- Groups by category for breakdown
-
-### 1.3 Work Log Details Drill-down
-
-Enhance the existing `WorkLogsTable` component:
-- Add period filtering (reuse period selector state)
-- Add "View Details" link from summary cards
-- Keep work logs read-only (no edit/dispute)
-
-### 1.4 UI Component: `UsagePeriodSelector`
-
-A reusable period selector component with:
-- Preset buttons: "This Month", "Last Month"  
-- Date range picker for custom periods
-- Compact design that fits in card headers
+**Target pricing (all EUR):**
+- Starter Pack: €900 (5h) - €180/hr
+- Growth Pack: €1,650 (10h) - €165/hr
+- Scale Pack: €3,875 (25h) - €155/hr
+- Enterprise Pack: €7,500 (50h) - €150/hr
+- Retained Advisory: €1,100/month (6h) - €183/hr
 
 ---
 
-## Phase 2 - Provider-Facing Usage Overview
+## Implementation Changes
 
-### 2.1 New Page: `ProviderUsage.tsx`
+### 1. Database Migration: Update Bundle Pricing
 
-Add a dedicated "Usage" page to the provider dashboard sidebar at `/dashboard/provider/:slug/usage`
+Create migration to update `credit_bundles` with new pricing:
 
-**High-Level Stats Section:**
-- Total credits consumed this month (all customers)
-- Total credits consumed last month
-- Number of active customer organizations
-- Top 5 customers by usage this month
+```sql
+-- Update Starter Pack: €900 (5h)
+UPDATE credit_bundles SET price_cents = 90000, currency = 'eur',
+  description = '€180 per hour. Best for short architectural reviews or focused guidance.'
+WHERE name = 'Starter Pack';
 
-**Per-Customer Usage Table:**
+-- Update Growth Pack: €1,650 (10h)
+UPDATE credit_bundles SET price_cents = 165000, currency = 'eur',
+  description = '€165 per hour. Ideal for teams ramping up or validating architectural decisions.'
+WHERE name = 'Growth Pack';
 
-| Customer | This Month | Last Month | This Quarter | Trend |
-|----------|-----------|------------|--------------|-------|
-| Acme Inc | 5.5h      | 4.2h       | 15.0h        | ↑     |
-| Contoso  | 2.0h      | 3.5h       | 8.0h         | ↓     |
+-- Update Scale Pack: €3,875 (25h)
+UPDATE credit_bundles SET price_cents = 387500, currency = 'eur',
+  description = '€155 per hour. Designed for ongoing projects and deeper technical collaboration.'
+WHERE name = 'Scale Pack';
 
-Trend indicator: Compare this month vs. last month (up/down/same)
+-- Update Enterprise Pack: €7,500 (50h)
+UPDATE credit_bundles SET price_cents = 750000, currency = 'eur',
+  description = '€150 per hour (maximum volume discount). Best suited for larger teams and longer-running initiatives.'
+WHERE name = 'Enterprise Pack';
 
-### 2.2 New Hook: `useProviderUsageSummary`
-
-```typescript
-interface ProviderUsageSummary {
-  thisMonth: {
-    totalMinutes: number;
-    entryCount: number;
-    activeCustomers: number;
-  };
-  lastMonth: {
-    totalMinutes: number;
-    entryCount: number;
-  };
-  topCustomers: Array<{
-    organizationId: string;
-    organizationName: string;
-    minutesThisMonth: number;
-  }>;
-}
+-- Update subscription: €1,100/month (rename to Retained Advisory)
+UPDATE credit_bundles SET price_cents = 110000, name = 'Retained Advisory',
+  description = 'Priority scheduling, async Q&A access, continuity and retained architectural context.'
+WHERE billing_type = 'recurring';
 ```
 
-### 2.3 New Hook: `useCustomerUsageBreakdown`
+---
 
-```typescript
-interface CustomerUsageRow {
-  organizationId: string;
-  organizationName: string;
-  thisMonthMinutes: number;
-  lastMonthMinutes: number;
-  thisQuarterMinutes: number;
-  trend: 'up' | 'down' | 'same';
-}
+### 2. Hero Section Rewrite
+
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 148-168)
+
+Replace current hero with cleaner, more confident copy:
+
+```tsx
+{/* Hero */}
+<section className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-transparent">
+  <div className="container">
+    <div className="max-w-3xl mx-auto text-center">
+      <h1 className="text-4xl md:text-5xl font-bold mb-6">
+        Elsa Workflows Expert Services
+      </h1>
+      <p className="text-xl text-muted-foreground mb-4">
+        Direct access to the creator and core maintainer of Elsa Workflows.
+      </p>
+      <p className="text-lg text-muted-foreground">
+        Get focused, senior-level guidance to design, extend, and operate Elsa Workflows 
+        in real-world systems. Whether you need architectural clarity, hands-on pairing, 
+        or help unblocking production issues,{" "}
+        <a href="https://www.skywalker-digital.com/" target="_blank" rel="noopener noreferrer" 
+           className="underline underline-offset-2 hover:text-foreground transition-colors">
+          Skywalker Digital
+        </a>{" "}
+        provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
+      </p>
+    </div>
+  </div>
+</section>
 ```
 
-### 2.4 Sidebar Navigation Update
+**Changes:**
+- Remove `Badge` component (no need for "Provided by Skywalker Digital" badge)
+- Cleaner headline without fluff
+- Stronger, more authoritative subheadline
+- Improved intro paragraph emphasizing senior expertise
 
-Add "Usage" nav item to provider navigation in `DashboardSidebar.tsx`:
-```typescript
-const providerNavItems = [
-  { label: "Overview", icon: LayoutDashboard, path: "" },
-  { label: "Usage", icon: BarChart3, path: "usage" },  // NEW
-  { label: "Orders", icon: Receipt, path: "orders" },
-  // ...
+---
+
+### 3. "Who This Service Is For" - Tighten Copy
+
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 47-57, 180-205)
+
+Update the data arrays:
+
+```tsx
+const forWhom = [
+  "Teams using Elsa Workflows in real applications",
+  "Organizations preparing for or running Elsa in production",
+  "Developers facing non-trivial workflow, orchestration, or architectural challenges",
+];
+
+const notForWhom = [
+  "Hobby projects or casual experimentation",
+  "General .NET mentoring unrelated to Elsa Workflows",
+  "Staff augmentation or long-term team replacement",
+];
+```
+
+Update section headers:
+
+```tsx
+<h3 className="text-lg font-semibold mb-6 text-foreground">
+  This service is intended for:
+</h3>
+// ... list ...
+
+<h3 className="text-lg font-semibold mb-6 text-foreground">
+  This service is not intended for:
+</h3>
+```
+
+---
+
+### 4. "What This Service Covers" - Add Framing
+
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 218-219)
+
+Update the description text:
+
+```tsx
+<p className="text-muted-foreground text-center mb-12">
+  The following are common areas of engagement. This list is illustrative, not exhaustive.
+</p>
+```
+
+---
+
+### 5. Service Credits Section - Refine Copy
+
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 247-251)
+
+Update the description:
+
+```tsx
+<p className="text-muted-foreground mb-6">
+  All services are delivered using prepaid Service Credits, allowing flexible use 
+  across different engagement types.
+</p>
+```
+
+---
+
+### 6. Pricing Section - Major Overhaul
+
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 292-358)
+
+**Key changes:**
+- Remove "Sandbox" badge entirely
+- Remove "Payments are currently in test mode" text
+- Update section title to just "Service Credit Bundles"
+- Add pricing notes after the bundle grid
+- Display per-hour rate on each card
+
+Updated bundle cards to show per-hour rate:
+
+```tsx
+<Card key={bundle.id} ...>
+  <CardHeader className="text-center pb-2">
+    <CardTitle className="text-lg">{bundle.name}</CardTitle>
+  </CardHeader>
+  <CardContent className="text-center">
+    <div className="mb-2">
+      <span className="text-3xl font-bold">
+        {formatPrice(bundle.price_cents, bundle.currency)}
+      </span>
+    </div>
+    <p className="text-xl font-semibold text-primary mb-2">
+      {bundle.hours} Service Credits
+    </p>
+    <p className="text-muted-foreground text-sm">
+      {bundle.description}
+    </p>
+  </CardContent>
+</Card>
+```
+
+Add pricing notes after the grid:
+
+```tsx
+<div className="mt-8 text-center text-sm text-muted-foreground space-y-1">
+  <p>All prices exclude VAT where applicable.</p>
+  <p>Service Credits are prepaid and non-refundable.</p>
+  <p>Discounts apply only through bundles.</p>
+</div>
+```
+
+---
+
+### 7. Subscription Section - Major Fix
+
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 360-422)
+
+**Changes:**
+- Remove "Sandbox" badge
+- Update title to "Retained Advisory"
+- Update description and benefits list
+- Add notes about unused credits and extras
+
+```tsx
+<section className="py-16 md:py-24">
+  <div className="container">
+    <div className="max-w-4xl mx-auto">
+      <Card className="border-2 border-primary/30 cursor-pointer transition-all hover:border-primary hover:shadow-lg"
+            onClick={() => handleBundleClick(subscriptionBundle.id)}>
+        <CardContent className="p-8 md:p-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+              <Badge variant="secondary" className="mb-4">Subscription</Badge>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                Retained Advisory
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                For teams running Elsa Workflows in production who want continuity, 
+                retained context, and priority access.
+              </p>
+              <div className="text-3xl font-bold">
+                {formatPrice(subscriptionBundle.price_cents, subscriptionBundle.currency)}
+                <span className="text-lg font-normal text-muted-foreground">
+                  /{subscriptionBundle.recurring_interval}
+                </span>
+              </div>
+            </div>
+            <div>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>{subscriptionBundle.monthly_hours} Service Credits per month</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Priority scheduling</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Asynchronous Q&A access</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Continuity and retained architectural context</span>
+                </li>
+              </ul>
+              <div className="mt-6 text-sm text-muted-foreground space-y-1">
+                <p>Unused credits expire monthly.</p>
+                <p>Additional Service Credits can be purchased separately.</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+</section>
+```
+
+---
+
+### 8. Working Together Section - Small Tweak
+
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 66-70)
+
+Update the first item in `howWeWork` array:
+
+```tsx
+const howWeWork = [
+  "Engagements are collaborative and focused on enablement, not replacement",
+  "Guidance, reviews, and proof-of-concepts",
+  "Pair programming with explanation",
+  "Repository access for troubleshooting when needed",
 ];
 ```
 
 ---
 
-## Implementation Details
+### 9. Urgent Support Note - Reframe
 
-### Query Strategy
+**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 460-470)
 
-All usage queries use the existing `work_logs` table with client-side aggregation for Phase 1. The queries are simple enough that RPC functions aren't required initially:
+Update the text to feel intentional:
 
-```sql
--- Customer usage for a period
-SELECT 
-  COUNT(*) as entry_count,
-  SUM(minutes_spent) as total_minutes,
-  category
-FROM work_logs
-WHERE organization_id = $org_id
-  AND performed_at >= $start_date
-  AND performed_at < $end_date
-GROUP BY category;
-
--- Provider usage across customers
-SELECT 
-  organization_id,
-  SUM(minutes_spent) as total_minutes,
-  COUNT(*) as entry_count
-FROM work_logs
-WHERE service_provider_id = $provider_id
-  AND performed_at >= $start_date
-  AND performed_at < $end_date
-GROUP BY organization_id;
+```tsx
+<div className="mt-12 p-6 rounded-lg bg-background border flex items-start gap-4">
+  <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+  <div>
+    <p className="font-medium mb-1">Urgent / After-Hours Support</p>
+    <p className="text-sm text-muted-foreground">
+      Urgent or after-hours support for production-blocking issues may be available 
+      on a best-effort basis and is billed at 2× the standard hourly rate, subject to availability.
+    </p>
+  </div>
+</div>
 ```
-
-### Date Range Helpers
-
-Create utility functions for period calculations:
-```typescript
-function getPeriodRange(period: 'current_month' | 'previous_month'): { start: Date; end: Date }
-function getQuarterRange(): { start: Date; end: Date }
-```
-
-### Security
-
-- All queries use existing RLS policies on `work_logs`
-- Customers see only their organization's data
-- Providers see only data for their linked customers via `provider_customers`
-- No new write permissions
 
 ---
 
@@ -197,86 +319,26 @@ function getQuarterRange(): { start: Date; end: Date }
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/hooks/useOrgUsageSummary.ts` | Create | Aggregates work_logs for org usage |
-| `src/hooks/useProviderUsageSummary.ts` | Create | Aggregates provider-wide usage stats |
-| `src/hooks/useCustomerUsageBreakdown.ts` | Create | Per-customer usage with trends |
-| `src/components/organization/UsageSummaryCard.tsx` | Create | Customer usage summary display |
-| `src/components/organization/UsagePeriodSelector.tsx` | Create | Reusable period picker |
-| `src/components/organization/index.ts` | Update | Export new components |
-| `src/pages/dashboard/org/OrgCredits.tsx` | Update | Add usage summary section |
-| `src/pages/dashboard/provider/ProviderUsage.tsx` | Create | New provider usage page |
-| `src/components/dashboard/DashboardSidebar.tsx` | Update | Add Usage nav item for providers |
-| `src/App.tsx` | Update | Add route for ProviderUsage |
-
----
-
-## UI Design Notes
-
-### Customer Usage Summary Card
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│ Usage Summary                        [This Month ▼]      │
-├──────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │
-│  │    5.5h     │  │     12      │  │    4.5h     │       │
-│  │  consumed   │  │   entries   │  │  remaining  │       │
-│  └─────────────┘  └─────────────┘  └─────────────┘       │
-│                                                          │
-│  By Category                                             │
-│  ├─ Consulting    3.0h  (6 entries)                     │
-│  ├─ Development   1.5h  (4 entries)                     │
-│  └─ Support       1.0h  (2 entries)                     │
-│                                                          │
-│  [View Work Log Details →]                              │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Provider Usage Overview
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│ Usage Overview                                                   │
-├────────────────────┬───────────────────┬────────────────────────┤
-│  This Month        │  Last Month       │  Active Customers      │
-│  12.5h consumed    │  9.0h consumed    │  4 organizations       │
-└────────────────────┴───────────────────┴────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ Customer Usage Breakdown                                        │
-├──────────────┬────────────┬───────────┬────────────┬───────────┤
-│ Customer     │ This Month │ Last Month│ Quarter    │ Trend     │
-├──────────────┼────────────┼───────────┼────────────┼───────────┤
-│ Acme Inc     │ 5.5h       │ 4.2h      │ 15.0h      │ ↑ +31%    │
-│ Contoso      │ 3.0h       │ 2.8h      │ 8.0h       │ ↑ +7%     │
-│ Skywalker    │ 2.5h       │ 2.0h      │ 6.5h       │ ↑ +25%    │
-│ Rebel Co     │ 1.5h       │ 0.0h      │ 1.5h       │ NEW       │
-└──────────────┴────────────┴───────────┴────────────┴───────────┘
-```
-
----
-
-## Explicit Non-Goals (Not Implemented)
-
-- Per-minute or per-day charts
-- Editable work logs  
-- Dispute workflows
-- SLA/response-time inferences
-- CSV/PDF export (Phase 2+)
-- Weekly/quarterly breakdowns (Phase 2+)
+| `supabase/migrations/xxx.sql` | Create | Update bundle pricing and descriptions |
+| `src/pages/enterprise/ExpertServices.tsx` | Update | Hero rewrite, copy tightening, pricing section overhaul, subscription fix |
 
 ---
 
 ## Implementation Order
 
-1. Create date utility functions
-2. Create `useOrgUsageSummary` hook
-3. Create `UsagePeriodSelector` component
-4. Create `UsageSummaryCard` component
-5. Update `OrgCredits.tsx` with usage summary
-6. Create `useProviderUsageSummary` hook
-7. Create `useCustomerUsageBreakdown` hook  
-8. Create `ProviderUsage.tsx` page
-9. Update sidebar navigation
-10. Add route in App.tsx
+1. Create database migration for bundle pricing updates
+2. Update ExpertServices.tsx with all copy changes
+3. Verify pricing displays correctly with EUR currency
+
+---
+
+## Visual Summary of Pricing Changes
+
+| Bundle | Current | New |
+|--------|---------|-----|
+| Starter (5h) | $400 ($80/hr) | €900 (€180/hr) |
+| Growth (10h) | $750 ($75/hr) | €1,650 (€165/hr) |
+| Scale (25h) | $1,625 ($65/hr) | €3,875 (€155/hr) |
+| Enterprise (50h) | $2,750 ($55/hr) | €7,500 (€150/hr) |
+| Subscription (6h/mo) | €2,000/mo (€333/hr) | €1,100/mo (€183/hr) |
 
