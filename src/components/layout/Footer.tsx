@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { Github, MessageCircle, BookOpen, ExternalLink } from "lucide-react";
 import elsaLogo from "@/assets/elsa-logo.png";
+import { FooterNewsletterSignup } from "@/components/newsletter";
+
 const footerLinks = {
   product: [{
     label: "Home",
@@ -108,6 +110,11 @@ export function Footer() {
                   </a>
                 </li>)}
             </ul>
+          </div>
+
+          {/* Newsletter Signup */}
+          <div>
+            <FooterNewsletterSignup />
           </div>
         </div>
 

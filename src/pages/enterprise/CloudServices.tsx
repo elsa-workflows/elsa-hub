@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Cloud,
   Server,
@@ -25,6 +26,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { NewsletterSubscribeDialog } from "@/components/newsletter";
 
 const includedFeatures = [
   {
@@ -139,6 +141,8 @@ const relatedOfferings = [
 ];
 
 export default function CloudServices() {
+  const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+
   return (
     <Layout>
       {/* Breadcrumb */}
@@ -368,11 +372,9 @@ export default function CloudServices() {
               fits your requirements, we're happy to have a conversation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="gap-2" asChild>
-                <a href="mailto:info@skywalker-digital.com?subject=Managed%20Cloud%20Hosting%20-%20Inquiry">
-                  Discuss Suitability
-                  <ArrowRight className="h-4 w-4" />
-                </a>
+              <Button size="lg" className="gap-2" onClick={() => setNotifyDialogOpen(true)}>
+                Notify Me
+                <ArrowRight className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="lg" className="gap-2" asChild>
                 <a
@@ -388,6 +390,15 @@ export default function CloudServices() {
           </div>
         </div>
       </section>
+
+      <NewsletterSubscribeDialog
+        open={notifyDialogOpen}
+        onOpenChange={setNotifyDialogOpen}
+        title="Get Notified"
+        description="Be the first to know when Managed Cloud Hosting becomes available."
+        buttonText="Notify Me"
+        successMessage="You're on the list! We'll notify you when Cloud Hosting is ready."
+      />
     </Layout>
   );
 }
