@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 
-type CallbackStatus = "loading" | "success" | "error";
+type CallbackStatus = "loading" | "success" | "error" | "linked";
 
 export default function AuthCallback() {
   const [status, setStatus] = useState<CallbackStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [linkedProvider, setLinkedProvider] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,9 +23,14 @@ export default function AuthCallback() {
         const errorDescription = hashParams.get("error_description");
         const type = hashParams.get("type");
 
+        // Check if this is a linking callback
+        const linkingProvider = sessionStorage.getItem("linkingProvider");
+        const isLinkingFlow = !!linkingProvider;
+
         if (error) {
           setErrorMessage(errorDescription || "An error occurred during verification.");
           setStatus("error");
+          sessionStorage.removeItem("linkingProvider");
           return;
         }
 
@@ -34,6 +40,7 @@ export default function AuthCallback() {
         if (sessionError) {
           setErrorMessage(sessionError.message);
           setStatus("error");
+          sessionStorage.removeItem("linkingProvider");
           return;
         }
 
@@ -44,7 +51,16 @@ export default function AuthCallback() {
           sessionStorage.removeItem("authRedirect");
           const redirectTo = storedRedirect || "/dashboard";
 
-          if (type === "signup" || type === "email") {
+          if (isLinkingFlow) {
+            // This was an identity linking flow
+            setLinkedProvider(linkingProvider);
+            sessionStorage.removeItem("linkingProvider");
+            setStatus("linked");
+            // Redirect back to profile settings after a short delay
+            setTimeout(() => {
+              navigate(redirectTo);
+            }, 2000);
+          } else if (type === "signup" || type === "email") {
             // Email confirmation successful
             setStatus("success");
           } else if (type === "recovery") {
@@ -60,6 +76,7 @@ export default function AuthCallback() {
           const timeout = setTimeout(() => {
             setErrorMessage("Unable to verify your account. The link may have expired.");
             setStatus("error");
+            sessionStorage.removeItem("linkingProvider");
           }, 3000);
 
           // Listen for auth state change
@@ -68,7 +85,17 @@ export default function AuthCallback() {
               clearTimeout(timeout);
               const storedRedirect = sessionStorage.getItem("authRedirect");
               sessionStorage.removeItem("authRedirect");
-              navigate(storedRedirect || "/dashboard");
+              
+              if (isLinkingFlow) {
+                setLinkedProvider(linkingProvider);
+                sessionStorage.removeItem("linkingProvider");
+                setStatus("linked");
+                setTimeout(() => {
+                  navigate(storedRedirect || "/dashboard/settings/profile");
+                }, 2000);
+              } else {
+                navigate(storedRedirect || "/dashboard");
+              }
               subscription.unsubscribe();
             }
           });
@@ -81,6 +108,7 @@ export default function AuthCallback() {
       } catch (err) {
         setErrorMessage("An unexpected error occurred.");
         setStatus("error");
+        sessionStorage.removeItem("linkingProvider");
       }
     };
 
@@ -122,6 +150,21 @@ export default function AuthCallback() {
                   <Link to="/login">Sign In</Link>
                 </Button>
               </CardContent>
+            </>
+          )}
+
+          {status === "linked" && (
+            <>
+              <CardHeader className="space-y-4">
+                <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="text-2xl">Account Connected!</CardTitle>
+                <CardDescription className="text-base">
+                  {linkedProvider.charAt(0).toUpperCase() + linkedProvider.slice(1)} has been 
+                  successfully connected to your account. Redirecting...
+                </CardDescription>
+              </CardHeader>
             </>
           )}
 
