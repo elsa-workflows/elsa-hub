@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ConnectedAccountsCard } from "@/components/settings";
 
 export default function ProfileSettings() {
   const { user, signOut } = useAuth();
@@ -92,6 +93,8 @@ export default function ProfileSettings() {
           </Button>
         </CardContent>
       </Card>
+
+      <ConnectedAccountsCard />
     </div>
   );
 }
