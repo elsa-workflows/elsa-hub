@@ -1,4 +1,4 @@
-import { Bell, Mail, ShoppingCart, Clock, RefreshCw, UserPlus, Phone } from "lucide-react";
+import { Bell, Mail, ShoppingCart, Clock, RefreshCw, UserPlus, Phone, Newspaper } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -194,6 +194,27 @@ export default function NotificationSettings() {
                   id="notify_subscription"
                   checked={preferences?.notify_subscription ?? true}
                   onCheckedChange={(checked) => handleToggle("notify_subscription", checked)}
+                  disabled={isUpdating}
+                />
+              </div>
+
+              {/* Newsletter subscription */}
+              <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Newspaper className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <Label htmlFor="newsletter_enabled" className="text-base">
+                      Community newsletter
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Product updates, release notes, and ecosystem news
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="newsletter_enabled"
+                  checked={preferences?.newsletter_enabled ?? false}
+                  onCheckedChange={(checked) => handleToggle("newsletter_enabled", checked)}
                   disabled={isUpdating}
                 />
               </div>

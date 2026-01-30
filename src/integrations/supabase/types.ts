@@ -524,6 +524,7 @@ export type Database = {
           created_at: string
           email_enabled: boolean
           id: string
+          newsletter_enabled: boolean
           notify_intro_call: boolean
           notify_org_invitation: boolean
           notify_purchase: boolean
@@ -536,6 +537,7 @@ export type Database = {
           created_at?: string
           email_enabled?: boolean
           id?: string
+          newsletter_enabled?: boolean
           notify_intro_call?: boolean
           notify_org_invitation?: boolean
           notify_purchase?: boolean
@@ -548,6 +550,7 @@ export type Database = {
           created_at?: string
           email_enabled?: boolean
           id?: string
+          newsletter_enabled?: boolean
           notify_intro_call?: boolean
           notify_org_invitation?: boolean
           notify_purchase?: boolean
@@ -941,6 +944,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          token_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       work_logs: {
         Row: {

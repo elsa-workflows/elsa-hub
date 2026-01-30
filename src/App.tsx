@@ -26,6 +26,7 @@ import Signup from "./pages/Signup";
 import ConfirmEmail from "./pages/signup/ConfirmEmail";
 import AuthCallback from "./pages/auth/AuthCallback";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 
 // Dashboard
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/invite/:token" element={<AcceptInvitation />} />
+              <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
 
               {/* Dashboard Routes */}
               <Route path="/dashboard" element={<DashboardLayout />}>

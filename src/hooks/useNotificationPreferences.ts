@@ -12,6 +12,7 @@ export interface NotificationPreferences {
   notify_subscription: boolean;
   notify_org_invitation: boolean;
   notify_intro_call: boolean;
+  newsletter_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +45,7 @@ export function useNotificationPreferences() {
           notify_subscription: true,
           notify_org_invitation: true,
           notify_intro_call: true,
+          newsletter_enabled: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         } as NotificationPreferences;
