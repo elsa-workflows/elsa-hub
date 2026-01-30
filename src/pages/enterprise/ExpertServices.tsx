@@ -45,15 +45,15 @@ const capabilities = [
 ];
 
 const forWhom = [
-  "Teams using Elsa Workflows in real projects",
-  "Organizations running or preparing for production",
-  "Developers facing non-trivial architectural or workflow challenges",
+  "Teams using Elsa Workflows in real applications",
+  "Organizations preparing for or running Elsa in production",
+  "Developers facing non-trivial workflow, orchestration, or architectural challenges",
 ];
 
 const notForWhom = [
   "Hobby projects or casual experimentation",
-  "General .NET mentoring unrelated to Elsa",
-  "Teams looking for staff augmentation",
+  "General .NET mentoring unrelated to Elsa Workflows",
+  "Staff augmentation or long-term team replacement",
 ];
 
 const engagementFormats = [
@@ -64,7 +64,7 @@ const engagementFormats = [
 ];
 
 const howWeWork = [
-  "Enablement over replacement — we guide, you build",
+  "Engagements are collaborative and focused on enablement, not replacement",
   "Guidance, reviews, and proof-of-concepts",
   "Pair programming with explanation",
   "Repository access for troubleshooting when needed",
@@ -149,9 +149,6 @@ export default function ExpertServices() {
       <section className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge variant="secondary" className="mb-4">
-              Provided by Skywalker Digital
-            </Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
               Elsa Workflows Expert Services
             </h1>
@@ -159,9 +156,11 @@ export default function ExpertServices() {
               Direct access to the creator and core maintainer of Elsa Workflows.
             </p>
             <p className="text-lg text-muted-foreground">
-              Get expert guidance, unblock your team, and build with confidence. 
-              Whether you need architectural clarity, hands-on pairing, or production troubleshooting — 
-              <a href="https://www.skywalker-digital.com/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Skywalker Digital</a> is here to help.
+              Get focused, senior-level guidance to design, extend, and operate Elsa Workflows 
+              in real-world systems. Whether you need architectural clarity, hands-on pairing, 
+              or help unblocking production issues,{" "}
+              <a href="https://www.skywalker-digital.com/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Skywalker Digital</a>{" "}
+              provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
             </p>
           </div>
         </div>
@@ -178,7 +177,7 @@ export default function ExpertServices() {
               {/* For */}
               <div>
                 <h3 className="text-lg font-semibold mb-6 text-foreground">
-                  This service is for:
+                  This service is intended for:
                 </h3>
                 <ul className="space-y-4">
                   {forWhom.map((item) => (
@@ -192,7 +191,7 @@ export default function ExpertServices() {
               {/* Not for */}
               <div>
                 <h3 className="text-lg font-semibold mb-6 text-foreground">
-                  This service is not for:
+                  This service is not intended for:
                 </h3>
                 <ul className="space-y-4">
                   {notForWhom.map((item) => (
@@ -216,7 +215,7 @@ export default function ExpertServices() {
               What This Service Covers
             </h2>
             <p className="text-muted-foreground text-center mb-12">
-              These are examples, not an exhaustive list.
+              The following are common areas of engagement. This list is illustrative, not exhaustive.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {capabilities.map((item) => (
@@ -246,8 +245,8 @@ export default function ExpertServices() {
               <div>
                 <h3 className="text-xl font-semibold mb-6">Service Credits</h3>
                 <p className="text-muted-foreground mb-6">
-                  All services are delivered using prepaid Service Credits, giving you flexibility 
-                  to use them as needed across different types of engagements.
+                  All services are delivered using prepaid Service Credits, allowing flexible use 
+                  across different engagement types.
                 </p>
                 <ul className="space-y-4">
                   <li className="flex items-center gap-3">
@@ -293,71 +292,67 @@ export default function ExpertServices() {
       <section className="py-16 md:py-24 bg-surface-subtle">
         <div className="container">
           <div className="max-w-5xl mx-auto">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <h2 className="text-3xl md:text-4xl font-bold text-center">
-                Service Credit Bundles
-              </h2>
-              <Badge variant="warning">Sandbox</Badge>
-            </div>
-            <p className="text-muted-foreground text-center mb-12">
-              Choose the bundle that fits your needs. Payments are currently in test mode.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Service Credit Bundles
+            </h2>
             
             {bundlesLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
-                  const isPopular = index === 1; // Second bundle is "popular"
-                  return (
-                    <Card
-                      key={bundle.id}
-                      onClick={() => handleBundleClick(bundle.id)}
-                      className={cn(
-                        "relative overflow-visible transition-all cursor-pointer",
-                        isPopular
-                          ? "border-primary shadow-lg md:-translate-y-2 hover:shadow-xl"
-                          : "hover:shadow-md hover:border-primary/50"
-                      )}
-                    >
-                      {isPopular && (
-                        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground">
-                          Popular
-                        </Badge>
-                      )}
-                      <CardHeader className="text-center pb-2">
-                        <CardTitle className="text-lg">{bundle.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-center">
-                        <div className="mb-4">
-                          <span className="text-3xl font-bold">
-                            {formatPrice(bundle.price_cents, bundle.currency)}
-                          </span>
-                        </div>
-                        <p className="text-xl font-semibold text-primary mb-2">
-                          {bundle.hours} Hours
-                        </p>
-                        {bundle.recommended_monthly_minutes && (
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Recommended: {Math.round(bundle.recommended_monthly_minutes / 60)}h/month
-                          </p>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
+                    const isPopular = index === 1; // Second bundle is "popular"
+                    return (
+                      <Card
+                        key={bundle.id}
+                        onClick={() => handleBundleClick(bundle.id)}
+                        className={cn(
+                          "relative overflow-visible transition-all cursor-pointer",
+                          isPopular
+                            ? "border-primary shadow-lg md:-translate-y-2 hover:shadow-xl"
+                            : "hover:shadow-md hover:border-primary/50"
                         )}
-                        <p className="text-muted-foreground text-sm">
-                          {bundle.description || `${bundle.hours} hours of expert consulting time`}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+                      >
+                        {isPopular && (
+                          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground">
+                            Popular
+                          </Badge>
+                        )}
+                        <CardHeader className="text-center pb-2">
+                          <CardTitle className="text-lg">{bundle.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-center">
+                          <div className="mb-2">
+                            <span className="text-3xl font-bold">
+                              {formatPrice(bundle.price_cents, bundle.currency)}
+                            </span>
+                          </div>
+                          <p className="text-xl font-semibold text-primary mb-2">
+                            {bundle.hours} Service Credits
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {bundle.description}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <div className="mt-8 text-center text-sm text-muted-foreground space-y-1">
+                  <p>All prices exclude VAT where applicable.</p>
+                  <p>Service Credits are prepaid and non-refundable.</p>
+                  <p>Discounts apply only through bundles.</p>
+                </div>
+              </>
             )}
           </div>
         </div>
       </section>
 
-      {/* Ongoing Advisory */}
+      {/* Retained Advisory */}
       {(() => {
         const subscriptionBundle = bundles?.find(b => b.billing_type === "recurring");
         if (!subscriptionBundle) return null;
@@ -370,19 +365,16 @@ export default function ExpertServices() {
                   className="border-2 border-primary/30 cursor-pointer transition-all hover:border-primary hover:shadow-lg"
                   onClick={() => handleBundleClick(subscriptionBundle.id)}
                 >
-                    <CardContent className="p-8 md:p-12">
+                  <CardContent className="p-8 md:p-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                       <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <Badge variant="secondary">Subscription</Badge>
-                          <Badge variant="warning">Sandbox</Badge>
-                        </div>
+                        <Badge variant="secondary" className="mb-4">Subscription</Badge>
                         <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                          {subscriptionBundle.name}
+                          Retained Advisory
                         </h2>
                         <p className="text-muted-foreground mb-6">
-                          For teams running Elsa in production who want continuous expert access 
-                          and retained context.
+                          For teams running Elsa Workflows in production who want continuity, 
+                          retained context, and priority access.
                         </p>
                         <div className="text-3xl font-bold">
                           {formatPrice(subscriptionBundle.price_cents, subscriptionBundle.currency)}
@@ -401,16 +393,17 @@ export default function ExpertServices() {
                           </li>
                           <li className="flex items-start gap-3">
                             <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>Async Q&A access</span>
+                            <span>Asynchronous Q&A access</span>
                           </li>
                           <li className="flex items-start gap-3">
                             <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>Continuity and retained context</span>
+                            <span>Continuity and retained architectural context</span>
                           </li>
                         </ul>
-                        <p className="text-sm text-muted-foreground mt-4">
-                          Extra credits can be purchased separately.
-                        </p>
+                        <div className="mt-6 text-sm text-muted-foreground space-y-1">
+                          <p>Unused credits expire monthly.</p>
+                          <p>Additional Service Credits can be purchased separately.</p>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -463,8 +456,8 @@ export default function ExpertServices() {
               <div>
                 <p className="font-medium mb-1">Urgent / After-Hours Support</p>
                 <p className="text-sm text-muted-foreground">
-                  Urgent or after-hours support may be available for production-blocking issues, 
-                  billed at 2× the standard rate and subject to availability.
+                  Urgent or after-hours support for production-blocking issues may be available 
+                  on a best-effort basis and is billed at 2× the standard hourly rate, subject to availability.
                 </p>
               </div>
             </div>
