@@ -1,317 +1,232 @@
 
-
-# Expert Services Page Rework - Implementation Plan
+# Polymorphic Notification Platform - Design Plan
 
 ## Overview
 
-Rework the Expert Services page to signal enterprise-grade expertise with correct pricing and firm boundaries. The changes involve copy rewrites, pricing updates (both UI and database), and tone refinement throughout.
-
-## Current State Analysis
-
-**Existing pricing in database:**
-- Starter Pack: $400 (5h) - $80/hr
-- Growth Pack: $750 (10h) - $75/hr
-- Scale Pack: $1,625 (25h) - $65/hr
-- Enterprise Pack: $2,750 (50h) - $55/hr
-- Ongoing Advisory: €2,000/month (6h) - €333/hr
-
-**Target pricing (all EUR):**
-- Starter Pack: €900 (5h) - €180/hr
-- Growth Pack: €1,650 (10h) - €165/hr
-- Scale Pack: €3,875 (25h) - €155/hr
-- Enterprise Pack: €7,500 (50h) - €150/hr
-- Retained Advisory: €1,100/month (6h) - €183/hr
+Create a unified, extensible notification system that:
+- Stores all notifications in a single polymorphic table
+- Triggers emails for each notification type based on user preferences
+- Provides a unified in-app notification center (replacing invitation-only bell)
+- Supports multiple notification categories with type-safe payloads
 
 ---
 
-## Implementation Changes
+## Architecture Design
 
-### 1. Database Migration: Update Bundle Pricing
+```text
++-------------------+     +---------------------+     +------------------+
+|  Event Sources    |     |  notifications      |     |  Delivery        |
+|-------------------|     |---------------------|     |------------------|
+| - Invitations     | --> | - id                | --> | - In-app (UI)    |
+| - Work Logged     |     | - user_id           |     | - Email (Resend) |
+| - Purchases       |     | - type              |     +------------------+
+| - Subscriptions   |     | - payload (JSONB)   |
+| - Intake Requests |     | - read_at           |
++-------------------+     | - created_at        |
+                          +---------------------+
+```
 
-Create migration to update `credit_bundles` with new pricing:
+---
+
+## Database Schema
+
+### 1. New `notifications` Table
+
+This table stores ALL in-app notifications with a polymorphic `type` field and JSONB payload:
 
 ```sql
--- Update Starter Pack: €900 (5h)
-UPDATE credit_bundles SET price_cents = 90000, currency = 'eur',
-  description = '€180 per hour. Best for short architectural reviews or focused guidance.'
-WHERE name = 'Starter Pack';
+CREATE TYPE notification_type AS ENUM (
+  'org_invitation',           -- Invited to join an organization
+  'provider_invitation',      -- Invited to join a provider (future)
+  'work_logged',              -- Work logged on your org's account
+  'purchase_completed',       -- Customer purchased credits (for providers)
+  'subscription_renewed',     -- Subscription renewed
+  'intro_call_submitted'      -- Someone submitted an intro call request (for providers)
+);
 
--- Update Growth Pack: €1,650 (10h)
-UPDATE credit_bundles SET price_cents = 165000, currency = 'eur',
-  description = '€165 per hour. Ideal for teams ramping up or validating architectural decisions.'
-WHERE name = 'Growth Pack';
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  type notification_type NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  payload JSONB DEFAULT '{}',           -- Type-specific structured data
+  action_url TEXT,                       -- Optional deep link
+  read_at TIMESTAMPTZ,                   -- NULL = unread
+  dismissed_at TIMESTAMPTZ,              -- For "ignore" actions
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- Update Scale Pack: €3,875 (25h)
-UPDATE credit_bundles SET price_cents = 387500, currency = 'eur',
-  description = '€155 per hour. Designed for ongoing projects and deeper technical collaboration.'
-WHERE name = 'Scale Pack';
+-- Indexes for common queries
+CREATE INDEX idx_notifications_user_unread 
+  ON notifications(user_id, created_at DESC) 
+  WHERE read_at IS NULL;
 
--- Update Enterprise Pack: €7,500 (50h)
-UPDATE credit_bundles SET price_cents = 750000, currency = 'eur',
-  description = '€150 per hour (maximum volume discount). Best suited for larger teams and longer-running initiatives.'
-WHERE name = 'Enterprise Pack';
+CREATE INDEX idx_notifications_user_type 
+  ON notifications(user_id, type);
 
--- Update subscription: €1,100/month (rename to Retained Advisory)
-UPDATE credit_bundles SET price_cents = 110000, name = 'Retained Advisory',
-  description = 'Priority scheduling, async Q&A access, continuity and retained architectural context.'
-WHERE billing_type = 'recurring';
+-- RLS: Users can only see their own notifications
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own notifications"
+  ON notifications FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can update own notifications"
+  ON notifications FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+```
+
+### 2. Update `notification_preferences` Table
+
+Add new preference columns for the new notification types:
+
+```sql
+ALTER TABLE notification_preferences
+  ADD COLUMN notify_org_invitation BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN notify_intro_call BOOLEAN NOT NULL DEFAULT true;
 ```
 
 ---
 
-### 2. Hero Section Rewrite
+## Notification Type Payloads
 
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 148-168)
+Each notification type has a well-defined payload structure:
 
-Replace current hero with cleaner, more confident copy:
-
-```tsx
-{/* Hero */}
-<section className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-transparent">
-  <div className="container">
-    <div className="max-w-3xl mx-auto text-center">
-      <h1 className="text-4xl md:text-5xl font-bold mb-6">
-        Elsa Workflows Expert Services
-      </h1>
-      <p className="text-xl text-muted-foreground mb-4">
-        Direct access to the creator and core maintainer of Elsa Workflows.
-      </p>
-      <p className="text-lg text-muted-foreground">
-        Get focused, senior-level guidance to design, extend, and operate Elsa Workflows 
-        in real-world systems. Whether you need architectural clarity, hands-on pairing, 
-        or help unblocking production issues,{" "}
-        <a href="https://www.skywalker-digital.com/" target="_blank" rel="noopener noreferrer" 
-           className="underline underline-offset-2 hover:text-foreground transition-colors">
-          Skywalker Digital
-        </a>{" "}
-        provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
-      </p>
-    </div>
-  </div>
-</section>
-```
-
-**Changes:**
-- Remove `Badge` component (no need for "Provided by Skywalker Digital" badge)
-- Cleaner headline without fluff
-- Stronger, more authoritative subheadline
-- Improved intro paragraph emphasizing senior expertise
+| Type | Payload Fields |
+|------|----------------|
+| `org_invitation` | `invitation_id`, `organization_id`, `organization_name`, `role`, `expires_at` |
+| `work_logged` | `work_log_id`, `provider_name`, `minutes`, `category`, `description` |
+| `purchase_completed` | `order_id`, `organization_name`, `bundle_name`, `hours`, `amount_formatted` |
+| `subscription_renewed` | `subscription_id`, `organization_name`, `monthly_hours` |
+| `intro_call_submitted` | `request_id`, `company_name`, `full_name`, `email`, `project_stage` |
 
 ---
 
-### 3. "Who This Service Is For" - Tighten Copy
+## Edge Function: `create-notification`
 
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 47-57, 180-205)
+A new centralized edge function that:
+1. Creates the notification record in the database
+2. Checks user email preferences
+3. Sends email via Resend if enabled
+4. Returns the created notification ID
 
-Update the data arrays:
+```typescript
+// POST /functions/v1/create-notification
+interface CreateNotificationRequest {
+  recipientUserIds: string[];  // Who to notify
+  type: NotificationType;
+  title: string;
+  message: string;
+  payload: Record<string, unknown>;
+  actionUrl?: string;
+}
 
-```tsx
-const forWhom = [
-  "Teams using Elsa Workflows in real applications",
-  "Organizations preparing for or running Elsa in production",
-  "Developers facing non-trivial workflow, orchestration, or architectural challenges",
-];
-
-const notForWhom = [
-  "Hobby projects or casual experimentation",
-  "General .NET mentoring unrelated to Elsa Workflows",
-  "Staff augmentation or long-term team replacement",
-];
-```
-
-Update section headers:
-
-```tsx
-<h3 className="text-lg font-semibold mb-6 text-foreground">
-  This service is intended for:
-</h3>
-// ... list ...
-
-<h3 className="text-lg font-semibold mb-6 text-foreground">
-  This service is not intended for:
-</h3>
+// Flow:
+// 1. For each recipient:
+//    a. INSERT into notifications table
+//    b. Check notification_preferences for email opt-in
+//    c. If email enabled, generate template and send via Resend
+// 2. Return { created: number, emails_sent: number }
 ```
 
 ---
 
-### 4. "What This Service Covers" - Add Framing
+## Migration: Invitations to Notifications
 
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 218-219)
+The existing invitation flow will be updated to:
 
-Update the description text:
+1. **On invitation creation** (`send-invitation`): Also create a notification:
+   ```typescript
+   // After creating invitation, also create notification
+   await createNotification({
+     recipientUserIds: [inviteeUserId], // Lookup by email
+     type: 'org_invitation',
+     title: `Invitation to ${orgName}`,
+     message: `You've been invited to join ${orgName} as ${role}`,
+     payload: { invitation_id, organization_id, organization_name, role, expires_at },
+     actionUrl: `/invite/${token}`
+   });
+   ```
 
-```tsx
-<p className="text-muted-foreground text-center mb-12">
-  The following are common areas of engagement. This list is illustrative, not exhaustive.
-</p>
-```
+2. **On accept/ignore**: Mark notification as dismissed
 
----
-
-### 5. Service Credits Section - Refine Copy
-
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 247-251)
-
-Update the description:
-
-```tsx
-<p className="text-muted-foreground mb-6">
-  All services are delivered using prepaid Service Credits, allowing flexible use 
-  across different engagement types.
-</p>
-```
+3. **NotificationBell**: Query `notifications` table instead of `invitations` directly
 
 ---
 
-### 6. Pricing Section - Major Overhaul
+## Integration Points
 
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 292-358)
+### 1. Invitations (Modified)
+- **Trigger**: `send-invitation` edge function
+- **Recipients**: The invited user (lookup by email)
+- **Action**: Accept/Ignore buttons in notification card
 
-**Key changes:**
-- Remove "Sandbox" badge entirely
-- Remove "Payments are currently in test mode" text
-- Update section title to just "Service Credit Bundles"
-- Add pricing notes after the bundle grid
-- Display per-hour rate on each card
+### 2. Work Logged (Modified)
+- **Trigger**: After `create_work_log_and_allocate` RPC
+- **Recipients**: All org members
+- **Action**: "View Details" link to credits page
 
-Updated bundle cards to show per-hour rate:
+### 3. Purchase Completed (Modified)
+- **Trigger**: `stripe-webhook` after payment success
+- **Recipients**: Provider admins
+- **Action**: "View in Dashboard" link
 
-```tsx
-<Card key={bundle.id} ...>
-  <CardHeader className="text-center pb-2">
-    <CardTitle className="text-lg">{bundle.name}</CardTitle>
-  </CardHeader>
-  <CardContent className="text-center">
-    <div className="mb-2">
-      <span className="text-3xl font-bold">
-        {formatPrice(bundle.price_cents, bundle.currency)}
-      </span>
-    </div>
-    <p className="text-xl font-semibold text-primary mb-2">
-      {bundle.hours} Service Credits
-    </p>
-    <p className="text-muted-foreground text-sm">
-      {bundle.description}
-    </p>
-  </CardContent>
-</Card>
-```
+### 4. Intro Call Submitted (NEW)
+- **Trigger**: After successful intake form submission
+- **Recipients**: Provider admins of Skywalker Digital
+- **Action**: "Review Request" link to admin view
 
-Add pricing notes after the grid:
-
-```tsx
-<div className="mt-8 text-center text-sm text-muted-foreground space-y-1">
-  <p>All prices exclude VAT where applicable.</p>
-  <p>Service Credits are prepaid and non-refundable.</p>
-  <p>Discounts apply only through bundles.</p>
-</div>
-```
+### 5. Subscription Renewed (Modified)
+- **Trigger**: `stripe-webhook` on subscription renewal
+- **Recipients**: Provider admins
+- **Action**: "View in Dashboard" link
 
 ---
 
-### 7. Subscription Section - Major Fix
+## UI Components
 
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 360-422)
-
-**Changes:**
-- Remove "Sandbox" badge
-- Update title to "Retained Advisory"
-- Update description and benefits list
-- Add notes about unused credits and extras
+### 1. Enhanced NotificationBell
+Replace the invitation-only bell with a polymorphic notification center:
 
 ```tsx
-<section className="py-16 md:py-24">
-  <div className="container">
-    <div className="max-w-4xl mx-auto">
-      <Card className="border-2 border-primary/30 cursor-pointer transition-all hover:border-primary hover:shadow-lg"
-            onClick={() => handleBundleClick(subscriptionBundle.id)}>
-        <CardContent className="p-8 md:p-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div>
-              <Badge variant="secondary" className="mb-4">Subscription</Badge>
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                Retained Advisory
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                For teams running Elsa Workflows in production who want continuity, 
-                retained context, and priority access.
-              </p>
-              <div className="text-3xl font-bold">
-                {formatPrice(subscriptionBundle.price_cents, subscriptionBundle.currency)}
-                <span className="text-lg font-normal text-muted-foreground">
-                  /{subscriptionBundle.recurring_interval}
-                </span>
-              </div>
-            </div>
-            <div>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span>{subscriptionBundle.monthly_hours} Service Credits per month</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span>Priority scheduling</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span>Asynchronous Q&A access</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                  <span>Continuity and retained architectural context</span>
-                </li>
-              </ul>
-              <div className="mt-6 text-sm text-muted-foreground space-y-1">
-                <p>Unused credits expire monthly.</p>
-                <p>Additional Service Credits can be purchased separately.</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  </div>
-</section>
+// Fetch from notifications table instead of invitations
+const { data: notifications } = useQuery({
+  queryKey: ['notifications', user?.id],
+  queryFn: () => supabase
+    .from('notifications')
+    .select('*')
+    .is('read_at', null)
+    .is('dismissed_at', null)
+    .order('created_at', { ascending: false })
+    .limit(20)
+});
+
+// Render different card types based on notification.type
 ```
 
----
-
-### 8. Working Together Section - Small Tweak
-
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 66-70)
-
-Update the first item in `howWeWork` array:
+### 2. Polymorphic NotificationCard
+A single component that renders differently based on type:
 
 ```tsx
-const howWeWork = [
-  "Engagements are collaborative and focused on enablement, not replacement",
-  "Guidance, reviews, and proof-of-concepts",
-  "Pair programming with explanation",
-  "Repository access for troubleshooting when needed",
-];
+function NotificationCard({ notification }) {
+  switch (notification.type) {
+    case 'org_invitation':
+      return <InvitationNotificationCard {...notification} />;
+    case 'work_logged':
+      return <WorkLoggedNotificationCard {...notification} />;
+    case 'intro_call_submitted':
+      return <IntroCallNotificationCard {...notification} />;
+    // ... etc
+  }
+}
 ```
 
----
-
-### 9. Urgent Support Note - Reframe
-
-**File:** `src/pages/enterprise/ExpertServices.tsx` (lines 460-470)
-
-Update the text to feel intentional:
-
-```tsx
-<div className="mt-12 p-6 rounded-lg bg-background border flex items-start gap-4">
-  <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-  <div>
-    <p className="font-medium mb-1">Urgent / After-Hours Support</p>
-    <p className="text-sm text-muted-foreground">
-      Urgent or after-hours support for production-blocking issues may be available 
-      on a best-effort basis and is billed at 2× the standard hourly rate, subject to availability.
-    </p>
-  </div>
-</div>
-```
+### 3. Mark as Read / Dismiss Actions
+- Clicking a notification marks it as `read_at = now()`
+- Explicit "Ignore" or "Dismiss" sets `dismissed_at = now()`
+- Accept actions (for invitations) also dismiss the notification
 
 ---
 
@@ -319,26 +234,49 @@ Update the text to feel intentional:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/migrations/xxx.sql` | Create | Update bundle pricing and descriptions |
-| `src/pages/enterprise/ExpertServices.tsx` | Update | Hero rewrite, copy tightening, pricing section overhaul, subscription fix |
+| `supabase/migrations/xxx.sql` | Create | New `notifications` table + preferences columns |
+| `supabase/functions/create-notification/index.ts` | Create | Centralized notification creator with email dispatch |
+| `supabase/functions/send-invitation/index.ts` | Modify | Also create notification after invitation |
+| `supabase/functions/stripe-webhook/index.ts` | Modify | Use `create-notification` for purchases/renewals |
+| `src/components/provider/LogWorkDialog.tsx` | Modify | Use `create-notification` for work logged |
+| `src/components/enterprise/IntroCallIntakeDialog.tsx` | Modify | Trigger notification after submission |
+| `src/hooks/useNotifications.ts` | Create | Hook to fetch/manage notifications |
+| `src/components/notifications/NotificationBell.tsx` | Rewrite | Query notifications table, render polymorphic cards |
+| `src/components/notifications/NotificationCard.tsx` | Create | Polymorphic card renderer |
+| `src/components/notifications/cards/*.tsx` | Create | Type-specific card components |
+| `src/pages/dashboard/settings/NotificationSettings.tsx` | Modify | Add toggles for new types |
+
+---
+
+## Benefits of This Design
+
+1. **Single Source of Truth**: All notifications in one table, queryable and auditable
+2. **Extensible**: Adding new notification types only requires adding to the enum and creating a card component
+3. **User Preferences**: Granular control over which emails users receive
+4. **Consistent UX**: Unified notification center instead of scattered queries
+5. **Persistence**: Notifications persist until dismissed, unlike the current polling approach
+6. **History**: Users can see past notifications (optional feature)
 
 ---
 
 ## Implementation Order
 
-1. Create database migration for bundle pricing updates
-2. Update ExpertServices.tsx with all copy changes
-3. Verify pricing displays correctly with EUR currency
+1. Create database migration (table + enum + preferences columns)
+2. Create `create-notification` edge function
+3. Update `send-invitation` to also create notification
+4. Create `useNotifications` hook
+5. Rewrite `NotificationBell` to use new hook
+6. Create polymorphic card components
+7. Add intro call submission notification trigger
+8. Update stripe-webhook to use new system
+9. Update LogWorkDialog to use new system
+10. Update NotificationSettings with new toggles
 
 ---
 
-## Visual Summary of Pricing Changes
+## Technical Considerations
 
-| Bundle | Current | New |
-|--------|---------|-----|
-| Starter (5h) | $400 ($80/hr) | €900 (€180/hr) |
-| Growth (10h) | $750 ($75/hr) | €1,650 (€165/hr) |
-| Scale (25h) | $1,625 ($65/hr) | €3,875 (€155/hr) |
-| Enterprise (50h) | $2,750 ($55/hr) | €7,500 (€150/hr) |
-| Subscription (6h/mo) | €2,000/mo (€333/hr) | €1,100/mo (€183/hr) |
-
+- **Email lookup for invitees**: When creating org_invitation notifications, we need to look up the user by email (they might not exist yet - handle gracefully)
+- **Backward compatibility**: Keep the invitation flow working during migration
+- **Real-time**: Consider adding Supabase Realtime subscription for instant notification updates (optional enhancement)
+- **Rate limiting**: Prevent notification spam with deduplication logic
