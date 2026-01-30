@@ -11,8 +11,7 @@ import elsaLogo from "@/assets/elsa-logo.png";
 const navItems = [
   { label: "Home", to: "/" },
   { label: "Get Started", to: "/get-started" },
-  { label: "Enterprise", to: "/enterprise" },
-  { label: "Marketplace", to: "/marketplace" },
+  { label: "Elsa+", to: "/elsa-plus" },
   { label: "Resources", to: "/resources" },
 ];
 

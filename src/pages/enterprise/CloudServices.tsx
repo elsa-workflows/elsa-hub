@@ -17,6 +17,14 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const includedFeatures = [
   {
@@ -115,17 +123,17 @@ const relatedOfferings = [
     icon: Server,
   },
   {
-    title: "Enterprise Docker Images",
+    title: "Production Docker Images",
     description:
-      "Production-grade container images for organizations running their own container platforms.",
-    href: "/enterprise/docker-images",
+      "Production-ready container images for organizations running their own container platforms.",
+    href: "/elsa-plus/production-docker",
     icon: Container,
   },
   {
     title: "Expert Advisory & Engineering",
     description:
       "Professional services for architecture review, implementation guidance, and troubleshooting.",
-    href: "/enterprise/expert-services",
+    href: "/elsa-plus/expert-services",
     icon: Headphones,
   },
 ];
@@ -133,6 +141,25 @@ const relatedOfferings = [
 export default function CloudServices() {
   return (
     <Layout>
+      {/* Breadcrumb */}
+      <section className="pt-8 pb-4">
+        <div className="container">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/elsa-plus">Elsa+</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Cloud & Managed Services</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </section>
+
       {/* Page Header */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
