@@ -26,7 +26,7 @@ function ItemCard({ item }: { item: ElsaPlusCardItem }) {
     <Card
       className={cn(
         "h-full transition-all duration-300",
-        item.href && !item.comingSoon
+        item.href
           ? "hover:border-primary/50 hover:shadow-md cursor-pointer group"
           : "opacity-90"
       )}
@@ -48,7 +48,7 @@ function ItemCard({ item }: { item: ElsaPlusCardItem }) {
             <p className="text-muted-foreground text-sm leading-relaxed">
               {item.description}
             </p>
-            {item.href && !item.comingSoon && (
+            {item.href && (
               <span className="inline-flex items-center gap-1 text-sm font-medium text-primary mt-3 group-hover:gap-2 transition-all">
                 Learn more
                 <ArrowRight className="h-4 w-4" />
@@ -60,7 +60,7 @@ function ItemCard({ item }: { item: ElsaPlusCardItem }) {
     </Card>
   );
 
-  if (item.href && !item.comingSoon) {
+  if (item.href) {
     return <Link to={item.href}>{cardContent}</Link>;
   }
 
