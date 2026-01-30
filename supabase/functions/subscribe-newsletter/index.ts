@@ -4,7 +4,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AUDIENCE_ID = "ca32f69c-4a6d-4371-890d-32f781fcbf96";
+const AUDIENCE_ID = "0629ecd8-3255-40a9-bda7-1b3df52e1c61";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
