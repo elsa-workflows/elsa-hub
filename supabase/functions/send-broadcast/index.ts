@@ -40,75 +40,113 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build the email HTML using our template structure
+    // Build the email HTML using our branded template
     const html = `
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    @media (prefers-color-scheme: dark) {
-      .email-body { background-color: #1a1a2e !important; }
-      .email-card { background-color: #2d2d44 !important; border-color: #3d3d5c !important; }
-      .text-primary { color: #e5e5e5 !important; }
-      .text-secondary { color: #a0a0a0 !important; }
-    }
-  </style>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${subject}</title>
 </head>
-<body class="email-body" style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-  <div style="display: none; max-height: 0; overflow: hidden;">
+<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+  
+  <!-- Hidden preheader text -->
+  <div style="display: none; font-size: 1px; color: #f4f4f5; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
     ${preheader || title}
   </div>
   
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <!-- Email wrapper -->
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f5;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="100%" style="max-width: 600px;">
+      <td align="center" style="padding: 48px 24px;">
+        
+        <!-- Content container -->
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px;">
           
+          <!-- Logo with brand text -->
           <tr>
-            <td align="center" style="padding-bottom: 24px;">
-              <img src="https://elsa-hub.lovable.app/elsa-logo.png" 
-                   alt="Elsa Workflows" 
-                   width="48" height="48" 
-                   style="display: block; border-radius: 8px;">
+            <td align="center" style="padding-bottom: 32px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 12px;">
+                    <img src="https://elsa-hub.lovable.app/elsa-logo.png" alt="Elsa" width="44" height="44" style="display: block; border-radius: 10px;" />
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">
+                      <span style="color: #18181b;">Elsa</span>
+                      <span style="color: #ec4899;"> Workflows</span>
+                    </span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           
+          <!-- Main card -->
           <tr>
-            <td class="email-card" style="background: white; border-radius: 12px; border: 1px solid #e5e7eb; padding: 32px;">
+            <td style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
               
-              <h1 class="text-primary" style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #18181b;">
-                ${title}
-              </h1>
-              
-              <div class="text-secondary" style="color: #52525b; font-size: 16px; line-height: 1.6;">
-                ${content}
-              </div>
+              <!-- Card content -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                
+                <!-- Gradient header bar -->
+                <tr>
+                  <td style="height: 4px; background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); border-radius: 16px 16px 0 0;"></td>
+                </tr>
+                
+                <!-- Content area -->
+                <tr>
+                  <td style="padding: 40px 40px 32px 40px;">
+                    
+                    <!-- Title -->
+                    <h1 style="margin: 0 0 24px 0; font-size: 28px; font-weight: 700; color: #18181b; line-height: 1.3; letter-spacing: -0.5px;">
+                      ${title}
+                    </h1>
+                    
+                    <!-- Content -->
+                    <div style="color: #3f3f46; font-size: 16px; line-height: 1.7;">
+                      ${content}
+                    </div>
+                    
+                  </td>
+                </tr>
+                
+              </table>
               
             </td>
           </tr>
           
+          <!-- Footer -->
           <tr>
-            <td style="padding: 24px 0; text-align: center;">
-              <p style="margin: 0 0 12px; font-size: 13px; color: #71717a;">
-                You're receiving this email because you subscribed to Elsa Workflows updates.
+            <td style="padding: 32px 0 0 0; text-align: center;">
+              
+              <!-- Footer text -->
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #71717a; line-height: 1.5;">
+                You're receiving this because you subscribed to Elsa Workflows updates.
               </p>
-              <p style="margin: 0; font-size: 13px;">
-                <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none;">Manage preferences</a>
-                &nbsp;·&nbsp;
-                <a href="{{{ pm:unsubscribe }}}" style="color: #6366f1; text-decoration: none;">Unsubscribe</a>
+              
+              <!-- Footer links -->
+              <p style="margin: 0 0 24px 0; font-size: 14px;">
+                <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none; font-weight: 500;">Manage preferences</a>
+                <span style="color: #d4d4d8; padding: 0 8px;">·</span>
+                <a href="{{{ pm:unsubscribe }}}" style="color: #6366f1; text-decoration: none; font-weight: 500;">Unsubscribe</a>
               </p>
-              <p style="margin: 16px 0 0; font-size: 12px; color: #a1a1aa;">
-                Elsa Workflows · elsa-workflows.io
+              
+              <!-- Brand -->
+              <p style="margin: 0; font-size: 13px; color: #a1a1aa;">
+                <span style="color: #18181b;">Elsa</span> <span style="color: #ec4899;">Workflows</span> · elsa-workflows.io
               </p>
+              
             </td>
           </tr>
           
         </table>
+        
       </td>
     </tr>
   </table>
+  
 </body>
 </html>
     `.trim();

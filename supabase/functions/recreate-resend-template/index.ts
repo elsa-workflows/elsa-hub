@@ -55,13 +55,19 @@ Deno.serve(async (req) => {
         <!-- Content container -->
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px;">
           
-          <!-- Logo -->
+          <!-- Logo with brand text -->
           <tr>
             <td align="center" style="padding-bottom: 32px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 12px 20px;">
-                    <span style="font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">Elsa Workflows</span>
+                  <td style="vertical-align: middle; padding-right: 12px;">
+                    <img src="https://elsa-hub.lovable.app/elsa-logo.png" alt="Elsa" width="44" height="44" style="display: block; border-radius: 10px;" />
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">
+                      <span style="color: #18181b;">Elsa</span>
+                      <span style="color: #ec4899;"> Workflows</span>
+                    </span>
                   </td>
                 </tr>
               </table>
