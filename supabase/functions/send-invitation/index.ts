@@ -68,6 +68,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Validate email format (server-side defense in depth)
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail) || normalizedEmail.length > 255) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     if (!["admin", "member"].includes(role)) {
       return new Response(
         JSON.stringify({ error: "Invalid role" }),
