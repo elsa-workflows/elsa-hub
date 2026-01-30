@@ -612,7 +612,7 @@ async function tryUpdateReceiptUrl(
   }
 }
 
-// Helper to send purchase notification
+// Helper to send purchase notification via centralized notification system
 async function sendPurchaseNotification(
   // deno-lint-ignore no-explicit-any
   supabase: any,
@@ -654,11 +654,34 @@ async function sendPurchaseNotification(
     });
     const amountFormatted = formatter.format(amountCents / 100);
 
-    // Send notification via edge function
+    // Create in-app notifications for each admin
+    const notifications = admins.map((admin: { user_id: string }) => ({
+      user_id: admin.user_id,
+      type: "purchase_completed",
+      title: "New Credit Purchase",
+      message: `${org?.name || "A customer"} purchased ${bundleName} (${hours} hours) for ${amountFormatted}`,
+      payload: {
+        organization_name: org?.name || "Unknown Organization",
+        bundle_name: bundleName,
+        hours,
+        amount_formatted: amountFormatted,
+      },
+      action_url: `/dashboard/provider/${providerId}/orders`,
+    }));
+
+    const { error: notifError } = await supabase.from("notifications").insert(notifications);
+
+    if (notifError) {
+      console.error("Failed to create purchase notifications:", notifError);
+    } else {
+      console.log(`Created ${notifications.length} purchase notifications`);
+    }
+
+    // Also send emails via the centralized function
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-notification`, {
+    const response = await fetch(`${supabaseUrl}/functions/v1/create-notification`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -667,12 +690,15 @@ async function sendPurchaseNotification(
       body: JSON.stringify({
         type: "purchase_completed",
         recipientUserIds: admins.map((a: { user_id: string }) => a.user_id),
-        data: {
-          organizationName: org?.name || "Unknown Organization",
-          bundleName,
+        title: "New Credit Purchase",
+        message: `${org?.name || "A customer"} purchased ${bundleName} (${hours} hours) for ${amountFormatted}`,
+        payload: {
+          organization_name: org?.name || "Unknown Organization",
+          bundle_name: bundleName,
           hours,
-          amountFormatted,
+          amount_formatted: amountFormatted,
         },
+        actionUrl: `/dashboard/provider/${providerId}/orders`,
       }),
     });
 

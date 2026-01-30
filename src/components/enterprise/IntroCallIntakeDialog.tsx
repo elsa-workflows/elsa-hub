@@ -112,7 +112,7 @@ export function IntroCallIntakeDialog({ open, onOpenChange }: IntroCallIntakeDia
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data: insertedRequest, error } = await supabase
         .from("intro_call_requests")
         .insert({
           full_name: fullName,
@@ -123,12 +123,34 @@ export function IntroCallIntakeDialog({ open, onOpenChange }: IntroCallIntakeDia
           discussion_topics: discussionTopics,
           interests: interests,
           user_id: user?.id || null,
-        });
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
+      // Trigger notification to provider admins (fire and forget)
+      supabase.functions.invoke("create-notification", {
+        body: {
+          recipientUserIds: [], // Will be populated by edge function based on provider
+          type: "intro_call_submitted",
+          title: "New Intro Call Request",
+          message: `${fullName} from ${companyName} submitted an intro call request`,
+          payload: {
+            request_id: insertedRequest?.id,
+            company_name: companyName,
+            full_name: fullName,
+            email: email,
+            project_stage: projectStage,
+          },
+          actionUrl: "/dashboard/provider/customers", // TODO: Create dedicated view
+        },
+      }).catch((err) => {
+        console.error("Failed to send intro call notification:", err);
+      });
+
       setIsSubmitted(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error submitting intake form:", err);
       toast.error("Failed to submit request. Please try again.");
     } finally {

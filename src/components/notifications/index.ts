@@ -1,2 +1,2 @@
 export { NotificationBell } from "./NotificationBell";
-export { InvitationCard } from "./InvitationCard";
+export { NotificationCard } from "./NotificationCard";

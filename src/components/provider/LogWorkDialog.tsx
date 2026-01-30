@@ -129,18 +129,19 @@ export function LogWorkDialog({
 
       // Send notification to org members (fire and forget)
       const customer = customers.find(c => c.organization_id === values.customerId);
-      supabase.functions.invoke("send-notification", {
+      supabase.functions.invoke("create-notification", {
         body: {
           type: "work_logged",
-          organizationId: values.customerId,
-          data: {
-            providerName: "Skywalker Digital", // TODO: Get from context
+          recipientUserIds: [], // Will be auto-populated by backend based on org members
+          title: "Work Logged",
+          message: `${values.hours}h ${values.minutes}m of ${workCategories.find(c => c.value === values.category)?.label || values.category} work was logged`,
+          payload: {
+            provider_name: "Skywalker Digital", // TODO: Get from context
             category: workCategories.find(c => c.value === values.category)?.label || values.category,
             description: values.description.trim(),
-            hours: values.hours,
-            minutes: values.minutes,
-            creditsUrl: customer ? `https://elsa-hub.lovable.app/dashboard/org/${customer.organization_id}/credits` : undefined,
+            minutes: totalMinutes,
           },
+          actionUrl: customer ? `/dashboard/org/${customer.organization_id}/credits` : undefined,
         },
       }).catch((err) => {
         console.error("Failed to send work notification:", err);

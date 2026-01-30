@@ -1,4 +1,4 @@
-import { Bell, Mail, ShoppingCart, Clock, RefreshCw } from "lucide-react";
+import { Bell, Mail, ShoppingCart, Clock, RefreshCw, UserPlus, Phone } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -87,6 +87,27 @@ export default function NotificationSettings() {
           {/* Granular toggles - only show when master is enabled */}
           {preferences?.email_enabled && (
             <div className="space-y-4 pl-4 border-l-2 border-muted">
+              {/* Organization invitation notifications - for everyone */}
+              <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <UserPlus className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <Label htmlFor="notify_org_invitation" className="text-base">
+                      Team invitations
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      When you're invited to join a team or organization
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="notify_org_invitation"
+                  checked={preferences?.notify_org_invitation ?? true}
+                  onCheckedChange={(checked) => handleToggle("notify_org_invitation", checked)}
+                  disabled={isUpdating}
+                />
+              </div>
+
               {/* Purchase notifications - for providers */}
               {isProvider && (
                 <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors">
@@ -107,6 +128,29 @@ export default function NotificationSettings() {
                     onCheckedChange={(checked) => handleToggle("notify_purchase", checked)}
                     disabled={isUpdating}
                   />
+                </div>
+              )}
+
+              {/* Intro call notifications - for providers */}
+              {isProvider && (
+                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Phone className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <Label htmlFor="notify_intro_call" className="text-base">
+                        Intro call requests
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        When someone submits an intro call request
+                      </p>
+                    </div>
+                  </div>
+                <Switch
+                  id="notify_intro_call"
+                  checked={preferences?.notify_intro_call ?? true}
+                  onCheckedChange={(checked) => handleToggle("notify_intro_call", checked)}
+                  disabled={isUpdating}
+                />
                 </div>
               )}
 
