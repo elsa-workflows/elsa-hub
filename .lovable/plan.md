@@ -1,125 +1,247 @@
 
-# Credit Bundle Management for Service Providers
+
+# Elsa+ Navigation and Page Restructuring
 
 ## Overview
-Enable service providers to fully manage their credit bundles: create new bundles, edit existing ones, toggle active/inactive status, and control visibility. Currently, the bundles page displays data but all controls are disabled.
 
-## Current State
-- **ProviderBundles page** displays bundles in tables with disabled switches
-- **"Create Bundle" button** exists but is disabled
-- **RLS policies** already support INSERT and UPDATE for provider admins
-- **No edit dialogs** exist for bundles
+Consolidate the current "Enterprise" and "Marketplace" sections into a unified "Elsa+" umbrella. This creates a cohesive ecosystem presentation that feels intentional, calm, and community-oriented rather than sales-driven.
 
-## Issues to Fix
-1. **RLS SELECT Policy** - Currently only returns `is_active = true` bundles, preventing admins from seeing deactivated bundles
-2. **No mutation functions** - The hook only fetches data, no create/update mutations
-3. **All UI controls disabled** - Switches and buttons are non-functional
+The core workflow engine remains fully open source. Elsa+ represents optional services, tooling, and extensions that add value around it.
 
 ---
 
-## Implementation Plan
+## Navigation Updates
 
-### 1. Database: Update RLS SELECT Policy
-Add a new SELECT policy allowing provider admins to see ALL their bundles (including inactive):
-
-```sql
-CREATE POLICY "Provider admins can view all bundles"
-  ON credit_bundles FOR SELECT
-  USING (is_provider_admin(service_provider_id));
+### Current State
+```text
+Home | Get Started | Enterprise | Marketplace | Resources
 ```
 
-This works alongside the existing "Anyone can view active bundles" policy.
+### New State
+```text
+Home | Get Started | Elsa+ | Resources
+```
 
-### 2. Create Bundle Management Hook
-New hook `useBundleManagement.ts` with mutations for:
-- **Create bundle** - Insert new bundle with validation
-- **Update bundle** - Edit name, description, hours, price, etc.
-- **Toggle active status** - Quick enable/disable switch
+**File to modify:** `src/components/layout/Navigation.tsx`
 
-### 3. Create Edit Bundle Dialog
-New component `EditBundleDialog.tsx`:
-- Form fields for all editable properties
-- Different field sets for one-time vs recurring bundles
-- Validation using zod schema
-- Support for both create and edit modes
-
-**Editable Fields:**
-| Field | Type | Notes |
-|-------|------|-------|
-| name | text | Required, max 100 chars |
-| description | textarea | Optional, max 500 chars |
-| hours | number | Required for one-time |
-| monthly_hours | number | Required for recurring |
-| price_cents | number | In cents (display as currency) |
-| currency | select | EUR, USD, etc. |
-| billing_type | select | one_time or recurring |
-| recurring_interval | select | monthly/yearly (if recurring) |
-| stripe_price_id | text | Optional, for Stripe integration |
-| is_active | switch | Enable/disable bundle |
-
-### 4. Update ProviderBundles Page
-- Enable the "Create Bundle" button to open dialog
-- Add edit button (pencil icon) to each table row
-- Enable the active/inactive Switch for quick toggling
-- Add visual indicator for inactive bundles (opacity/badge)
+- Replace `{ label: "Enterprise", to: "/enterprise" }` and `{ label: "Marketplace", to: "/marketplace" }` with a single `{ label: "Elsa+", to: "/elsa-plus" }`
+- Keep all other navigation items unchanged (Home, Get Started, Resources, Docs, GitHub)
 
 ---
 
-## File Changes
+## Route Changes
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/migrations/...` | Create | Add RLS policy for provider admins to view all bundles |
-| `src/hooks/useBundleManagement.ts` | Create | Mutations for create, update, toggle bundles |
-| `src/components/provider/EditBundleDialog.tsx` | Create | Form dialog for create/edit bundle |
-| `src/components/provider/index.ts` | Edit | Export new component |
-| `src/pages/dashboard/provider/ProviderBundles.tsx` | Edit | Wire up create/edit/toggle functionality |
+**File to modify:** `src/App.tsx`
+
+### Routes to Add
+| Path | Component | Purpose |
+|------|-----------|---------|
+| `/elsa-plus` | `ElsaPlus` | New unified landing page |
+
+### Routes to Update (Redirect for backward compatibility)
+| Old Path | New Path |
+|----------|----------|
+| `/enterprise` | Redirect to `/elsa-plus` |
+| `/marketplace` | Redirect to `/elsa-plus` |
+
+### Sub-page Routes to Rename
+| Old Path | New Path | Notes |
+|----------|----------|-------|
+| `/enterprise/expert-services` | `/elsa-plus/expert-services` | Active |
+| `/enterprise/docker-images` | `/elsa-plus/production-docker` | Renamed |
+| `/enterprise/cloud-services` | `/elsa-plus/cloud-services` | Coming soon |
+| `/enterprise/training` | `/elsa-plus/training` | Coming soon |
 
 ---
 
-## Technical Details
+## New Elsa+ Landing Page
 
-### Edit Bundle Dialog Form Schema
+**File to create:** `src/pages/ElsaPlus.tsx`
+
+### Hero Section
+
+```text
+┌────────────────────────────────────────────────────────────────┐
+│                                                                │
+│                         Elsa [+]                               │
+│                                                                │
+│   A growing ecosystem of services, tooling, and extensions     │
+│   around Elsa Workflows.                                       │
+│                                                                │
+│   ──────────────────────────────────────────────────────────   │
+│                                                                │
+│   The core workflow engine remains fully open source and       │
+│   community-driven. Elsa+ adds optional services and tooling   │
+│   around it.                                                   │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Custom Plus Symbol Component
+
+**File to create:** `src/components/elsa-plus/ElsaPlusIcon.tsx`
+
+A custom SVG-based plus symbol that:
+- Uses the primary brand color (pink/magenta: `hsl(333 71% 50%)`)
+- Features rounded ends suggesting workflow node connections
+- Is simple, geometric, and modern
+- Scales well from inline text to hero display sizes
+- Uses strokeLinecap="round" to echo workflow connection aesthetics
+
+```tsx
+// Conceptual SVG structure
+<svg viewBox="0 0 24 24">
+  <path 
+    d="M12 4v16M4 12h16" 
+    stroke="currentColor" 
+    strokeWidth="3" 
+    strokeLinecap="round"
+  />
+</svg>
+```
+
+### Page Sections
+
+#### Section 1: Services & Support
+
+| Card | Description | Status | Link |
+|------|-------------|--------|------|
+| Expert Advisory & Engineering | Architecture review, workflow design, production troubleshooting, and hands-on pairing with Elsa experts | Active | `/elsa-plus/expert-services` |
+| Cloud & Managed Services | Managed workflow engine in the cloud with enterprise-grade hosting and seamless management | Coming Soon | `/elsa-plus/cloud-services` |
+
+#### Section 2: Runtime & Operations
+
+| Card | Description | Status | Link |
+|------|-------------|--------|------|
+| Production Docker Images | Production-ready container images with regular updates, security patches, and documentation | Coming Soon | `/elsa-plus/production-docker` |
+
+#### Section 3: Learning & Enablement
+
+| Card | Description | Status | Link |
+|------|-------------|--------|------|
+| Training & Academy | Courses, workshops, and educational resources for teams working with Elsa Workflows | Coming Soon | `/elsa-plus/training` |
+
+#### Section 4: Elsa+ Marketplace
+
+| Card | Description | Status |
+|------|-------------|--------|
+| Premium Modules | Extend Elsa with powerful modules providing additional activities, connectors, and integrations | Coming Soon |
+| Workflow Templates | Battle-tested workflow templates for common business processes and integration patterns | Coming Soon |
+| Partners & Services | Connect with certified developers, consultants, and development teams | Coming Soon |
+
+### Neutrality Disclaimer
+
+Updated wording for Elsa+ context:
+
+> Commercial services and offerings listed under Elsa+ are provided by independent companies. Elsa Workflows remains fully open source, vendor-neutral, and community-driven.
+
+---
+
+## Sub-Page Updates
+
+### Breadcrumb Updates
+
+All existing sub-pages need their breadcrumbs updated:
+
+| Page | Current Breadcrumb | New Breadcrumb |
+|------|-------------------|----------------|
+| ExpertServices | Enterprise > Expert Services | Elsa+ > Expert Services |
+| DockerImages | Enterprise > Docker Images | Elsa+ > Production Docker Images |
+| CloudServices | (none) | Elsa+ > Cloud & Managed Services |
+| Training | Enterprise > Training & Academy | Elsa+ > Training & Academy |
+
+### Title Rename: Docker Images
+
+**File to modify:** `src/pages/enterprise/DockerImages.tsx` (move to `src/pages/elsa-plus/`)
+
+- Change title from "Enterprise Docker Images" to "Production Docker Images"
+- Update description to emphasize production-readiness, not company size
+
+---
+
+## File Structure Changes
+
+### Files to Create
+| Path | Purpose |
+|------|---------|
+| `src/pages/ElsaPlus.tsx` | Main Elsa+ landing page |
+| `src/components/elsa-plus/ElsaPlusIcon.tsx` | Custom vector plus symbol |
+| `src/components/elsa-plus/ElsaPlusSectionCard.tsx` | Section card component |
+| `src/components/elsa-plus/index.ts` | Component exports |
+
+### Files to Modify
+| Path | Changes |
+|------|---------|
+| `src/components/layout/Navigation.tsx` | Replace Enterprise + Marketplace with Elsa+ |
+| `src/App.tsx` | Update routes, add redirects |
+| `src/pages/enterprise/ExpertServices.tsx` | Update breadcrumb to Elsa+ |
+| `src/pages/enterprise/DockerImages.tsx` | Rename, update breadcrumb |
+| `src/pages/enterprise/CloudServices.tsx` | Update breadcrumb |
+| `src/pages/enterprise/Training.tsx` | Update breadcrumb |
+
+### Files to Delete (optional, can keep as redirects)
+- `src/pages/Enterprise.tsx` (content moved to ElsaPlus.tsx)
+- `src/pages/Marketplace.tsx` (content moved to ElsaPlus.tsx)
+
+---
+
+## Component Architecture
+
+### ElsaPlusIcon Props
+
 ```typescript
-const bundleSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
-  hours: z.number().min(1).max(1000),
-  monthly_hours: z.number().min(1).max(100).optional(),
-  price_cents: z.number().min(0),
-  currency: z.enum(["eur", "usd"]),
-  billing_type: z.enum(["one_time", "recurring"]),
-  recurring_interval: z.string().optional(),
-  stripe_price_id: z.string().optional(),
-  is_active: z.boolean(),
-});
+interface ElsaPlusIconProps {
+  size?: 'sm' | 'md' | 'lg' | 'hero';
+  className?: string;
+}
 ```
 
-### Toggle Active Mutation
+| Size | Dimensions | Usage |
+|------|------------|-------|
+| sm | 16x16 | Inline with text |
+| md | 24x24 | Navigation, badges |
+| lg | 32x32 | Section headers |
+| hero | 48x48 | Landing page title |
+
+### ElsaPlusSectionCard Props
+
 ```typescript
-const toggleActive = useMutation({
-  mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-    const { error } = await supabase
-      .from("credit_bundles")
-      .update({ is_active })
-      .eq("id", id);
-    if (error) throw error;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["provider-bundles"] });
-  },
-});
+interface ElsaPlusSectionCardProps {
+  title: string;
+  intro: string;
+  cards: Array<{
+    title: string;
+    description: string;
+    icon: LucideIcon;
+    href?: string;
+    comingSoon?: boolean;
+  }>;
+}
 ```
-
-### UI Behavior
-- **Create**: Opens empty dialog, saves new bundle
-- **Edit**: Opens pre-filled dialog, updates existing bundle
-- **Toggle**: Direct switch action with optimistic update
-- **Inactive bundles**: Shown with reduced opacity and "Inactive" badge
 
 ---
 
-## Security Considerations
-- All mutations protected by RLS (`is_provider_admin`)
-- Only authenticated provider admins can modify bundles
-- Stripe Price ID field is editable but changes require Stripe sync
+## Design Tokens
+
+Reuse existing design system tokens:
+
+| Element | Token |
+|---------|-------|
+| Plus symbol stroke | `text-primary` (pink/magenta) |
+| Section backgrounds | Alternating `bg-transparent` and `bg-surface-subtle` |
+| Coming soon badges | `Badge variant="secondary"` |
+| Card hover states | Existing `CategoryCard` patterns |
+
+---
+
+## Implementation Sequence
+
+1. Create `ElsaPlusIcon` component with custom vector plus
+2. Create `ElsaPlusSectionCard` component for section layouts
+3. Create main `ElsaPlus.tsx` page combining all sections
+4. Update `Navigation.tsx` to replace Enterprise + Marketplace
+5. Update `App.tsx` routes and add redirects
+6. Update breadcrumbs in all sub-pages
+7. Rename Docker Images page title
+8. Test all navigation flows and redirects
+
