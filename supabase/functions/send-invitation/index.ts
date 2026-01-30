@@ -219,6 +219,39 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Invitation sent successfully to:", email);
 
+    // Create in-app notification if user already has an account
+    try {
+      // Look up user by email
+      const { data: profile } = await serviceClient
+        .from("profiles")
+        .select("user_id")
+        .eq("email", email.toLowerCase())
+        .single();
+
+      if (profile?.user_id) {
+        // User exists, create notification
+        await serviceClient.from("notifications").insert({
+          user_id: profile.user_id,
+          type: "org_invitation",
+          title: `Invitation to ${org.name}`,
+          message: `You've been invited to join ${org.name} as ${role}`,
+          payload: {
+            invitation_id: invitation.id,
+            organization_id: organizationId,
+            organization_name: org.name,
+            role,
+            expires_at: expiresAt.toISOString(),
+            token: token_value,
+          },
+          action_url: `/invite/${token_value}`,
+        });
+        console.log("In-app notification created for existing user");
+      }
+    } catch (notifError) {
+      console.error("Failed to create in-app notification:", notifError);
+      // Don't fail the request if notification creation fails
+    }
+
     return new Response(
       JSON.stringify({ success: true, invitationId: invitation.id }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }

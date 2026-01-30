@@ -524,6 +524,8 @@ export type Database = {
           created_at: string
           email_enabled: boolean
           id: string
+          notify_intro_call: boolean
+          notify_org_invitation: boolean
           notify_purchase: boolean
           notify_subscription: boolean
           notify_work_logged: boolean
@@ -534,6 +536,8 @@ export type Database = {
           created_at?: string
           email_enabled?: boolean
           id?: string
+          notify_intro_call?: boolean
+          notify_org_invitation?: boolean
           notify_purchase?: boolean
           notify_subscription?: boolean
           notify_work_logged?: boolean
@@ -544,10 +548,51 @@ export type Database = {
           created_at?: string
           email_enabled?: boolean
           id?: string
+          notify_intro_call?: boolean
+          notify_org_invitation?: boolean
           notify_purchase?: boolean
           notify_subscription?: boolean
           notify_work_logged?: boolean
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          message: string
+          payload: Json | null
+          read_at: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          message: string
+          payload?: Json | null
+          read_at?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          message?: string
+          payload?: Json | null
+          read_at?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
         }
         Relationships: []
@@ -1087,6 +1132,13 @@ export type Database = {
         | "expiry"
         | "refund"
         | "subscription_credit"
+      notification_type:
+        | "org_invitation"
+        | "provider_invitation"
+        | "work_logged"
+        | "purchase_completed"
+        | "subscription_renewed"
+        | "intro_call_submitted"
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
       provider_role: "owner" | "admin" | "member"
@@ -1235,6 +1287,14 @@ export const Constants = {
         "expiry",
         "refund",
         "subscription_credit",
+      ],
+      notification_type: [
+        "org_invitation",
+        "provider_invitation",
+        "work_logged",
+        "purchase_completed",
+        "subscription_renewed",
+        "intro_call_submitted",
       ],
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],
