@@ -297,6 +297,65 @@ export type Database = {
           },
         ]
       }
+      intro_call_requests: {
+        Row: {
+          company_name: string
+          created_at: string
+          current_usage: string
+          discussion_topics: string
+          email: string
+          full_name: string
+          id: string
+          interests: string[] | null
+          internal_notes: string | null
+          organization_id: string | null
+          project_stage: string
+          scheduled_at: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          current_usage: string
+          discussion_topics: string
+          email: string
+          full_name: string
+          id?: string
+          interests?: string[] | null
+          internal_notes?: string | null
+          organization_id?: string | null
+          project_stage: string
+          scheduled_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          current_usage?: string
+          discussion_topics?: string
+          email?: string
+          full_name?: string
+          id?: string
+          interests?: string[] | null
+          internal_notes?: string | null
+          organization_id?: string | null
+          project_stage?: string
+          scheduled_at?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intro_call_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           created_at: string

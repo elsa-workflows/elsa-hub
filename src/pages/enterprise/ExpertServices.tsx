@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer, AvailabilityDisclaimer } from "@/components/enterprise";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
+import { IntroCallIntakeDialog } from "@/components/enterprise/IntroCallIntakeDialog";
 import { useCreditBundles } from "@/hooks/useCreditBundles";
 import { toast } from "sonner";
 import {
@@ -30,6 +31,7 @@ import {
   AlertTriangle,
   CreditCard,
   Loader2,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +86,7 @@ export default function ExpertServices() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
+  const [introCallDialogOpen, setIntroCallDialogOpen] = useState(false);
   const { data: bundles, isLoading: bundlesLoading } = useCreditBundles();
 
   // Handle URL params on mount (payment status and bundleId for returning from login)
@@ -414,6 +417,57 @@ export default function ExpertServices() {
         );
       })()}
 
+      {/* Not Sure Where to Start - Intro Call Section */}
+      <section className="py-16 md:py-24 bg-surface-subtle">
+        <div className="container">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              Not Sure Where to Start?
+            </h2>
+            <p className="text-muted-foreground mb-8">
+              If you're considering expert support but want to sanity-check your approach or discuss 
+              whether we're a good fit, you can book a short introductory call.
+            </p>
+            
+            <div className="bg-background rounded-lg border p-6 md:p-8 text-left mb-8">
+              <p className="text-muted-foreground mb-4">
+                This 30-minute session is intended to:
+              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Clarify your use case and challenges</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Answer high-level questions about Elsa Workflows</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Recommend the most appropriate engagement or service bundle</span>
+                </li>
+              </ul>
+              <p className="text-sm text-muted-foreground border-t pt-4">
+                This session does not include hands-on problem solving, code review, or implementation.
+              </p>
+            </div>
+
+            <Button 
+              size="lg" 
+              onClick={() => setIntroCallDialogOpen(true)}
+              className="gap-2"
+            >
+              <Phone className="h-4 w-4" />
+              Book a 30-Minute Intro Call
+            </Button>
+            
+            <p className="text-xs text-muted-foreground mt-4">
+              Limited availability. Intended for serious production or pre-production use cases.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Working Together */}
       <section className="py-16 md:py-24 bg-surface-subtle">
         <div className="container">
@@ -516,6 +570,12 @@ export default function ExpertServices() {
         open={purchaseDialogOpen}
         onOpenChange={setPurchaseDialogOpen}
         preSelectedBundleId={selectedBundleId}
+      />
+
+      {/* Intro Call Intake Dialog */}
+      <IntroCallIntakeDialog
+        open={introCallDialogOpen}
+        onOpenChange={setIntroCallDialogOpen}
       />
     </Layout>
   );
