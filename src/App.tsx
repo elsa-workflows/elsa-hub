@@ -14,12 +14,11 @@ import ElsaServer from "./pages/get-started/ElsaServer";
 import ElsaStudio from "./pages/get-started/ElsaStudio";
 import ElsaServerAndStudio from "./pages/get-started/ElsaServerAndStudio";
 import Docker from "./pages/get-started/Docker";
-import Enterprise from "./pages/Enterprise";
+import ElsaPlus from "./pages/ElsaPlus";
 import ExpertServices from "./pages/enterprise/ExpertServices";
 import DockerImages from "./pages/enterprise/DockerImages";
 import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
-import Marketplace from "./pages/Marketplace";
 import Resources from "./pages/Resources";
 import CommunityContent from "./pages/resources/CommunityContent";
 import Login from "./pages/Login";
@@ -66,12 +65,18 @@ const App = () => (
               <Route path="/get-started/elsa-server" element={<ElsaServer />} />
               <Route path="/get-started/elsa-studio" element={<ElsaStudio />} />
               <Route path="/get-started/elsa-server-and-studio" element={<ElsaServerAndStudio />} />
-              <Route path="/enterprise" element={<Enterprise />} />
-              <Route path="/enterprise/expert-services" element={<ExpertServices />} />
-              <Route path="/enterprise/docker-images" element={<DockerImages />} />
-              <Route path="/enterprise/cloud-services" element={<CloudServices />} />
-              <Route path="/enterprise/training" element={<Training />} />
-              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/elsa-plus" element={<ElsaPlus />} />
+              <Route path="/elsa-plus/expert-services" element={<ExpertServices />} />
+              <Route path="/elsa-plus/production-docker" element={<DockerImages />} />
+              <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
+              <Route path="/elsa-plus/training" element={<Training />} />
+              {/* Backward compatibility redirects */}
+              <Route path="/enterprise" element={<Navigate to="/elsa-plus" replace />} />
+              <Route path="/enterprise/expert-services" element={<Navigate to="/elsa-plus/expert-services" replace />} />
+              <Route path="/enterprise/docker-images" element={<Navigate to="/elsa-plus/production-docker" replace />} />
+              <Route path="/enterprise/cloud-services" element={<Navigate to="/elsa-plus/cloud-services" replace />} />
+              <Route path="/enterprise/training" element={<Navigate to="/elsa-plus/training" replace />} />
+              <Route path="/marketplace" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/community-content" element={<CommunityContent />} />
               <Route path="/login" element={<Login />} />

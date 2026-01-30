@@ -47,7 +47,7 @@ export default function Training() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/enterprise">Enterprise</Link>
+                  <Link to="/elsa-plus">Elsa+</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />

@@ -42,12 +42,12 @@ export default function DockerImages() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/enterprise">Enterprise</Link>
+                  <Link to="/elsa-plus">Elsa+</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Docker Images</BreadcrumbPage>
+                <BreadcrumbPage>Production Docker Images</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -63,10 +63,10 @@ export default function DockerImages() {
               <Badge variant="outline">Coming Soon</Badge>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Enterprise Docker Images
+              Production Docker Images
             </h1>
             <p className="text-xl text-muted-foreground">
-              Production-grade container images for Elsa Workflows, 
+              Production-ready container images for Elsa Workflows, 
               maintained and supported by Skywalker Digital.
             </p>
           </div>
