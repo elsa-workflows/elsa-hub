@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Phone, Mail, Building2, Calendar, ChevronDown, ChevronUp, Clock } from "lucide-react";
+import { Phone, Mail, Building2, Calendar, ChevronDown, ChevronUp, Clock, Archive } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,15 +39,21 @@ function getStatusBadgeVariant(status: string): "default" | "secondary" | "outli
   }
 }
 
-function RequestRow({ request, onStatusChange, isUpdating }: {
+function RequestRow({ request, onStatusChange, onArchive, isUpdating, isArchiving }: {
   request: IntroCallRequest;
   onStatusChange: (requestId: string, status: IntroCallStatus) => void;
+  onArchive: (requestId: string) => void;
   isUpdating: boolean;
+  isArchiving: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleStatusChange = (newStatus: string) => {
     onStatusChange(request.id, newStatus as IntroCallStatus);
+  };
+
+  const handleArchive = () => {
+    onArchive(request.id);
   };
 
   return (
@@ -80,6 +86,16 @@ function RequestRow({ request, onStatusChange, isUpdating }: {
                 <SelectItem value="declined">Declined</SelectItem>
               </SelectContent>
             </Select>
+
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleArchive}
+              disabled={isArchiving}
+              title="Archive request"
+            >
+              <Archive className="h-4 w-4" />
+            </Button>
 
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -167,7 +183,7 @@ function RequestRow({ request, onStatusChange, isUpdating }: {
 }
 
 export function IntroCallRequestsCard() {
-  const { requests, isLoading, updateStatus, isUpdating } = useIntroCallRequests();
+  const { requests, isLoading, updateStatus, isUpdating, archiveRequest, isArchiving } = useIntroCallRequests();
 
   const handleStatusChange = (requestId: string, status: IntroCallStatus) => {
     updateStatus(
@@ -182,6 +198,18 @@ export function IntroCallRequestsCard() {
         },
       }
     );
+  };
+
+  const handleArchive = (requestId: string) => {
+    archiveRequest(requestId, {
+      onSuccess: () => {
+        toast.success("Request archived");
+      },
+      onError: (error) => {
+        toast.error("Failed to archive request");
+        console.error("Archive error:", error);
+      },
+    });
   };
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
@@ -226,7 +254,9 @@ export function IntroCallRequestsCard() {
                 key={request.id}
                 request={request}
                 onStatusChange={handleStatusChange}
+                onArchive={handleArchive}
                 isUpdating={isUpdating}
+                isArchiving={isArchiving}
               />
             ))}
           </div>

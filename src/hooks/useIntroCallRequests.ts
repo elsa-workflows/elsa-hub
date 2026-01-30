@@ -29,19 +29,25 @@ export function getProjectStageLabel(stage: string): string {
   return PROJECT_STAGE_LABELS[stage] || stage;
 }
 
-const STATUS_OPTIONS = ["pending", "scheduled", "completed", "declined"] as const;
+const STATUS_OPTIONS = ["pending", "scheduled", "completed", "declined", "archived"] as const;
 export type IntroCallStatus = (typeof STATUS_OPTIONS)[number];
 
-export function useIntroCallRequests() {
+export function useIntroCallRequests(includeArchived = false) {
   const queryClient = useQueryClient();
 
   const requestsQuery = useQuery({
-    queryKey: ["intro-call-requests"],
+    queryKey: ["intro-call-requests", { includeArchived }],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("intro_call_requests")
         .select("*")
         .order("created_at", { ascending: false });
+
+      if (!includeArchived) {
+        query = query.neq("status", "archived");
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as IntroCallRequest[];
@@ -76,12 +82,28 @@ export function useIntroCallRequests() {
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      const { error } = await supabase
+        .from("intro_call_requests")
+        .update({ status: "archived" })
+        .eq("id", requestId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["intro-call-requests"] });
+    },
+  });
+
   return {
     requests: requestsQuery.data || [],
     isLoading: requestsQuery.isLoading,
     error: requestsQuery.error,
     updateStatus: updateStatusMutation.mutate,
     isUpdating: updateStatusMutation.isPending,
+    archiveRequest: archiveMutation.mutate,
+    isArchiving: archiveMutation.isPending,
     refetch: requestsQuery.refetch,
   };
 }
