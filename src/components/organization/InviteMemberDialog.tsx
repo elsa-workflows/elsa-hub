@@ -65,38 +65,21 @@ export function InviteMemberDialog({
     setIsSubmitting(true);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
 
-      if (!token) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to invite members",
-          variant: "destructive",
-        });
-        return;
+      const { data, error: fnError } = await supabase.functions.invoke("send-invitation", {
+        body: {
+          organizationId,
+          email: values.email,
+          role: values.role,
+        },
+      });
+
+      if (fnError) {
+        throw fnError;
       }
 
-      const response = await fetch(
-        "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/send-invitation",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            organizationId,
-            email: values.email,
-            role: values.role,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to send invitation");
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       toast({
