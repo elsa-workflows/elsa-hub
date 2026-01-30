@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.create-notification]
 verify_jwt = false
+
+[functions.setup-newsletter-segments]
+verify_jwt = false
