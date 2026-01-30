@@ -84,6 +84,7 @@ export default function ProviderWorkLogs() {
         {provider && (
           <LogWorkDialog
             providerId={provider.id}
+            providerName={provider.name}
             customers={customers}
             onSuccess={handleWorkLogSuccess}
             trigger={
