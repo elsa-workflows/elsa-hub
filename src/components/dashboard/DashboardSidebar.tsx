@@ -13,6 +13,7 @@ import {
   Shield,
   Mail,
   FileText,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const orgNavItems = [
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Credits", icon: Coins, path: "credits" },
   { label: "Team", icon: Users, path: "team" },
+  { label: "Activity", icon: Activity, path: "activity" },
   { label: "Settings", icon: Settings, path: "settings" },
 ];
 

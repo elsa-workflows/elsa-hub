@@ -1213,6 +1213,23 @@ export type Database = {
           status: string
         }[]
       }
+      get_org_audit_events: {
+        Args: {
+          p_entity_type?: string
+          p_limit?: number
+          p_offset?: number
+          p_org_id: string
+        }
+        Returns: {
+          action: string
+          actor_display_name: string
+          actor_type: Database["public"]["Enums"]["actor_type"]
+          created_at: string
+          entity_type: string
+          id: string
+          summary: string
+        }[]
+      }
       get_provider_capacity_metrics: {
         Args: { p_provider_id: string }
         Returns: {

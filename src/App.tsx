@@ -38,6 +38,7 @@ import OrgOverview from "./pages/dashboard/org/OrgOverview";
 import OrgOrders from "./pages/dashboard/org/OrgOrders";
 import OrgCredits from "./pages/dashboard/org/OrgCredits";
 import OrgTeam from "./pages/dashboard/org/OrgTeam";
+import OrgActivity from "./pages/dashboard/org/OrgActivity";
 import OrgSettings from "./pages/dashboard/org/OrgSettings";
 import ProviderOverview from "./pages/dashboard/provider/ProviderOverview";
 import ProviderUsage from "./pages/dashboard/provider/ProviderUsage";
@@ -102,6 +103,7 @@ const App = () => (
                 <Route path="org/:slug/orders" element={<OrgOrders />} />
                 <Route path="org/:slug/credits" element={<OrgCredits />} />
                 <Route path="org/:slug/team" element={<OrgTeam />} />
+                <Route path="org/:slug/activity" element={<OrgActivity />} />
                 <Route path="org/:slug/settings" element={<OrgSettings />} />
                 <Route path="provider/:slug" element={<ProviderOverview />} />
                 <Route path="provider/:slug/usage" element={<ProviderUsage />} />
