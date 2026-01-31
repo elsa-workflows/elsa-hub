@@ -11,8 +11,8 @@ const footerLinks = {
     label: "Get Started",
     to: "/get-started"
   }, {
-    label: "Enterprise",
-    to: "/enterprise"
+    label: "Elsa+",
+    to: "/elsa-plus"
   }, {
     label: "Resources",
     to: "/resources"
