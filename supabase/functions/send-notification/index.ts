@@ -194,8 +194,19 @@ serve(async (req) => {
   }
 
   try {
+    // Security: Require service role key for internal-only function
+    const authHeader = req.headers.get("Authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Only allow calls with service role key (from other edge functions or webhooks)
+    if (!authHeader?.includes(serviceRoleKey)) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - service role required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     const body: NotificationRequest = await req.json();

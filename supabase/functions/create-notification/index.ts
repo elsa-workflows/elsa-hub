@@ -93,6 +93,15 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
+    // Security: Require service role key for internal-only function
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.includes(supabaseServiceKey)) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - service role required" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: CreateNotificationRequest = await req.json();

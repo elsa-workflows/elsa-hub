@@ -27,8 +27,19 @@ Deno.serve(async (req) => {
 
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY not configured");
+    }
+
+    // Security: Require service role key for internal-only function
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY || "")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - service role required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const { subject, preheader, title, content }: BroadcastRequest = await req.json();
