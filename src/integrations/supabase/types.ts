@@ -652,6 +652,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_credit_bundle_id_fkey"
+            columns: ["credit_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bundles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -948,6 +955,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "subscriptions_credit_bundle_id_fkey"
+            columns: ["credit_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bundles_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subscriptions_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1046,6 +1060,45 @@ export type Database = {
       }
     }
     Views: {
+      credit_bundles_public: {
+        Row: {
+          billing_type: Database["public"]["Enums"]["billing_type"] | null
+          currency: string | null
+          description: string | null
+          hours: number | null
+          id: string | null
+          monthly_hours: number | null
+          name: string | null
+          price_cents: number | null
+          priority_level: string | null
+          recurring_interval: string | null
+        }
+        Insert: {
+          billing_type?: Database["public"]["Enums"]["billing_type"] | null
+          currency?: string | null
+          description?: string | null
+          hours?: number | null
+          id?: string | null
+          monthly_hours?: number | null
+          name?: string | null
+          price_cents?: number | null
+          priority_level?: string | null
+          recurring_interval?: string | null
+        }
+        Update: {
+          billing_type?: Database["public"]["Enums"]["billing_type"] | null
+          currency?: string | null
+          description?: string | null
+          hours?: number | null
+          id?: string | null
+          monthly_hours?: number | null
+          name?: string | null
+          price_cents?: number | null
+          priority_level?: string | null
+          recurring_interval?: string | null
+        }
+        Relationships: []
+      }
       invitations_secure: {
         Row: {
           created_at: string | null

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// Public bundle data (safe for anonymous users)
 export interface CreditBundle {
   id: string;
   name: string;
@@ -8,26 +9,19 @@ export interface CreditBundle {
   price_cents: number;
   currency: string;
   description: string | null;
-  stripe_price_id: string | null;
-  service_provider_id: string;
   billing_type: "one_time" | "recurring";
   recurring_interval: string | null;
   monthly_hours: number | null;
-  // Phase 1: Soft guidance
-  recommended_monthly_minutes: number | null;
-  // Phase 2: Consumption caps
-  monthly_consumption_cap_minutes: number | null;
   priority_level: "standard" | "priority";
 }
 
 export function useCreditBundles() {
   return useQuery({
-    queryKey: ["credit-bundles"],
+    queryKey: ["credit-bundles-public"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("credit_bundles")
-        .select("id, name, hours, price_cents, currency, description, stripe_price_id, service_provider_id, billing_type, recurring_interval, monthly_hours, recommended_monthly_minutes, monthly_consumption_cap_minutes, priority_level")
-        .eq("is_active", true)
+        .from("credit_bundles_public")
+        .select("id, name, hours, price_cents, currency, description, billing_type, recurring_interval, monthly_hours, priority_level")
         .order("billing_type", { ascending: true })
         .order("hours", { ascending: true });
 
