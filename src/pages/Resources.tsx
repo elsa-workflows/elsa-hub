@@ -229,15 +229,15 @@ export default function Resources() {
       <section className="py-16 md:py-24 bg-surface-subtle">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Need Enterprise Support?</h2>
+            <h2 className="text-3xl font-bold mb-4">Need Professional Support?</h2>
             <p className="text-lg text-muted-foreground mb-8">
               Get professional services, priority support, and training from the Elsa team.
             </p>
             <Button size="lg" className="gap-2" asChild>
-              <a href="/enterprise">
-                Learn About Enterprise
+              <Link to="/elsa-plus">
+                Explore Elsa+
                 <ArrowRight className="h-4 w-4" />
-              </a>
+              </Link>
             </Button>
           </div>
         </div>

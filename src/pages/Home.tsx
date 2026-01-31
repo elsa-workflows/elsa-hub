@@ -189,8 +189,8 @@ export default function Home() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="gap-2" asChild>
-                <Link to="/enterprise">
-                  Enterprise Solutions
+                <Link to="/elsa-plus">
+                  Explore Elsa+
                 </Link>
               </Button>
             </div>
