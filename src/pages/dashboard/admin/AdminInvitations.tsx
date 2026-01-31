@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { useAdminInvitations } from "@/hooks/useAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TablePagination } from "@/components/admin/TablePagination";
 import { format } from "date-fns";
 
 const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -28,11 +29,22 @@ const statusColors: Record<string, "default" | "secondary" | "destructive" | "ou
 
 export default function AdminInvitations() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+
   const { data: invitations, isLoading } = useAdminInvitations(
-    50,
-    0,
+    pageSize + 1,
+    page * pageSize,
     statusFilter === "all" ? undefined : statusFilter
   );
+
+  const hasMore = (invitations?.length ?? 0) > pageSize;
+  const displayInvitations = invitations?.slice(0, pageSize) ?? [];
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(0);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -42,7 +54,13 @@ export default function AdminInvitations() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+            setPage(0);
+          }}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -80,14 +98,14 @@ export default function AdminInvitations() {
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
               ))
-            ) : invitations?.length === 0 ? (
+            ) : displayInvitations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No invitations found
                 </TableCell>
               </TableRow>
             ) : (
-              invitations?.map((invite) => (
+              displayInvitations.map((invite) => (
                 <TableRow key={invite.id}>
                   <TableCell className="font-medium">
                     {invite.email}
@@ -116,6 +134,13 @@ export default function AdminInvitations() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          hasMore={hasMore}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </div>
   );

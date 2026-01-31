@@ -13,11 +13,22 @@ import {
 } from "@/components/ui/table";
 import { useAdminOrganizations } from "@/hooks/useAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TablePagination } from "@/components/admin/TablePagination";
 import { format } from "date-fns";
 
 export default function AdminOrganizations() {
   const [search, setSearch] = useState("");
-  const { data: orgs, isLoading } = useAdminOrganizations(50, 0, search || undefined);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+
+  const { data: orgs, isLoading } = useAdminOrganizations(
+    pageSize + 1,
+    page * pageSize,
+    search || undefined
+  );
+
+  const hasMore = (orgs?.length ?? 0) > pageSize;
+  const displayOrgs = orgs?.slice(0, pageSize) ?? [];
 
   const formatMinutes = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -25,6 +36,11 @@ export default function AdminOrganizations() {
     if (hours === 0) return `${mins}m`;
     if (mins === 0) return `${hours}h`;
     return `${hours}h ${mins}m`;
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(0);
   };
 
   return (
@@ -40,7 +56,10 @@ export default function AdminOrganizations() {
           <Input
             placeholder="Search by name or slug..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
             className="pl-9"
           />
         </div>
@@ -70,14 +89,14 @@ export default function AdminOrganizations() {
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
               ))
-            ) : orgs?.length === 0 ? (
+            ) : displayOrgs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No organizations found
                 </TableCell>
               </TableRow>
             ) : (
-              orgs?.map((org) => (
+              displayOrgs.map((org) => (
                 <TableRow key={org.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -112,6 +131,13 @@ export default function AdminOrganizations() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          hasMore={hasMore}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </div>
   );

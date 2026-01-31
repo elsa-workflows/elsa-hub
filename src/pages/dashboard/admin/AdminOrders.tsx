@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { useAdminOrders } from "@/hooks/useAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TablePagination } from "@/components/admin/TablePagination";
 import { format } from "date-fns";
 
 const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -28,17 +29,28 @@ const statusColors: Record<string, "default" | "secondary" | "destructive" | "ou
 
 export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+
   const { data: orders, isLoading } = useAdminOrders(
-    50,
-    0,
+    pageSize + 1,
+    page * pageSize,
     statusFilter === "all" ? undefined : statusFilter
   );
+
+  const hasMore = (orders?.length ?? 0) > pageSize;
+  const displayOrders = orders?.slice(0, pageSize) ?? [];
 
   const formatCurrency = (cents: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: currency.toUpperCase(),
     }).format(cents / 100);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(0);
   };
 
   return (
@@ -49,7 +61,13 @@ export default function AdminOrders() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+            setPage(0);
+          }}
+        >
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -87,14 +105,14 @@ export default function AdminOrders() {
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                 </TableRow>
               ))
-            ) : orders?.length === 0 ? (
+            ) : displayOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No orders found
                 </TableCell>
               </TableRow>
             ) : (
-              orders?.map((order) => (
+              displayOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">
                     {order.organization_name}
@@ -123,6 +141,13 @@ export default function AdminOrders() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          hasMore={hasMore}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </div>
   );

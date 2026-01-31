@@ -25,16 +25,28 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAdminAuditEvents } from "@/hooks/useAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TablePagination } from "@/components/admin/TablePagination";
 import { format } from "date-fns";
 import { Eye } from "lucide-react";
 
 export default function AdminAudit() {
   const [entityFilter, setEntityFilter] = useState<string>("all");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+
   const { data: events, isLoading } = useAdminAuditEvents(
-    50,
-    0,
+    pageSize + 1,
+    page * pageSize,
     entityFilter === "all" ? undefined : entityFilter
   );
+
+  const hasMore = (events?.length ?? 0) > pageSize;
+  const displayEvents = events?.slice(0, pageSize) ?? [];
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(0);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -44,7 +56,13 @@ export default function AdminAudit() {
       </div>
 
       <div className="flex items-center gap-4">
-        <Select value={entityFilter} onValueChange={setEntityFilter}>
+        <Select
+          value={entityFilter}
+          onValueChange={(value) => {
+            setEntityFilter(value);
+            setPage(0);
+          }}
+        >
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filter by entity" />
           </SelectTrigger>
@@ -82,14 +100,14 @@ export default function AdminAudit() {
                   <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                 </TableRow>
               ))
-            ) : events?.length === 0 ? (
+            ) : displayEvents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No audit events found
                 </TableCell>
               </TableRow>
             ) : (
-              events?.map((event) => (
+              displayEvents.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell className="text-muted-foreground whitespace-nowrap">
                     {format(new Date(event.created_at), "MMM d, yyyy HH:mm")}
@@ -149,6 +167,13 @@ export default function AdminAudit() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          hasMore={hasMore}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </div>
   );

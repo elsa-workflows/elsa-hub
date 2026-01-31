@@ -13,16 +13,33 @@ import {
 } from "@/components/ui/table";
 import { useAdminUsers } from "@/hooks/useAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TablePagination } from "@/components/admin/TablePagination";
 import { format } from "date-fns";
 
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
-  const { data: users, isLoading } = useAdminUsers(50, 0, search || undefined);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+
+  const { data: users, isLoading } = useAdminUsers(
+    pageSize + 1, // Fetch one extra to check if there's more
+    page * pageSize,
+    search || undefined
+  );
+
+  // Check if there are more items
+  const hasMore = (users?.length ?? 0) > pageSize;
+  const displayUsers = users?.slice(0, pageSize) ?? [];
 
   const getInitials = (name?: string | null, email?: string | null) => {
     if (name) return name.slice(0, 2).toUpperCase();
     if (email) return email.slice(0, 2).toUpperCase();
     return "??";
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(0); // Reset to first page when changing page size
   };
 
   return (
@@ -38,7 +55,10 @@ export default function AdminUsers() {
           <Input
             placeholder="Search by email or name..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0); // Reset to first page on search
+            }}
             className="pl-9"
           />
         </div>
@@ -64,14 +84,14 @@ export default function AdminUsers() {
                   <TableCell><Skeleton className="h-6 w-8" /></TableCell>
                 </TableRow>
               ))
-            ) : users?.length === 0 ? (
+            ) : displayUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                   No users found
                 </TableCell>
               </TableRow>
             ) : (
-              users?.map((user) => (
+              displayUsers.map((user) => (
                 <TableRow key={user.user_id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -102,6 +122,13 @@ export default function AdminUsers() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          page={page}
+          pageSize={pageSize}
+          hasMore={hasMore}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </div>
   );
