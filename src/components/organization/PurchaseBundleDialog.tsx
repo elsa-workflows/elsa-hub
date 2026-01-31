@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { OrganizationSelector } from "./OrganizationSelector";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCreditBundles, CreditBundle } from "@/hooks/useCreditBundles";
+import { useCreditBundlesFull, CreditBundleFull } from "@/hooks/useCreditBundlesFull";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AvailabilityDisclaimer } from "@/components/enterprise";
@@ -30,8 +30,8 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
   const { user } = useAuth();
   const navigate = useNavigate();
   const { selectedOrganization, organizations, isAdmin } = useOrganization();
-  const { data: bundles, isLoading: bundlesLoading } = useCreditBundles();
-  const [selectedBundle, setSelectedBundle] = useState<CreditBundle | null>(null);
+  const { data: bundles, isLoading: bundlesLoading } = useCreditBundlesFull();
+  const [selectedBundle, setSelectedBundle] = useState<CreditBundleFull | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
