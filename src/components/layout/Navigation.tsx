@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationBell } from "@/components/notifications";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import elsaLogo from "@/assets/elsa-logo.png";
 
 const navItems = [
@@ -60,7 +61,7 @@ export function Navigation() {
         </nav>
 
         {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
             <a
               href="https://v3.elsaworkflows.io/"
@@ -82,6 +83,7 @@ export function Navigation() {
               GitHub
             </a>
           </Button>
+          <ThemeToggle />
           {!loading && (
             <>
               {user ? (
@@ -143,6 +145,10 @@ export function Navigation() {
                 Documentation
                 <ExternalLink className="h-4 w-4" />
               </a>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <span className="text-lg font-medium">Theme</span>
+                <ThemeToggle />
+              </div>
               {!loading && (
                 <>
                   {user ? (
