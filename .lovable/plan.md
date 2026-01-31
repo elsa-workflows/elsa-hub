@@ -1,197 +1,156 @@
 
 
-## Platform Admin Dashboard
+## Gorgeous Dark Mode with Animated Toggle Switch
 
-This plan introduces a secure **Platform Admin** role and a comprehensive admin dashboard to give you visibility into all users, organizations, orders, and platform activity.
-
----
-
-### Overview
-
-The admin dashboard will be accessible at `/dashboard/admin` and provide screens for:
-
-1. **Overview** - Key metrics and platform health at a glance
-2. **Users** - List all registered users with signup dates, last activity, and organization memberships
-3. **Organizations** - View all orgs, their members, and credit balances
-4. **Orders & Revenue** - Track all purchases, subscriptions, and revenue
-5. **Invitations** - Monitor pending/accepted invitations across the platform
-6. **Audit Log** - Review all platform activity for compliance and debugging
+This plan adds a polished dark mode experience with a beautiful animated toggle switch that works throughout the entire application.
 
 ---
 
-### Proposed Admin Screens
+### Current State
 
-| Screen | Key Data Displayed |
-|--------|-------------------|
-| **Overview** | Total users, organizations, revenue (MTD), active subscriptions, recent signups, pending orders |
-| **Users** | Email, signup date, last sign-in, organizations they belong to, profile status |
-| **Organizations** | Name, slug, member count, total credits purchased, current balance, creation date |
-| **Orders** | Organization, bundle, amount, status, date, payment method |
-| **Subscriptions** | Organization, plan, status, billing period, MRR contribution |
-| **Invitations** | Email, organization, role, status, invited by, expiry |
-| **Audit Log** | Actor, action, entity, timestamp, before/after data |
+The project already has excellent dark mode infrastructure:
+- **CSS Variables**: Full light/dark color palettes defined in `src/index.css`
+- **Tailwind**: Configured with `darkMode: ["class"]`
+- **next-themes**: Already installed (v0.3.0)
+- **Sonner**: Already uses `useTheme` and will work automatically
+
+What's missing:
+- `ThemeProvider` wrapper around the app
+- Toggle switch component in the UI
 
 ---
 
-### Security Architecture
+### Implementation Overview
 
-Following the security guidelines provided, admin status will be stored in a **separate `platform_admins` table** (not on profiles) and verified via a security-definer function:
+| Component | Description |
+|-----------|-------------|
+| **ThemeProvider** | Wrap app in `next-themes` provider with system preference detection |
+| **ThemeToggle** | Beautiful animated toggle with sun/moon icons and smooth transitions |
+| **Navigation** | Add toggle to public site header (desktop + mobile) |
+| **DashboardHeader** | Add toggle to dashboard header |
+| **CSS Refinements** | Enhance dark mode palette for a more premium feel |
+
+---
+
+### Step 1: Create ThemeToggle Component
+
+**File:** `src/components/ui/theme-toggle.tsx`
+
+A gorgeous animated toggle featuring:
+- **Sun/Moon Icons**: Smooth rotation and scale animations on toggle
+- **Tooltip**: Shows current mode on hover
+- **System Preference Support**: Respects OS preference by default
+- **Persistent Storage**: Remembers user preference in localStorage
 
 ```text
-+----------------+       +------------------+
-|   auth.users   |       | platform_admins  |
-+----------------+       +------------------+
-| id (uuid)      |<----->| user_id (uuid)   |
-| email          |       | created_at       |
-+----------------+       +------------------+
-```
+Design:
 
-**Key security measures:**
-- `is_platform_admin()` function using `SECURITY DEFINER` to prevent recursive RLS
-- RLS policies that only allow platform admins to access admin-specific views
-- All admin routes protected in frontend with role check
-- Existing data accessed via service-level views (not bypassing RLS entirely)
-
----
-
-### Implementation Steps
-
-#### Phase 1: Database Layer
-
-1. **Create `platform_admins` table**
-   - `id`, `user_id` (FK to auth.users), `created_at`
-   - Unique constraint on `user_id`
-   - RLS: Only platform admins can view the table
-
-2. **Create `is_platform_admin()` function**
-   ```sql
-   CREATE FUNCTION public.is_platform_admin()
-   RETURNS BOOLEAN
-   LANGUAGE sql STABLE SECURITY DEFINER
-   SET search_path = public
-   AS $$
-     SELECT EXISTS (
-       SELECT 1 FROM platform_admins
-       WHERE user_id = auth.uid()
-     )
-   $$;
-   ```
-
-3. **Create admin views** (security-definer functions or views)
-   - `admin_users_view`: Joins auth.users + profiles + organization_members
-   - `admin_organizations_view`: Organizations with member counts and credit totals
-   - `admin_orders_view`: All orders with org/bundle details
-   - `admin_audit_view`: Recent audit events
-
-4. **Seed your user as the first platform admin**
-
-#### Phase 2: Frontend - Admin Context
-
-1. **Create `useIsAdmin` hook**
-   - Calls `is_platform_admin()` RPC
-   - Caches result in React Query
-
-2. **Update `DashboardContext`**
-   - Add `"admin"` to context types
-   - Add `/dashboard/admin` route handling
-
-3. **Update `DashboardSidebar`**
-   - Show admin menu when `is_platform_admin` is true
-   - Admin nav items: Overview, Users, Organizations, Orders, Invitations, Audit
-
-#### Phase 3: Admin Pages
-
-1. **Admin Overview** (`/dashboard/admin`)
-   - Stats cards: Total users, organizations, orders, revenue, subscriptions
-   - Recent signups list
-   - Pending orders/invitations
-
-2. **Admin Users** (`/dashboard/admin/users`)
-   - Searchable/sortable table with email, signup date, last login
-   - Click to see user's organization memberships
-   - No edit functionality (view-only for safety)
-
-3. **Admin Organizations** (`/dashboard/admin/organizations`)
-   - Table with org name, slug, member count, credits balance
-   - Expandable rows to see members
-   - Link to org's provider (if applicable)
-
-4. **Admin Orders** (`/dashboard/admin/orders`)
-   - Filterable table by status, date range
-   - Shows organization, bundle, amount, payment status
-   - Link to Stripe dashboard for details
-
-5. **Admin Invitations** (`/dashboard/admin/invitations`)
-   - All pending invitations across platform
-   - Status, target org, role, expiry
-
-6. **Admin Audit Log** (`/dashboard/admin/audit`)
-   - Searchable activity feed
-   - Filter by entity type, actor, date range
-   - JSON viewer for before/after data
-
----
-
-### File Structure
-
-```text
-src/
-├── hooks/
-│   └── useIsAdmin.ts                    # Platform admin check hook
-├── pages/dashboard/admin/
-│   ├── AdminOverview.tsx                # Main stats dashboard
-│   ├── AdminUsers.tsx                   # Users table
-│   ├── AdminOrganizations.tsx           # Organizations table
-│   ├── AdminOrders.tsx                  # Orders table
-│   ├── AdminInvitations.tsx             # Invitations table
-│   └── AdminAudit.tsx                   # Audit log viewer
-└── components/admin/
-    ├── AdminStatsCard.tsx               # Reusable stat card
-    ├── AdminDataTable.tsx               # Generic sortable table
-    └── index.ts
+  ┌─────────────────────────────────────┐
+  │  Light Mode          Dark Mode      │
+  │                                     │
+  │    ☀️ ─────────────── 🌙            │
+  │   (rotate in)      (rotate in)      │
+  │                                     │
+  │  Smooth 200ms transition with       │
+  │  scale + rotation animation         │
+  └─────────────────────────────────────┘
 ```
 
 ---
 
-### Technical Considerations
+### Step 2: Wrap App in ThemeProvider
 
-- **Performance**: Admin views will use server-side pagination (limit 50/100 rows)
-- **No destructive actions**: Admin dashboard is read-only to prevent accidental data loss
-- **Future extensibility**: Structure allows adding moderation tools (disable users, suspend orgs) later
-- **Stripe integration**: Orders page can link directly to Stripe dashboard for refunds/details
+**File:** `src/App.tsx`
+
+Add `ThemeProvider` from next-themes with:
+- `attribute="class"` - Uses class-based dark mode (matches Tailwind config)
+- `defaultTheme="system"` - Respects user's OS preference
+- `enableSystem` - Enables system preference detection
+- `disableTransitionOnChange` - Optional smooth theme transitions
 
 ---
 
-### Migration Summary
+### Step 3: Add Toggle to Navigation
 
-```sql
--- 1. Create platform_admins table
-CREATE TABLE public.platform_admins (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id)
-);
+**File:** `src/components/layout/Navigation.tsx`
 
--- 2. Enable RLS
-ALTER TABLE public.platform_admins ENABLE ROW LEVEL SECURITY;
+Add the toggle to:
+- Desktop nav (between Docs and GitHub buttons)
+- Mobile slide-out menu (near the bottom, before sign in)
 
--- 3. Create admin check function
-CREATE FUNCTION public.is_platform_admin()
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public AS $$
-  SELECT EXISTS (SELECT 1 FROM platform_admins WHERE user_id = auth.uid())
-$$;
+---
 
--- 4. RLS policy for platform_admins table
-CREATE POLICY "Platform admins can view admin list"
-  ON platform_admins FOR SELECT
-  USING (is_platform_admin());
+### Step 4: Add Toggle to Dashboard Header
 
--- 5. Seed initial admin (your user ID)
-INSERT INTO platform_admins (user_id) 
-VALUES ('c33ba42e-5927-4989-beee-017b09caef35'); -- sipkeschoorstra@outlook.com
+**File:** `src/components/dashboard/DashboardHeader.tsx`
 
--- 6. Create admin views with RPC functions for each data set
+Add the toggle next to the notification bell, before the user avatar dropdown.
+
+---
+
+### Step 5: Refine Dark Mode Colors (Optional Enhancement)
+
+**File:** `src/index.css`
+
+Fine-tune the dark palette for a more premium, modern feel:
+
+| Token | Current | Proposed Enhancement |
+|-------|---------|---------------------|
+| `--background` | `240 5% 10%` | `222 47% 11%` (deeper, slightly blue) |
+| `--card` | `240 3% 15%` | `222 47% 13%` (consistent with bg) |
+| `--popover` | `240 5% 26%` | `222 47% 16%` (elevated feel) |
+| `--sidebar-background` | `220 20% 8%` | `222 47% 8%` (unified) |
+
+This creates a cohesive, modern dark UI with subtle blue undertones.
+
+---
+
+### Files to Create/Modify
+
+| Action | File | Description |
+|--------|------|-------------|
+| Create | `src/components/ui/theme-toggle.tsx` | Animated sun/moon toggle component |
+| Modify | `src/App.tsx` | Wrap with ThemeProvider |
+| Modify | `src/components/layout/Navigation.tsx` | Add toggle to public header |
+| Modify | `src/components/dashboard/DashboardHeader.tsx` | Add toggle to dashboard |
+| Modify | `src/index.css` | Refine dark mode colors (optional) |
+
+---
+
+### Technical Details
+
+**ThemeToggle Component:**
+
+```typescript
+// Uses next-themes useTheme hook
+const { theme, setTheme, resolvedTheme } = useTheme();
+
+// Toggle between light and dark
+const toggleTheme = () => {
+  setTheme(resolvedTheme === "dark" ? "light" : "dark");
+};
 ```
+
+**Animation approach:**
+- Sun icon: rotates 90° and scales down when leaving, scales up when entering
+- Moon icon: rotates -90° and scales down when leaving, scales up when entering
+- CSS transitions for smooth color changes site-wide
+
+**Accessibility:**
+- Keyboard accessible (button element)
+- ARIA label describes current state
+- Visible focus ring
+- Works with screen readers
+
+---
+
+### Result
+
+Users will be able to:
+1. Click the toggle in the header to switch between light and dark mode
+2. Have their preference remembered across sessions
+3. Experience smooth, animated transitions
+4. Use their OS preference by default (system theme)
+
+The toggle will appear in both the public navigation and the dashboard header, ensuring a consistent experience throughout the application.
 
