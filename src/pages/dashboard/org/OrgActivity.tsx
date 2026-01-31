@@ -119,7 +119,7 @@ export default function OrgActivity() {
 
   if (orgLoading) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-[400px] w-full" />
       </div>
@@ -128,10 +128,10 @@ export default function OrgActivity() {
 
   if (!isAdmin) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Activity Log</h1>
-          <p className="text-muted-foreground">Recent activity in your organization</p>
+          <h1 className="text-xl md:text-2xl font-bold">Activity Log</h1>
+          <p className="text-sm text-muted-foreground">Recent activity in your organization</p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -146,16 +146,16 @@ export default function OrgActivity() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Activity Log</h1>
-          <p className="text-muted-foreground">Recent activity in your organization</p>
+          <h1 className="text-xl md:text-2xl font-bold">Activity Log</h1>
+          <p className="text-sm text-muted-foreground">Recent activity in your organization</p>
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
           <Select value={entityFilter} onValueChange={setEntityFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
             <SelectContent>
@@ -170,18 +170,18 @@ export default function OrgActivity() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Timeline</CardTitle>
+        <CardHeader className="px-4 md:px-6">
+          <CardTitle className="text-lg">Timeline</CardTitle>
           <CardDescription>
             Activity events are shown in chronological order
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 md:px-6">
           {eventsLoading ? (
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex gap-4">
-                  <Skeleton className="h-10 w-10 rounded-full" />
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="h-8 w-8 rounded-full shrink-0" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-1/2" />
@@ -198,13 +198,13 @@ export default function OrgActivity() {
               </p>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {dateGroups.map((dateGroup) => (
                 <div key={dateGroup}>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-4 sticky top-0 bg-card py-1">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3 md:mb-4">
                     {dateGroup}
                   </h3>
-                  <div className="relative pl-6 border-l-2 border-border space-y-6">
+                  <div className="space-y-4">
                     {groupedEvents[dateGroup].map((event) => {
                       const Icon = getEntityIcon(event.entity_type);
                       const colorClasses = getEntityColor(event.entity_type);
@@ -212,12 +212,12 @@ export default function OrgActivity() {
                       return (
                         <div
                           key={event.id}
-                          className="relative flex gap-4 items-start"
+                          className="flex gap-3 items-start"
                         >
-                          {/* Timeline dot */}
+                          {/* Timeline icon */}
                           <div
                             className={cn(
-                              "absolute -left-[25px] flex h-10 w-10 items-center justify-center rounded-full border-2 border-background",
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
                               colorClasses
                             )}
                           >
@@ -225,7 +225,7 @@ export default function OrgActivity() {
                           </div>
 
                           {/* Event content */}
-                          <div className="flex-1 min-w-0 pl-4">
+                          <div className="flex-1 min-w-0 pt-0.5">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                                 {event.entity_type.replace(/_/g, " ")}
@@ -234,7 +234,7 @@ export default function OrgActivity() {
                                 {format(parseISO(event.created_at), "h:mm a")}
                               </span>
                             </div>
-                            <p className="mt-1 text-sm">{event.summary}</p>
+                            <p className="mt-1 text-sm break-words">{event.summary}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               by {event.actor_display_name}
                             </p>
