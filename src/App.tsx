@@ -46,6 +46,12 @@ import ProviderCustomers from "./pages/dashboard/provider/ProviderCustomers";
 import ProviderWorkLogs from "./pages/dashboard/provider/ProviderWorkLogs";
 import ProviderBundles from "./pages/dashboard/provider/ProviderBundles";
 import ProviderSettings from "./pages/dashboard/provider/ProviderSettings";
+import AdminOverview from "./pages/dashboard/admin/AdminOverview";
+import AdminUsers from "./pages/dashboard/admin/AdminUsers";
+import AdminOrganizations from "./pages/dashboard/admin/AdminOrganizations";
+import AdminOrders from "./pages/dashboard/admin/AdminOrders";
+import AdminInvitations from "./pages/dashboard/admin/AdminInvitations";
+import AdminAudit from "./pages/dashboard/admin/AdminAudit";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +110,13 @@ const App = () => (
                 <Route path="provider/:slug/work-logs" element={<ProviderWorkLogs />} />
                 <Route path="provider/:slug/bundles" element={<ProviderBundles />} />
                 <Route path="provider/:slug/settings" element={<ProviderSettings />} />
+                {/* Admin Routes */}
+                <Route path="admin" element={<AdminOverview />} />
+                <Route path="admin/users" element={<AdminUsers />} />
+                <Route path="admin/organizations" element={<AdminOrganizations />} />
+                <Route path="admin/orders" element={<AdminOrders />} />
+                <Route path="admin/invitations" element={<AdminInvitations />} />
+                <Route path="admin/audit" element={<AdminAudit />} />
               </Route>
 
               {/* Backward Compatibility Redirects */}

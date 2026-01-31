@@ -10,6 +10,9 @@ import {
   Package,
   User,
   BarChart3,
+  Shield,
+  Mail,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,6 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ContextSwitcher } from "./ContextSwitcher";
 import { useDashboardContext } from "@/contexts/DashboardContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 const orgNavItems = [
   { label: "Overview", icon: LayoutDashboard, path: "" },
@@ -45,20 +49,47 @@ const providerNavItems = [
   { label: "Settings", icon: Settings, path: "settings" },
 ];
 
+const adminNavItems = [
+  { label: "Overview", icon: LayoutDashboard, path: "" },
+  { label: "Users", icon: Users, path: "users" },
+  { label: "Organizations", icon: Building2, path: "organizations" },
+  { label: "Orders", icon: Receipt, path: "orders" },
+  { label: "Invitations", icon: Mail, path: "invitations" },
+  { label: "Audit Log", icon: FileText, path: "audit" },
+];
+
 export function DashboardSidebar() {
   const location = useLocation();
-  const { contextType, slug } = useDashboardContext();
+  const { contextType, slug, isAdminContext } = useDashboardContext();
+  const { data: isAdmin } = useIsAdmin();
 
-  const navItems = contextType === "provider" ? providerNavItems : orgNavItems;
-  const basePath = contextType && slug ? `/dashboard/${contextType}/${slug}` : "/dashboard";
+  const getNavItems = () => {
+    if (isAdminContext) return adminNavItems;
+    if (contextType === "provider") return providerNavItems;
+    return orgNavItems;
+  };
+
+  const getBasePath = () => {
+    if (isAdminContext) return "/dashboard/admin";
+    if (contextType && slug) return `/dashboard/${contextType}/${slug}`;
+    return "/dashboard";
+  };
+
+  const navItems = getNavItems();
+  const basePath = getBasePath();
 
   const isActive = (itemPath: string) => {
     const fullPath = itemPath ? `${basePath}/${itemPath}` : basePath;
-    // Exact match for root, starts with for sub-paths
     if (itemPath === "") {
       return location.pathname === basePath || location.pathname === `${basePath}/`;
     }
     return location.pathname.startsWith(fullPath);
+  };
+
+  const getGroupLabel = () => {
+    if (isAdminContext) return "Platform Admin";
+    if (contextType === "provider") return "Provider";
+    return "Organization";
   };
 
   return (
@@ -71,9 +102,7 @@ export function DashboardSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
-            {contextType === "provider" ? "Provider" : "Organization"}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>{getGroupLabel()}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -98,6 +127,20 @@ export function DashboardSidebar() {
       <SidebarFooter>
         <SidebarSeparator />
         <SidebarMenu>
+          {isAdmin && !isAdminContext && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname.startsWith("/dashboard/admin")}
+                tooltip="Admin"
+              >
+                <Link to="/dashboard/admin">
+                  <Shield className="h-4 w-4" />
+                  <span>Admin</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
