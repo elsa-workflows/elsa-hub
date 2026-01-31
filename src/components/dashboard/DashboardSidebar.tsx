@@ -65,10 +65,14 @@ export function DashboardSidebar() {
   const { contextType, slug, isAdminContext } = useDashboardContext();
   const { data: isAdmin } = useIsAdmin();
 
+  // Determine if we have a valid context (org/provider selected or admin mode)
+  const hasValidContext = isAdminContext || (contextType && slug);
+
   const getNavItems = () => {
     if (isAdminContext) return adminNavItems;
     if (contextType === "provider") return providerNavItems;
-    return orgNavItems;
+    if (contextType === "org") return orgNavItems;
+    return []; // No nav items when no context is selected
   };
 
   const getBasePath = () => {
@@ -91,7 +95,8 @@ export function DashboardSidebar() {
   const getGroupLabel = () => {
     if (isAdminContext) return "Platform Admin";
     if (contextType === "provider") return "Provider";
-    return "Organization";
+    if (contextType === "org") return "Organization";
+    return "Navigation";
   };
 
   return (
@@ -103,27 +108,29 @@ export function DashboardSidebar() {
       <SidebarSeparator />
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{getGroupLabel()}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.path)}
-                    tooltip={item.label}
-                  >
-                    <Link to={item.path ? `${basePath}/${item.path}` : basePath}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {hasValidContext && navItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>{getGroupLabel()}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {navItems.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.path)}
+                      tooltip={item.label}
+                    >
+                      <Link to={item.path ? `${basePath}/${item.path}` : basePath}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>
