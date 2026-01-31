@@ -251,7 +251,7 @@ const handler = async (req: Request): Promise<Response> => {
             organization_name: org.name,
             role,
             expires_at: expiresAt.toISOString(),
-            token: token_value,
+            // Note: Token removed from payload for security - use action_url instead
           },
           action_url: `/invite/${token_value}`,
         });
