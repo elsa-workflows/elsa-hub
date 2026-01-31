@@ -295,17 +295,9 @@ export default function ExpertServices() {
       <section className="py-16 md:py-24 bg-surface-subtle">
         <div className="container">
           <div className="max-w-5xl mx-auto">
-            <div className="flex items-center justify-center gap-3 mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-center">
-                Service Credit Bundles
-              </h2>
-              <Badge variant="outline" className="text-warning border-warning">
-                Sandbox
-              </Badge>
-            </div>
-            <p className="text-center text-sm text-muted-foreground -mt-8 mb-12">
-              Payments are currently in test mode. No real charges will be made.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Service Credit Bundles
+            </h2>
             
             {bundlesLoading ? (
               <div className="flex items-center justify-center py-12">
@@ -379,12 +371,7 @@ export default function ExpertServices() {
                   <CardContent className="p-8 md:p-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                       <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <Badge variant="secondary">Subscription</Badge>
-                          <Badge variant="outline" className="text-warning border-warning">
-                            Sandbox
-                          </Badge>
-                        </div>
+                        <Badge variant="secondary" className="mb-4">Subscription</Badge>
                         <h2 className="text-2xl md:text-3xl font-bold mb-4">
                           Retained Advisory
                         </h2>
