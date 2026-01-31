@@ -729,6 +729,24 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_admins: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1094,6 +1112,84 @@ export type Database = {
         }
         Returns: string
       }
+      get_admin_audit_events: {
+        Args: { p_entity_type?: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          action: string
+          actor_email: string
+          actor_type: Database["public"]["Enums"]["actor_type"]
+          after_json: Json
+          before_json: Json
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          organization_name: string
+        }[]
+      }
+      get_admin_invitations: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by_email: string
+          organization_id: string
+          organization_name: string
+          role: Database["public"]["Enums"]["org_role"]
+          status: string
+        }[]
+      }
+      get_admin_orders: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          amount_cents: number
+          bundle_name: string
+          created_at: string
+          currency: string
+          id: string
+          organization_id: string
+          organization_name: string
+          paid_at: string
+          status: Database["public"]["Enums"]["order_status"]
+        }[]
+      }
+      get_admin_organizations: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          available_credits: number
+          created_at: string
+          id: string
+          logo_url: string
+          member_count: number
+          name: string
+          slug: string
+          total_credits_purchased: number
+        }[]
+      }
+      get_admin_overview_stats: {
+        Args: never
+        Returns: {
+          active_subscriptions: number
+          pending_invitations: number
+          total_orders: number
+          total_organizations: number
+          total_revenue_cents: number
+          total_users: number
+        }[]
+      }
+      get_admin_users: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          avatar_url: string
+          created_at: string
+          display_name: string
+          email: string
+          organization_count: number
+          user_id: string
+        }[]
+      }
       get_credit_balance: {
         Args: { p_org_id: string }
         Returns: {
@@ -1135,6 +1231,7 @@ export type Database = {
       }
       is_org_admin: { Args: { p_org_id: string }; Returns: boolean }
       is_org_member: { Args: { p_org_id: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_provider_admin: { Args: { p_provider_id: string }; Returns: boolean }
       is_provider_customer: { Args: { p_org_id: string }; Returns: boolean }
       is_provider_member: { Args: { p_provider_id: string }; Returns: boolean }
