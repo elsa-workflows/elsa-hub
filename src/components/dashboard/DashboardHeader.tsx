@@ -11,6 +11,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/notifications";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/contexts/AuthContext";
 import elsaLogo from "@/assets/elsa-logo.png";
 
@@ -52,6 +53,8 @@ export function DashboardHeader() {
           </a>
         </Button>
 
+        <ThemeToggle />
+        
         <NotificationBell />
 
         <DropdownMenu>
