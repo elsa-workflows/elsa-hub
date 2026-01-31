@@ -100,7 +100,7 @@ export function CreateOrganizationDialog({ onCreateOrganization, trigger }: Crea
               <Label htmlFor="name">Organization Name</Label>
               <Input
                 id="name"
-                placeholder="Skywalker Digital"
+                placeholder="Acme Corporation"
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 disabled={isSubmitting}
@@ -110,7 +110,7 @@ export function CreateOrganizationDialog({ onCreateOrganization, trigger }: Crea
               <Label htmlFor="slug">URL Slug</Label>
               <Input
                 id="slug"
-                placeholder="skywalker-digital"
+                placeholder="acme-corp"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 disabled={isSubmitting}
