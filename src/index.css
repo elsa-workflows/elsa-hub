@@ -174,4 +174,25 @@
     backdrop-filter: blur(12px);
     background: hsl(var(--background) / 0.8);
   }
+
+  /* Dark mode glow effects for primary elements */
+  .dark .btn-primary-glow {
+    box-shadow: 0 0 20px hsl(340 90% 70% / 0.3),
+                0 0 40px hsl(340 90% 70% / 0.1);
+    transition: box-shadow 0.2s ease-in-out;
+  }
+
+  .dark .btn-primary-glow:hover {
+    box-shadow: 0 0 25px hsl(340 90% 70% / 0.4),
+                0 0 50px hsl(340 90% 70% / 0.2);
+  }
+
+  .dark .link-primary-glow {
+    text-shadow: 0 0 10px hsl(340 90% 70% / 0.5);
+    transition: text-shadow 0.2s ease-in-out;
+  }
+
+  .dark .link-primary-glow:hover {
+    text-shadow: 0 0 15px hsl(340 90% 70% / 0.6);
+  }
 }
