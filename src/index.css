@@ -196,3 +196,156 @@
     text-shadow: 0 0 15px hsl(340 90% 70% / 0.6);
   }
 }
+
+/* ===== Space Background Animations ===== */
+
+/* Nebula drift animations */
+@keyframes nebula-drift-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(5%, 3%) scale(1.05);
+  }
+}
+
+@keyframes nebula-drift-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-4%, 2%) scale(0.95);
+  }
+}
+
+@keyframes nebula-drift-3 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(2%, -4%) scale(1.03);
+  }
+}
+
+/* Star field parallax drift */
+@keyframes star-drift-1 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-3%, 2%);
+  }
+}
+
+@keyframes star-drift-2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-2%, 1.5%);
+  }
+}
+
+@keyframes star-drift-3 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-1%, 0.5%);
+  }
+}
+
+/* Star twinkling */
+@keyframes twinkle {
+  0%, 100% {
+    opacity: var(--tw-opacity, 0.5);
+  }
+  50% {
+    opacity: calc(var(--tw-opacity, 0.5) * 0.3);
+  }
+}
+
+/* Meteor fly animation */
+@keyframes meteor-fly {
+  0% {
+    transform: translate(0, 0) rotate(var(--angle, 45deg));
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-200vw, 200vh) rotate(var(--angle, 45deg));
+    opacity: 0;
+  }
+}
+
+/* Supernova burst animation */
+@keyframes supernova-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Animation utility classes */
+@layer utilities {
+  .animate-nebula-drift-1 {
+    animation: nebula-drift-1 90s ease-in-out infinite;
+  }
+  
+  .animate-nebula-drift-2 {
+    animation: nebula-drift-2 120s ease-in-out infinite;
+  }
+  
+  .animate-nebula-drift-3 {
+    animation: nebula-drift-3 100s ease-in-out infinite;
+  }
+  
+  .animate-star-drift-1 {
+    animation: star-drift-1 180s linear infinite;
+  }
+  
+  .animate-star-drift-2 {
+    animation: star-drift-2 240s linear infinite;
+  }
+  
+  .animate-star-drift-3 {
+    animation: star-drift-3 300s linear infinite;
+  }
+  
+  .animate-twinkle {
+    animation: twinkle 4s ease-in-out infinite;
+  }
+  
+  .animate-supernova-burst {
+    animation: supernova-burst 3s ease-out forwards;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-nebula-drift-1,
+  .animate-nebula-drift-2,
+  .animate-nebula-drift-3,
+  .animate-star-drift-1,
+  .animate-star-drift-2,
+  .animate-star-drift-3,
+  .animate-twinkle,
+  .animate-supernova-burst {
+    animation: none;
+  }
+}
