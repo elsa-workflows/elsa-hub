@@ -1,4 +1,4 @@
-import { memo, useMemo, useEffect, useState } from "react";
+import { memo, useMemo } from "react";
 
 interface Star {
   id: number;
@@ -27,18 +27,6 @@ const generateStars = (count: number, layer: number, sizeRange: [number, number]
 };
 
 const StarField = memo(function StarField() {
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    // Use passive listener for better scroll performance
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   const stars = useMemo(() => {
     return [
       ...generateStars(80, 1, [0.5, 1]), // Tiny stars - many
@@ -47,21 +35,10 @@ const StarField = memo(function StarField() {
     ];
   }, []);
 
-  // Parallax multipliers - closer layers move more
-  const parallaxLayer1 = scrollY * 0.08; // Fastest (closest)
-  const parallaxLayer2 = scrollY * 0.04; // Medium
-  const parallaxLayer3 = scrollY * 0.02; // Slowest (furthest)
-
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Layer 1: Fastest drift (closest feeling) */}
-      <div 
-        className="absolute inset-0 animate-star-drift-1"
-        style={{
-          transform: `translateY(${parallaxLayer1}px)`,
-          willChange: "transform",
-        }}
-      >
+      {/* Layer 1: Fastest drift (closest feeling) - subtle parallax */}
+      <div className="absolute inset-0 animate-star-parallax-1">
         {stars
           .filter((s) => s.layer === 1)
           .map((star) => (
@@ -81,13 +58,7 @@ const StarField = memo(function StarField() {
       </div>
 
       {/* Layer 2: Medium drift */}
-      <div 
-        className="absolute inset-0 animate-star-drift-2"
-        style={{
-          transform: `translateY(${parallaxLayer2}px)`,
-          willChange: "transform",
-        }}
-      >
+      <div className="absolute inset-0 animate-star-parallax-2">
         {stars
           .filter((s) => s.layer === 2)
           .map((star) => (
@@ -107,13 +78,7 @@ const StarField = memo(function StarField() {
       </div>
 
       {/* Layer 3: Slowest drift (furthest away) */}
-      <div 
-        className="absolute inset-0 animate-star-drift-3"
-        style={{
-          transform: `translateY(${parallaxLayer3}px)`,
-          willChange: "transform",
-        }}
-      >
+      <div className="absolute inset-0 animate-star-parallax-3">
         {stars
           .filter((s) => s.layer === 3)
           .map((star) => (
