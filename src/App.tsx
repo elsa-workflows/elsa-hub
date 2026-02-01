@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { SpaceBackground } from "@/components/space";
 
 // Public pages
 import Home from "./pages/Home";
@@ -60,6 +61,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <SpaceBackground />
       <TooltipProvider>
         <Toaster />
         <Sonner />
