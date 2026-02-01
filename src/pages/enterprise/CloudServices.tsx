@@ -378,7 +378,7 @@ export default function CloudServices() {
               </Button>
               <Button variant="outline" size="lg" className="gap-2" asChild>
                 <a
-                  href="https://v3.elsaworkflows.io/"
+                  href="https://docs.elsaworkflows.io/"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

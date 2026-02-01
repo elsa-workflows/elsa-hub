@@ -20,7 +20,7 @@ const primaryResources = [
     title: "Documentation",
     description:
       "Comprehensive guides, tutorials, and API reference for Elsa Workflows v3.",
-    href: "https://v3.elsaworkflows.io/",
+    href: "https://docs.elsaworkflows.io/",
     cta: "Read the Docs",
   },
   {

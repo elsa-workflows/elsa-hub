@@ -90,7 +90,7 @@ const resources = [
     icon: BookOpen,
     title: "Documentation",
     description: "Comprehensive guides and API reference",
-    href: "https://v3.elsaworkflows.io/",
+    href: "https://docs.elsaworkflows.io/",
     cta: "Read Docs",
   },
   {
