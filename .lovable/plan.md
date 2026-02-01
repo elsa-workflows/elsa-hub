@@ -1,55 +1,26 @@
 
-# Fix Shooting Stars Direction & Reduce Nebulae Visibility
 
-## Overview
-Two changes are needed:
-1. Reduce the nebulae opacity back to more subtle values
-2. Fix the shooting star animation so meteors travel in the direction they're visually oriented
+# Fix Shooting Star Direction: Top-to-Bottom Diagonal Movement
 
-## The Problem with Shooting Stars
-Currently, each shooting star is rotated to a certain angle (e.g., 45°), but the CSS animation moves it using `translate(-200vw, 200vh)` which moves in screen coordinates (down-left). This causes the meteor to move diagonally downward regardless of its visual orientation - creating an unrealistic effect where the trail doesn't align with the direction of travel.
+## The Issue
+Currently, meteors are rotating to an angle (30-60°) and then translating along their **negative X-axis** (`translateX(-250vw)`). With a positive rotation angle, this causes them to move **up and to the left** - the opposite of natural meteor behavior.
+
+Real shooting stars appear to fall from the sky, moving diagonally **downward** (typically from upper areas toward lower areas of the screen).
 
 ## Solution
 
-### 1. Reduce Nebulae Visibility
-Revert the nebulae opacity to more subtle values:
-- Nebula 1: `opacity-[0.08]` (down from 0.15)
-- Nebula 2: `opacity-[0.06]` (down from 0.12)  
-- Nebula 3: `opacity-[0.05]` (down from 0.10)
-- Restore original blur values for softer appearance
+To achieve top-to-bottom diagonal movement, we need to adjust both the starting positions and the animation direction:
 
-### 2. Fix Shooting Star Direction
-Instead of using a CSS keyframe animation with fixed translation values, switch to **inline JavaScript-driven animation** using CSS variables. The key insight is that a meteor moving at angle θ should translate along its own X-axis (in its rotated coordinate system).
+### 1. Change Starting Positions
+- Start meteors primarily from the **top edge** or **left edge** of the screen
+- Adjust `startX` to favor the left side (0-80%)
+- Keep `startY` near the top (0-30%)
 
-**Approach:**
-- Keep the rotation transform on the container
-- Animate only the `translateX` component (moving "forward" along the meteor's axis)
-- Since the element is rotated, moving along its local X-axis will naturally follow the diagonal path
+### 2. Fix Animation Direction
+Use **positive** `translateX` so the meteor travels **forward-right** along its rotated axis. Combined with a rotation of ~30-60°, this creates a natural top-left to bottom-right diagonal path.
 
-**Updated animation logic:**
-```css
-@keyframes meteor-fly {
-  0% {
-    transform: rotate(var(--angle)) translateX(0);
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  95% {
-    opacity: 1;
-  }
-  100% {
-    /* Move along the meteor's own axis (after rotation) */
-    transform: rotate(var(--angle)) translateX(-250vw);
-    opacity: 0;
-  }
-}
-```
-
-**Component changes:**
-- Pass `--angle` as a CSS custom property
-- The meteor will now travel in the direction it's facing (top-right to bottom-left along its rotated axis)
+### 3. Adjust Trail Position
+The trail should be **behind** the meteor (opposite to direction of travel). Since we're now moving in the positive X direction, the trail should extend to the **left** of the meteor head (which it already does with `right-full`).
 
 ---
 
@@ -57,16 +28,28 @@ Instead of using a CSS keyframe animation with fixed translation values, switch 
 
 | File | Change |
 |------|--------|
-| `src/components/space/Nebulae.tsx` | Reduce opacity values back to subtle levels |
-| `src/index.css` | Update `meteor-fly` keyframes to use `rotate()` + `translateX()` together with CSS variable |
-| `src/components/space/ShootingStars.tsx` | Set `--angle` CSS variable on each meteor element |
+| `src/components/space/ShootingStars.tsx` | Update starting positions to favor top-left area |
+| `src/index.css` | Change `translateX(-250vw)` to `translateX(250vw)` for forward motion |
 
 ---
 
 ## Technical Details
 
-The fix works because CSS transforms are applied in order. When we write:
-```css
-transform: rotate(45deg) translateX(-100px);
+**Current behavior:**
 ```
-The rotation happens first, then the translation occurs along the **rotated** coordinate system. This means `translateX` moves the element 100px along the direction the element is now facing (45° diagonal), not along the screen's X-axis.
+Rotation: 45°, TranslateX: -250vw
+→ Meteor moves UP and LEFT (wrong direction)
+```
+
+**Fixed behavior:**
+```
+Rotation: 45°, TranslateX: +250vw  
+→ Meteor moves DOWN and RIGHT (natural meteor path)
+```
+
+**Starting position changes:**
+- `startX`: Now favors left side (0-60%) instead of right side
+- `startY`: Constrained to top portion (0-20%) for realistic entry
+
+This creates the classic "shooting star" effect: appearing in the upper portion of the sky and streaking diagonally downward across the screen.
+
