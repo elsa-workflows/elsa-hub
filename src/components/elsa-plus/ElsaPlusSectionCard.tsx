@@ -24,6 +24,7 @@ function ItemCard({ item }: { item: ElsaPlusCardItem }) {
   
   const cardContent = (
     <Card
+      variant="glass"
       className={cn(
         "h-full transition-all duration-300",
         item.href

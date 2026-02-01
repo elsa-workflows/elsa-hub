@@ -26,6 +26,7 @@ export function ServiceCard({
   return (
     <Link to={href} className="group block">
       <Card
+        variant="glass"
         className={cn(
           "h-full transition-all",
           comingSoon

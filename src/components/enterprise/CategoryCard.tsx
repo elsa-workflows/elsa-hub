@@ -22,6 +22,7 @@ export function CategoryCard({
   return (
     <Link to={href} className="group block">
       <Card
+        variant="glass"
         className={cn(
           "h-full transition-all duration-200",
           comingSoon

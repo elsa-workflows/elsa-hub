@@ -127,7 +127,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => <Card key={feature.title} className="border-0 shadow-lg hover:shadow-xl transition-shadow bg-card animate-fade-in-up" style={{
+            {features.map((feature, index) => <Card key={feature.title} variant="glass" className="border-0 shadow-lg hover:shadow-xl transition-shadow animate-fade-in-up" style={{
             animationDelay: `${index * 0.1}s`
           }}>
                 <CardContent className="p-6">
@@ -158,7 +158,7 @@ export default function Home() {
             {ecosystemLinks.map((link, index) => <a key={link.title} href={link.href} target="_blank" rel="noopener noreferrer" className="group block animate-fade-in-up" style={{
             animationDelay: `${index * 0.1}s`
           }}>
-                <Card className="h-full border bg-surface-subtle hover:border-primary/50 transition-all hover:shadow-lg">
+                <Card variant="glass" className="h-full border hover:border-primary/50 transition-all hover:shadow-lg">
                   <CardContent className="p-6 text-center">
                     <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
                       <link.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
