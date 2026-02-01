@@ -25,9 +25,9 @@ const ShootingStars = memo(function ShootingStars() {
     
     const newStar: ShootingStar = {
       id: idCounterRef.current++,
-      // Start from top or right edge
-      startX: Math.random() > 0.5 ? randomBetween(20, 100) : 100,
-      startY: Math.random() > 0.5 ? 0 : randomBetween(0, 50),
+      // Start from top-left area for natural top-to-bottom diagonal movement
+      startX: randomBetween(0, 60),
+      startY: randomBetween(0, 20),
       angle: isDistant ? randomBetween(30, 50) : randomBetween(40, 60),
       duration: isDistant ? randomBetween(3, 5) : randomBetween(1, 2),
       trailLength: isDistant ? randomBetween(150, 250) : randomBetween(80, 150),
@@ -102,13 +102,13 @@ const ShootingStars = memo(function ShootingStars() {
               boxShadow: `0 0 ${star.variant === "distant" ? 6 : 10}px rgba(255, 255, 255, ${star.opacity})`,
             }}
           />
-          {/* Meteor trail */}
+          {/* Meteor trail - positioned behind the meteor (left side since moving right) */}
           <div
             className="absolute top-0 right-full"
             style={{
               width: `${star.trailLength}px`,
               height: star.variant === "distant" ? "1px" : "2px",
-              background: `linear-gradient(to left, rgba(255, 255, 255, ${star.opacity}), transparent)`,
+              background: `linear-gradient(to right, transparent, rgba(255, 255, 255, ${star.opacity}))`,
               transform: "translateY(-50%)",
             }}
           />
