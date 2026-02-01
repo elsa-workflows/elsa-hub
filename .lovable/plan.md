@@ -1,278 +1,174 @@
 
 
-## Admin User Deletion Feature (Complete Cleanup)
+## Immersive Space Background for Dark Mode
 
 ### Overview
-Implement a secure platform admin feature to delete test users and ALL their associated data, with complete cleanup in both the database and Stripe.
+Create a captivating space experience that activates only in dark mode, featuring:
+- Subtle, slowly drifting nebulae with soft color gradients
+- Twinkling stars that drift very slowly (simulating travel through space)
+- Two types of shooting stars with randomized timing
+- Rare supernova bursts that delight visitors
 
 ---
 
 ### Architecture
 
-1. **Edge Function** (`delete-user`): Orchestrates Stripe cleanup and calls the database RPC
-2. **Database RPC** (`admin_delete_user`): Deletes all records in correct order respecting FK constraints
-3. **UI Component** (`DeleteUserDialog`): Confirmation dialog on AdminUsers page
+Create a new `SpaceBackground` component that renders a fixed, full-screen canvas behind all content. It will:
+1. Detect dark mode using `next-themes`
+2. Render nothing in light mode (zero performance impact)
+3. Use CSS animations for nebulae and simple stars
+4. Use a canvas or pure CSS for shooting stars and supernovas
 
 ---
 
-### Database Changes
+### Visual Elements
 
-#### RPC Function: `admin_delete_user`
+#### 1. Nebulae (CSS-based)
+- 2-3 large, soft gradient blobs positioned across the viewport
+- Very slow drift animation (60-120 second cycles)
+- Subtle opacity (0.05-0.15) to not distract from content
+- Colors: deep purples, magentas, and hints of the brand rose color
 
-This function will delete records in the correct order to respect foreign key dependencies:
+#### 2. Star Field (CSS-based)
+- Multiple layers of stars at different sizes
+- Very slow parallax drift (simulating travel through space)
+- Subtle twinkling via opacity animation with staggered delays
+- ~100-150 stars distributed across the viewport
 
-```text
-Deletion Order:
-─────────────────────────────────────────────────────────────────
-Phase 1: Deep child records (no FK references to them)
-├── lot_consumptions (references work_logs, credit_lots)
-├── audit_events (references orgs, providers, users)
-├── notifications (references users)
-├── notification_preferences (references users)
-├── unsubscribe_tokens (references users)
-└── intro_call_requests (references users, orgs)
+#### 3. Shooting Stars (2 Variants)
 
-Phase 2: Financial/usage records
-├── work_logs (referenced by lot_consumptions - now empty)
-├── credit_ledger_entries (references work_logs, credit_lots, orders)
-├── invoices (references orders, orgs)
-├── credit_lots (references orders, subscriptions, orgs)
-├── orders (references orgs, bundles)
-└── subscriptions (references orgs)
+| Variant | Speed | Trail | Frequency | Description |
+|---------|-------|-------|-----------|-------------|
+| **Distant** | Very slow (3-5s) | Long, fading trail | Every 15-30s | Far away in space, slow and majestic |
+| **Closer** | Medium (1-2s) | Shorter trail | Every 30-60s | Nearer, slightly faster |
 
-Phase 3: Invitations
-└── invitations (references orgs, invited_by user)
+Randomness within each variant:
+- Start position (random edge point)
+- Angle (within bounds, typically 30-60 degrees)
+- Exact duration (randomized within range)
+- Brightness/size variation
 
-Phase 4: Membership cleanup
-├── organization_members (for sole-owner orgs)
-└── provider_members (user's provider memberships)
-
-Phase 5: Organizations (sole-owner only)
-└── organizations (where user is sole owner)
-
-Phase 6: User records
-├── profiles
-└── auth.users (CASCADE handles remaining FK references)
-```
+#### 4. Supernova (Rare Delight)
+- Occurs randomly every 60-180 seconds
+- Brief, bright pulse that expands and fades
+- Subtle glow in brand colors
+- Duration: 2-3 seconds
 
 ---
 
-### Edge Function: `delete-user`
+### Technical Implementation
 
-**File: `supabase/functions/delete-user/index.ts`**
-
-```text
-Endpoint: POST /delete-user
-Body: { "userId": "uuid" }
-Auth: Requires platform admin JWT
-
-Flow:
-1. Validate admin status via is_platform_admin() RPC
-2. Prevent self-deletion
-3. Fetch user email from profiles
-4. Get organizations where user is sole owner
-5. For each org's active subscriptions:
-   → Cancel Stripe subscription
-6. Find Stripe customers by user email:
-   → Delete each Stripe customer
-7. Call admin_delete_user RPC
-8. Return deletion summary with counts
-```
-
-Stripe cleanup handles:
-- **Subscriptions**: `stripe.subscriptions.cancel()` with invoice proration
-- **Customers**: `stripe.customers.del()` by email lookup
-
-Errors in Stripe cleanup are logged but don't block database deletion.
-
----
-
-### SQL Migration
-
-```sql
--- Function to delete a user and ALL related data
-CREATE OR REPLACE FUNCTION admin_delete_user(p_user_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  _result JSONB;
-  _sole_owner_org_ids UUID[];
-  _all_org_ids UUID[];
-BEGIN
-  -- Verify caller is platform admin
-  IF NOT is_platform_admin() THEN
-    RAISE EXCEPTION 'Access denied: Platform admin required';
-  END IF;
-
-  -- Get organizations where user is sole owner (these will be deleted)
-  SELECT ARRAY_AGG(om.organization_id) INTO _sole_owner_org_ids
-  FROM organization_members om
-  WHERE om.user_id = p_user_id 
-    AND om.role = 'owner'
-    AND NOT EXISTS (
-      SELECT 1 FROM organization_members om2 
-      WHERE om2.organization_id = om.organization_id 
-        AND om2.user_id != p_user_id 
-        AND om2.role = 'owner'
-    );
-  
-  -- Get all orgs user is a member of
-  SELECT ARRAY_AGG(organization_id) INTO _all_org_ids
-  FROM organization_members WHERE user_id = p_user_id;
-
-  -- Build result summary before deletion
-  _result := jsonb_build_object(
-    'user_id', p_user_id,
-    'organizations_deleted', COALESCE(array_length(_sole_owner_org_ids, 1), 0),
-    'memberships_removed', COALESCE(array_length(_all_org_ids, 1), 0)
-  );
-
-  -- PHASE 1: Deep child records
-  DELETE FROM lot_consumptions WHERE work_log_id IN (
-    SELECT id FROM work_logs WHERE organization_id = ANY(_sole_owner_org_ids)
-  );
-  DELETE FROM audit_events WHERE organization_id = ANY(_sole_owner_org_ids) OR actor_user_id = p_user_id;
-  DELETE FROM notifications WHERE user_id = p_user_id;
-  DELETE FROM notification_preferences WHERE user_id = p_user_id;
-  DELETE FROM unsubscribe_tokens WHERE user_id = p_user_id;
-  DELETE FROM intro_call_requests WHERE user_id = p_user_id;
-
-  -- PHASE 2: Financial/usage records for sole-owner orgs
-  DELETE FROM work_logs WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM credit_ledger_entries WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM invoices WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM credit_lots WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM orders WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM subscriptions WHERE organization_id = ANY(_sole_owner_org_ids);
-
-  -- PHASE 3: Invitations
-  DELETE FROM invitations WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM invitations WHERE invited_by = p_user_id;
-
-  -- PHASE 4: Memberships
-  DELETE FROM provider_customers WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM organization_members WHERE organization_id = ANY(_sole_owner_org_ids);
-  DELETE FROM organization_members WHERE user_id = p_user_id;
-  DELETE FROM provider_members WHERE user_id = p_user_id;
-  DELETE FROM platform_admins WHERE user_id = p_user_id;
-
-  -- PHASE 5: Organizations (sole-owner only)
-  DELETE FROM organizations WHERE id = ANY(_sole_owner_org_ids);
-
-  -- PHASE 6: User records
-  DELETE FROM profiles WHERE user_id = p_user_id;
-  DELETE FROM auth.users WHERE id = p_user_id;
-
-  RETURN _result;
-END;
-$$;
-
--- Restrict execution to authenticated users only
-REVOKE ALL ON FUNCTION admin_delete_user(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION admin_delete_user(UUID) TO authenticated;
-```
-
----
-
-### Frontend Components
-
-#### DeleteUserDialog Component
-
-**File: `src/components/admin/DeleteUserDialog.tsx`**
-
-- Destructive confirmation dialog (similar to DeleteOrganizationDialog)
-- Displays warning about permanent deletion
-- Lists what will be deleted:
-  - User account and profile
-  - Organizations where user is sole owner
-  - All orders, invoices, credits, work logs for those orgs
-  - Stripe subscriptions and customer records
-- Requires typing user's email to confirm
-- Shows loading spinner during deletion
-- Displays success/error toast
-
-#### Update AdminUsers Page
-
-**File: `src/pages/dashboard/admin/AdminUsers.tsx`**
-
-Add "Actions" column with delete button:
-
-| User | Email | Signed Up | Organizations | Actions |
-|------|-------|-----------|---------------|---------|
-| ... | ... | ... | ... | [Delete] |
-
----
-
-### Edge Function Config
-
-**File: `supabase/config.toml`**
-
-```toml
-[functions.delete-user]
-verify_jwt = false
-```
-
----
-
-### Security Measures
-
-1. **Double Admin Check**: Both edge function and RPC verify `is_platform_admin()`
-2. **Self-Deletion Prevention**: Cannot delete your own account
-3. **Email Confirmation**: Must type user's email to confirm
-4. **Service Role**: Edge function uses service role for auth.users deletion
-5. **Execution Restriction**: RPC only executable by authenticated role
-
----
-
-### Implementation Files
+#### Files to Create/Modify
 
 | File | Purpose |
 |------|---------|
-| Migration SQL | Create `admin_delete_user` RPC function |
-| `supabase/functions/delete-user/index.ts` | Stripe cleanup + RPC orchestration |
-| `supabase/functions/delete-user/deno.json` | Import map |
-| `supabase/config.toml` | Add function config |
-| `src/components/admin/DeleteUserDialog.tsx` | Confirmation dialog |
-| `src/components/admin/index.ts` | Export new component |
-| `src/pages/dashboard/admin/AdminUsers.tsx` | Add delete action column |
+| `src/components/space/SpaceBackground.tsx` | Main component with all space elements |
+| `src/components/space/Nebulae.tsx` | CSS-based nebula clouds |
+| `src/components/space/StarField.tsx` | Twinkling star layer |
+| `src/components/space/ShootingStars.tsx` | Manages shooting star spawning |
+| `src/components/space/Supernova.tsx` | Rare supernova effect |
+| `src/components/space/index.ts` | Barrel export |
+| `src/index.css` | Add keyframe animations |
+| `src/App.tsx` | Mount SpaceBackground at root level |
 
 ---
 
-### What Gets Deleted (Complete Cleanup)
+### Component Structure
 
 ```text
-User Deletion (Complete)
-├── Stripe
-│   ├── All subscriptions (canceled)
-│   └── Customer records (deleted)
-├── Sole-Owner Organizations
-│   ├── lot_consumptions
-│   ├── work_logs
-│   ├── credit_ledger_entries
-│   ├── invoices
-│   ├── credit_lots
-│   ├── orders
-│   ├── subscriptions
-│   ├── invitations
-│   ├── provider_customers
-│   ├── organization_members
-│   └── organizations
-├── User Records
-│   ├── audit_events (user as actor)
-│   ├── invitations (invited by user)
-│   ├── organization_members (other orgs)
-│   ├── provider_members
-│   ├── platform_admins
-│   ├── notifications
-│   ├── notification_preferences
-│   ├── unsubscribe_tokens
-│   ├── intro_call_requests
-│   ├── profiles
-│   └── auth.users
+SpaceBackground (fixed, full-screen, pointer-events-none, z-0)
+├── Nebulae
+│   ├── Nebula 1 (purple-magenta, slow drift)
+│   ├── Nebula 2 (rose-pink, opposite drift)
+│   └── Nebula 3 (deep blue-violet, vertical drift)
+├── StarField
+│   ├── Layer 1: Tiny stars (slow drift, many)
+│   ├── Layer 2: Small stars (slower drift, fewer)
+│   └── Layer 3: Medium stars (slowest, sparse)
+├── ShootingStars
+│   ├── Spawns distant meteors (3-5s duration)
+│   └── Spawns closer meteors (1-2s duration)
+└── Supernova (rare pulse effect)
 ```
 
-No schema modifications required - complete deletion instead of SET NULL.
+---
+
+### Animation Keyframes (index.css additions)
+
+```css
+/* Nebula drift animations */
+@keyframes nebula-drift-1 { ... } /* 90s horizontal drift */
+@keyframes nebula-drift-2 { ... } /* 120s diagonal drift */
+
+/* Star field parallax */
+@keyframes star-drift { ... } /* Very slow movement */
+
+/* Star twinkling */
+@keyframes twinkle { ... } /* Opacity pulse */
+
+/* Shooting star animations */
+@keyframes meteor-distant { ... } /* 3-5s diagonal traverse */
+@keyframes meteor-close { ... } /* 1-2s faster traverse */
+@keyframes meteor-trail { ... } /* Trail fade effect */
+
+/* Supernova pulse */
+@keyframes supernova-burst { ... } /* Expand and fade */
+```
+
+---
+
+### Performance Considerations
+
+1. **Dark mode only**: Component returns `null` in light mode
+2. **CSS animations**: GPU-accelerated, no JavaScript animation loops
+3. **Minimal DOM**: Stars use pseudo-elements where possible
+4. **RequestAnimationFrame**: Only for spawning new shooting stars
+5. **Visibility API**: Pause animations when tab is hidden
+6. **Reduced motion**: Respect `prefers-reduced-motion` media query
+
+---
+
+### Integration
+
+The `SpaceBackground` component will be mounted at the App root level, positioned as a fixed background layer with `z-index: 0` and `pointer-events: none`. All existing content will layer above it naturally.
+
+```tsx
+// App.tsx
+<ThemeProvider ...>
+  <SpaceBackground /> {/* Fixed behind everything */}
+  <TooltipProvider>
+    ...
+  </TooltipProvider>
+</ThemeProvider>
+```
+
+---
+
+### Randomization Details
+
+Shooting stars will use a spawner pattern:
+
+```text
+Distant Meteors:
+- Spawn interval: random 15-30 seconds
+- Duration: random 3-5 seconds  
+- Start: random point along top/right edge
+- Angle: 30-50 degrees (slight variation)
+- Trail length: 150-250px
+- Opacity: 0.4-0.6
+
+Closer Meteors:
+- Spawn interval: random 30-60 seconds
+- Duration: random 1-2 seconds
+- Start: random point along top/right edge
+- Angle: 40-60 degrees
+- Trail length: 80-150px
+- Opacity: 0.6-0.9 (brighter = closer)
+```
+
+Supernova:
+- Spawn interval: random 60-180 seconds
+- Position: random point on screen
+- Color: brand rose with white core
+- Max size: 150-300px radius
 
