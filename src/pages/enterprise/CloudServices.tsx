@@ -194,7 +194,7 @@ export default function CloudServices() {
               <p>
                 Managed cloud hosting for Elsa Workflows means the complete
                 runtime environment is deployed, configured, operated, updated,
-                and monitored by the Elsa team. You interact with Elsa through
+                and monitored by a qualified service provider. You interact with Elsa through
                 its APIs and designer while infrastructure concerns are
                 abstracted away.
               </p>
