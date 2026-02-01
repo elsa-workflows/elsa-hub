@@ -1143,6 +1143,7 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
+      admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
       create_credit_adjustment: {
         Args: {
           p_adjustment_type: string

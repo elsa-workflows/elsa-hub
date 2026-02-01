@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/table";
 import { useAdminUsers } from "@/hooks/useAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TablePagination } from "@/components/admin/TablePagination";
+import { TablePagination, DeleteUserDialog } from "@/components/admin";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
+  const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useAdminUsers(
     pageSize + 1, // Fetch one extra to check if there's more
@@ -40,6 +42,10 @@ export default function AdminUsers() {
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
     setPage(0); // Reset to first page when changing page size
+  };
+
+  const handleUserDeleted = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
   return (
@@ -72,6 +78,7 @@ export default function AdminUsers() {
               <TableHead>Email</TableHead>
               <TableHead>Signed Up</TableHead>
               <TableHead>Organizations</TableHead>
+              <TableHead className="w-16">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -82,11 +89,12 @@ export default function AdminUsers() {
                   <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                 </TableRow>
               ))
             ) : displayUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   No users found
                 </TableCell>
               </TableRow>
@@ -116,6 +124,15 @@ export default function AdminUsers() {
                     <Badge variant="secondary">
                       {user.organization_count}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DeleteUserDialog
+                      userId={user.user_id}
+                      userEmail={user.email ?? ""}
+                      displayName={user.display_name}
+                      organizationCount={Number(user.organization_count)}
+                      onDeleted={handleUserDeleted}
+                    />
                   </TableCell>
                 </TableRow>
               ))
