@@ -21,11 +21,7 @@ const paths = [
     subtitle: "Explore Elsa in minutes",
     description:
       "Run pre-built containers to experience the workflow engine and visual designer. No development environment required.",
-    bestFor: [
-      "Evaluating features",
-      "Quick demonstrations",
-      "First-time exploration",
-    ],
+    bestFor: ["Evaluating features", "Quick demonstrations", "First-time exploration"],
     href: "/get-started/docker",
     cta: "Launch Containers",
   },
@@ -33,13 +29,8 @@ const paths = [
     icon: Code2,
     title: "Build Your Own",
     subtitle: "Create a custom solution",
-    description:
-      "Set up Elsa in your own ASP.NET Core project with full control over configuration and deployment.",
-    bestFor: [
-      "Production applications",
-      "Custom integrations",
-      "Full flexibility",
-    ],
+    description: "Set up Elsa in your own ASP.NET Core project with full control over configuration and deployment.",
+    bestFor: ["Production applications", "Custom integrations", "Full flexibility"],
     href: "#build-your-own",
     cta: "Choose Setup",
   },
@@ -51,11 +42,7 @@ const guides = [
     title: "Elsa Server",
     description:
       "Build a workflow engine backend with REST APIs. Ideal when you need a headless workflow service or want to use your own frontend.",
-    bestFor: [
-      "API-first architectures",
-      "Microservices",
-      "Custom frontends",
-    ],
+    bestFor: ["API-first architectures", "Microservices", "Custom frontends"],
     href: "/get-started/elsa-server",
   },
   {
@@ -63,11 +50,7 @@ const guides = [
     title: "Elsa Studio",
     description:
       "Set up the visual workflow designer. Connects to an existing Elsa Server to provide a complete management UI.",
-    bestFor: [
-      "Separate backend and frontend",
-      "Existing Elsa Server users",
-      "Custom branding needs",
-    ],
+    bestFor: ["Separate backend and frontend", "Existing Elsa Server users", "Custom branding needs"],
     href: "/get-started/elsa-studio",
   },
   {
@@ -75,11 +58,7 @@ const guides = [
     title: "Elsa Server + Studio",
     description:
       "Create a single application that runs both the workflow engine and designer together. The quickest path to a complete solution.",
-    bestFor: [
-      "Getting started quickly",
-      "Demos and prototypes",
-      "Small to medium deployments",
-    ],
+    bestFor: ["Getting started quickly", "Demos and prototypes", "Small to medium deployments"],
     href: "/get-started/elsa-server-and-studio",
     badge: "Recommended",
   },
@@ -111,7 +90,7 @@ const resources = [
     icon: Play,
     title: "Sample Projects",
     description: "Example implementations and demos",
-    href: "https://github.com/elsa-workflows/elsa-core/tree/main/samples",
+    href: "https://github.com/elsa-workflows/elsa-samples",
     cta: "View Samples",
   },
 ];
@@ -123,12 +102,9 @@ export default function GetStarted() {
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
           <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Get Started with Elsa
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">Get Started with Elsa</h1>
             <p className="text-xl text-muted-foreground">
-              Whether you want to explore Elsa quickly or build a production
-              solution, we have you covered.
+              Whether you want to explore Elsa quickly or build a production solution, we have you covered.
             </p>
           </div>
         </div>
@@ -140,8 +116,7 @@ export default function GetStarted() {
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-4">Choose Your Path</h2>
             <p className="text-muted-foreground max-w-2xl">
-              Just want to explore? Try our Docker containers. Ready to build?
-              Create your own project from scratch.
+              Just want to explore? Try our Docker containers. Ready to build? Create your own project from scratch.
             </p>
           </div>
 
@@ -159,8 +134,7 @@ export default function GetStarted() {
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-4">Build Your Own</h2>
             <p className="text-muted-foreground max-w-2xl">
-              Elsa Workflows offers flexible deployment options. Select the
-              setup that matches your architecture.
+              Elsa Workflows offers flexible deployment options. Select the setup that matches your architecture.
             </p>
           </div>
 
@@ -184,13 +158,7 @@ export default function GetStarted() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {resources.map((resource) => (
-              <a
-                key={resource.title}
-                href={resource.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group"
-              >
+              <a key={resource.title} href={resource.href} target="_blank" rel="noopener noreferrer" className="group">
                 <Card className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
                   <CardHeader>
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
@@ -199,9 +167,7 @@ export default function GetStarted() {
                     <CardTitle className="text-lg">{resource.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {resource.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
                     <span className="text-sm font-medium text-primary inline-flex items-center gap-1 group-hover:gap-2 transition-all">
                       {resource.cta}
                       <ArrowRight className="h-4 w-4" />
