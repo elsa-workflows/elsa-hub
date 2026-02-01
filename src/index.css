@@ -278,7 +278,7 @@
     opacity: 1;
   }
   100% {
-    transform: rotate(var(--angle, 45deg)) translateX(-250vw);
+    transform: rotate(var(--angle, 45deg)) translateX(250vw);
     opacity: 0;
   }
 }
