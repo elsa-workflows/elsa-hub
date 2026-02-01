@@ -1,80 +1,54 @@
 
 
-# Cosmic Events Variation System
+# Glassmorphism Cards Design
 
 ## Vision
-Transform the space background from a single supernova effect into a rich collection of awe-inspiring cosmic phenomena. Each event will be rare and visually distinct, creating moments of wonder when they appear.
+Transform cards into translucent glass panels that allow the space background to subtly show through. This creates an immersive experience where users feel like they're viewing content on floating holographic displays against the cosmos.
 
-## Cosmic Events to Add
+## Design Approach
 
-### 1. Supernova Variations (Enhance Existing)
-- **Classic Supernova** (current): White core with rose glow
-- **Blue Giant Collapse**: Brilliant blue-white core fading to deep blue
-- **Red Hypergiant**: Warm amber/orange explosion with red outer glow
-- **Neutron Star Birth**: Intense cyan pulse with rippling rings
+### Option A: Dark Mode Glass Only (Recommended)
+Apply glass effect only in dark mode where the space background is visible. In light mode, cards remain solid for readability. This is the safest approach since glass effects are most impactful against the cosmic backdrop.
 
-### 2. Pulsar Beam
-A rotating beam of light that sweeps across the screen like a cosmic lighthouse.
-- Thin, intense beam rotating 360°
-- Brief visibility window (beam "sweeps" past viewer)
-- Blue-white coloring with subtle glow
-- Duration: ~4-5 seconds
+### Option B: Full Glassmorphism
+Apply glass to both themes with appropriate opacity values for each.
 
-### 3. Nebula Flash
-A distant nebula region briefly illuminates, as if a star within it flared.
-- Soft, diffuse glow that brightens and fades
-- Larger area effect (500-800px)
-- Purple/magenta tones matching the existing nebulae
-- Duration: ~6-8 seconds (slow fade in/out)
+## Visual Design
 
-### 4. Gravitational Lensing Ripple
-A subtle distortion wave that ripples outward, simulating light bending around a massive object.
-- Concentric rings that expand and fade
-- Very subtle visual distortion effect
-- Duration: ~4 seconds
-
-### 5. Binary Star Flare
-Two close points of light that briefly brighten together.
-- Two small bright points near each other
-- Synchronized pulse effect
-- White/gold coloring
-- Duration: ~2-3 seconds
-
----
-
-## Implementation Architecture
-
-### Rename & Refactor
-Rename `Supernova.tsx` → `CosmicEvents.tsx` to reflect its expanded role.
-
-### Event Type System
-```typescript
-type CosmicEventType = 
-  | 'supernova-classic'
-  | 'supernova-blue'
-  | 'supernova-red'
-  | 'supernova-neutron'
-  | 'pulsar'
-  | 'nebula-flash'
-  | 'binary-flare';
+### Glass Card Properties
+```css
+.dark .glass-card {
+  background: hsl(var(--card) / 0.6);      /* Semi-transparent dark */
+  backdrop-filter: blur(16px);              /* Blur space elements behind */
+  border: 1px solid hsl(var(--border) / 0.5); /* Subtle border */
+  box-shadow: 
+    0 4px 30px rgba(0, 0, 0, 0.3),          /* Depth shadow */
+    inset 0 1px 0 hsl(0 0% 100% / 0.05);    /* Top highlight */
+}
 ```
 
-### Weighted Random Selection
-Different events have different rarity:
-- Classic Supernova: 25%
-- Blue Giant: 15%
-- Red Hypergiant: 15%
-- Neutron Star: 10%
-- Pulsar: 15%
-- Nebula Flash: 12%
-- Binary Flare: 8%
+### Key Visual Elements
+- **Blur**: 12-16px blur softens stars/nebulae behind the card
+- **Transparency**: 60-70% opacity allows cosmic colors to subtly influence card tint
+- **Border**: Very subtle light border creates edge definition
+- **Inner Highlight**: Thin top highlight simulates light reflection
 
-### Event-Specific Rendering
-Each event type has its own visual component with unique:
-- Color gradients
-- Size parameters
-- Animation keyframes
-- Duration
+## Implementation Strategy
+
+### Phase 1: Create Glass Card Variant
+Add a new `variant` prop to the Card component:
+- `default`: Current solid style
+- `glass`: Translucent with backdrop blur
+
+### Phase 2: Apply Selectively
+Update specific card usages to opt-in to glass effect:
+- Home page feature cards
+- Ecosystem link cards
+- Get Started guide cards
+- Enterprise category cards
+- ElsaPlus section cards
+
+This allows gradual rollout and easy rollback if needed.
 
 ---
 
@@ -82,75 +56,103 @@ Each event type has its own visual component with unique:
 
 | File | Changes |
 |------|---------|
-| `src/components/space/Supernova.tsx` | Rename to `CosmicEvents.tsx`, add event types and weighted selection |
-| `src/components/space/SpaceBackground.tsx` | Update import to use new component name |
-| `src/components/space/index.ts` | Update export if it exists |
-| `src/index.css` | Add new keyframe animations for pulsar rotation, nebula-flash, binary-pulse |
+| `src/components/ui/card.tsx` | Add `variant` prop with "default" and "glass" options |
+| `src/index.css` | Enhance `.glass-card` utility with dark mode specific styles |
+| `src/pages/Home.tsx` | Apply glass variant to feature and ecosystem cards |
+| `src/components/get-started/GuideCard.tsx` | Apply glass variant |
+| `src/components/get-started/PathCard.tsx` | Apply glass variant |
+| `src/components/enterprise/CategoryCard.tsx` | Apply glass variant |
+| `src/components/enterprise/ServiceCard.tsx` | Apply glass variant |
+| `src/components/elsa-plus/ElsaPlusSectionCard.tsx` | Apply glass variant |
 
 ---
 
-## New CSS Animations
+## Technical Details
 
+### Card Component Update
+```tsx
+// src/components/ui/card.tsx
+import { cva } from "class-variance-authority";
+
+const cardVariants = cva(
+  "rounded-lg border text-card-foreground shadow-sm transition-all",
+  {
+    variants: {
+      variant: {
+        default: "bg-card",
+        glass: "glass-card",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "default" | "glass";
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant = "default", ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(cardVariants({ variant }), className)}
+      {...props}
+    />
+  )
+);
+```
+
+### CSS Glass Styles
 ```css
-/* Pulsar beam rotation */
-@keyframes pulsar-sweep {
-  0% { transform: translate(-50%, -50%) rotate(0deg); opacity: 0; }
-  10% { opacity: 0.8; }
-  90% { opacity: 0.8; }
-  100% { transform: translate(-50%, -50%) rotate(360deg); opacity: 0; }
+/* Glass card effect - enhanced for space background */
+.glass-card {
+  /* Light mode: solid with slight transparency */
+  background: hsl(var(--card) / 0.95);
+  border-color: hsl(var(--border));
 }
 
-/* Nebula flash - soft glow */
-@keyframes nebula-flash {
-  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-  40%, 60% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+.dark .glass-card {
+  /* Dark mode: translucent glass over space */
+  background: hsl(240 10% 6% / 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: hsl(var(--border) / 0.6);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 hsl(0 0% 100% / 0.03);
 }
 
-/* Binary star synchronized pulse */
-@keyframes binary-pulse {
-  0%, 100% { opacity: 0; transform: scale(0.5); }
-  30%, 70% { opacity: 1; transform: scale(1); }
-}
-
-/* Neutron star with ripple rings */
-@keyframes neutron-ripple {
-  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+/* Hover state - slightly more opaque */
+.dark .glass-card:hover {
+  background: hsl(240 10% 6% / 0.75);
+  border-color: hsl(var(--primary) / 0.4);
 }
 ```
 
 ---
 
-## Visual Design Details
+## Considerations
 
-### Supernova Color Palettes
-| Variant | Core | Mid-glow | Outer |
-|---------|------|----------|-------|
-| Classic | White | Rose (340°) | Pink/transparent |
-| Blue Giant | White | Cyan (195°) | Deep blue |
-| Red Hypergiant | Yellow | Orange (30°) | Deep red |
-| Neutron Star | White | Cyan (180°) | Teal ripples |
+### Readability
+- Text remains fully opaque for readability
+- Blur is strong enough to soften background distractions
+- Card opacity balanced to ensure content stands out
 
-### Pulsar Design
-- Central bright point (4-6px)
-- Long thin beam (2px height, 300px+ length)
-- Beam fades toward the ends
-- Full 360° rotation over 4-5 seconds
+### Performance
+- `backdrop-filter` has good browser support
+- GPU-accelerated, minimal performance impact
+- Falls back gracefully in older browsers (just shows solid)
 
-### Nebula Flash
-- Very large, diffuse circle (600-800px)
-- Soft edges (heavy blur)
-- Colors sampled from existing nebula palette
-- Slow breathing animation
+### Accessibility
+- Glass effect is purely decorative
+- Text contrast ratios maintained
+- Reduced motion settings don't affect glass (it's static)
 
 ---
 
-## Technical Notes
+## Preview
 
-- All events respect `prefers-reduced-motion`
-- Events are cleaned up after their animation completes
-- Visibility API pauses spawning when tab is hidden
-- Each event has appropriate z-index layering
-- Performance-conscious: only 1-2 events active at a time maximum
+In dark mode, cards will appear as floating glass panels with the nebulae colors and occasional star twinkles subtly visible behind them, creating a cohesive "space station interface" aesthetic. The effect is most noticeable when cosmic events like supernovas or nebula flashes occur near card positions.
 
