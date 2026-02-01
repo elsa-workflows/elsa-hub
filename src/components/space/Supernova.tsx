@@ -43,20 +43,20 @@ const Supernova = memo(function Supernova() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
-    // Supernova spawner (every 10-20 seconds for testing)
+    // Supernova spawner (every 60-180 seconds)
     const scheduleNext = () => {
-      const delay = randomBetween(10000, 20000);
+      const delay = randomBetween(60000, 180000);
       return setTimeout(() => {
         spawnSupernova();
         scheduleNext();
       }, delay);
     };
 
-    // Initial spawn after 3-6 seconds for testing
+    // Initial spawn after 30-60 seconds
     const initialTimeout = setTimeout(() => {
       spawnSupernova();
       scheduleNext();
-    }, randomBetween(3000, 6000));
+    }, randomBetween(30000, 60000));
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
