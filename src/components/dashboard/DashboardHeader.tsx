@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LogOut, User, ExternalLink } from "lucide-react";
+import { LogOut, User, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -50,6 +50,18 @@ export function DashboardHeader() {
           >
             Docs
             <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </Button>
+
+        <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
+          <a
+            href="https://deepwiki.com/elsa-workflows/elsa-core"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="gap-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            DeepWiki
           </a>
         </Button>
 
