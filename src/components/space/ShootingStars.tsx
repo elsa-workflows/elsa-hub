@@ -54,23 +54,23 @@ const ShootingStars = memo(function ShootingStars() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
-    // Distant meteor spawner (every 15-30 seconds)
+    // Distant meteor spawner (every 3-8 seconds for testing)
     const spawnDistant = () => {
       spawnShootingStar("distant");
-      const nextDelay = randomBetween(15000, 30000);
+      const nextDelay = randomBetween(3000, 8000);
       setTimeout(spawnDistant, nextDelay);
     };
 
-    // Closer meteor spawner (every 30-60 seconds)
+    // Closer meteor spawner (every 5-12 seconds for testing)
     const spawnCloser = () => {
       spawnShootingStar("closer");
-      const nextDelay = randomBetween(30000, 60000);
+      const nextDelay = randomBetween(5000, 12000);
       setTimeout(spawnCloser, nextDelay);
     };
 
     // Initial delays before first spawn
-    const distantTimeout = setTimeout(spawnDistant, randomBetween(3000, 8000));
-    const closerTimeout = setTimeout(spawnCloser, randomBetween(10000, 20000));
+    const distantTimeout = setTimeout(spawnDistant, randomBetween(1000, 3000));
+    const closerTimeout = setTimeout(spawnCloser, randomBetween(2000, 5000));
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
