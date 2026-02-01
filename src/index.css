@@ -227,31 +227,31 @@
   }
 }
 
-/* Star field parallax drift */
-@keyframes star-drift-1 {
+/* Star field slow parallax - subtle continuous drift simulating travel through space */
+@keyframes star-parallax-1 {
   0% {
     transform: translate(0, 0);
   }
   100% {
-    transform: translate(-3%, 2%);
+    transform: translate(-1.5%, 1%);
   }
 }
 
-@keyframes star-drift-2 {
+@keyframes star-parallax-2 {
   0% {
     transform: translate(0, 0);
   }
   100% {
-    transform: translate(-2%, 1.5%);
+    transform: translate(-0.8%, 0.5%);
   }
 }
 
-@keyframes star-drift-3 {
+@keyframes star-parallax-3 {
   0% {
     transform: translate(0, 0);
   }
   100% {
-    transform: translate(-1%, 0.5%);
+    transform: translate(-0.4%, 0.2%);
   }
 }
 
@@ -315,16 +315,16 @@
     animation: nebula-drift-3 100s ease-in-out infinite;
   }
   
-  .animate-star-drift-1 {
-    animation: star-drift-1 180s linear infinite;
+  .animate-star-parallax-1 {
+    animation: star-parallax-1 200s linear infinite;
   }
   
-  .animate-star-drift-2 {
-    animation: star-drift-2 240s linear infinite;
+  .animate-star-parallax-2 {
+    animation: star-parallax-2 280s linear infinite;
   }
   
-  .animate-star-drift-3 {
-    animation: star-drift-3 300s linear infinite;
+  .animate-star-parallax-3 {
+    animation: star-parallax-3 360s linear infinite;
   }
   
   .animate-twinkle {
