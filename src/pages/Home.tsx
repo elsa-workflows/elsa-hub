@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Github, BookOpen, MessageCircle, ExternalLink } from "lucide-react";
+import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Github, BookOpen, MessageCircle, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
@@ -39,6 +39,11 @@ const ecosystemLinks = [{
   title: "Documentation",
   description: "Learn how to get started and build workflows",
   href: "https://docs.elsaworkflows.io/"
+}, {
+  icon: Sparkles,
+  title: "DeepWiki AI",
+  description: "Ask questions about the codebase using AI",
+  href: "https://deepwiki.com/elsa-workflows/elsa-core"
 }, {
   icon: MessageCircle,
   title: "Community",
@@ -149,7 +154,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             {ecosystemLinks.map((link, index) => <a key={link.title} href={link.href} target="_blank" rel="noopener noreferrer" className="group block animate-fade-in-up" style={{
             animationDelay: `${index * 0.1}s`
           }}>

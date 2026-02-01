@@ -22,6 +22,10 @@ const footerLinks = {
     href: "https://docs.elsaworkflows.io/",
     external: true
   }, {
+    label: "DeepWiki AI",
+    href: "https://deepwiki.com/elsa-workflows/elsa-core",
+    external: true
+  }, {
     label: "GitHub",
     href: "https://github.com/elsa-workflows/elsa-core",
     external: true

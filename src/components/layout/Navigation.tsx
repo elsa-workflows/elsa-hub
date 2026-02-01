@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Menu, Github, ExternalLink, User, LogOut } from "lucide-react";
+import { Menu, Github, ExternalLink, User, LogOut, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavLink } from "@/components/NavLink";
@@ -73,6 +73,17 @@ export function Navigation() {
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <a
+              href="https://deepwiki.com/elsa-workflows/elsa-core"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              DeepWiki
+            </a>
+          </Button>
           <Button variant="ghost" size="sm" className="gap-2" asChild>
             <a
               href="https://github.com/elsa-workflows/elsa-core"
@@ -143,6 +154,16 @@ export function Navigation() {
                 className="px-4 py-3 text-lg font-medium rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
               >
                 Documentation
+                <ExternalLink className="h-4 w-4" />
+              </a>
+              <a
+                href="https://deepwiki.com/elsa-workflows/elsa-core"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-3 text-lg font-medium rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                DeepWiki AI
                 <ExternalLink className="h-4 w-4" />
               </a>
               <div className="px-4 py-3 flex items-center justify-between">

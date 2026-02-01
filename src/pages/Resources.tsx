@@ -12,6 +12,7 @@ import {
   Newspaper,
   ExternalLink,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
 const primaryResources = [
@@ -22,6 +23,14 @@ const primaryResources = [
       "Comprehensive guides, tutorials, and API reference for Elsa Workflows v3.",
     href: "https://docs.elsaworkflows.io/",
     cta: "Read the Docs",
+  },
+  {
+    icon: Sparkles,
+    title: "DeepWiki AI",
+    description:
+      "Ask questions about the Elsa codebase using AI. Explore architecture, patterns, and implementation details.",
+    href: "https://deepwiki.com/elsa-workflows/elsa-core",
+    cta: "Explore DeepWiki",
   },
   {
     icon: Github,
@@ -107,7 +116,7 @@ export default function Resources() {
       {/* Primary Resources */}
       <section className="py-16 md:py-24">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {primaryResources.map((resource) => (
               <a
                 key={resource.title}
