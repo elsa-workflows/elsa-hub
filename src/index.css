@@ -175,6 +175,30 @@
     background: hsl(var(--background) / 0.8);
   }
 
+  /* Glass card effect for space background */
+  .glass-card {
+    /* Light mode: solid with slight transparency */
+    background: hsl(var(--card) / 0.95);
+    border-color: hsl(var(--border));
+  }
+
+  .dark .glass-card {
+    /* Dark mode: translucent glass over space */
+    background: hsl(240 10% 6% / 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: hsl(var(--border) / 0.6);
+    box-shadow: 
+      0 4px 24px hsl(0 0% 0% / 0.4),
+      inset 0 1px 0 hsl(0 0% 100% / 0.03);
+  }
+
+  /* Hover state - slightly more opaque */
+  .dark .glass-card:hover {
+    background: hsl(240 10% 6% / 0.75);
+    border-color: hsl(var(--primary) / 0.4);
+  }
+
   /* Dark mode glow effects for primary elements */
   .dark .btn-primary-glow {
     box-shadow: 0 0 20px hsl(340 90% 70% / 0.3),

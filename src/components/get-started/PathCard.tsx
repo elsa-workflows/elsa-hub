@@ -26,7 +26,7 @@ export function PathCard({
 }: PathCardProps) {
   return (
     <Link to={href} className="group block">
-      <Card className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
+      <Card variant="glass" className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between mb-3">
             <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">

@@ -22,7 +22,7 @@ export function GuideCard({
 }: GuideCardProps) {
   return (
     <Link to={href} className="group block">
-      <Card className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
+      <Card variant="glass" className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
         <CardHeader>
           <div className="flex items-start justify-between mb-2">
             <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
