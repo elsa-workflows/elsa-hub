@@ -289,7 +289,7 @@ cd ElsaStudioBlazorWasm`}
                 </Button>
                 <Button variant="outline" className="h-auto p-4 justify-start" asChild>
                   <a
-                    href="https://github.com/elsa-workflows/elsa-core/tree/main/samples"
+                    href="https://github.com/elsa-workflows/elsa-samples"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
