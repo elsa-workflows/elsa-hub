@@ -421,7 +421,7 @@ dotnet run`}
                   asChild
                 >
                   <a
-                    href="https://github.com/elsa-workflows/elsa-core/tree/main/samples"
+                    href="https://github.com/elsa-workflows/elsa-samples"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
