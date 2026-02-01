@@ -38,7 +38,7 @@ const ecosystemLinks = [{
   icon: BookOpen,
   title: "Documentation",
   description: "Learn how to get started and build workflows",
-  href: "https://v3.elsaworkflows.io/"
+  href: "https://docs.elsaworkflows.io/"
 }, {
   icon: MessageCircle,
   title: "Community",
@@ -99,7 +99,7 @@ export default function Home() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" className="gap-2" asChild>
-                <a href="https://v3.elsaworkflows.io/" target="_blank" rel="noopener noreferrer">
+                <a href="https://docs.elsaworkflows.io/" target="_blank" rel="noopener noreferrer">
                   <BookOpen className="h-4 w-4" />
                   Documentation
                 </a>

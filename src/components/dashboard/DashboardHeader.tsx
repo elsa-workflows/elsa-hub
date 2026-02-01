@@ -43,7 +43,7 @@ export function DashboardHeader() {
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
           <a
-            href="https://v3.elsaworkflows.io/"
+            href="https://docs.elsaworkflows.io/"
             target="_blank"
             rel="noopener noreferrer"
             className="gap-2"

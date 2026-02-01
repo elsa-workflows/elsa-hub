@@ -64,7 +64,7 @@ export function Navigation() {
         <div className="hidden md:flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
             <a
-              href="https://v3.elsaworkflows.io/"
+              href="https://docs.elsaworkflows.io/"
               target="_blank"
               rel="noopener noreferrer"
               className="gap-2"
@@ -137,7 +137,7 @@ export function Navigation() {
               ))}
               <hr className="my-4" />
               <a
-                href="https://v3.elsaworkflows.io/"
+                href="https://docs.elsaworkflows.io/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-3 text-lg font-medium rounded-lg hover:bg-muted transition-colors flex items-center gap-2"

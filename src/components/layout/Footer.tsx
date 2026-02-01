@@ -19,7 +19,7 @@ const footerLinks = {
   }],
   resources: [{
     label: "Documentation",
-    href: "https://v3.elsaworkflows.io/",
+    href: "https://docs.elsaworkflows.io/",
     external: true
   }, {
     label: "GitHub",
@@ -68,7 +68,7 @@ export function Footer() {
               <a href="https://discord.gg/hhChk5H472" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Discord">
                 <MessageCircle className="h-5 w-5" />
               </a>
-              <a href="https://v3.elsaworkflows.io/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Documentation">
+              <a href="https://docs.elsaworkflows.io/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Documentation">
                 <BookOpen className="h-5 w-5" />
               </a>
             </div>
