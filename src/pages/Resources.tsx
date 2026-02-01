@@ -59,7 +59,7 @@ const additionalResources = [
     icon: FileCode,
     title: "Sample Projects",
     description: "Example implementations",
-    href: "https://github.com/elsa-workflows/elsa-core/tree/main/samples",
+    href: "https://github.com/elsa-workflows/elsa-samples",
   },
   {
     icon: Users,
