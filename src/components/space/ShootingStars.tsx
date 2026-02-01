@@ -88,7 +88,7 @@ const ShootingStars = memo(function ShootingStars() {
           style={{
             left: `${star.startX}%`,
             top: `${star.startY}%`,
-            transform: `rotate(${star.angle}deg)`,
+            ["--angle" as string]: `${star.angle}deg`,
             animation: `meteor-fly ${star.duration}s linear forwards`,
           }}
         >
