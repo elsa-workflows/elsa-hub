@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Nebulae from "./Nebulae";
 import StarField from "./StarField";
 import ShootingStars from "./ShootingStars";
-import Supernova from "./Supernova";
+import CosmicEvents from "./CosmicEvents";
 
 export default function SpaceBackground() {
   const { resolvedTheme } = useTheme();
@@ -46,7 +46,7 @@ export default function SpaceBackground() {
       {!prefersReducedMotion && (
         <>
           <ShootingStars />
-          <Supernova />
+          <CosmicEvents />
         </>
       )}
     </div>

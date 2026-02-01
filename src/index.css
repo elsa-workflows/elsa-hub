@@ -301,6 +301,63 @@
   }
 }
 
+/* Pulsar beam rotation */
+@keyframes pulsar-sweep {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Nebula flash - soft glow */
+@keyframes nebula-flash {
+  0%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  40%, 60% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Binary star synchronized pulse */
+@keyframes binary-pulse {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  30%, 70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Neutron star ripple rings */
+@keyframes neutron-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
 /* Animation utility classes */
 @layer utilities {
   .animate-nebula-drift-1 {
@@ -333,6 +390,22 @@
   
   .animate-supernova-burst {
     animation: supernova-burst 3s ease-out forwards;
+  }
+  
+  .animate-pulsar-sweep {
+    animation: pulsar-sweep 5s linear forwards;
+  }
+  
+  .animate-nebula-flash {
+    animation: nebula-flash 8s ease-in-out forwards;
+  }
+  
+  .animate-binary-pulse {
+    animation: binary-pulse 3s ease-in-out forwards;
+  }
+  
+  .animate-neutron-ripple {
+    animation: neutron-ripple 2s ease-out forwards;
   }
 }
 
