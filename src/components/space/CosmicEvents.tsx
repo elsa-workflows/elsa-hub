@@ -10,6 +10,15 @@ type CosmicEventType =
   | "binary-flare"
   | "black-hole";
 
+// Debug mode types
+type DebugSpawnFunction = (type?: CosmicEventType) => void;
+declare global {
+  interface Window {
+    spawnCosmicEvent?: DebugSpawnFunction;
+    cosmicEventTypes?: CosmicEventType[];
+  }
+}
+
 interface CosmicEvent {
   id: number;
   type: CosmicEventType;
@@ -345,10 +354,8 @@ const CosmicEvents = memo(function CosmicEvents() {
   const idCounterRef = useRef(0);
   const isVisibleRef = useRef(true);
 
-  const spawnEvent = useCallback(() => {
-    if (!isVisibleRef.current) return;
-
-    const type = selectRandomEvent();
+  const spawnEvent = useCallback((specificType?: CosmicEventType) => {
+    const type = specificType || selectRandomEvent();
     const config = getEventConfig(type);
 
     const newEvent: CosmicEvent = {
@@ -367,6 +374,46 @@ const CosmicEvents = memo(function CosmicEvents() {
       setEvents((prev) => prev.filter((e) => e.id !== newEvent.id));
     }, config.duration);
   }, []);
+
+  // Debug mode: expose spawn function to window and add keyboard shortcut
+  useEffect(() => {
+    // Expose to console
+    window.spawnCosmicEvent = spawnEvent;
+    window.cosmicEventTypes = [
+      "supernova-classic",
+      "supernova-blue", 
+      "supernova-red",
+      "supernova-neutron",
+      "pulsar",
+      "nebula-flash",
+      "binary-flare",
+      "black-hole",
+    ];
+
+    // Keyboard shortcut: Ctrl+Shift+C spawns random event
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "C") {
+        e.preventDefault();
+        spawnEvent();
+        console.log("🌌 Spawned random cosmic event");
+      }
+    };
+    document.addEventListener("keydown", handleKeydown);
+
+    console.log(
+      "🌌 Cosmic Events Debug Mode:\n" +
+      "  • Press Ctrl+Shift+C to spawn a random event\n" +
+      "  • window.spawnCosmicEvent() - spawn random event\n" +
+      "  • window.spawnCosmicEvent('black-hole') - spawn specific type\n" +
+      "  • window.cosmicEventTypes - list all event types"
+    );
+
+    return () => {
+      delete window.spawnCosmicEvent;
+      delete window.cosmicEventTypes;
+      document.removeEventListener("keydown", handleKeydown);
+    };
+  }, [spawnEvent]);
 
   useEffect(() => {
     const handleVisibility = () => {
