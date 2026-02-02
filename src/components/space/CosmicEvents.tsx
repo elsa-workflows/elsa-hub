@@ -7,7 +7,8 @@ type CosmicEventType =
   | "supernova-neutron"
   | "pulsar"
   | "nebula-flash"
-  | "binary-flare";
+  | "binary-flare"
+  | "black-hole";
 
 interface CosmicEvent {
   id: number;
@@ -22,13 +23,14 @@ const randomBetween = (min: number, max: number) => min + Math.random() * (max -
 
 // Weighted random selection
 const eventWeights: { type: CosmicEventType; weight: number }[] = [
-  { type: "supernova-classic", weight: 25 },
-  { type: "supernova-blue", weight: 15 },
-  { type: "supernova-red", weight: 15 },
+  { type: "supernova-classic", weight: 23 },
+  { type: "supernova-blue", weight: 14 },
+  { type: "supernova-red", weight: 14 },
   { type: "supernova-neutron", weight: 10 },
-  { type: "pulsar", weight: 15 },
-  { type: "nebula-flash", weight: 12 },
+  { type: "pulsar", weight: 14 },
+  { type: "nebula-flash", weight: 11 },
   { type: "binary-flare", weight: 8 },
+  { type: "black-hole", weight: 6 },
 ];
 
 const totalWeight = eventWeights.reduce((sum, e) => sum + e.weight, 0);
@@ -58,6 +60,8 @@ function getEventConfig(type: CosmicEventType) {
       return { size: randomBetween(500, 800), duration: 8000 };
     case "binary-flare":
       return { size: randomBetween(60, 100), duration: 3000 };
+    case "black-hole":
+      return { size: randomBetween(200, 350), duration: 5000 };
     default:
       return { size: 200, duration: 3000 };
   }
@@ -268,6 +272,73 @@ function BinaryFlareEvent({ event }: { event: CosmicEvent }) {
   );
 }
 
+// Black hole with gravitational lensing effect
+function BlackHoleEvent({ event }: { event: CosmicEvent }) {
+  const lensingRings = [0, 1, 2, 3, 4];
+  
+  return (
+    <div
+      className="absolute animate-black-hole-appear"
+      style={{
+        left: `${event.x}%`,
+        top: `${event.y}%`,
+        width: `${event.size}px`,
+        height: `${event.size}px`,
+        animationDuration: `${event.duration}ms`,
+      }}
+    >
+      {/* Lensing rings - expanding outward */}
+      {lensingRings.map((i) => (
+        <div
+          key={i}
+          className="absolute inset-0 rounded-full animate-black-hole-lensing"
+          style={{
+            border: "2px solid hsl(30 70% 50% / 0.3)",
+            animationDelay: `${i * 300}ms`,
+            animationDuration: `${event.duration * 0.6}ms`,
+          }}
+        />
+      ))}
+      
+      {/* Accretion disk - spinning ring */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full animate-black-hole-spin"
+        style={{
+          width: `${event.size * 0.5}px`,
+          height: `${event.size * 0.5}px`,
+          border: "3px solid transparent",
+          borderTopColor: "hsl(40 90% 55% / 0.8)",
+          borderRightColor: "hsl(30 90% 50% / 0.5)",
+          animationDuration: `${event.duration}ms`,
+        }}
+      />
+      
+      {/* Event horizon glow */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          width: `${event.size * 0.2}px`,
+          height: `${event.size * 0.2}px`,
+          boxShadow: `
+            0 0 ${event.size * 0.15}px hsl(30 90% 50% / 0.6),
+            0 0 ${event.size * 0.25}px hsl(280 60% 40% / 0.4)
+          `,
+        }}
+      />
+      
+      {/* Dark core */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          width: `${event.size * 0.15}px`,
+          height: `${event.size * 0.15}px`,
+          background: `radial-gradient(circle, hsl(280 40% 5%) 0%, hsl(280 30% 3%) 60%, transparent 100%)`,
+        }}
+      />
+    </div>
+  );
+}
+
 // Main component
 const CosmicEvents = memo(function CosmicEvents() {
   const [events, setEvents] = useState<CosmicEvent[]>([]);
@@ -341,6 +412,8 @@ const CosmicEvents = memo(function CosmicEvents() {
         return <NebulaFlashEvent key={event.id} event={event} />;
       case "binary-flare":
         return <BinaryFlareEvent key={event.id} event={event} />;
+      case "black-hole":
+        return <BlackHoleEvent key={event.id} event={event} />;
       default:
         return null;
     }

@@ -382,6 +382,59 @@
   }
 }
 
+/* Black hole appearance - container fade in/out */
+@keyframes black-hole-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+}
+
+/* Accretion disk spinning */
+@keyframes black-hole-spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+/* Gravitational lensing ring expansion */
+@keyframes black-hole-lensing {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
 /* Animation utility classes */
 @layer utilities {
   .animate-nebula-drift-1 {
@@ -431,6 +484,18 @@
   .animate-neutron-ripple {
     animation: neutron-ripple 2s ease-out forwards;
   }
+  
+  .animate-black-hole-appear {
+    animation: black-hole-appear 5s ease-out forwards;
+  }
+  
+  .animate-black-hole-spin {
+    animation: black-hole-spin 5s linear forwards;
+  }
+  
+  .animate-black-hole-lensing {
+    animation: black-hole-lensing 3s ease-out forwards;
+  }
 }
 
 /* Respect reduced motion preferences */
@@ -442,7 +507,10 @@
   .animate-star-drift-2,
   .animate-star-drift-3,
   .animate-twinkle,
-  .animate-supernova-burst {
+  .animate-supernova-burst,
+  .animate-black-hole-appear,
+  .animate-black-hole-spin,
+  .animate-black-hole-lensing {
     animation: none;
   }
 }
