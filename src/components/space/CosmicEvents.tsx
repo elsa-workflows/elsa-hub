@@ -377,24 +377,26 @@ const CosmicEvents = memo(function CosmicEvents() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
-    // Event spawner (every 60-180 seconds)
+    // Store timeout ID so we can clear it on unmount
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     const scheduleNext = () => {
-      const delay = randomBetween(60000, 180000);
-      return setTimeout(() => {
+      const delay = randomBetween(60000, 180000); // 60-180 seconds between events
+      timeoutId = setTimeout(() => {
         spawnEvent();
         scheduleNext();
       }, delay);
     };
 
-    // Initial spawn after 30-60 seconds
-    const initialTimeout = setTimeout(() => {
+    // Initial spawn after 10-20 seconds (reduced from 30-60)
+    timeoutId = setTimeout(() => {
       spawnEvent();
       scheduleNext();
-    }, randomBetween(30000, 60000));
+    }, randomBetween(10000, 20000));
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      clearTimeout(initialTimeout);
+      clearTimeout(timeoutId);
     };
   }, [spawnEvent]);
 
