@@ -23,24 +23,27 @@ serve(async (req) => {
       );
     }
 
-    // Create user client for permission checks
+    // Create clients
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get user claims
+    // Verify user using service client
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await serviceClient.auth.getUser(token);
+    if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email as string | undefined;
+    const userId = user.id;
+    const userEmail = user.email;
 
     // Parse request body
     const { bundleId, organizationId } = await req.json();
@@ -130,9 +133,7 @@ serve(async (req) => {
     const isSubscription = bundle.billing_type === "recurring";
     const mode = isSubscription ? "subscription" : "payment";
 
-    // Create service client for privileged operations
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+    // Note: serviceClient already created above for auth verification
 
     // =============================================
     // PHASE 3: Capacity-aware checkout guard (only if enabled)
