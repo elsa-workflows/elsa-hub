@@ -32,25 +32,28 @@ export default function SpaceBackground() {
   }
 
   return (
-    <div 
-      className="fixed inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 0 }}
-      aria-hidden="true"
-    >
-      {/* Nebulae layer - always visible in dark mode */}
-      <Nebulae />
-      
-      {/* Star field - always visible in dark mode */}
-      <StarField />
-      
-      {/* Dynamic effects - only if motion is allowed */}
-      {!prefersReducedMotion && (
-        <>
-          <ShootingStars />
-          <CosmicEvents />
-          <CosmicEventsDebugPanel />
-        </>
-      )}
-    </div>
+    <>
+      <div 
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        style={{ zIndex: 0 }}
+        aria-hidden="true"
+      >
+        {/* Nebulae layer - always visible in dark mode */}
+        <Nebulae />
+        
+        {/* Star field - always visible in dark mode */}
+        <StarField />
+        
+        {/* Dynamic effects - only if motion is allowed */}
+        {!prefersReducedMotion && (
+          <>
+            <ShootingStars />
+            <CosmicEvents />
+          </>
+        )}
+      </div>
+      {/* Debug panel needs pointer-events, render outside the pointer-events-none container */}
+      {!prefersReducedMotion && <CosmicEventsDebugPanel />}
+    </>
   );
 }
