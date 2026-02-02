@@ -1,158 +1,160 @@
 
 
-# Glassmorphism Cards Design
+# Add Black Hole Cosmic Event with Gravitational Lensing
 
-## Vision
-Transform cards into translucent glass panels that allow the space background to subtly show through. This creates an immersive experience where users feel like they're viewing content on floating holographic displays against the cosmos.
+## Overview
+Add a new rare black hole cosmic event that creates a dramatic gravitational lensing distortion effect. This will be the rarest and most impactful cosmic event in the system.
 
-## Design Approach
+## Visual Components
 
-### Option A: Dark Mode Glass Only (Recommended)
-Apply glass effect only in dark mode where the space background is visible. In light mode, cards remain solid for readability. This is the safest approach since glass effects are most impactful against the cosmic backdrop.
+### Black Hole Structure
+1. **Dark Core** - A small deep purple/black center that absorbs light
+2. **Event Horizon Glow** - Orange/purple edge glow around the core
+3. **Accretion Disk** - A spinning ring of heated matter (orange/yellow gradient)
+4. **Lensing Rings** - Multiple concentric rings that pulse outward, simulating gravitational light bending
 
-### Option B: Full Glassmorphism
-Apply glass to both themes with appropriate opacity values for each.
+### Animation Phases
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  Phase 1: Appearance (0-15%)                                    │
+│  - Core fades in from transparent                               │
+│  - Accretion ring begins spinning                               │
+├─────────────────────────────────────────────────────────────────┤
+│  Phase 2: Lensing Effect (15-85%)                               │
+│  - Multiple rings expand outward with staggered delays          │
+│  - Accretion ring continues rotation                            │
+│  - Core maintains dark presence                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  Phase 3: Collapse (85-100%)                                    │
+│  - All elements fade out                                        │
+│  - Rings dissipate                                              │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-## Visual Design
+## Implementation Details
 
-### Glass Card Properties
+### 1. Update Type Definition
+Add `"black-hole"` to the `CosmicEventType` union.
+
+### 2. Adjust Weight Distribution
+Rebalance weights to give black hole ~5% rarity while maintaining existing proportions:
+
+| Event | Current Weight | New Weight |
+|-------|---------------|------------|
+| supernova-classic | 25 | 23 |
+| supernova-blue | 15 | 14 |
+| supernova-red | 15 | 14 |
+| supernova-neutron | 10 | 10 |
+| pulsar | 15 | 14 |
+| nebula-flash | 12 | 11 |
+| binary-flare | 8 | 8 |
+| **black-hole** | - | **6** |
+
+### 3. Event Configuration
+- Size: 200-350px (medium-large for visual impact)
+- Duration: 5000ms (longer than most events for dramatic effect)
+
+### 4. BlackHoleEvent Component Structure
+```text
+<Container>
+  ├── <DarkCore>           // Deep purple/black radial gradient
+  ├── <EventHorizonGlow>   // Orange/purple edge glow (box-shadow)
+  ├── <AccretionDisk>      // Spinning ring with animate-black-hole-spin
+  └── <LensingRings>       // 4-5 expanding rings with staggered delays
+       ├── Ring 0 (delay: 0ms)
+       ├── Ring 1 (delay: 300ms)
+       ├── Ring 2 (delay: 600ms)
+       ├── Ring 3 (delay: 900ms)
+       └── Ring 4 (delay: 1200ms)
+</Container>
+```
+
+### 5. New CSS Animations
+
+**Black Hole Appearance Animation:**
 ```css
-.dark .glass-card {
-  background: hsl(var(--card) / 0.6);      /* Semi-transparent dark */
-  backdrop-filter: blur(16px);              /* Blur space elements behind */
-  border: 1px solid hsl(var(--border) / 0.5); /* Subtle border */
-  box-shadow: 
-    0 4px 30px rgba(0, 0, 0, 0.3),          /* Depth shadow */
-    inset 0 1px 0 hsl(0 0% 100% / 0.05);    /* Top highlight */
+@keyframes black-hole-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
 }
 ```
 
-### Key Visual Elements
-- **Blur**: 12-16px blur softens stars/nebulae behind the card
-- **Transparency**: 60-70% opacity allows cosmic colors to subtly influence card tint
-- **Border**: Very subtle light border creates edge definition
-- **Inner Highlight**: Thin top highlight simulates light reflection
+**Accretion Disk Spin:**
+```css
+@keyframes black-hole-spin {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: rotate(180deg);
+    opacity: 0;
+  }
+}
+```
 
-## Implementation Strategy
-
-### Phase 1: Create Glass Card Variant
-Add a new `variant` prop to the Card component:
-- `default`: Current solid style
-- `glass`: Translucent with backdrop blur
-
-### Phase 2: Apply Selectively
-Update specific card usages to opt-in to glass effect:
-- Home page feature cards
-- Ecosystem link cards
-- Get Started guide cards
-- Enterprise category cards
-- ElsaPlus section cards
-
-This allows gradual rollout and easy rollback if needed.
-
----
+**Lensing Ring Expansion:**
+```css
+@keyframes black-hole-lensing {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+```
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/ui/card.tsx` | Add `variant` prop with "default" and "glass" options |
-| `src/index.css` | Enhance `.glass-card` utility with dark mode specific styles |
-| `src/pages/Home.tsx` | Apply glass variant to feature and ecosystem cards |
-| `src/components/get-started/GuideCard.tsx` | Apply glass variant |
-| `src/components/get-started/PathCard.tsx` | Apply glass variant |
-| `src/components/enterprise/CategoryCard.tsx` | Apply glass variant |
-| `src/components/enterprise/ServiceCard.tsx` | Apply glass variant |
-| `src/components/elsa-plus/ElsaPlusSectionCard.tsx` | Apply glass variant |
+| `src/components/space/CosmicEvents.tsx` | Add black-hole type, weight, config, and BlackHoleEvent component |
+| `src/index.css` | Add black-hole-appear, black-hole-spin, black-hole-lensing keyframes and utility classes |
 
----
+## Performance Considerations
+- No blur filters used (GPU-friendly)
+- Uses box-shadow for glows (hardware accelerated)
+- Transform and opacity only for animations (compositor-only properties)
+- Limited to 5 lensing rings to prevent DOM overhead
 
 ## Technical Details
 
-### Card Component Update
-```tsx
-// src/components/ui/card.tsx
-import { cva } from "class-variance-authority";
+### BlackHoleEvent Component Implementation
+The component will render:
+1. A container div positioned at the event coordinates
+2. A dark core using radial-gradient from deep purple to transparent
+3. An accretion disk as a border-only div with orange gradient, rotated during animation
+4. 5 lensing rings using box-shadow rings that scale outward with staggered animation-delay
 
-const cardVariants = cva(
-  "rounded-lg border text-card-foreground shadow-sm transition-all",
-  {
-    variants: {
-      variant: {
-        default: "bg-card",
-        glass: "glass-card",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
-
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "glass";
-}
-
-const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant = "default", ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(cardVariants({ variant }), className)}
-      {...props}
-    />
-  )
-);
-```
-
-### CSS Glass Styles
-```css
-/* Glass card effect - enhanced for space background */
-.glass-card {
-  /* Light mode: solid with slight transparency */
-  background: hsl(var(--card) / 0.95);
-  border-color: hsl(var(--border));
-}
-
-.dark .glass-card {
-  /* Dark mode: translucent glass over space */
-  background: hsl(240 10% 6% / 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-color: hsl(var(--border) / 0.6);
-  box-shadow: 
-    0 4px 24px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 hsl(0 0% 100% / 0.03);
-}
-
-/* Hover state - slightly more opaque */
-.dark .glass-card:hover {
-  background: hsl(240 10% 6% / 0.75);
-  border-color: hsl(var(--primary) / 0.4);
-}
-```
-
----
-
-## Considerations
-
-### Readability
-- Text remains fully opaque for readability
-- Blur is strong enough to soften background distractions
-- Card opacity balanced to ensure content stands out
-
-### Performance
-- `backdrop-filter` has good browser support
-- GPU-accelerated, minimal performance impact
-- Falls back gracefully in older browsers (just shows solid)
-
-### Accessibility
-- Glass effect is purely decorative
-- Text contrast ratios maintained
-- Reduced motion settings don't affect glass (it's static)
-
----
-
-## Preview
-
-In dark mode, cards will appear as floating glass panels with the nebulae colors and occasional star twinkles subtly visible behind them, creating a cohesive "space station interface" aesthetic. The effect is most noticeable when cosmic events like supernovas or nebula flashes occur near card positions.
+### Color Palette
+- Core: `hsl(280 40% 5%)` (near-black purple)
+- Event Horizon: `hsl(30 90% 50%)` (warm orange glow)
+- Accretion Disk: Linear gradient from orange to yellow
+- Lensing Rings: `hsl(30 70% 50% / 0.3)` (semi-transparent orange)
 
