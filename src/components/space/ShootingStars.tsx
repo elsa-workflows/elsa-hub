@@ -54,28 +54,30 @@ const ShootingStars = memo(function ShootingStars() {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReducedMotion) return;
 
+    // Store timeout IDs so we can clear them on unmount
+    let distantTimeoutId: ReturnType<typeof setTimeout>;
+    let closerTimeoutId: ReturnType<typeof setTimeout>;
+
     // Distant meteor spawner (every 15-30 seconds)
     const spawnDistant = () => {
       spawnShootingStar("distant");
-      const nextDelay = randomBetween(15000, 30000);
-      setTimeout(spawnDistant, nextDelay);
+      distantTimeoutId = setTimeout(spawnDistant, randomBetween(15000, 30000));
     };
 
     // Closer meteor spawner (every 30-60 seconds)
     const spawnCloser = () => {
       spawnShootingStar("closer");
-      const nextDelay = randomBetween(30000, 60000);
-      setTimeout(spawnCloser, nextDelay);
+      closerTimeoutId = setTimeout(spawnCloser, randomBetween(30000, 60000));
     };
 
-    // Initial delays before first spawn
-    const distantTimeout = setTimeout(spawnDistant, randomBetween(5000, 15000));
-    const closerTimeout = setTimeout(spawnCloser, randomBetween(10000, 30000));
+    // Initial delays before first spawn (reduced for better UX)
+    distantTimeoutId = setTimeout(spawnDistant, randomBetween(2000, 5000));
+    closerTimeoutId = setTimeout(spawnCloser, randomBetween(5000, 15000));
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
-      clearTimeout(distantTimeout);
-      clearTimeout(closerTimeout);
+      clearTimeout(distantTimeoutId);
+      clearTimeout(closerTimeoutId);
     };
   }, [spawnShootingStar]);
 
