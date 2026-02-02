@@ -1,160 +1,137 @@
 
 
-# Add Black Hole Cosmic Event with Gravitational Lensing
+# Fix Cosmic Events Not Appearing
 
-## Overview
-Add a new rare black hole cosmic event that creates a dramatic gravitational lensing distortion effect. This will be the rarest and most impactful cosmic event in the system.
+## Root Cause Analysis
 
-## Visual Components
+After investigating the code, I identified **two issues**:
 
-### Black Hole Structure
-1. **Dark Core** - A small deep purple/black center that absorbs light
-2. **Event Horizon Glow** - Orange/purple edge glow around the core
-3. **Accretion Disk** - A spinning ring of heated matter (orange/yellow gradient)
-4. **Lensing Rings** - Multiple concentric rings that pulse outward, simulating gravitational light bending
+### Issue 1: Timer Cleanup Bug (Memory Leak)
+The `scheduleNext` function creates a recursive chain of timeouts, but only the initial timeout is captured and cleared on component unmount. This means when the component re-renders (common in development with React StrictMode), orphaned timeout chains from previous renders can accumulate and potentially interfere.
 
-### Animation Phases
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Phase 1: Appearance (0-15%)                                    │
-│  - Core fades in from transparent                               │
-│  - Accretion ring begins spinning                               │
-├─────────────────────────────────────────────────────────────────┤
-│  Phase 2: Lensing Effect (15-85%)                               │
-│  - Multiple rings expand outward with staggered delays          │
-│  - Accretion ring continues rotation                            │
-│  - Core maintains dark presence                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  Phase 3: Collapse (85-100%)                                    │
-│  - All elements fade out                                        │
-│  - Rings dissipate                                              │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Issue 2: Long Initial Delays (Not a bug, but confusing)
+The current timing is quite long for testing:
+- **Cosmic events**: 30-60 second initial delay, then 60-180 seconds between events
+- **Shooting stars**: 5-15 second initial delay for distant, 10-30 seconds for close
 
-## Implementation Details
+This means you might need to wait up to 60 seconds just to see the first shooting star, and up to a minute for the first cosmic event.
 
-### 1. Update Type Definition
-Add `"black-hole"` to the `CosmicEventType` union.
+---
 
-### 2. Adjust Weight Distribution
-Rebalance weights to give black hole ~5% rarity while maintaining existing proportions:
+## Solution
 
-| Event | Current Weight | New Weight |
-|-------|---------------|------------|
-| supernova-classic | 25 | 23 |
-| supernova-blue | 15 | 14 |
-| supernova-red | 15 | 14 |
-| supernova-neutron | 10 | 10 |
-| pulsar | 15 | 14 |
-| nebula-flash | 12 | 11 |
-| binary-flare | 8 | 8 |
-| **black-hole** | - | **6** |
+### Fix 1: Proper Timer Cleanup with useRef
+Store all active timeout IDs in a ref so they can be properly cleared on unmount.
 
-### 3. Event Configuration
-- Size: 200-350px (medium-large for visual impact)
-- Duration: 5000ms (longer than most events for dramatic effect)
+### Fix 2: Reduce Initial Delays for Better UX
+Reduce the initial wait time so users see activity sooner:
+- First shooting star: 2-5 seconds
+- First cosmic event: 10-20 seconds
 
-### 4. BlackHoleEvent Component Structure
-```text
-<Container>
-  ├── <DarkCore>           // Deep purple/black radial gradient
-  ├── <EventHorizonGlow>   // Orange/purple edge glow (box-shadow)
-  ├── <AccretionDisk>      // Spinning ring with animate-black-hole-spin
-  └── <LensingRings>       // 4-5 expanding rings with staggered delays
-       ├── Ring 0 (delay: 0ms)
-       ├── Ring 1 (delay: 300ms)
-       ├── Ring 2 (delay: 600ms)
-       ├── Ring 3 (delay: 900ms)
-       └── Ring 4 (delay: 1200ms)
-</Container>
-```
-
-### 5. New CSS Animations
-
-**Black Hole Appearance Animation:**
-```css
-@keyframes black-hole-appear {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3);
-  }
-  15% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  85% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
-  }
-}
-```
-
-**Accretion Disk Spin:**
-```css
-@keyframes black-hole-spin {
-  0% {
-    transform: rotate(0deg);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.8;
-  }
-  85% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: rotate(180deg);
-    opacity: 0;
-  }
-}
-```
-
-**Lensing Ring Expansion:**
-```css
-@keyframes black-hole-lensing {
-  0% {
-    transform: scale(0.5);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale(2.5);
-    opacity: 0;
-  }
-}
-```
+---
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/space/CosmicEvents.tsx` | Add black-hole type, weight, config, and BlackHoleEvent component |
-| `src/index.css` | Add black-hole-appear, black-hole-spin, black-hole-lensing keyframes and utility classes |
+| `src/components/space/CosmicEvents.tsx` | Fix timer cleanup, reduce initial delay |
+| `src/components/space/ShootingStars.tsx` | Fix timer cleanup, reduce initial delay |
 
-## Performance Considerations
-- No blur filters used (GPU-friendly)
-- Uses box-shadow for glows (hardware accelerated)
-- Transform and opacity only for animations (compositor-only properties)
-- Limited to 5 lensing rings to prevent DOM overhead
+---
 
-## Technical Details
+## Technical Implementation
 
-### BlackHoleEvent Component Implementation
-The component will render:
-1. A container div positioned at the event coordinates
-2. A dark core using radial-gradient from deep purple to transparent
-3. An accretion disk as a border-only div with orange gradient, rotated during animation
-4. 5 lensing rings using box-shadow rings that scale outward with staggered animation-delay
+### CosmicEvents.tsx - Fixed Timer Pattern
 
-### Color Palette
-- Core: `hsl(280 40% 5%)` (near-black purple)
-- Event Horizon: `hsl(30 90% 50%)` (warm orange glow)
-- Accretion Disk: Linear gradient from orange to yellow
-- Lensing Rings: `hsl(30 70% 50% / 0.3)` (semi-transparent orange)
+```typescript
+useEffect(() => {
+  const handleVisibility = () => {
+    isVisibleRef.current = !document.hidden;
+  };
+  document.addEventListener("visibilitychange", handleVisibility);
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion) return;
+
+  // Store timeout ID so we can clear it
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const scheduleNext = () => {
+    const delay = randomBetween(60000, 180000); // 60-180 seconds between events
+    timeoutId = setTimeout(() => {
+      spawnEvent();
+      scheduleNext();
+    }, delay);
+  };
+
+  // Initial spawn after 10-20 seconds (reduced from 30-60)
+  timeoutId = setTimeout(() => {
+    spawnEvent();
+    scheduleNext();
+  }, randomBetween(10000, 20000));
+
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibility);
+    clearTimeout(timeoutId); // Now clears whichever timeout is active
+  };
+}, [spawnEvent]);
+```
+
+### ShootingStars.tsx - Same Pattern
+
+```typescript
+useEffect(() => {
+  const handleVisibility = () => {
+    isVisibleRef.current = !document.hidden;
+  };
+  document.addEventListener("visibilitychange", handleVisibility);
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion) return;
+
+  let distantTimeoutId: ReturnType<typeof setTimeout>;
+  let closerTimeoutId: ReturnType<typeof setTimeout>;
+
+  const spawnDistant = () => {
+    spawnShootingStar("distant");
+    distantTimeoutId = setTimeout(spawnDistant, randomBetween(15000, 30000));
+  };
+
+  const spawnCloser = () => {
+    spawnShootingStar("closer");
+    closerTimeoutId = setTimeout(spawnCloser, randomBetween(30000, 60000));
+  };
+
+  // Reduced initial delays: 2-5s for distant, 5-15s for closer
+  distantTimeoutId = setTimeout(spawnDistant, randomBetween(2000, 5000));
+  closerTimeoutId = setTimeout(spawnCloser, randomBetween(5000, 15000));
+
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibility);
+    clearTimeout(distantTimeoutId);
+    clearTimeout(closerTimeoutId);
+  };
+}, [spawnShootingStar]);
+```
+
+---
+
+## Summary of Changes
+
+| Parameter | Before | After |
+|-----------|--------|-------|
+| Shooting star (distant) first spawn | 5-15 seconds | 2-5 seconds |
+| Shooting star (close) first spawn | 10-30 seconds | 5-15 seconds |
+| Cosmic event first spawn | 30-60 seconds | 10-20 seconds |
+| Timer cleanup | Only initial timeout | All active timeouts |
+
+---
+
+## Expected Result
+
+After these fixes:
+- You'll see the first shooting star within 2-5 seconds of loading
+- You'll see the first cosmic event within 10-20 seconds
+- No memory leaks from orphaned timeouts on component re-mounts
+- All animations should appear reliably in dark mode
 
