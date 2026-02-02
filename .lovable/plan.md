@@ -1,137 +1,64 @@
 
+# Fix: Delete User Edge Function Error
 
-# Fix Cosmic Events Not Appearing
+## Problem Identified
 
-## Root Cause Analysis
+The error **"Failed to send a request to the Edge Function"** is caused by using an unsupported method `auth.getClaims(token)` in the edge function. The error log shows:
 
-After investigating the code, I identified **two issues**:
+```
+Error: Deno.core.runMicrotasks() is not supported in this environment
+```
 
-### Issue 1: Timer Cleanup Bug (Memory Leak)
-The `scheduleNext` function creates a recursive chain of timeouts, but only the initial timeout is captured and cleared on component unmount. This means when the component re-renders (common in development with React StrictMode), orphaned timeout chains from previous renders can accumulate and potentially interfere.
-
-### Issue 2: Long Initial Delays (Not a bug, but confusing)
-The current timing is quite long for testing:
-- **Cosmic events**: 30-60 second initial delay, then 60-180 seconds between events
-- **Shooting stars**: 5-15 second initial delay for distant, 10-30 seconds for close
-
-This means you might need to wait up to 60 seconds just to see the first shooting star, and up to a minute for the first cosmic event.
-
----
+The `getClaims` method is **not a standard Supabase Auth API** and fails at runtime in Deno/Edge Functions.
 
 ## Solution
 
-### Fix 1: Proper Timer Cleanup with useRef
-Store all active timeout IDs in a ref so they can be properly cleared on unmount.
+Replace `auth.getClaims(token)` with `auth.getUser(token)` across all affected edge functions. This is the correct Supabase pattern for extracting user information from a JWT token in edge functions.
 
-### Fix 2: Reduce Initial Delays for Better UX
-Reduce the initial wait time so users see activity sooner:
-- First shooting star: 2-5 seconds
-- First cosmic event: 10-20 seconds
+## Affected Files
 
----
+| Edge Function | File |
+|---------------|------|
+| delete-user | `supabase/functions/delete-user/index.ts` |
+| create-checkout-session | `supabase/functions/create-checkout-session/index.ts` |
+| customer-portal | `supabase/functions/customer-portal/index.ts` |
 
-## Files to Modify
+## Changes Required
 
-| File | Changes |
-|------|---------|
-| `src/components/space/CosmicEvents.tsx` | Fix timer cleanup, reduce initial delay |
-| `src/components/space/ShootingStars.tsx` | Fix timer cleanup, reduce initial delay |
-
----
-
-## Technical Implementation
-
-### CosmicEvents.tsx - Fixed Timer Pattern
+For each affected function, replace this pattern:
 
 ```typescript
-useEffect(() => {
-  const handleVisibility = () => {
-    isVisibleRef.current = !document.hidden;
-  };
-  document.addEventListener("visibilitychange", handleVisibility);
-
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReducedMotion) return;
-
-  // Store timeout ID so we can clear it
-  let timeoutId: ReturnType<typeof setTimeout>;
-
-  const scheduleNext = () => {
-    const delay = randomBetween(60000, 180000); // 60-180 seconds between events
-    timeoutId = setTimeout(() => {
-      spawnEvent();
-      scheduleNext();
-    }, delay);
-  };
-
-  // Initial spawn after 10-20 seconds (reduced from 30-60)
-  timeoutId = setTimeout(() => {
-    spawnEvent();
-    scheduleNext();
-  }, randomBetween(10000, 20000));
-
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibility);
-    clearTimeout(timeoutId); // Now clears whichever timeout is active
-  };
-}, [spawnEvent]);
+// BEFORE (broken)
+const token = authHeader.replace("Bearer ", "");
+const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+if (claimsError || !claimsData?.claims) { ... }
+const userId = claimsData.claims.sub;
+const userEmail = claimsData.claims.email;
 ```
 
-### ShootingStars.tsx - Same Pattern
+With this corrected pattern:
 
 ```typescript
-useEffect(() => {
-  const handleVisibility = () => {
-    isVisibleRef.current = !document.hidden;
-  };
-  document.addEventListener("visibilitychange", handleVisibility);
-
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (prefersReducedMotion) return;
-
-  let distantTimeoutId: ReturnType<typeof setTimeout>;
-  let closerTimeoutId: ReturnType<typeof setTimeout>;
-
-  const spawnDistant = () => {
-    spawnShootingStar("distant");
-    distantTimeoutId = setTimeout(spawnDistant, randomBetween(15000, 30000));
-  };
-
-  const spawnCloser = () => {
-    spawnShootingStar("closer");
-    closerTimeoutId = setTimeout(spawnCloser, randomBetween(30000, 60000));
-  };
-
-  // Reduced initial delays: 2-5s for distant, 5-15s for closer
-  distantTimeoutId = setTimeout(spawnDistant, randomBetween(2000, 5000));
-  closerTimeoutId = setTimeout(spawnCloser, randomBetween(5000, 15000));
-
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibility);
-    clearTimeout(distantTimeoutId);
-    clearTimeout(closerTimeoutId);
-  };
-}, [spawnShootingStar]);
+// AFTER (working)
+const token = authHeader.replace("Bearer ", "");
+const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+if (userError || !user) { ... }
+const userId = user.id;
+const userEmail = user.email;
 ```
 
----
+**Note**: For `getUser(token)` to work correctly, we should use a client created with the **service role key** rather than the anon key, since the service role has permission to validate any user's token.
 
-## Summary of Changes
+## Implementation Steps
 
-| Parameter | Before | After |
-|-----------|--------|-------|
-| Shooting star (distant) first spawn | 5-15 seconds | 2-5 seconds |
-| Shooting star (close) first spawn | 10-30 seconds | 5-15 seconds |
-| Cosmic event first spawn | 30-60 seconds | 10-20 seconds |
-| Timer cleanup | Only initial timeout | All active timeouts |
+1. **Update delete-user function** - Replace getClaims with getUser, use service client for token validation
+2. **Update create-checkout-session function** - Same fix
+3. **Update customer-portal function** - Same fix
+4. **Deploy and test** - Verify user deletion works correctly
 
----
+## Expected Outcome
 
-## Expected Result
-
-After these fixes:
-- You'll see the first shooting star within 2-5 seconds of loading
-- You'll see the first cosmic event within 10-20 seconds
-- No memory leaks from orphaned timeouts on component re-mounts
-- All animations should appear reliably in dark mode
-
+After this fix:
+- The "Failed to send a request to the Edge Function" error will be resolved
+- Admin user deletion will work correctly
+- Checkout and customer portal flows will also be fixed (if they were affected)
