@@ -34,16 +34,16 @@ Deno.serve(async (req) => {
     // Service client for privileged operations
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify caller's JWT and get their user ID
+    // Verify caller's JWT and get their user ID using service client
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await serviceClient.auth.getUser(token);
+    if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const callerUserId = claimsData.claims.sub;
+    const callerUserId = user.id;
 
     // Verify caller is platform admin
     const { data: isAdmin, error: adminError } = await userClient.rpc("is_platform_admin");
