@@ -162,7 +162,8 @@ Deno.serve(async (req) => {
     }
 
     // Call the database RPC to delete all user data
-    const { data: result, error: rpcError } = await serviceClient.rpc("admin_delete_user", {
+    // Use userClient so auth.uid() is available for is_platform_admin() check in the RPC
+    const { data: result, error: rpcError } = await userClient.rpc("admin_delete_user", {
       p_user_id: userId,
     });
 
