@@ -15,9 +15,15 @@ const eventTypes = [
 
 interface CosmicEventsDebugPanelProps {
   reducedMotionEnabled?: boolean;
+  motionOverride?: boolean;
+  onToggleMotionOverride?: () => void;
 }
 
-export default function CosmicEventsDebugPanel({ reducedMotionEnabled = false }: CosmicEventsDebugPanelProps) {
+export default function CosmicEventsDebugPanel({ 
+  reducedMotionEnabled = false,
+  motionOverride = false,
+  onToggleMotionOverride,
+}: CosmicEventsDebugPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -131,11 +137,25 @@ export default function CosmicEventsDebugPanel({ reducedMotionEnabled = false }:
         </Button>
       </div>
 
+      {/* Motion override toggle */}
+      {reducedMotionEnabled && (
+        <div className="px-3 pb-2">
+          <Button
+            onClick={onToggleMotionOverride}
+            variant={motionOverride ? "default" : "outline"}
+            size="sm"
+            className="w-full"
+          >
+            {motionOverride ? "✅ Motion Override ON" : "⚠️ Enable Motion Override"}
+          </Button>
+        </div>
+      )}
+
       {/* Footer hint */}
       <div className="border-t border-border/50 px-4 py-2">
-        {reducedMotionEnabled && (
+        {reducedMotionEnabled && !motionOverride && (
           <p className="text-[10px] text-destructive text-center mb-1">
-            ⚠️ Reduced motion enabled - animations disabled
+            Reduced motion enabled - use override above
           </p>
         )}
         <p className="text-[10px] text-muted-foreground text-center">
