@@ -4,6 +4,7 @@ import Nebulae from "./Nebulae";
 import StarField from "./StarField";
 import ShootingStars from "./ShootingStars";
 import CosmicEvents from "./CosmicEvents";
+import CosmicEventsDebugPanel from "./CosmicEventsDebugPanel";
 
 export default function SpaceBackground() {
   const { resolvedTheme } = useTheme();
@@ -47,6 +48,7 @@ export default function SpaceBackground() {
         <>
           <ShootingStars />
           <CosmicEvents />
+          <CosmicEventsDebugPanel />
         </>
       )}
     </div>
