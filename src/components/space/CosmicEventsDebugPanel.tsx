@@ -58,7 +58,7 @@ export default function CosmicEventsDebugPanel() {
         onClick={() => setIsOpen(true)}
         size="icon"
         variant="outline"
-        className="fixed bottom-4 right-4 z-50 h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm border-primary/20 hover:border-primary/50 shadow-lg"
+        className="fixed bottom-4 right-4 z-50 h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm border-primary/20 hover:border-primary/50 shadow-lg pointer-events-auto"
         title="Open Cosmic Events Debug Panel (Ctrl+Shift+D)"
       >
         <Bug className="h-4 w-4" />
@@ -68,7 +68,7 @@ export default function CosmicEventsDebugPanel() {
 
   return (
     <div
-      className={`fixed bottom-4 right-4 z-50 w-72 rounded-xl border border-primary/20 bg-background/95 backdrop-blur-md shadow-2xl transition-all duration-200 ${
+      className={`fixed bottom-4 right-4 z-50 w-72 rounded-xl border border-primary/20 bg-background/95 backdrop-blur-md shadow-2xl transition-all duration-200 pointer-events-auto ${
         isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
     >
