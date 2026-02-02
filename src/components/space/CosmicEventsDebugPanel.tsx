@@ -13,7 +13,11 @@ const eventTypes = [
   { type: "black-hole", label: "Black Hole", emoji: "🕳️" },
 ] as const;
 
-export default function CosmicEventsDebugPanel() {
+interface CosmicEventsDebugPanelProps {
+  reducedMotionEnabled?: boolean;
+}
+
+export default function CosmicEventsDebugPanel({ reducedMotionEnabled = false }: CosmicEventsDebugPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -129,6 +133,11 @@ export default function CosmicEventsDebugPanel() {
 
       {/* Footer hint */}
       <div className="border-t border-border/50 px-4 py-2">
+        {reducedMotionEnabled && (
+          <p className="text-[10px] text-destructive text-center mb-1">
+            ⚠️ Reduced motion enabled - animations disabled
+          </p>
+        )}
         <p className="text-[10px] text-muted-foreground text-center">
           Press <kbd className="px-1 py-0.5 rounded bg-muted text-[9px]">Ctrl+Shift+D</kbd> to toggle
         </p>

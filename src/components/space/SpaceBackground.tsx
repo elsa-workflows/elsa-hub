@@ -52,8 +52,8 @@ export default function SpaceBackground() {
           </>
         )}
       </div>
-      {/* Debug panel needs pointer-events, render outside the pointer-events-none container */}
-      {!prefersReducedMotion && <CosmicEventsDebugPanel />}
+      {/* Debug panel always visible for testing - shows warning if reduced motion is enabled */}
+      <CosmicEventsDebugPanel reducedMotionEnabled={prefersReducedMotion} />
     </>
   );
 }
