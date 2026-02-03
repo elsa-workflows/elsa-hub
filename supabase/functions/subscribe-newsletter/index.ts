@@ -4,8 +4,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AUDIENCE_ID = "0629ecd8-3255-40a9-bda7-1b3df52e1c61";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,9 +17,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY not configured");
+    const MAILERLITE_API_KEY = Deno.env.get("MAILERLITE_API_KEY");
+    if (!MAILERLITE_API_KEY) {
+      throw new Error("MAILERLITE_API_KEY not configured");
     }
 
     const { email, firstName } = await req.json();
@@ -35,49 +33,58 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Add contact to the general audience
-    const response = await fetch(`https://api.resend.com/audiences/${AUDIENCE_ID}/contacts`, {
+    // Add subscriber to MailerLite
+    const response = await fetch("https://connect.mailerlite.com/api/subscribers", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${MAILERLITE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         email: email.toLowerCase().trim(),
-        first_name: firstName?.trim() || undefined,
-        unsubscribed: false,
+        fields: firstName?.trim() ? { name: firstName.trim() } : undefined,
+        status: "active",
       }),
     });
 
     const data = await response.json();
 
-    if (!response.ok) {
-      // Check if it's a duplicate (already subscribed)
-      if (response.status === 409 || data.message?.includes("already exists")) {
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: "You're already subscribed!", 
-            alreadySubscribed: true 
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      console.error("Resend API error:", data);
+    // MailerLite returns 200 for existing subscribers, 201 for new
+    if (response.ok) {
+      const isExisting = response.status === 200;
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to subscribe. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          success: true, 
+          message: isExisting ? "You're already subscribed!" : "Successfully subscribed!",
+          alreadySubscribed: isExisting,
+          subscriberId: data.data?.id 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Handle validation errors (422)
+    if (response.status === 422) {
+      console.error("MailerLite validation error:", data);
+      return new Response(
+        JSON.stringify({ success: false, error: data.message || "Invalid email address" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Handle rate limiting (429)
+    if (response.status === 429) {
+      console.error("MailerLite rate limit:", data);
+      return new Response(
+        JSON.stringify({ success: false, error: "Too many requests. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.error("MailerLite API error:", data);
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Successfully subscribed!",
-        contactId: data.id 
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: "Failed to subscribe. Please try again." }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (err) {
