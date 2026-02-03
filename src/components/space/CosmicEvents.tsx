@@ -8,7 +8,8 @@ type CosmicEventType =
   | "pulsar"
   | "nebula-flash"
   | "binary-flare"
-  | "black-hole";
+  | "black-hole"
+  | "space-distortion";
 
 // Debug mode types
 type DebugSpawnFunction = (type?: CosmicEventType) => void;
@@ -40,6 +41,7 @@ const eventWeights: { type: CosmicEventType; weight: number }[] = [
   { type: "nebula-flash", weight: 11 },
   { type: "binary-flare", weight: 8 },
   { type: "black-hole", weight: 6 },
+  { type: "space-distortion", weight: 7 },
 ];
 
 const totalWeight = eventWeights.reduce((sum, e) => sum + e.weight, 0);
@@ -71,6 +73,8 @@ function getEventConfig(type: CosmicEventType) {
       return { size: randomBetween(60, 100), duration: 3000 };
     case "black-hole":
       return { size: randomBetween(200, 350), duration: 5000 };
+    case "space-distortion":
+      return { size: randomBetween(300, 500), duration: 7000 };
     default:
       return { size: 200, duration: 3000 };
   }
@@ -348,6 +352,70 @@ function BlackHoleEvent({ event }: { event: CosmicEvent }) {
   );
 }
 
+// Space distortion - gravitational ripple effect
+function SpaceDistortionEvent({ event }: { event: CosmicEvent }) {
+  const ringCount = 5;
+  const rings = Array.from({ length: ringCount }, (_, i) => i);
+  
+  return (
+    <div
+      className="absolute animate-space-distortion-container"
+      style={{
+        left: `${event.x}%`,
+        top: `${event.y}%`,
+        width: `${event.size}px`,
+        height: `${event.size}px`,
+        transform: "translate(-50%, -50%)",
+        animationDuration: `${event.duration}ms`,
+      }}
+    >
+      {/* Center focal glow */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full animate-space-distortion-center"
+        style={{
+          width: `${event.size * 0.15}px`,
+          height: `${event.size * 0.15}px`,
+          background: `radial-gradient(circle, 
+            hsl(200 60% 70% / 0.4) 0%, 
+            hsl(280 50% 50% / 0.2) 50%, 
+            transparent 70%
+          )`,
+          animationDuration: `${event.duration}ms`,
+        }}
+      />
+      
+      {/* Expanding ripple rings */}
+      {rings.map((i) => (
+        <div
+          key={i}
+          className="absolute inset-0 rounded-full animate-space-distortion-ring"
+          style={{
+            border: `${1.5 - i * 0.2}px solid`,
+            borderColor: `hsl(${200 + i * 15} ${60 - i * 5}% ${55 + i * 5}% / ${0.3 - i * 0.04})`,
+            animationDelay: `${i * 400}ms`,
+            animationDuration: `${event.duration * 0.8}ms`,
+          }}
+        />
+      ))}
+      
+      {/* Subtle blur halo */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[40px] animate-space-distortion-center"
+        style={{
+          width: `${event.size * 0.5}px`,
+          height: `${event.size * 0.5}px`,
+          background: `radial-gradient(circle, 
+            hsl(200 60% 50% / 0.15) 0%, 
+            hsl(280 50% 40% / 0.1) 60%, 
+            transparent 80%
+          )`,
+          animationDuration: `${event.duration}ms`,
+        }}
+      />
+    </div>
+  );
+}
+
 // Main component
 const CosmicEvents = memo(function CosmicEvents() {
   const [events, setEvents] = useState<CosmicEvent[]>([]);
@@ -388,6 +456,7 @@ const CosmicEvents = memo(function CosmicEvents() {
       "nebula-flash",
       "binary-flare",
       "black-hole",
+      "space-distortion",
     ];
 
     // Keyboard shortcut: Ctrl+Shift+C spawns random event
@@ -463,6 +532,8 @@ const CosmicEvents = memo(function CosmicEvents() {
         return <BinaryFlareEvent key={event.id} event={event} />;
       case "black-hole":
         return <BlackHoleEvent key={event.id} event={event} />;
+      case "space-distortion":
+        return <SpaceDistortionEvent key={event.id} event={event} />;
       default:
         return null;
     }
