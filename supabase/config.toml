@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.delete-user]
 verify_jwt = false
+
+[functions.send-broadcast]
+verify_jwt = false
+
+[functions.sync-mailerlite-subscribers]
+verify_jwt = false

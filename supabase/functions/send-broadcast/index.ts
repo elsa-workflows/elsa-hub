@@ -4,8 +4,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AUDIENCE_ID = "0629ecd8-3255-40a9-bda7-1b3df52e1c61"; // General audience
-
 interface BroadcastRequest {
   subject: string;
   preheader?: string;
@@ -13,46 +11,8 @@ interface BroadcastRequest {
   content: string;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-
-  try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY not configured");
-    }
-
-    // Security: Require service role key for internal-only function
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY || "")) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - service role required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { subject, preheader, title, content }: BroadcastRequest = await req.json();
-
-    if (!subject || !title || !content) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: subject, title, content" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Build the email HTML using our branded template
-    const html = `
+function buildEmailHtml(subject: string, preheader: string | undefined, title: string, content: string): string {
+  return `
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -141,7 +101,7 @@ Deno.serve(async (req) => {
               <p style="margin: 0 0 24px 0; font-size: 14px;">
                 <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none; font-weight: 500;">Manage preferences</a>
                 <span style="color: #d4d4d8; padding: 0 8px;">·</span>
-                <a href="{{{ pm:unsubscribe }}}" style="color: #6366f1; text-decoration: none; font-weight: 500;">Unsubscribe</a>
+                <a href="{$unsubscribe}" style="color: #6366f1; text-decoration: none; font-weight: 500;">Unsubscribe</a>
               </p>
               
               <!-- Brand -->
@@ -160,51 +120,99 @@ Deno.serve(async (req) => {
   
 </body>
 </html>
-    `.trim();
+  `.trim();
+}
 
-    // Create broadcast
-    const createResponse = await fetch("https://api.resend.com/broadcasts", {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  try {
+    const MAILERLITE_API_KEY = Deno.env.get("MAILERLITE_API_KEY");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!MAILERLITE_API_KEY) {
+      throw new Error("MAILERLITE_API_KEY not configured");
+    }
+
+    // Security: Require service role key for internal-only function
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY || "")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - service role required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { subject, preheader, title, content }: BroadcastRequest = await req.json();
+
+    if (!subject || !title || !content) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: subject, title, content" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const html = buildEmailHtml(subject, preheader, title, content);
+
+    // Step 1: Create campaign
+    const createResponse = await fetch("https://connect.mailerlite.com/api/campaigns", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${MAILERLITE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        audience_id: AUDIENCE_ID,
-        from: "Elsa Workflows <onboarding@resend.dev>",
-        subject: subject,
-        html: html,
+        name: `Broadcast: ${subject} - ${new Date().toISOString()}`,
+        type: "regular",
+        emails: [{
+          subject: subject,
+          from_name: "Elsa Workflows",
+          from: "hello@elsa-workflows.io",
+          content: html,
+        }],
       }),
     });
 
     const createData = await createResponse.json();
 
     if (!createResponse.ok) {
-      console.error("Failed to create broadcast:", createData);
+      console.error("Failed to create campaign:", createData);
       return new Response(
         JSON.stringify({ success: false, error: createData }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const broadcastId = createData.id;
-    console.log("Broadcast created:", broadcastId);
+    const campaignId = createData.data?.id;
+    console.log("Campaign created:", campaignId);
 
-    // Send the broadcast
-    const sendResponse = await fetch(`https://api.resend.com/broadcasts/${broadcastId}/send`, {
+    // Step 2: Schedule/send the campaign immediately
+    const sendResponse = await fetch(`https://connect.mailerlite.com/api/campaigns/${campaignId}/schedule`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${MAILERLITE_API_KEY}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({
+        delivery: "instant",
+      }),
     });
 
     const sendData = await sendResponse.json();
 
     if (!sendResponse.ok) {
-      console.error("Failed to send broadcast:", sendData);
+      console.error("Failed to send campaign:", sendData);
       return new Response(
-        JSON.stringify({ success: false, error: sendData, broadcastId }),
+        JSON.stringify({ success: false, error: sendData, campaignId }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -213,7 +221,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: "Broadcast sent successfully",
-        broadcastId: broadcastId
+        campaignId: campaignId
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
