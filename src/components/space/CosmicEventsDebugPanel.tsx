@@ -11,6 +11,7 @@ const eventTypes = [
   { type: "nebula-flash", label: "Nebula Flash", emoji: "🌫️" },
   { type: "binary-flare", label: "Binary Flare", emoji: "✨" },
   { type: "black-hole", label: "Black Hole", emoji: "🕳️" },
+  { type: "space-distortion", label: "Space Distortion", emoji: "🌀" },
 ] as const;
 
 const shootingStarTypes = [
