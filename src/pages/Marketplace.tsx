@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Package, FileCode2, Users, ArrowRight, Sparkles } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { NewsletterSubscribeDialog } from "@/components/newsletter";
 
 const marketplaceSections = [
   {
@@ -97,7 +99,41 @@ function MarketplaceSectionCard({
   );
 }
 
+interface DialogConfig {
+  open: boolean;
+  title: string;
+  description: string;
+  buttonText: string;
+  successMessage: string;
+}
+
 export default function Marketplace() {
+  const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
+    open: false,
+    title: "",
+    description: "",
+    buttonText: "Notify Me",
+    successMessage: "You're on the list!",
+  });
+
+  const openDialog = (type: "earlyAccess" | "vendor") => {
+    const configs = {
+      earlyAccess: {
+        title: "Get Early Access",
+        description: "Be the first to know when the Elsa Marketplace launches.",
+        buttonText: "Notify Me",
+        successMessage: "You're on the list! We'll notify you when the Marketplace launches.",
+      },
+      vendor: {
+        title: "Become a Vendor",
+        description: "Register your interest in offering modules, templates, or services on the Elsa Marketplace.",
+        buttonText: "Register Interest",
+        successMessage: "Thanks for your interest! We'll be in touch about vendor opportunities.",
+      },
+    };
+    setDialogConfig({ open: true, ...configs[type] });
+  };
+
   return (
     <Layout>
       {/* Hero */}
@@ -149,12 +185,10 @@ export default function Marketplace() {
                 <Button
                   size="lg"
                   className="bg-background text-foreground hover:bg-background/90 gap-2"
-                  asChild
+                  onClick={() => openDialog("earlyAccess")}
                 >
-                  <a href="mailto:info@skywalker-digital.com?subject=Elsa%20Marketplace%20-%20Early%20Access%20Interest">
-                    Request Early Access
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
+                  Request Early Access
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
@@ -174,15 +208,27 @@ export default function Marketplace() {
               expertise? Join the marketplace to offer your modules, templates,
               or services to the growing Elsa community.
             </p>
-            <Button variant="outline" size="lg" className="gap-2" asChild>
-              <a href="mailto:info@skywalker-digital.com?subject=Elsa%20Marketplace%20-%20Vendor%20Interest">
-                Express Vendor Interest
-                <ArrowRight className="h-4 w-4" />
-              </a>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="gap-2"
+              onClick={() => openDialog("vendor")}
+            >
+              Express Vendor Interest
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </section>
+
+      <NewsletterSubscribeDialog
+        open={dialogConfig.open}
+        onOpenChange={(open) => setDialogConfig((prev) => ({ ...prev, open }))}
+        title={dialogConfig.title}
+        description={dialogConfig.description}
+        buttonText={dialogConfig.buttonText}
+        successMessage={dialogConfig.successMessage}
+      />
     </Layout>
   );
 }
