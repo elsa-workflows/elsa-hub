@@ -219,6 +219,57 @@
   .dark .link-primary-glow:hover {
     text-shadow: 0 0 15px hsl(340 90% 70% / 0.6);
   }
+
+  /* Hero screenshot glass frame */
+  .screenshot-frame {
+    background: hsl(var(--card) / 0.8);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-xl);
+  }
+
+  .dark .screenshot-frame {
+    background: hsl(240 10% 8% / 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 
+      0 25px 50px -12px hsl(0 0% 0% / 0.5),
+      0 0 40px hsl(340 90% 70% / 0.15);
+  }
+
+  .dark .screenshot-frame:hover {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 
+      0 25px 50px -12px hsl(0 0% 0% / 0.6),
+      0 0 60px hsl(340 90% 70% / 0.2);
+  }
+
+  /* Hero screenshot perspective wrapper */
+  .hero-screenshot-wrapper {
+    perspective: 1000px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hero-screenshot-frame {
+    transform: rotateX(2deg) rotateY(-1deg);
+    transition: transform 0.4s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out;
+  }
+
+  .hero-screenshot-frame:hover {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+
+  /* Reduce perspective on mobile for usability */
+  @media (max-width: 768px) {
+    .hero-screenshot-frame {
+      transform: rotateX(1deg) rotateY(0deg);
+    }
+    
+    .hero-screenshot-frame:hover {
+      transform: rotateX(0deg) rotateY(0deg);
+    }
+  }
 }
 
 /* ===== Space Background Animations ===== */
