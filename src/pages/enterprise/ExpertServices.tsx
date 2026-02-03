@@ -15,6 +15,7 @@ import {
 import { NeutralityDisclaimer, AvailabilityDisclaimer } from "@/components/enterprise";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
 import { IntroCallIntakeDialog } from "@/components/enterprise/IntroCallIntakeDialog";
+import { NewsletterSubscribeDialog } from "@/components/newsletter";
 import { useCreditBundles } from "@/hooks/useCreditBundles";
 import { toast } from "sonner";
 import {
@@ -82,12 +83,45 @@ const notIncluded = [
   "Bypassing open-source community processes",
 ];
 
+interface DialogConfig {
+  open: boolean;
+  title: string;
+  description: string;
+  buttonText: string;
+  successMessage: string;
+}
+
 export default function ExpertServices() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
   const [introCallDialogOpen, setIntroCallDialogOpen] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
+    open: false,
+    title: "",
+    description: "",
+    buttonText: "Notify Me",
+    successMessage: "You're on the list!",
+  });
   const { data: bundles, isLoading: bundlesLoading } = useCreditBundles();
+
+  const openDialog = (type: "getStarted" | "questions") => {
+    const configs = {
+      getStarted: {
+        title: "Get Started",
+        description: "Register your interest and we'll be in touch to discuss your needs.",
+        buttonText: "Register Interest",
+        successMessage: "Thanks! We'll reach out to discuss how we can help.",
+      },
+      questions: {
+        title: "Have Questions?",
+        description: "Leave your details and we'll reach out to answer your questions.",
+        buttonText: "Submit",
+        successMessage: "Thanks! We'll be in touch to answer your questions.",
+      },
+    };
+    setDialogConfig({ open: true, ...configs[type] });
+  };
 
   // Handle URL params on mount (payment status and bundleId for returning from login)
   useEffect(() => {
@@ -535,22 +569,18 @@ export default function ExpertServices() {
                   size="lg"
                   variant="secondary"
                   className="gap-2 bg-background text-foreground hover:bg-background/90"
-                  asChild
+                  onClick={() => openDialog("getStarted")}
                 >
-                  <a href="mailto:info@skywalker-digital.com?subject=Skywalker%20Digital%20-%20Expert%20Services%20Inquiry">
-                    Get Started
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
+                  Get Started
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Button
                   size="lg"
                   variant="ghost"
                   className="text-primary-foreground hover:bg-primary-foreground/10"
-                  asChild
+                  onClick={() => openDialog("questions")}
                 >
-                  <a href="mailto:info@skywalker-digital.com?subject=Skywalker%20Digital%20-%20Expert%20Services%20Question">
-                    Have Questions?
-                  </a>
+                  Have Questions?
                 </Button>
               </div>
             </CardContent>
@@ -576,6 +606,16 @@ export default function ExpertServices() {
       <IntroCallIntakeDialog
         open={introCallDialogOpen}
         onOpenChange={setIntroCallDialogOpen}
+      />
+
+      {/* Newsletter Dialog */}
+      <NewsletterSubscribeDialog
+        open={dialogConfig.open}
+        onOpenChange={(open) => setDialogConfig((prev) => ({ ...prev, open }))}
+        title={dialogConfig.title}
+        description={dialogConfig.description}
+        buttonText={dialogConfig.buttonText}
+        successMessage={dialogConfig.successMessage}
       />
     </Layout>
   );

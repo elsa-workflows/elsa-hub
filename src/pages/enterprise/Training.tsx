@@ -41,6 +41,7 @@ const trainingFormats = [
 
 export default function Training() {
   const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
+  const [providerDialogOpen, setProviderDialogOpen] = useState(false);
 
   return (
     <Layout>
@@ -121,12 +122,12 @@ export default function Training() {
             </p>
             <p className="text-sm text-muted-foreground">
               Interested in offering Elsa Workflows training?{" "}
-              <a 
-                href="mailto:info@skywalker-digital.com?subject=Training%20Provider%20Inquiry" 
+              <button 
+                onClick={() => setProviderDialogOpen(true)}
                 className="text-primary hover:underline"
               >
                 Get in touch
-              </a>
+              </button>
               .
             </p>
           </div>
@@ -164,6 +165,15 @@ export default function Training() {
         description="Be the first to know when Training & Academy programs become available."
         buttonText="Notify Me"
         successMessage="You're on the list! We'll notify you when Training programs launch."
+      />
+
+      <NewsletterSubscribeDialog
+        open={providerDialogOpen}
+        onOpenChange={setProviderDialogOpen}
+        title="Provider Inquiry"
+        description="Interested in offering Elsa Workflows training? Leave your details and we'll be in touch."
+        buttonText="Submit"
+        successMessage="Thanks for your interest! We'll reach out about training provider opportunities."
       />
 
       {/* Neutrality Disclaimer */}
