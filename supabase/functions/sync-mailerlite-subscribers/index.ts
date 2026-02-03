@@ -38,12 +38,30 @@ Deno.serve(async (req) => {
       throw new Error("MAILERLITE_API_KEY not configured");
     }
 
-    // Security: Require service role key
+    // Security: Require platform admin (check via user client)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY || "")) {
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized - service role required" }),
+        JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create Supabase client to verify admin status
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const token = authHeader.replace("Bearer ", "");
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+
+    const { data: isAdmin } = await supabase.rpc("is_platform_admin");
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - admin required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
