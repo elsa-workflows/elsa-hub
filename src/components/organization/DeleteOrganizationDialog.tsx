@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganizations } from "@/hooks/useOrganizations";
 
 interface DeleteOrganizationDialogProps {
   organizationId: string;
@@ -32,6 +33,7 @@ export function DeleteOrganizationDialog({
   const [confirmText, setConfirmText] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { refetch } = useOrganizations();
 
   const isConfirmValid = confirmText === organizationName;
 
@@ -55,6 +57,10 @@ export function DeleteOrganizationDialog({
       });
 
       setOpen(false);
+      
+      // Refetch organizations to update the context switcher
+      await refetch();
+      
       navigate("/dashboard");
     } catch (error) {
       console.error("Error deleting organization:", error);
