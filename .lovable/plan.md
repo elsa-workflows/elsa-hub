@@ -1,53 +1,100 @@
 
-# Replace Mailto Links with Newsletter Signup Form
+# Switch Newsletter System from Resend to MailerLite
 
 ## Overview
-Update all pages that currently use `mailto:` links for "Notify Me", "Request Early Access", "Express Vendor Interest", and similar CTAs to instead open the `NewsletterSubscribeDialog` component. This provides a better user experience and consolidates all interest signups into the newsletter system.
+Replace Resend with MailerLite for all newsletter subscription management. This includes updating the subscribe-newsletter edge function, creating a sync function to migrate existing Resend subscribers (if any), and updating broadcast functionality to use MailerLite campaigns.
 
 ---
 
-## Pages to Update
+## Current State
 
-### 1. Marketplace.tsx
-**Current:** Two mailto links for "Request Early Access" and "Express Vendor Interest"
-**Change:** Replace with buttons that open the newsletter dialog
-
-| Button | Current Behavior | New Behavior |
-|--------|-----------------|--------------|
-| Request Early Access | mailto link | Opens dialog with "Marketplace Early Access" messaging |
-| Express Vendor Interest | mailto link | Opens dialog with "Vendor Interest" messaging |
-
-This requires:
-- Adding `useState` for dialog open state (2 dialogs or 1 with dynamic content)
-- Importing `NewsletterSubscribeDialog`
-- Replacing `<a href="mailto:...">` with `onClick` handlers
-
-### 2. ExpertServices.tsx
-**Current:** Two mailto links for "Get Started" and "Have Questions?"
-**Change:** Replace with buttons that open the newsletter dialog
-
-| Button | Current Behavior | New Behavior |
-|--------|-----------------|--------------|
-| Get Started | mailto link | Opens dialog with "Expert Services Interest" messaging |
-| Have Questions? | mailto link | Opens dialog with "Expert Services Questions" messaging |
-
-### 3. Training.tsx
-**Current:** One inline mailto link for "Get in touch" in the providers section
-**Change:** Replace with an interactive element that opens the dialog
+| Aspect | Current Implementation |
+|--------|----------------------|
+| Newsletter Provider | Resend (Audiences API) |
+| Subscription Function | `subscribe-newsletter` edge function |
+| Broadcast Function | `send-broadcast` edge function |
+| Local Storage | None - subscribers stored only in Resend |
+| Existing Users | 6 profiles, all with `newsletter_enabled: false` |
 
 ---
 
-## Implementation Approach
+## MailerLite API Details
 
-For Marketplace and ExpertServices, I'll use a single dialog with dynamic content based on which button was clicked. This avoids duplicating the dialog component multiple times.
+MailerLite uses a straightforward REST API:
 
 ```text
-Pattern:
-1. Add state: dialogConfig = { open, title, description, ... }
-2. Create helper: openDialog(type) that sets appropriate messaging
-3. Replace <a href="mailto:..."> with <button onClick={() => openDialog("type")}>
-4. Render single NewsletterSubscribeDialog with dynamic props
+Base URL: https://connect.mailerlite.com/api
+Authentication: Bearer token in Authorization header
 ```
+
+### Add Subscriber Endpoint
+```text
+POST /subscribers
+{
+  "email": "subscriber@example.com",
+  "fields": {
+    "name": "John",
+    "last_name": "Doe"
+  },
+  "groups": ["group_id"],
+  "status": "active"
+}
+```
+
+---
+
+## Implementation Plan
+
+### Step 1: Add MailerLite API Key Secret
+
+A new secret `MAILERLITE_API_KEY` will be added to Supabase secrets via the secrets tool.
+
+---
+
+### Step 2: Update subscribe-newsletter Edge Function
+
+**Changes:**
+- Replace Resend API calls with MailerLite API
+- Use the MailerLite subscribers endpoint
+- Handle duplicate subscribers (MailerLite returns existing subscriber if email exists)
+
+**New Logic:**
+```text
+POST https://connect.mailerlite.com/api/subscribers
+Headers:
+  Authorization: Bearer {MAILERLITE_API_KEY}
+  Content-Type: application/json
+Body:
+  {
+    "email": "...",
+    "fields": { "name": "..." },
+    "status": "active"
+  }
+```
+
+---
+
+### Step 3: Update send-broadcast Edge Function
+
+**Option A - Use MailerLite Campaigns API:**
+MailerLite campaigns require creating a campaign, then scheduling/sending it.
+
+**Option B - Keep simple for now:**
+Since broadcasts are admin-triggered, we can update this later. For now, focus on subscription flow.
+
+I'll update the broadcast function to use MailerLite's campaign API which follows this pattern:
+1. Create campaign
+2. Set content
+3. Send campaign
+
+---
+
+### Step 4: Create Sync Function (One-time Migration)
+
+Create a new edge function `sync-mailerlite-subscribers` that:
+1. Fetches all contacts from the current Resend audience
+2. Upserts them into MailerLite
+3. Can be run once to migrate existing subscribers
 
 ---
 
@@ -55,23 +102,68 @@ Pattern:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/pages/Marketplace.tsx` | Update | Replace 2 mailto links with dialog triggers |
-| `src/pages/enterprise/ExpertServices.tsx` | Update | Replace 2 mailto links with dialog triggers |
-| `src/pages/enterprise/Training.tsx` | Update | Replace inline mailto link with dialog trigger |
+| `supabase/functions/subscribe-newsletter/index.ts` | Update | Replace Resend with MailerLite API |
+| `supabase/functions/send-broadcast/index.ts` | Update | Replace Resend with MailerLite Campaigns API |
+| `supabase/functions/sync-mailerlite-subscribers/index.ts` | Create | One-time migration from Resend to MailerLite |
+| `supabase/functions/sync-mailerlite-subscribers/deno.json` | Create | Deno config for sync function |
+| `supabase/config.toml` | Update | Add config for new sync function |
 
 ---
 
-## Dialog Messaging
+## Secret Requirements
 
-| Page | Trigger | Title | Description |
-|------|---------|-------|-------------|
-| Marketplace | Request Early Access | Get Early Access | Be the first to know when the Elsa Marketplace launches. |
-| Marketplace | Express Vendor Interest | Become a Vendor | Register your interest in offering modules, templates, or services. |
-| Expert Services | Get Started | Get Started | Register your interest and we'll be in touch to discuss your needs. |
-| Expert Services | Have Questions? | Have Questions? | Leave your details and we'll reach out to answer your questions. |
-| Training | Get in touch | Provider Inquiry | Interested in offering Elsa Workflows training? Leave your details. |
+| Secret Name | Purpose |
+|-------------|---------|
+| `MAILERLITE_API_KEY` | MailerLite API authentication |
+
+I'll prompt you to add this secret before implementation.
+
+---
+
+## Group Configuration
+
+MailerLite organizes subscribers into groups. You have two options:
+
+1. **Use default "All subscribers"**: Subscribers added without a group go to the main list
+2. **Create a specific group**: Create a "Newsletter" group in MailerLite and use its ID
+
+For simplicity, I'll initially add subscribers without a specific group (they go to the main list). If you need a specific group, you can provide the group ID.
+
+---
+
+## API Response Handling
+
+| Scenario | MailerLite Response | Our Response |
+|----------|-------------------|--------------|
+| New subscriber | 201 Created | Success message |
+| Existing subscriber | 200 OK (returns existing) | "Already subscribed" message |
+| Invalid email | 422 Validation error | Error message |
+| Rate limited | 429 | Retry or error message |
+
+---
+
+## Broadcast Flow (Updated)
+
+```text
+┌─────────────────────────────────────────────────┐
+│ 1. Create campaign (type: regular)              │
+│    POST /campaigns                              │
+│ ↓                                               │
+│ 2. Set campaign content (HTML)                  │
+│    PUT /campaigns/{id}/content                  │
+│ ↓                                               │
+│ 3. Send campaign                                │
+│    POST /campaigns/{id}/schedule                │
+│    (with delivery: "instant")                   │
+└─────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Expected Result
-All interest/inquiry buttons across the site will open a consistent newsletter signup form instead of launching the user's email client. This captures leads directly and provides a smoother user experience.
+
+After implementation:
+- All "Notify Me" and newsletter signup forms will add subscribers directly to MailerLite
+- Existing Resend subscribers can be migrated using the sync function
+- Broadcasts will be sent via MailerLite campaigns
+- The system will be fully independent of Resend for newsletter management
