@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Sparkles, Bug } from "lucide-react";
+import { X, Sparkles, Bug, Star } from "lucide-react";
 
 const eventTypes = [
   { type: "supernova-classic", label: "Supernova (Classic)", emoji: "💥" },
@@ -11,6 +11,12 @@ const eventTypes = [
   { type: "nebula-flash", label: "Nebula Flash", emoji: "🌫️" },
   { type: "binary-flare", label: "Binary Flare", emoji: "✨" },
   { type: "black-hole", label: "Black Hole", emoji: "🕳️" },
+] as const;
+
+const shootingStarTypes = [
+  { type: "very-distant", label: "Very Distant", emoji: "🌠" },
+  { type: "distant", label: "Distant", emoji: "⭐" },
+  { type: "closer", label: "Closer", emoji: "💫" },
 ] as const;
 
 interface CosmicEventsDebugPanelProps {
@@ -53,6 +59,13 @@ export default function CosmicEventsDebugPanel({
     if (window.spawnCosmicEvent) {
       window.spawnCosmicEvent(type as Parameters<typeof window.spawnCosmicEvent>[0]);
       console.log(`🌌 Spawned: ${type}`);
+    }
+  };
+
+  const spawnShootingStar = (type: string) => {
+    if ((window as any).spawnShootingStar) {
+      (window as any).spawnShootingStar(type);
+      console.log(`🌠 Spawned shooting star: ${type}`);
     }
   };
 
@@ -135,6 +148,27 @@ export default function CosmicEventsDebugPanel({
         >
           🎲 Random Event
         </Button>
+
+        {/* Shooting Stars section */}
+        <div className="border-t border-border/50 pt-2 mt-2">
+          <p className="text-[10px] text-muted-foreground mb-2 flex items-center gap-1">
+            <Star className="h-3 w-3" /> Shooting Stars
+          </p>
+          <div className="grid grid-cols-3 gap-1">
+            {shootingStarTypes.map((star) => (
+              <Button
+                key={star.type}
+                onClick={() => spawnShootingStar(star.type)}
+                variant="outline"
+                size="sm"
+                className="h-auto py-1.5 px-2 text-[10px] border-border/50 hover:border-primary/50 hover:bg-primary/5"
+              >
+                <span className="mr-1">{star.emoji}</span>
+                <span className="truncate">{star.label}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Motion override toggle */}
