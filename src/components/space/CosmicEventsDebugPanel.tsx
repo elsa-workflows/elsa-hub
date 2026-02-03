@@ -14,6 +14,7 @@ const eventTypes = [
 ] as const;
 
 const shootingStarTypes = [
+  { type: "ultra-distant", label: "Ultra Distant (5-7min)", emoji: "🔭" },
   { type: "very-distant", label: "Very Distant", emoji: "🌠" },
   { type: "distant", label: "Distant", emoji: "⭐" },
   { type: "closer", label: "Closer", emoji: "💫" },
@@ -154,7 +155,7 @@ export default function CosmicEventsDebugPanel({
           <p className="text-[10px] text-muted-foreground mb-2 flex items-center gap-1">
             <Star className="h-3 w-3" /> Shooting Stars
           </p>
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {shootingStarTypes.map((star) => (
               <Button
                 key={star.type}

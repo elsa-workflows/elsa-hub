@@ -8,7 +8,7 @@ interface ShootingStar {
   duration: number;
   trailLength: number;
   opacity: number;
-  variant: "distant" | "closer" | "very-distant";
+  variant: "distant" | "closer" | "very-distant" | "ultra-distant";
 }
 
 const randomBetween = (min: number, max: number) => min + Math.random() * (max - min);
@@ -18,37 +18,46 @@ const ShootingStars = memo(function ShootingStars() {
   const idCounterRef = useRef(0);
   const isVisibleRef = useRef(true);
 
-  const spawnShootingStar = useCallback((variant: "distant" | "closer" | "very-distant") => {
+  const spawnShootingStar = useCallback((variant: "distant" | "closer" | "very-distant" | "ultra-distant") => {
     if (!isVisibleRef.current) return;
 
     const isDistant = variant === "distant";
     const isVeryDistant = variant === "very-distant";
+    const isUltraDistant = variant === "ultra-distant";
     
     const newStar: ShootingStar = {
       id: idCounterRef.current++,
       // Start from top-left area for natural top-to-bottom diagonal movement
       startX: randomBetween(0, 60),
       startY: randomBetween(0, 20),
-      angle: isVeryDistant 
-        ? randomBetween(20, 35) 
-        : isDistant 
-          ? randomBetween(30, 50) 
-          : randomBetween(40, 60),
-      duration: isVeryDistant
-        ? randomBetween(40, 60)
-        : isDistant 
-          ? randomBetween(3, 5) 
-          : randomBetween(1, 2),
-      trailLength: isVeryDistant
-        ? randomBetween(200, 350)
-        : isDistant 
-          ? randomBetween(150, 250) 
-          : randomBetween(80, 150),
-      opacity: isVeryDistant
-        ? randomBetween(0.2, 0.35)
-        : isDistant 
-          ? randomBetween(0.4, 0.6) 
-          : randomBetween(0.6, 0.9),
+      angle: isUltraDistant
+        ? randomBetween(15, 25)
+        : isVeryDistant 
+          ? randomBetween(20, 35) 
+          : isDistant 
+            ? randomBetween(30, 50) 
+            : randomBetween(40, 60),
+      duration: isUltraDistant
+        ? randomBetween(300, 420) // 5-7 minutes
+        : isVeryDistant
+          ? randomBetween(40, 60)
+          : isDistant 
+            ? randomBetween(3, 5) 
+            : randomBetween(1, 2),
+      trailLength: isUltraDistant
+        ? randomBetween(250, 400)
+        : isVeryDistant
+          ? randomBetween(200, 350)
+          : isDistant 
+            ? randomBetween(150, 250) 
+            : randomBetween(80, 150),
+      opacity: isUltraDistant
+        ? randomBetween(0.12, 0.2)
+        : isVeryDistant
+          ? randomBetween(0.2, 0.35)
+          : isDistant 
+            ? randomBetween(0.4, 0.6) 
+            : randomBetween(0.6, 0.9),
       variant,
     };
 
@@ -75,6 +84,7 @@ const ShootingStars = memo(function ShootingStars() {
     let distantTimeoutId: ReturnType<typeof setTimeout>;
     let closerTimeoutId: ReturnType<typeof setTimeout>;
     let veryDistantTimeoutId: ReturnType<typeof setTimeout>;
+    let ultraDistantTimeoutId: ReturnType<typeof setTimeout>;
 
     // Distant meteor spawner (every 15-30 seconds)
     const spawnDistant = () => {
@@ -94,10 +104,17 @@ const ShootingStars = memo(function ShootingStars() {
       veryDistantTimeoutId = setTimeout(spawnVeryDistant, randomBetween(90000, 180000));
     };
 
+    // Ultra distant meteor spawner (every 5-10 minutes)
+    const spawnUltraDistant = () => {
+      spawnShootingStar("ultra-distant");
+      ultraDistantTimeoutId = setTimeout(spawnUltraDistant, randomBetween(300000, 600000));
+    };
+
     // Initial delays before first spawn
     distantTimeoutId = setTimeout(spawnDistant, randomBetween(2000, 5000));
     closerTimeoutId = setTimeout(spawnCloser, randomBetween(5000, 15000));
     veryDistantTimeoutId = setTimeout(spawnVeryDistant, randomBetween(20000, 40000));
+    ultraDistantTimeoutId = setTimeout(spawnUltraDistant, randomBetween(30000, 60000));
 
     // Expose spawn function for debug panel
     (window as any).spawnShootingStar = spawnShootingStar;
@@ -107,12 +124,14 @@ const ShootingStars = memo(function ShootingStars() {
       clearTimeout(distantTimeoutId);
       clearTimeout(closerTimeoutId);
       clearTimeout(veryDistantTimeoutId);
+      clearTimeout(ultraDistantTimeoutId);
       delete (window as any).spawnShootingStar;
     };
   }, [spawnShootingStar]);
 
   const getHeadSize = (variant: ShootingStar["variant"]) => {
     switch (variant) {
+      case "ultra-distant": return "0.5px";
       case "very-distant": return "1px";
       case "distant": return "2px";
       case "closer": return "3px";
@@ -121,6 +140,7 @@ const ShootingStars = memo(function ShootingStars() {
 
   const getTrailHeight = (variant: ShootingStar["variant"]) => {
     switch (variant) {
+      case "ultra-distant": return "0.25px";
       case "very-distant": return "0.5px";
       case "distant": return "1px";
       case "closer": return "2px";
@@ -129,6 +149,7 @@ const ShootingStars = memo(function ShootingStars() {
 
   const getGlowSize = (variant: ShootingStar["variant"], opacity: number) => {
     switch (variant) {
+      case "ultra-distant": return `0 0 2px rgba(255, 255, 255, ${opacity})`;
       case "very-distant": return `0 0 4px rgba(255, 255, 255, ${opacity})`;
       case "distant": return `0 0 6px rgba(255, 255, 255, ${opacity})`;
       case "closer": return `0 0 10px rgba(255, 255, 255, ${opacity})`;
