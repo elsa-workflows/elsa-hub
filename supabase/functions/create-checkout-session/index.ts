@@ -8,6 +8,24 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Helper to map country codes to Stripe tax ID types
+function getTaxIdType(countryCode: string): Stripe.TaxIdCreateParams["type"] {
+  const euCountries = [
+    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+    "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL",
+    "PL", "PT", "RO", "SK", "SI", "ES", "SE"
+  ];
+  if (euCountries.includes(countryCode)) return "eu_vat";
+  if (countryCode === "GB") return "gb_vat";
+  if (countryCode === "CH") return "ch_vat";
+  if (countryCode === "NO") return "no_vat";
+  if (countryCode === "AU") return "au_abn";
+  if (countryCode === "NZ") return "nz_gst";
+  if (countryCode === "CA") return "ca_bn";
+  if (countryCode === "US") return "us_ein";
+  return "eu_vat"; // Default fallback
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -65,10 +83,10 @@ serve(async (req) => {
       );
     }
 
-    // Fetch organization slug for redirect
+    // Fetch organization slug and name for redirect and billing
     const { data: org, error: orgError } = await userClient
       .from("organizations")
-      .select("slug")
+      .select("slug, name")
       .eq("id", organizationId)
       .single();
     if (orgError || !org) {
@@ -159,6 +177,15 @@ serve(async (req) => {
       }
     }
 
+    // =============================================
+    // PHASE 4: Fetch billing profile for invoice details
+    // =============================================
+    const { data: billingProfile } = await serviceClient
+      .from("org_billing_profiles")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       apiVersion: "2025-08-27.basil",
@@ -171,16 +198,64 @@ serve(async (req) => {
       const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
       if (customers.data.length > 0) {
         stripeCustomerId = customers.data[0].id;
+        // Update existing customer with billing info if available
+        if (billingProfile) {
+          await stripe.customers.update(stripeCustomerId, {
+            name: billingProfile.company_legal_name || org.name,
+            address: billingProfile.address_line1 ? {
+              line1: billingProfile.address_line1 || undefined,
+              line2: billingProfile.address_line2 || undefined,
+              city: billingProfile.city || undefined,
+              state: billingProfile.state_province || undefined,
+              postal_code: billingProfile.postal_code || undefined,
+              country: billingProfile.country || undefined,
+            } : undefined,
+            metadata: {
+              organization_id: organizationId,
+              user_id: userId,
+            },
+          });
+        }
       } else {
-        // Create new customer
+        // Create new customer with billing info
         const customer = await stripe.customers.create({
           email: userEmail,
+          name: billingProfile?.company_legal_name || org.name,
+          address: billingProfile?.address_line1 ? {
+            line1: billingProfile.address_line1 || undefined,
+            line2: billingProfile.address_line2 || undefined,
+            city: billingProfile.city || undefined,
+            state: billingProfile.state_province || undefined,
+            postal_code: billingProfile.postal_code || undefined,
+            country: billingProfile.country || undefined,
+          } : undefined,
           metadata: {
             organization_id: organizationId,
             user_id: userId,
           },
         });
         stripeCustomerId = customer.id;
+      }
+
+      // Add tax ID if VAT number exists and we have a customer
+      if (billingProfile?.vat_number && billingProfile?.country && stripeCustomerId) {
+        try {
+          const taxIdType = getTaxIdType(billingProfile.country);
+          // Check if tax ID already exists
+          const existingTaxIds = await stripe.customers.listTaxIds(stripeCustomerId);
+          const hasVat = existingTaxIds.data.some(
+            (t: Stripe.TaxId) => t.value === billingProfile.vat_number
+          );
+          if (!hasVat) {
+            await stripe.customers.createTaxId(stripeCustomerId, {
+              type: taxIdType,
+              value: billingProfile.vat_number,
+            });
+          }
+        } catch (taxError) {
+          console.error("Failed to add tax ID (non-fatal):", taxError);
+          // Non-fatal - continue with checkout
+        }
       }
     }
 

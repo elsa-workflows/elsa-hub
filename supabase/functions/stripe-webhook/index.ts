@@ -79,6 +79,9 @@ serve(async (req) => {
       const session = event.data.object as Stripe.Checkout.Session;
       const billingType = session.metadata?.billing_type;
 
+      // Sync billing info from Stripe back to our database
+      await syncBillingInfoFromSession(supabase, session);
+
       if (billingType === "recurring") {
         // Handle subscription checkout completion
         await handleSubscriptionCheckout(supabase, stripe, session);
@@ -707,5 +710,95 @@ async function sendPurchaseNotification(
   } catch (error) {
     console.error("Failed to send purchase notification:", error);
     // Don't throw - notification failure shouldn't fail the webhook
+  }
+}
+
+// Sync billing information from Stripe checkout session to our database
+async function syncBillingInfoFromSession(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  session: Stripe.Checkout.Session
+) {
+  const organizationId = session.metadata?.organization_id;
+  if (!organizationId) return;
+
+  const customerDetails = session.customer_details;
+  if (!customerDetails?.address) return;
+
+  const { address, name } = customerDetails;
+  
+  // Only sync if we have meaningful address data
+  if (!address.line1 && !address.city && !address.country) return;
+
+  try {
+    // Check if billing profile exists
+    const { data: existing } = await supabase
+      .from("org_billing_profiles")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+
+    const billingData = {
+      organization_id: organizationId,
+      company_legal_name: name || null,
+      address_line1: address.line1 || null,
+      address_line2: address.line2 || null,
+      city: address.city || null,
+      state_province: address.state || null,
+      postal_code: address.postal_code || null,
+      country: address.country || null,
+    };
+
+    if (existing) {
+      // Only update fields that are currently empty
+      const { data: currentProfile } = await supabase
+        .from("org_billing_profiles")
+        .select("*")
+        .eq("id", existing.id)
+        .single();
+
+      if (currentProfile) {
+        const updates: Record<string, string | null> = {};
+        // Only fill in missing fields from Stripe data
+        if (!currentProfile.company_legal_name && billingData.company_legal_name) {
+          updates.company_legal_name = billingData.company_legal_name;
+        }
+        if (!currentProfile.address_line1 && billingData.address_line1) {
+          updates.address_line1 = billingData.address_line1;
+        }
+        if (!currentProfile.address_line2 && billingData.address_line2) {
+          updates.address_line2 = billingData.address_line2;
+        }
+        if (!currentProfile.city && billingData.city) {
+          updates.city = billingData.city;
+        }
+        if (!currentProfile.state_province && billingData.state_province) {
+          updates.state_province = billingData.state_province;
+        }
+        if (!currentProfile.postal_code && billingData.postal_code) {
+          updates.postal_code = billingData.postal_code;
+        }
+        if (!currentProfile.country && billingData.country) {
+          updates.country = billingData.country;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await supabase
+            .from("org_billing_profiles")
+            .update(updates)
+            .eq("id", existing.id);
+          console.log("Updated billing profile with Stripe data:", updates);
+        }
+      }
+    } else {
+      // Create new billing profile from Stripe data
+      await supabase
+        .from("org_billing_profiles")
+        .insert(billingData);
+      console.log("Created billing profile from Stripe checkout data");
+    }
+  } catch (error) {
+    console.error("Failed to sync billing info (non-fatal):", error);
+    // Non-fatal - don't fail the webhook
   }
 }

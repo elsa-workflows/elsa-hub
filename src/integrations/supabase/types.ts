@@ -674,6 +674,62 @@ export type Database = {
           },
         ]
       }
+      org_billing_profiles: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          company_legal_name: string | null
+          country: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          postal_code: string | null
+          registration_number: string | null
+          state_province: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_legal_name?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          postal_code?: string | null
+          registration_number?: string | null
+          state_province?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_legal_name?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          postal_code?: string | null
+          registration_number?: string | null
+          state_province?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_billing_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string

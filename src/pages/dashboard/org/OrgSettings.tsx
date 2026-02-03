@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { useAuth } from "@/contexts/AuthContext";
-import { LeaveOrganizationDialog, DeleteOrganizationDialog } from "@/components/organization";
+import { LeaveOrganizationDialog, DeleteOrganizationDialog, BillingProfileCard } from "@/components/organization";
 
 export default function OrgSettings() {
   const { slug } = useParams<{ slug: string }>();
@@ -67,6 +67,9 @@ export default function OrgSettings() {
             )}
           </CardContent>
         </Card>
+
+        {/* Billing Information - Only visible to admins */}
+        {isAdmin && <BillingProfileCard organizationId={organization?.id} />}
 
         {/* Danger Zone */}
         <Card className="border-destructive/50">
