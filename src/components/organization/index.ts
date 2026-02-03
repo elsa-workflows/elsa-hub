@@ -1,3 +1,4 @@
+export { BillingProfileCard } from "./BillingProfileCard";
 export { CreditBalanceCard } from "./CreditBalanceCard";
 export { CreditLotsTable } from "./CreditLotsTable";
 export { PurchaseHistoryTable } from "./PurchaseHistoryTable";
