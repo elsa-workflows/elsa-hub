@@ -1,62 +1,76 @@
 
-# Wider Hero Screenshot Plan
+# Responsive Hero Screenshot Plan
 
 ## Overview
-Restore the original detailed screenshot and make it display wider by breaking out of the narrow hero text container. This will give the screenshot more visual impact while keeping the text content centered and readable.
+Display different screenshot versions based on screen size:
+- **Mobile**: Focused workflow canvas screenshot (easier to read on small screens)
+- **Desktop**: Full detailed screenshot (shows more context on larger screens)
 
 ---
 
-## Changes Required
+## Implementation Approach
 
-### 1. Restore Original Screenshot
+### 1. Add Second Screenshot Asset
 
-Replace the current asset with the first uploaded version:
-- Source: `user-uploads://elsa-screenshot-2.png` (original with full detail)
-- Destination: `src/assets/elsa-studio-designer.png`
+Copy the focused screenshot to the assets folder:
+- Source: `user-uploads://elsa-screenshot-2-3.png`
+- Destination: `src/assets/elsa-studio-designer-mobile.png`
+
+Keep the existing detailed version as-is:
+- `src/assets/elsa-studio-designer.png` (desktop version)
 
 ---
 
-### 2. Restructure Home Page Hero Section
+### 2. Update HeroScreenshot Component
 
-The current screenshot is constrained by `max-w-3xl` (768px). We'll move it outside that container so it can utilize the full `max-w-1100px` defined in the CSS.
+Modify `src/components/home/HeroScreenshot.tsx` to render both images with responsive visibility:
 
-**Current structure:**
 ```text
-<section>
-  <div className="container">
-    <div className="max-w-3xl mx-auto">  <-- Limits width to 768px
-      [Hero text content]
-      [Screenshot]  <-- Constrained!
-    </div>
-  </div>
-</section>
+Structure:
+┌─────────────────────────────────────────────────┐
+│ Glass frame container                           │
+│ ┌─────────────────────────────────────────────┐ │
+│ │ Mobile image (hidden on md+)                │ │
+│ │ Desktop image (hidden below md)             │ │
+│ └─────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────┘
 ```
 
-**New structure:**
-```text
-<section>
-  <div className="container">
-    <div className="max-w-3xl mx-auto">
-      [Hero text content]
-    </div>
-    [Screenshot]  <-- Now free to use full 1100px width
-  </div>
-</section>
-```
+Using Tailwind responsive classes:
+- `block md:hidden` - Show only on mobile
+- `hidden md:block` - Show only on desktop (md breakpoint = 768px)
 
 ---
 
-### 3. CSS Adjustment (Optional)
+### 3. Component Code Changes
 
-The `.hero-screenshot-wrapper` already has `max-width: 1100px` and `margin: 0 auto`. This should work as-is, but we can increase it further if desired:
+```tsx
+import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
+import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
 
-| Width | Effect |
-|-------|--------|
-| 1100px | Current - balanced width |
-| 1200px | Slightly wider |
-| 1400px | Near full-width on most screens |
-
-I'll keep it at 1100px initially - we can adjust after seeing the result.
+export function HeroScreenshot() {
+  return (
+    <div className="hero-screenshot-wrapper">
+      <div className="screenshot-frame hero-screenshot-frame rounded-xl p-1.5 md:p-2">
+        {/* Mobile: focused screenshot */}
+        <img
+          src={elsaStudioDesignerMobile}
+          alt="Elsa Studio workflow designer"
+          className="block md:hidden w-full h-auto rounded-lg"
+          loading="eager"
+        />
+        {/* Desktop: detailed screenshot */}
+        <img
+          src={elsaStudioDesigner}
+          alt="Elsa Studio visual workflow designer"
+          className="hidden md:block w-full h-auto rounded-lg"
+          loading="eager"
+        />
+      </div>
+    </div>
+  );
+}
+```
 
 ---
 
@@ -64,13 +78,14 @@ I'll keep it at 1100px initially - we can adjust after seeing the result.
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/assets/elsa-studio-designer.png` | Replace | Restore original detailed screenshot |
-| `src/pages/Home.tsx` | Update | Move screenshot outside the `max-w-3xl` container |
+| `src/assets/elsa-studio-designer-mobile.png` | Create | Focused mobile screenshot |
+| `src/components/home/HeroScreenshot.tsx` | Update | Add responsive image switching |
 
 ---
 
 ## Expected Result
 
-The hero section will display:
-- Text content (badge, headline, description, benefits, CTAs) centered in a readable 768px column
-- Screenshot displayed wider at 1100px, creating a visually impactful showcase that better displays the detailed workflow designer UI
+- On screens below 768px (mobile/tablet): Shows the focused workflow canvas screenshot that's easier to read
+- On screens 768px and above (desktop): Shows the full detailed screenshot with sidebar and more context
+- Smooth transition handled by CSS visibility classes
+- Both images preloaded with `loading="eager"` for instant display
