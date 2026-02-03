@@ -1,89 +1,64 @@
 
-# Very Distant Meteor Variant
+# Blue Ultra-Distant Meteor Enhancement
 
 ## Overview
-Add a rare, ultra-slow shooting star that appears far in the distance, taking 40-60 seconds to cross the screen. It will be small but have a long, delicate tail that creates a beautiful, contemplative moment.
+Make the ultra-distant meteor more visible by giving it a distinctive blue tint. This creates an otherworldly, ethereal appearance that stands out against the white meteors while maintaining its distant, mysterious quality.
 
 ---
 
 ## Design Approach
 
-### Visual Properties
+### Color Selection
 
-| Property | Value | Reasoning |
-|----------|-------|-----------|
-| Duration | 40-60 seconds | Extremely slow, feels very far away |
-| Head size | 1px | Tiny point of light |
-| Trail length | 200-350px | Long, elegant tail despite small head |
-| Trail thickness | 0.5px | Hairline thin for distant effect |
-| Opacity | 0.2-0.35 | Faint but visible |
-| Glow | Subtle 4px | Soft, not harsh |
+A cool, slightly cyan-shifted blue that feels alien and distant:
 
-### Spawn Frequency
-- Every 90-180 seconds (1.5 to 3 minutes between appearances)
-- First appearance: 20-40 seconds after page load
-- This makes it a rare, special moment when one appears
+| Element | Current | New Blue |
+|---------|---------|----------|
+| Head color | White `rgb(255, 255, 255)` | Ice blue `rgb(120, 180, 255)` |
+| Trail gradient | White fade | Blue fade `rgb(100, 160, 255)` |
+| Glow | White glow | Blue glow with slight spread |
 
-### Trajectory
-- Same diagonal movement (top-left to bottom-right)
-- Slightly shallower angle (20-35°) to emphasize horizontal distance
-- Starts from top-left quadrant like other meteors
+### Visibility Boost
 
----
+Slightly increase opacity to make it more noticeable:
 
-## Technical Implementation
-
-### 1. Update TypeScript Interface
-
-Add new variant to the type union:
-```text
-variant: "distant" | "closer" | "very-distant"
-```
-
-### 2. Add Spawn Logic for Very Distant Meteor
-
-New spawner with 90-180 second intervals:
-```text
-┌─────────────────────────────────────────┐
-│ Initial delay: 20-40 seconds            │
-│ ↓                                       │
-│ Spawn very-distant meteor               │
-│ ↓                                       │
-│ Wait 90-180 seconds                     │
-│ ↓                                       │
-│ Loop back to spawn                      │
-└─────────────────────────────────────────┘
-```
-
-### 3. Visual Parameters for Very Distant
-
-| Parameter | Very Distant | Distant | Closer |
-|-----------|--------------|---------|--------|
-| Duration | 40-60s | 3-5s | 1-2s |
-| Head | 1px | 2px | 3px |
-| Trail | 200-350px | 150-250px | 80-150px |
-| Trail height | 0.5px | 1px | 2px |
-| Opacity | 0.2-0.35 | 0.4-0.6 | 0.6-0.9 |
-| Glow | 4px | 6px | 10px |
-| Angle | 20-35° | 30-50° | 40-60° |
-
-### 4. Cleanup Timing
-
-The cleanup timeout needs to account for the longer duration:
-```text
-duration * 1000 + 500 = up to 60,500ms
-```
+| Property | Current | New |
+|----------|---------|-----|
+| Opacity range | 0.12-0.2 | 0.25-0.4 |
+| Glow size | 2px | 4px with blue tint |
+| Head size | 0.5px | 0.75px |
 
 ---
 
-## Debug Panel Enhancement
+## Technical Changes
 
-Add a button to manually trigger the very distant meteor for testing:
+### 1. Update Head Rendering
+
+Add conditional blue background for ultra-distant:
 ```text
-{ type: "shooting-star-very-distant", label: "Very Distant Meteor", emoji: "✨" }
+background: ultra-distant ? "rgb(120, 180, 255)" : "white"
 ```
 
-This will require exposing a global function similar to `spawnCosmicEvent`.
+### 2. Update Trail Gradient
+
+Blue-tinted gradient for ultra-distant:
+```text
+gradient: transparent → rgba(100, 160, 255, opacity)
+```
+
+### 3. Update Glow Effect
+
+Blue glow with slightly larger spread:
+```text
+boxShadow: "0 0 4px rgba(100, 160, 255, opacity), 0 0 8px rgba(80, 140, 255, opacity * 0.5)"
+```
+
+### 4. Adjust Opacity Range
+
+Bump up visibility slightly:
+```text
+opacity: 0.12-0.2 → 0.25-0.4
+```
 
 ---
 
@@ -91,11 +66,10 @@ This will require exposing a global function similar to `spawnCosmicEvent`.
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/components/space/ShootingStars.tsx` | Update | Add "very-distant" variant with ultra-slow parameters |
-| `src/components/space/CosmicEventsDebugPanel.tsx` | Update | Add button to trigger very distant meteor |
+| `src/components/space/ShootingStars.tsx` | Update | Add blue color to ultra-distant meteor head, trail, and glow |
 
 ---
 
 ## Expected Result
 
-Every 1.5-3 minutes, a tiny pinpoint of light with an ethereal, long tail will slowly drift across the screen over 40-60 seconds. It creates a meditative, ambient moment that rewards patient viewers and adds depth to the space experience.
+The ultra-distant meteor will now have a subtle but distinctive ice-blue glow, making it easier to spot as it slowly drifts across the screen. The blue tint gives it an alien, mysterious quality - like a fragment from a distant blue giant star traveling through the void.
