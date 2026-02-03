@@ -52,7 +52,7 @@ const ShootingStars = memo(function ShootingStars() {
             ? randomBetween(150, 250) 
             : randomBetween(80, 150),
       opacity: isUltraDistant
-        ? randomBetween(0.12, 0.2)
+        ? randomBetween(0.25, 0.4)
         : isVeryDistant
           ? randomBetween(0.2, 0.35)
           : isDistant 
@@ -131,7 +131,7 @@ const ShootingStars = memo(function ShootingStars() {
 
   const getHeadSize = (variant: ShootingStar["variant"]) => {
     switch (variant) {
-      case "ultra-distant": return "0.5px";
+      case "ultra-distant": return "0.75px";
       case "very-distant": return "1px";
       case "distant": return "2px";
       case "closer": return "3px";
@@ -149,7 +149,7 @@ const ShootingStars = memo(function ShootingStars() {
 
   const getGlowSize = (variant: ShootingStar["variant"], opacity: number) => {
     switch (variant) {
-      case "ultra-distant": return `0 0 2px rgba(255, 255, 255, ${opacity})`;
+      case "ultra-distant": return `0 0 4px rgba(100, 160, 255, ${opacity}), 0 0 8px rgba(80, 140, 255, ${opacity * 0.5})`;
       case "very-distant": return `0 0 4px rgba(255, 255, 255, ${opacity})`;
       case "distant": return `0 0 6px rgba(255, 255, 255, ${opacity})`;
       case "closer": return `0 0 10px rgba(255, 255, 255, ${opacity})`;
@@ -171,11 +171,12 @@ const ShootingStars = memo(function ShootingStars() {
         >
           {/* Meteor head */}
           <div
-            className="absolute rounded-full bg-white"
+            className="absolute rounded-full"
             style={{
               width: getHeadSize(star.variant),
               height: getHeadSize(star.variant),
               opacity: star.opacity,
+              backgroundColor: star.variant === "ultra-distant" ? "rgb(120, 180, 255)" : "white",
               boxShadow: getGlowSize(star.variant, star.opacity),
             }}
           />
@@ -185,7 +186,9 @@ const ShootingStars = memo(function ShootingStars() {
             style={{
               width: `${star.trailLength}px`,
               height: getTrailHeight(star.variant),
-              background: `linear-gradient(to right, transparent, rgba(255, 255, 255, ${star.opacity}))`,
+              background: star.variant === "ultra-distant"
+                ? `linear-gradient(to right, transparent, rgba(100, 160, 255, ${star.opacity}))`
+                : `linear-gradient(to right, transparent, rgba(255, 255, 255, ${star.opacity}))`,
               transform: "translateY(-50%)",
             }}
           />
