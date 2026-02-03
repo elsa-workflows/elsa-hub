@@ -1,239 +1,162 @@
 
-# Organization Billing & Invoice Configuration Plan
+
+# Hero Screenshot Component Plan
 
 ## Overview
-This plan adds billing information (address, VAT number, company registration number) to organizations so they can receive proper invoices when purchasing products. The implementation follows the existing architecture pattern where sensitive billing data is isolated from the main organization table.
+Add a visually striking hero screenshot of Elsa Studio's visual designer below the CTA buttons in the hero section. The screenshot will be wrapped in a glass-effect frame with a subtle perspective tilt to create depth and integrate with the space-themed dark mode design.
 
 ---
 
-## 1. Database Schema Changes
+## 1. Asset Setup
 
-### Create `org_billing_profiles` Table
-A new table will store billing-specific information, separate from the main `organizations` table for privacy (as noted in the project memory).
+Copy the uploaded screenshot to the project:
+- Source: `user-uploads://elsa-screenshot-2.png`
+- Destination: `src/assets/elsa-studio-designer.png`
 
-```sql
-CREATE TABLE org_billing_profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id UUID NOT NULL UNIQUE REFERENCES organizations(id) ON DELETE CASCADE,
-  
-  -- Company identification
-  company_legal_name TEXT,
-  registration_number TEXT,  -- Chamber of Commerce / Company Registration
-  vat_number TEXT,           -- VAT/Tax ID
-  
-  -- Billing address
-  address_line1 TEXT,
-  address_line2 TEXT,
-  city TEXT,
-  state_province TEXT,
-  postal_code TEXT,
-  country TEXT,              -- ISO 3166-1 alpha-2 country code
-  
-  -- Timestamps
-  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
-);
+This follows the project's pattern of using `src/assets` for React component imports.
 
--- RLS: Only org admins can access billing profiles
-ALTER TABLE org_billing_profiles ENABLE ROW LEVEL SECURITY;
+---
 
-CREATE POLICY "Org admins can view billing profile"
-  ON org_billing_profiles FOR SELECT
-  USING (is_org_admin(organization_id));
+## 2. Visual Design
 
-CREATE POLICY "Org admins can insert billing profile"
-  ON org_billing_profiles FOR INSERT
-  WITH CHECK (is_org_admin(organization_id));
+### Glass Frame Container
+- Semi-transparent background with backdrop blur (matching `.glass-card` styling)
+- Subtle border with primary color glow in dark mode
+- Rounded corners (`rounded-xl`)
+- Shadow for depth
 
-CREATE POLICY "Org admins can update billing profile"
-  ON org_billing_profiles FOR UPDATE
-  USING (is_org_admin(organization_id))
-  WITH CHECK (is_org_admin(organization_id));
+### Perspective Tilt
+- Apply subtle 3D perspective transform
+- Tilt slightly toward the viewer (rotateX ~2-3deg)
+- Add hover interaction that slightly reduces tilt for engagement
 
--- Trigger for updated_at
-CREATE TRIGGER update_org_billing_profiles_updated_at
-  BEFORE UPDATE ON org_billing_profiles
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+### Glow Effect (Dark Mode Only)
+- Soft primary-colored glow around the frame
+- Enhanced on hover
+
+### Responsive Behavior
+- Full width on mobile (with reduced perspective)
+- Constrained max-width on larger screens
+- Fade-in animation on load
+
+---
+
+## 3. Component Structure
+
+Create a reusable `HeroScreenshot` component in `src/components/home/` for potential future expansion (e.g., adding multiple screenshots later).
+
+### File: `src/components/home/HeroScreenshot.tsx`
+
+```text
+Structure:
+┌─────────────────────────────────────────────────┐
+│ Outer container (perspective origin)            │
+│ ┌─────────────────────────────────────────────┐ │
+│ │ Glass frame with glow                       │ │
+│ │ ┌─────────────────────────────────────────┐ │ │
+│ │ │ Screenshot image                        │ │ │
+│ │ │                                         │ │ │
+│ │ └─────────────────────────────────────────┘ │ │
+│ └─────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Frontend Components
+## 4. CSS Additions
 
-### 2.1 New Component: `BillingProfileCard.tsx`
-A form card for managing billing information in the Organization Settings page.
+Add new utility classes to `src/index.css`:
 
-**Features:**
-- Display current billing details (company name, registration, VAT, address)
-- Edit mode with form validation (using react-hook-form + zod)
-- Country selector dropdown with common countries
-- Only visible to organization admins
+```css
+/* Hero screenshot glass frame */
+.screenshot-frame {
+  background: hsl(var(--card) / 0.8);
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-xl);
+}
 
-**Fields:**
-| Field | Label | Validation |
-|-------|-------|------------|
-| company_legal_name | Legal Company Name | Optional |
-| registration_number | Company Registration (CoC) | Optional |
-| vat_number | VAT Number | Optional, format hint based on country |
-| address_line1 | Street Address | Optional |
-| address_line2 | Address Line 2 | Optional |
-| city | City | Optional |
-| state_province | State/Province | Optional |
-| postal_code | Postal Code | Optional |
-| country | Country | Dropdown (ISO 3166-1 codes) |
+.dark .screenshot-frame {
+  background: hsl(240 10% 8% / 0.6);
+  backdrop-filter: blur(16px);
+  border-color: hsl(var(--primary) / 0.3);
+  box-shadow: 
+    0 25px 50px -12px hsl(0 0% 0% / 0.5),
+    0 0 40px hsl(340 90% 70% / 0.15);
+}
 
-### 2.2 Update: `OrgSettings.tsx`
-Add the `BillingProfileCard` component to the Organization Settings page, positioned between "Organization Details" and "Danger Zone".
-
----
-
-## 3. Custom Hook
-
-### New Hook: `useBillingProfile.ts`
-Manage fetching and updating the billing profile:
-
-```typescript
-export function useBillingProfile(organizationId: string | undefined) {
-  // Query: Fetch billing profile for organization
-  // Mutation: Upsert billing profile (create or update)
-  // Returns: { billingProfile, isLoading, updateBillingProfile, isUpdating }
+.dark .screenshot-frame:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow: 
+    0 25px 50px -12px hsl(0 0% 0% / 0.6),
+    0 0 60px hsl(340 90% 70% / 0.2);
 }
 ```
 
 ---
 
-## 4. Stripe Integration Updates
+## 5. Integration into Home Page
 
-### 4.1 Update: `create-checkout-session` Edge Function
-Enhance the checkout flow to:
+### Update: `src/pages/Home.tsx`
 
-1. **Fetch billing profile** before creating Stripe session
-2. **Create/update Stripe customer** with billing information:
-   - Name (from billing profile or org name)
-   - Address (line1, line2, city, state, postal_code, country)
-   - Tax ID (if VAT number provided)
-3. **Configure session options**:
-   - `billing_address_collection: 'auto'` - Collect if not already on customer
-   - `tax_id_collection: { enabled: true }` - Allow customers to add tax IDs
-   - `customer_update: { address: 'auto', name: 'auto' }` - Save collected info to customer
+Add the screenshot component after the CTA buttons in the hero section:
 
-**Key changes:**
-```typescript
-// Fetch billing profile for the organization
-const { data: billingProfile } = await serviceClient
-  .from("org_billing_profiles")
-  .select("*")
-  .eq("organization_id", organizationId)
-  .maybeSingle();
+```tsx
+{/* CTAs */}
+<div className="flex ...">
+  {/* existing buttons */}
+</div>
 
-// Create or update Stripe customer with billing info
-const customerData = {
-  email: userEmail,
-  name: billingProfile?.company_legal_name || org.name,
-  address: billingProfile ? {
-    line1: billingProfile.address_line1,
-    line2: billingProfile.address_line2,
-    city: billingProfile.city,
-    state: billingProfile.state_province,
-    postal_code: billingProfile.postal_code,
-    country: billingProfile.country,
-  } : undefined,
-  metadata: {
-    organization_id: organizationId,
-    user_id: userId,
-  },
-};
-
-// Add tax ID if VAT number exists
-if (billingProfile?.vat_number && billingProfile?.country) {
-  // Determine tax ID type based on country (eu_vat, gb_vat, etc.)
-  await stripe.customers.createTaxId(stripeCustomerId, {
-    type: getTaxIdType(billingProfile.country),
-    value: billingProfile.vat_number,
-  });
-}
-
-// Session config additions
-const sessionConfig = {
-  ...existingConfig,
-  billing_address_collection: 'auto',
-  tax_id_collection: { enabled: true },
-  customer_update: {
-    address: 'auto',
-    name: 'auto',
-  },
-};
+{/* Hero Screenshot - NEW */}
+<div className="mt-16 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+  <HeroScreenshot />
+</div>
 ```
-
-### 4.2 Update: `stripe-webhook` Edge Function
-After successful checkout, sync any new billing information back to the database:
-
-1. On `checkout.session.completed`, extract `customer_details` from session
-2. If the customer updated their address or added tax IDs, update `org_billing_profiles`
-3. This ensures our database stays in sync with what customers enter in Stripe Checkout
 
 ---
 
-## 5. File Changes Summary
+## 6. Technical Implementation Details
+
+### Perspective Transform CSS
+```css
+/* Applied via Tailwind classes + custom styles */
+.hero-screenshot-wrapper {
+  perspective: 1000px;
+}
+
+.hero-screenshot-frame {
+  transform: rotateX(2deg) rotateY(-1deg);
+  transition: transform 0.4s ease-out;
+}
+
+.hero-screenshot-frame:hover {
+  transform: rotateX(0deg) rotateY(0deg);
+}
+```
+
+### Mobile Responsiveness
+- On mobile (< md): Reduce or remove perspective tilt for usability
+- Ensure the image scales proportionally
+
+---
+
+## 7. File Changes Summary
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/components/organization/BillingProfileCard.tsx` | Create | Billing info form component |
-| `src/components/organization/index.ts` | Update | Export new component |
-| `src/hooks/useBillingProfile.ts` | Create | Hook for billing profile CRUD |
-| `src/pages/dashboard/org/OrgSettings.tsx` | Update | Add BillingProfileCard |
-| `supabase/functions/create-checkout-session/index.ts` | Update | Pass billing info to Stripe |
-| `supabase/functions/stripe-webhook/index.ts` | Update | Sync billing info back |
-| Database migration | Create | New org_billing_profiles table |
+| `src/assets/elsa-studio-designer.png` | Create (copy) | Screenshot asset |
+| `src/components/home/HeroScreenshot.tsx` | Create | Screenshot component with glass frame |
+| `src/components/home/index.ts` | Create | Barrel export |
+| `src/pages/Home.tsx` | Update | Import and add HeroScreenshot below CTAs |
+| `src/index.css` | Update | Add screenshot frame utility classes |
 
 ---
 
-## 6. Technical Considerations
+## 8. Expected Result
 
-### Tax ID Type Mapping
-Different countries use different tax ID types in Stripe. A helper function will map country codes:
+The home page hero section will now showcase a large, tilted screenshot of Elsa Studio's visual designer:
+- Floating above the background with a subtle 3D effect
+- Glass-effect frame that glows in dark mode
+- Smooth hover interaction that levels the perspective
+- Responsive sizing for all screen sizes
+- Animated entrance that follows the CTA buttons
 
-```typescript
-function getTaxIdType(countryCode: string): Stripe.TaxIdCreateParams['type'] {
-  const euCountries = ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', ...];
-  if (euCountries.includes(countryCode)) return 'eu_vat';
-  if (countryCode === 'GB') return 'gb_vat';
-  if (countryCode === 'US') return 'us_ein';
-  // ... additional mappings
-  return 'eu_vat'; // Default fallback
-}
-```
-
-### Privacy & Security
-- Billing profiles are only accessible to org admins (RLS enforced)
-- Service providers cannot see customer billing information
-- VAT numbers and addresses are stored securely in Supabase
-
-### Stripe Customer Handling
-- The checkout flow already creates/retrieves Stripe customers by email
-- Enhanced flow will also update the customer with billing details
-- Tax IDs are attached to the Stripe customer for invoice generation
-
----
-
-## 7. User Experience Flow
-
-1. **Org admin navigates to Settings**
-2. **Sees new "Billing Information" card**
-3. **Fills in company details** (legal name, registration, VAT)
-4. **Adds billing address** (street, city, country, etc.)
-5. **Saves billing profile**
-6. **During checkout**, Stripe uses this information automatically
-7. **Invoices/receipts** display the correct company and VAT details
-
----
-
-## 8. Implementation Order
-
-1. Database migration (create `org_billing_profiles` table)
-2. Create `useBillingProfile` hook
-3. Create `BillingProfileCard` component
-4. Update `OrgSettings.tsx` to include the new card
-5. Update `create-checkout-session` Edge Function
-6. Update `stripe-webhook` Edge Function (sync billing info)
-7. Test end-to-end flow
