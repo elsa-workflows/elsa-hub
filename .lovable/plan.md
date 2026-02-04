@@ -1,100 +1,91 @@
 
-# Switch Newsletter System from Resend to MailerLite
+# Add User Display Name to Profile Settings
 
 ## Overview
-Replace Resend with MailerLite for all newsletter subscription management. This includes updating the subscribe-newsletter edge function, creating a sync function to migrate existing Resend subscribers (if any), and updating broadcast functionality to use MailerLite campaigns.
+Allow users to optionally set their first name or display name. The database already has a `display_name` column in the `profiles` table, but there's no UI to edit it. This feature will add an editable name field to the Profile Settings page.
 
 ---
 
 ## Current State
 
-| Aspect | Current Implementation |
-|--------|----------------------|
-| Newsletter Provider | Resend (Audiences API) |
-| Subscription Function | `subscribe-newsletter` edge function |
-| Broadcast Function | `send-broadcast` edge function |
-| Local Storage | None - subscribers stored only in Resend |
-| Existing Users | 6 profiles, all with `newsletter_enabled: false` |
-
----
-
-## MailerLite API Details
-
-MailerLite uses a straightforward REST API:
-
-```text
-Base URL: https://connect.mailerlite.com/api
-Authentication: Bearer token in Authorization header
-```
-
-### Add Subscriber Endpoint
-```text
-POST /subscribers
-{
-  "email": "subscriber@example.com",
-  "fields": {
-    "name": "John",
-    "last_name": "Doe"
-  },
-  "groups": ["group_id"],
-  "status": "active"
-}
-```
+| Aspect | Status |
+|--------|--------|
+| Database column `display_name` | Exists (text, nullable) |
+| Current values | All null for existing users |
+| Edit UI | None |
+| RLS policy for update | Already allows users to update own profile |
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Add MailerLite API Key Secret
+### Step 1: Create useUserProfile Hook
 
-A new secret `MAILERLITE_API_KEY` will be added to Supabase secrets via the secrets tool.
+Create a new hook `src/hooks/useUserProfile.ts` that:
+- Fetches the current user's profile from the `profiles` table
+- Provides a mutation to update `display_name`
+- Uses React Query for caching and invalidation
 
----
-
-### Step 2: Update subscribe-newsletter Edge Function
-
-**Changes:**
-- Replace Resend API calls with MailerLite API
-- Use the MailerLite subscribers endpoint
-- Handle duplicate subscribers (MailerLite returns existing subscriber if email exists)
-
-**New Logic:**
 ```text
-POST https://connect.mailerlite.com/api/subscribers
-Headers:
-  Authorization: Bearer {MAILERLITE_API_KEY}
-  Content-Type: application/json
-Body:
-  {
-    "email": "...",
-    "fields": { "name": "..." },
-    "status": "active"
-  }
+File: src/hooks/useUserProfile.ts
+
+Exports:
+- useUserProfile() hook
+  - profile: { display_name, email, avatar_url }
+  - isLoading: boolean
+  - updateProfile(data): mutation
+  - isUpdating: boolean
 ```
 
 ---
 
-### Step 3: Update send-broadcast Edge Function
+### Step 2: Update ProfileSettings Page
 
-**Option A - Use MailerLite Campaigns API:**
-MailerLite campaigns require creating a campaign, then scheduling/sending it.
+Modify `src/pages/dashboard/settings/ProfileSettings.tsx` to:
+- Fetch the user profile using the new hook
+- Add an editable "Display Name" field
+- Show email as the primary identifier, with display name as optional personalization
+- Include a save button that updates the profile
 
-**Option B - Keep simple for now:**
-Since broadcasts are admin-triggered, we can update this later. For now, focus on subscription flow.
+**UI Changes:**
 
-I'll update the broadcast function to use MailerLite's campaign API which follows this pattern:
-1. Create campaign
-2. Set content
-3. Send campaign
+| Before | After |
+|--------|-------|
+| Email (read-only) | Display Name (editable input) |
+| Member since (read-only) | Email (read-only) |
+| Notifications link | Member since (read-only) |
+| Sign out button | Notifications link |
+|  | Sign out button |
 
 ---
 
-### Step 4: Create Sync Function (One-time Migration)
+### Step 3: UI Design
 
-Create a new edge function `sync-mailerlite-subscribers` that:
-1. Fetches all contacts from the current Resend audience
-2. Upserts them into MailerLite
-3. Can be run once to migrate existing subscribers
+The name field will appear in a new "Personal Info" section above the account details:
+
+```text
+┌─────────────────────────────────────────────┐
+│  Personal Info                              │
+│  ─────────────────────────────────────────  │
+│  Display Name (optional)                    │
+│  ┌─────────────────────────────────────┐    │
+│  │ John                                │    │
+│  └─────────────────────────────────────┘    │
+│  How your name appears to team members      │
+│                                             │
+│  [Save Changes]                             │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│  Your Account                               │
+│  ─────────────────────────────────────────  │
+│  📧 Email: user@example.com                 │
+│  📅 Member since: January 15, 2026          │
+│  🔔 Notifications: Manage email preferences │
+│                                             │
+│  [Sign out]                                 │
+└─────────────────────────────────────────────┘
+```
 
 ---
 
@@ -102,68 +93,55 @@ Create a new edge function `sync-mailerlite-subscribers` that:
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/functions/subscribe-newsletter/index.ts` | Update | Replace Resend with MailerLite API |
-| `supabase/functions/send-broadcast/index.ts` | Update | Replace Resend with MailerLite Campaigns API |
-| `supabase/functions/sync-mailerlite-subscribers/index.ts` | Create | One-time migration from Resend to MailerLite |
-| `supabase/functions/sync-mailerlite-subscribers/deno.json` | Create | Deno config for sync function |
-| `supabase/config.toml` | Update | Add config for new sync function |
+| `src/hooks/useUserProfile.ts` | Create | Hook for fetching/updating user profile |
+| `src/pages/dashboard/settings/ProfileSettings.tsx` | Update | Add editable display name field |
 
 ---
 
-## Secret Requirements
+## Technical Details
 
-| Secret Name | Purpose |
-|-------------|---------|
-| `MAILERLITE_API_KEY` | MailerLite API authentication |
-
-I'll prompt you to add this secret before implementation.
-
----
-
-## Group Configuration
-
-MailerLite organizes subscribers into groups. You have two options:
-
-1. **Use default "All subscribers"**: Subscribers added without a group go to the main list
-2. **Create a specific group**: Create a "Newsletter" group in MailerLite and use its ID
-
-For simplicity, I'll initially add subscribers without a specific group (they go to the main list). If you need a specific group, you can provide the group ID.
-
----
-
-## API Response Handling
-
-| Scenario | MailerLite Response | Our Response |
-|----------|-------------------|--------------|
-| New subscriber | 201 Created | Success message |
-| Existing subscriber | 200 OK (returns existing) | "Already subscribed" message |
-| Invalid email | 422 Validation error | Error message |
-| Rate limited | 429 | Retry or error message |
-
----
-
-## Broadcast Flow (Updated)
+### useUserProfile Hook Structure
 
 ```text
-┌─────────────────────────────────────────────────┐
-│ 1. Create campaign (type: regular)              │
-│    POST /campaigns                              │
-│ ↓                                               │
-│ 2. Set campaign content (HTML)                  │
-│    PUT /campaigns/{id}/content                  │
-│ ↓                                               │
-│ 3. Send campaign                                │
-│    POST /campaigns/{id}/schedule                │
-│    (with delivery: "instant")                   │
-└─────────────────────────────────────────────────┘
+Query:
+  SELECT display_name, email, avatar_url 
+  FROM profiles 
+  WHERE user_id = auth.uid()
+
+Mutation:
+  UPDATE profiles 
+  SET display_name = ?, updated_at = now() 
+  WHERE user_id = auth.uid()
+```
+
+The hook will follow the same pattern as `useBillingProfile`:
+- React Query for data fetching with `queryKey: ["user-profile", userId]`
+- useMutation for updates with optimistic invalidation
+- Toast notifications for success/error feedback
+
+### Form Handling
+
+Using react-hook-form with zod validation (consistent with existing patterns):
+
+```text
+Schema:
+  display_name: z.string().max(100).optional()
+
+Form behavior:
+  - Pre-populate with existing display_name
+  - Trim whitespace before saving
+  - Convert empty string to null
 ```
 
 ---
 
-## Expected Result
+## Where Display Name is Already Used
 
-After implementation:
-- All "Notify Me" and newsletter signup forms will add subscribers directly to MailerLite
-- Existing Resend subscribers can be migrated using the sync function
-- Broadcasts will be sent via MailerLite campaigns
-- The system will be fully independent of Resend for newsletter management
+The `display_name` is already consumed in these places (no changes needed):
+
+- Team member lists in organizations
+- Provider team member lists
+- Work log performer displays
+- Notification emails
+
+Once users set their display name, it will automatically appear in these locations instead of their email.
