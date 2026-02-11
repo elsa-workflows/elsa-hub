@@ -63,7 +63,7 @@ export default function DockerImages() {
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <Badge variant="secondary">Provided by Skywalker Digital</Badge>
+              <Badge variant="secondary">Provided by Valence Works</Badge>
               <Badge variant="outline">Coming Soon</Badge>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -71,7 +71,7 @@ export default function DockerImages() {
             </h1>
             <p className="text-xl text-muted-foreground">
               Production-ready container images for Elsa Workflows, 
-              maintained and supported by Skywalker Digital.
+              maintained and supported by Valence Works.
             </p>
           </div>
         </div>
