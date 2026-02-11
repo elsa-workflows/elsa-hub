@@ -143,7 +143,7 @@ export function IntroCallIntakeDialog({ open, onOpenChange }: IntroCallIntakeDia
             email: email,
             project_stage: projectStage,
           },
-          actionUrl: "/dashboard/provider/skywalker-digital/customers",
+          actionUrl: "/dashboard/provider/valence-works/customers",
         },
       }).catch((err) => {
         console.error("Failed to send intro call notification:", err);

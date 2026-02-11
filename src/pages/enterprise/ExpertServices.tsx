@@ -196,7 +196,7 @@ export default function ExpertServices() {
               Get focused, senior-level guidance to design, extend, and operate Elsa Workflows 
               in real-world systems. Whether you need architectural clarity, hands-on pairing, 
               or help unblocking production issues,{" "}
-              <a href="https://www.skywalker-digital.com/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Skywalker Digital</a>{" "}
+              <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
               provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
             </p>
           </div>
