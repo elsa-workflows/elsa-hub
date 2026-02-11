@@ -1,0 +1,1 @@
+UPDATE organizations SET name = 'Valence Works', slug = 'valence-works' WHERE id = '11ff7be1-d0ec-4d51-819e-ab3606e0bff1';
