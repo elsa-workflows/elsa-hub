@@ -340,7 +340,7 @@ export default function ValenceWorks() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                   {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
                     const isPopular = index === 1;
                     return (
