@@ -87,7 +87,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
 
   // Not logged in - redirect to login with return URL
   const handleSignInRedirect = () => {
-    const returnUrl = `/enterprise/expert-services${preSelectedBundleId ? `?bundleId=${preSelectedBundleId}` : ''}`;
+    const returnUrl = `/elsa-plus/expert-services/valence-works${preSelectedBundleId ? `?bundleId=${preSelectedBundleId}` : ''}`;
     navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
   };
 
