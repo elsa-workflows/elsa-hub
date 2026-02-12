@@ -193,7 +193,7 @@ export default function ValenceWorks() {
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Elsa Workflows Expert Services
+              Valence Works
             </h1>
             <p className="text-xl text-muted-foreground mb-4">
               Direct access to the creator and core maintainer of Elsa Workflows.
