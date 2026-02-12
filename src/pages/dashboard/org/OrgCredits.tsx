@@ -141,7 +141,7 @@ export default function OrgCredits() {
         </div>
         {isAdmin && (
           <Button asChild>
-            <Link to="/enterprise/expert-services">
+            <Link to="/elsa-plus/expert-services">
               <ShoppingCart className="h-4 w-4 mr-2" />
               Purchase Credits
             </Link>

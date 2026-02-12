@@ -17,7 +17,8 @@ import ElsaStudio from "./pages/get-started/ElsaStudio";
 import ElsaServerAndStudio from "./pages/get-started/ElsaServerAndStudio";
 import Docker from "./pages/get-started/Docker";
 import ElsaPlus from "./pages/ElsaPlus";
-import ExpertServices from "./pages/enterprise/ExpertServices";
+import ExpertServicesProviders from "./pages/enterprise/ExpertServicesProviders";
+import ExpertServiceProvider from "./pages/enterprise/ExpertServiceProvider";
 import DockerImages from "./pages/enterprise/DockerImages";
 import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
@@ -78,7 +79,8 @@ const App = () => (
               <Route path="/get-started/elsa-studio" element={<ElsaStudio />} />
               <Route path="/get-started/elsa-server-and-studio" element={<ElsaServerAndStudio />} />
               <Route path="/elsa-plus" element={<ElsaPlus />} />
-              <Route path="/elsa-plus/expert-services" element={<ExpertServices />} />
+              <Route path="/elsa-plus/expert-services" element={<ExpertServicesProviders />} />
+              <Route path="/elsa-plus/expert-services/:slug" element={<ExpertServiceProvider />} />
               <Route path="/elsa-plus/production-docker" element={<DockerImages />} />
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />

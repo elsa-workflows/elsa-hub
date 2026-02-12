@@ -91,7 +91,7 @@ interface DialogConfig {
   successMessage: string;
 }
 
-export default function ExpertServices() {
+export default function ValenceWorks() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
@@ -175,7 +175,13 @@ export default function ExpertServices() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Expert Services</BreadcrumbPage>
+                <BreadcrumbLink asChild>
+                  <Link to="/elsa-plus/expert-services">Expert Services</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Valence Works</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -211,7 +217,6 @@ export default function ExpertServices() {
               Who This Service Is For
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-              {/* For */}
               <div>
                 <h3 className="text-lg font-semibold mb-6 text-foreground">
                   This service is intended for:
@@ -225,7 +230,6 @@ export default function ExpertServices() {
                   ))}
                 </ul>
               </div>
-              {/* Not for */}
               <div>
                 <h3 className="text-lg font-semibold mb-6 text-foreground">
                   This service is not intended for:
@@ -278,7 +282,6 @@ export default function ExpertServices() {
             </h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {/* Credit model */}
               <div>
                 <h3 className="text-xl font-semibold mb-6">Service Credits</h3>
                 <p className="text-muted-foreground mb-6">
@@ -299,13 +302,11 @@ export default function ExpertServices() {
                     <span>Credits valid for 24 months</span>
                   </li>
                 </ul>
-                {/* Phase 1: Availability disclaimer */}
                 <div className="mt-6">
                   <AvailabilityDisclaimer variant="compact" />
                 </div>
               </div>
               
-              {/* Engagement formats */}
               <div>
                 <h3 className="text-xl font-semibold mb-6">Engagement Formats</h3>
                 <p className="text-muted-foreground mb-6">
@@ -341,7 +342,7 @@ export default function ExpertServices() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
-                    const isPopular = index === 1; // Second bundle is "popular"
+                    const isPopular = index === 1;
                     return (
                       <Card
                         key={bundle.id}
@@ -511,7 +512,6 @@ export default function ExpertServices() {
             </h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {/* How we work */}
               <div>
                 <h3 className="text-xl font-semibold mb-6">How Engagements Typically Work</h3>
                 <ul className="space-y-4">
@@ -524,7 +524,6 @@ export default function ExpertServices() {
                 </ul>
               </div>
               
-              {/* Not included */}
               <div>
                 <h3 className="text-xl font-semibold mb-6">What's Not Included</h3>
                 <ul className="space-y-4">
