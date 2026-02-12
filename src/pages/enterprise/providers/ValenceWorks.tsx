@@ -350,7 +350,7 @@ export default function ValenceWorks() {
                         className={cn(
                           "relative overflow-visible transition-all cursor-pointer",
                           isPopular
-                            ? "border-primary shadow-lg md:-mt-2 md:mb-2 hover:shadow-xl"
+                            ? "border-primary shadow-lg hover:shadow-xl"
                             : "hover:shadow-md hover:border-primary/50"
                         )}
                       >
