@@ -69,7 +69,7 @@ export default function ExpertServicesProviders() {
       <section className="py-16 md:py-24">
         <div className="container">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-8">Available Providers</h2>
+            <h2 className="text-2xl font-bold mb-8">Providers</h2>
 
             {isLoading ? (
               <div className="space-y-4">
