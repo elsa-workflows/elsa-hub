@@ -340,7 +340,7 @@ export default function ValenceWorks() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
                     const isPopular = index === 1;
                     return (
@@ -350,7 +350,7 @@ export default function ValenceWorks() {
                         className={cn(
                           "relative overflow-visible transition-all cursor-pointer",
                           isPopular
-                            ? "border-primary shadow-lg md:-translate-y-2 hover:shadow-xl"
+                            ? "border-primary shadow-lg md:-mt-2 md:mb-2 hover:shadow-xl"
                             : "hover:shadow-md hover:border-primary/50"
                         )}
                       >
