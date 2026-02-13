@@ -112,9 +112,8 @@ export function IntroCallIntakeDialog({ open, onOpenChange }: IntroCallIntakeDia
 
     setIsSubmitting(true);
     try {
-      const { data: insertedRequest, error } = await supabase
-        .from("intro_call_requests")
-        .insert({
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("submit-intro-call", {
+        body: {
           full_name: fullName,
           company_name: companyName,
           email: email,
@@ -123,11 +122,11 @@ export function IntroCallIntakeDialog({ open, onOpenChange }: IntroCallIntakeDia
           discussion_topics: discussionTopics,
           interests: interests,
           user_id: user?.id || null,
-        })
-        .select("id")
-        .single();
+        },
+      });
 
-      if (error) throw error;
+      if (fnError) throw fnError;
+      const insertedRequest = fnData;
 
       // Trigger notification to provider admins (fire and forget)
       supabase.functions.invoke("create-notification", {
