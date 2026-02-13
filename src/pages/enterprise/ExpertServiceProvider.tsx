@@ -1,9 +1,9 @@
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 const ValenceWorks = lazy(() => import("./providers/ValenceWorks"));
 
@@ -34,5 +34,9 @@ export default function ExpertServiceProvider() {
     );
   }
 
-  return <ProviderPage />;
+  return (
+    <Suspense fallback={<Layout><div className="min-h-[50vh] flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></Layout>}>
+      <ProviderPage />
+    </Suspense>
+  );
 }
