@@ -123,10 +123,11 @@ export default function ValenceWorks() {
     setDialogConfig({ open: true, ...configs[type] });
   };
 
-  // Handle URL params on mount (payment status and bundleId for returning from login)
+  // Handle URL params on mount (payment status, bundleId, and introCall deeplinks)
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
     const bundleId = searchParams.get("bundleId");
+    const introCall = searchParams.get("introCall");
     
     if (paymentStatus === "cancelled") {
       toast.info("Payment cancelled", {
@@ -143,6 +144,14 @@ export default function ValenceWorks() {
       setPurchaseDialogOpen(true);
       setSearchParams((prev) => {
         prev.delete("bundleId");
+        return prev;
+      });
+    }
+
+    if (introCall === "true") {
+      setIntroCallDialogOpen(true);
+      setSearchParams((prev) => {
+        prev.delete("introCall");
         return prev;
       });
     }
