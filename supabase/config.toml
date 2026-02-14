@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.sync-mailerlite-subscribers]
 verify_jwt = false
+
+[functions.submit-intro-call]
+verify_jwt = false
