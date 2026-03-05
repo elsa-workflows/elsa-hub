@@ -34,7 +34,7 @@ export default function OrgSettings() {
     try {
       const { error } = await supabase
         .from("organizations")
-        .update({ contact_email: currentContactEmail || null } as any)
+        .update({ contact_email: currentContactEmail || null })
         .eq("id", organization.id);
       if (error) throw error;
       toast.success("Contact email updated");
