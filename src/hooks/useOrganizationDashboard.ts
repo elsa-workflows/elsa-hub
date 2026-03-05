@@ -46,6 +46,7 @@ export interface OrganizationDashboardData {
     name: string;
     slug: string;
     logo_url: string | null;
+    contact_email: string | null;
   } | null;
   creditBalances: CreditBalance[];
   orders: OrderWithBundle[];
