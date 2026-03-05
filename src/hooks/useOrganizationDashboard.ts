@@ -46,6 +46,7 @@ export interface OrganizationDashboardData {
     name: string;
     slug: string;
     logo_url: string | null;
+    contact_email: string | null;
   } | null;
   creditBalances: CreditBalance[];
   orders: OrderWithBundle[];
@@ -65,7 +66,7 @@ export function useOrganizationDashboard(slug: string | undefined) {
       if (!slug) return null;
       const { data, error } = await supabase
         .from("organizations")
-        .select("id, name, slug, logo_url")
+        .select("id, name, slug, logo_url, contact_email")
         .eq("slug", slug)
         .maybeSingle();
       

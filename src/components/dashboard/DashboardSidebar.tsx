@@ -14,6 +14,7 @@ import {
   Mail,
   FileText,
   Activity,
+  MessageSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ const orgNavItems = [
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Credits", icon: Coins, path: "credits" },
   { label: "Team", icon: Users, path: "team" },
+  { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Activity", icon: Activity, path: "activity" },
   { label: "Settings", icon: Settings, path: "settings" },
 ];
@@ -46,6 +48,7 @@ const providerNavItems = [
   { label: "Usage", icon: BarChart3, path: "usage" },
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Customers", icon: Building2, path: "customers" },
+  { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Work Logs", icon: Clock, path: "work-logs" },
   { label: "Bundles", icon: Package, path: "bundles" },
   { label: "Settings", icon: Settings, path: "settings" },

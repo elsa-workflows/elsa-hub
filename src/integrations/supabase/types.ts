@@ -71,6 +71,42 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          service_provider_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          service_provider_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          service_provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_bundles: {
         Row: {
           billing_type: Database["public"]["Enums"]["billing_type"]
@@ -519,6 +555,41 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_user_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_user_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -526,6 +597,7 @@ export type Database = {
           id: string
           newsletter_enabled: boolean
           notify_intro_call: boolean
+          notify_new_message: boolean
           notify_org_invitation: boolean
           notify_purchase: boolean
           notify_subscription: boolean
@@ -539,6 +611,7 @@ export type Database = {
           id?: string
           newsletter_enabled?: boolean
           notify_intro_call?: boolean
+          notify_new_message?: boolean
           notify_org_invitation?: boolean
           notify_purchase?: boolean
           notify_subscription?: boolean
@@ -552,6 +625,7 @@ export type Database = {
           id?: string
           newsletter_enabled?: boolean
           notify_intro_call?: boolean
+          notify_new_message?: boolean
           notify_org_invitation?: boolean
           notify_purchase?: boolean
           notify_subscription?: boolean
@@ -764,6 +838,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          contact_email: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -773,6 +848,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          contact_email?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -782,6 +858,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          contact_email?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -913,6 +990,7 @@ export type Database = {
           accepting_new_purchases: boolean
           availability_status: string | null
           capacity_threshold_percent: number | null
+          contact_email: string | null
           created_at: string
           enforce_capacity_gating: boolean
           enforce_consumption_caps: boolean
@@ -929,6 +1007,7 @@ export type Database = {
           accepting_new_purchases?: boolean
           availability_status?: string | null
           capacity_threshold_percent?: number | null
+          contact_email?: string | null
           created_at?: string
           enforce_capacity_gating?: boolean
           enforce_consumption_caps?: boolean
@@ -945,6 +1024,7 @@ export type Database = {
           accepting_new_purchases?: boolean
           availability_status?: string | null
           capacity_threshold_percent?: number | null
+          contact_email?: string | null
           created_at?: string
           enforce_capacity_gating?: boolean
           enforce_consumption_caps?: boolean
@@ -1323,6 +1403,10 @@ export type Database = {
           status: string
         }[]
       }
+      get_or_create_conversation: {
+        Args: { p_org_id: string; p_provider_id: string }
+        Returns: string
+      }
       get_org_audit_events: {
         Args: {
           p_entity_type?: string
@@ -1340,6 +1424,7 @@ export type Database = {
           summary: string
         }[]
       }
+      get_org_contact_email: { Args: { p_org_id: string }; Returns: string }
       get_provider_capacity_metrics: {
         Args: { p_provider_id: string }
         Returns: {
@@ -1349,6 +1434,10 @@ export type Database = {
           total_capacity: number
           utilization_percent: number
         }[]
+      }
+      get_provider_contact_email: {
+        Args: { p_provider_id: string }
+        Returns: string
       }
       get_user_provider_id: { Args: never; Returns: string }
       hash_invitation_token: { Args: { p_token: string }; Returns: string }
@@ -1390,6 +1479,7 @@ export type Database = {
         | "purchase_completed"
         | "subscription_renewed"
         | "intro_call_submitted"
+        | "new_message"
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
       provider_role: "owner" | "admin" | "member"
@@ -1546,6 +1636,7 @@ export const Constants = {
         "purchase_completed",
         "subscription_renewed",
         "intro_call_submitted",
+        "new_message",
       ],
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],

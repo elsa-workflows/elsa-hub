@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Settings, Users, Crown, ShieldCheck, User, ShoppingBag, AlertTriangle, Loader2 } from "lucide-react";
+import { Building2, Settings, Users, Crown, ShieldCheck, User, ShoppingBag, AlertTriangle, Loader2, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +26,58 @@ const roleLabels: Record<string, string> = {
   admin: "Admin",
   member: "Member",
 };
+
+function ContactEmailField({ providerId, currentValue, slug }: { providerId: string | undefined; currentValue: string; slug: string | undefined }) {
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const displayValue = contactEmail ?? currentValue;
+
+  const handleSave = async () => {
+    if (!providerId) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("service_providers")
+        .update({ contact_email: displayValue || null } as any)
+        .eq("id", providerId);
+      if (error) throw error;
+      toast.success("Contact email updated");
+      queryClient.invalidateQueries({ queryKey: ["provider", slug] });
+    } catch (err) {
+      console.error("Failed to update contact email:", err);
+      toast.error("Failed to update contact email");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 pt-2">
+      <Label htmlFor="provider-contact-email">Contact Email</Label>
+      <div className="flex gap-2">
+        <Input
+          id="provider-contact-email"
+          type="email"
+          placeholder="contact@yourprovider.com"
+          value={displayValue}
+          onChange={(e) => setContactEmail(e.target.value)}
+        />
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={isSaving || displayValue === currentValue}
+        >
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Visible to customer organizations. Falls back to owner's email if not set.
+      </p>
+    </div>
+  );
+}
 
 export default function ProviderSettings() {
   const { slug } = useParams<{ slug: string }>();
@@ -141,6 +194,13 @@ export default function ProviderSettings() {
                   <p className="text-sm text-muted-foreground">URL Slug</p>
                   <p className="font-medium font-mono text-sm">/{provider?.slug}</p>
                 </div>
+                {isAdmin && (
+                  <ContactEmailField
+                    providerId={provider?.id}
+                    currentValue={(provider as any)?.contact_email ?? ""}
+                    slug={slug}
+                  />
+                )}
               </>
             )}
           </CardContent>

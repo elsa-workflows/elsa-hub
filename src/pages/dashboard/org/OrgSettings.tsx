@@ -1,20 +1,51 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, AlertTriangle } from "lucide-react";
+import { Building2, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveOrganizationDialog, DeleteOrganizationDialog, BillingProfileCard } from "@/components/organization";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function OrgSettings() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { organization, teamMembers, isLoading, notFound, isAdmin } = useOrganizationDashboard(slug);
+  const queryClient = useQueryClient();
+
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
 
   // Find current user's role
   const currentMember = teamMembers.find(m => m.user_id === user?.id);
   const userRole = currentMember?.role || "member";
   const isOwner = userRole === "owner";
+
+  const currentContactEmail = contactEmail ?? organization?.contact_email ?? "";
+
+  const handleSaveContactEmail = async () => {
+    if (!organization?.id || !isAdmin) return;
+    setIsSavingEmail(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ contact_email: currentContactEmail || null })
+        .eq("id", organization.id);
+      if (error) throw error;
+      toast.success("Contact email updated");
+      queryClient.invalidateQueries({ queryKey: ["organization", slug] });
+    } catch (err) {
+      console.error("Failed to update contact email:", err);
+      toast.error("Failed to update contact email");
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
 
   if (notFound && !isLoading) {
     return (
@@ -63,6 +94,30 @@ export default function OrgSettings() {
                   <p className="text-sm text-muted-foreground">URL Slug</p>
                   <p className="font-medium font-mono text-sm">/{organization?.slug}</p>
                 </div>
+                {isAdmin && (
+                  <div className="space-y-2 pt-2">
+                    <Label htmlFor="contact-email">Contact Email</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        placeholder="contact@yourorg.com"
+                        value={currentContactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleSaveContactEmail}
+                        disabled={isSavingEmail || currentContactEmail === (organization?.contact_email ?? "")}
+                      >
+                        {isSavingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Visible to service providers. Falls back to owner's email if not set.
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </CardContent>

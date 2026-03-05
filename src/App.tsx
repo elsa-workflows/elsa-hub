@@ -50,6 +50,8 @@ import ProviderCustomers from "./pages/dashboard/provider/ProviderCustomers";
 import ProviderWorkLogs from "./pages/dashboard/provider/ProviderWorkLogs";
 import ProviderBundles from "./pages/dashboard/provider/ProviderBundles";
 import ProviderSettings from "./pages/dashboard/provider/ProviderSettings";
+import OrgMessages from "./pages/dashboard/org/OrgMessages";
+import ProviderMessages from "./pages/dashboard/provider/ProviderMessages";
 import AdminOverview from "./pages/dashboard/admin/AdminOverview";
 import AdminUsers from "./pages/dashboard/admin/AdminUsers";
 import AdminOrganizations from "./pages/dashboard/admin/AdminOrganizations";
@@ -111,6 +113,8 @@ const App = () => (
                 <Route path="org/:slug/team" element={<OrgTeam />} />
                 <Route path="org/:slug/activity" element={<OrgActivity />} />
                 <Route path="org/:slug/settings" element={<OrgSettings />} />
+                <Route path="org/:slug/messages" element={<OrgMessages />} />
+                <Route path="org/:slug/messages/:conversationId" element={<OrgMessages />} />
                 <Route path="provider/:slug" element={<ProviderOverview />} />
                 <Route path="provider/:slug/usage" element={<ProviderUsage />} />
                 <Route path="provider/:slug/orders" element={<ProviderOrders />} />
@@ -118,6 +122,8 @@ const App = () => (
                 <Route path="provider/:slug/work-logs" element={<ProviderWorkLogs />} />
                 <Route path="provider/:slug/bundles" element={<ProviderBundles />} />
                 <Route path="provider/:slug/settings" element={<ProviderSettings />} />
+                <Route path="provider/:slug/messages" element={<ProviderMessages />} />
+                <Route path="provider/:slug/messages/:conversationId" element={<ProviderMessages />} />
                 {/* Admin Routes */}
                 <Route path="admin" element={<AdminOverview />} />
                 <Route path="admin/users" element={<AdminUsers />} />
