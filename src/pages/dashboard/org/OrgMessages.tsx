@@ -80,10 +80,18 @@ export default function OrgMessages() {
       <Card className="flex h-[calc(100vh-220px)] min-h-[400px] overflow-hidden">
         {/* Conversation list */}
         <div className="w-80 border-r flex flex-col shrink-0">
-          <div className="p-3 border-b">
+          <div className="p-3 border-b flex items-center justify-between">
             <h3 className="font-medium text-sm text-muted-foreground">
               Conversations
             </h3>
+            {organization && (
+              <NewConversationDialog
+                contextType="org"
+                entityId={organization.id}
+                existingConversations={conversations || []}
+                onConversationCreated={handleConversationCreated}
+              />
+            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             <ConversationList
