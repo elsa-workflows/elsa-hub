@@ -26,7 +26,7 @@ export default function OrgSettings() {
   const userRole = currentMember?.role || "member";
   const isOwner = userRole === "owner";
 
-  const currentContactEmail = contactEmail ?? (organization as any)?.contact_email ?? "";
+  const currentContactEmail = contactEmail ?? organization?.contact_email ?? "";
 
   const handleSaveContactEmail = async () => {
     if (!organization?.id || !isAdmin) return;
