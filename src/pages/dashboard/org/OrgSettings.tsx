@@ -1,10 +1,16 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, AlertTriangle } from "lucide-react";
+import { Building2, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveOrganizationDialog, DeleteOrganizationDialog, BillingProfileCard } from "@/components/organization";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function OrgSettings() {
   const { slug } = useParams<{ slug: string }>();
