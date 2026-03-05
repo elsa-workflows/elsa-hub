@@ -122,6 +122,8 @@ const App = () => (
                 <Route path="provider/:slug/work-logs" element={<ProviderWorkLogs />} />
                 <Route path="provider/:slug/bundles" element={<ProviderBundles />} />
                 <Route path="provider/:slug/settings" element={<ProviderSettings />} />
+                <Route path="provider/:slug/messages" element={<ProviderMessages />} />
+                <Route path="provider/:slug/messages/:conversationId" element={<ProviderMessages />} />
                 {/* Admin Routes */}
                 <Route path="admin" element={<AdminOverview />} />
                 <Route path="admin/users" element={<AdminUsers />} />

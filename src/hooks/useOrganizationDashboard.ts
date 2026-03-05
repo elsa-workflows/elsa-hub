@@ -65,7 +65,7 @@ export function useOrganizationDashboard(slug: string | undefined) {
       if (!slug) return null;
       const { data, error } = await supabase
         .from("organizations")
-        .select("id, name, slug, logo_url")
+        .select("id, name, slug, logo_url, contact_email")
         .eq("slug", slug)
         .maybeSingle();
       

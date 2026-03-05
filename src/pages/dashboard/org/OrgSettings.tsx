@@ -94,6 +94,30 @@ export default function OrgSettings() {
                   <p className="text-sm text-muted-foreground">URL Slug</p>
                   <p className="font-medium font-mono text-sm">/{organization?.slug}</p>
                 </div>
+                {isAdmin && (
+                  <div className="space-y-2 pt-2">
+                    <Label htmlFor="contact-email">Contact Email</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        placeholder="contact@yourorg.com"
+                        value={currentContactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleSaveContactEmail}
+                        disabled={isSavingEmail || currentContactEmail === ((organization as any)?.contact_email ?? "")}
+                      >
+                        {isSavingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Visible to service providers. Falls back to owner's email if not set.
+                    </p>
+                  </div>
+                )}
               </>
             )}
           </CardContent>

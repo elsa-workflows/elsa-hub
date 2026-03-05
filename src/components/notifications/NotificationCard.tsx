@@ -39,6 +39,8 @@ function getNotificationIcon(type: string) {
       return <RefreshCw className="h-4 w-4 text-primary/80" />;
     case "intro_call_submitted":
       return <Phone className="h-4 w-4 text-primary" />;
+    case "new_message":
+      return <MessageSquare className="h-4 w-4 text-primary" />;
     default:
       return <Clock className="h-4 w-4 text-muted-foreground" />;
   }
