@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { useConversations, type ConversationSummary } from "@/hooks/useConversations";
@@ -9,12 +10,14 @@ import {
   ConversationList,
   ConversationThread,
   MessageInput,
+  NewConversationDialog,
 } from "@/components/messaging";
 
 export default function OrgMessages() {
   const { slug } = useParams<{ slug: string }>();
   const { organization, isLoading: orgLoading } = useOrganizationDashboard(slug);
   const [selectedConv, setSelectedConv] = useState<ConversationSummary | null>(null);
+  const queryClient = useQueryClient();
 
   const {
     data: conversations,
@@ -48,6 +51,14 @@ export default function OrgMessages() {
     [markAsRead]
   );
 
+  const handleConversationCreated = useCallback(
+    (conv: ConversationSummary) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setSelectedConv(conv);
+    },
+    [queryClient]
+  );
+
   if (orgLoading) {
     return (
       <div className="p-6">
@@ -69,10 +80,18 @@ export default function OrgMessages() {
       <Card className="flex h-[calc(100vh-220px)] min-h-[400px] overflow-hidden">
         {/* Conversation list */}
         <div className="w-80 border-r flex flex-col shrink-0">
-          <div className="p-3 border-b">
+          <div className="p-3 border-b flex items-center justify-between">
             <h3 className="font-medium text-sm text-muted-foreground">
               Conversations
             </h3>
+            {organization && (
+              <NewConversationDialog
+                contextType="org"
+                entityId={organization.id}
+                existingConversations={conversations || []}
+                onConversationCreated={handleConversationCreated}
+              />
+            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             <ConversationList
