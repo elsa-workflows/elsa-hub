@@ -51,6 +51,14 @@ export default function OrgMessages() {
     [markAsRead]
   );
 
+  const handleConversationCreated = useCallback(
+    (conv: ConversationSummary) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setSelectedConv(conv);
+    },
+    [queryClient]
+  );
+
   if (orgLoading) {
     return (
       <div className="p-6">
