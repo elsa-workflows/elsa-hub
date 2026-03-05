@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
 import { useConversations, type ConversationSummary } from "@/hooks/useConversations";
@@ -16,6 +17,7 @@ export default function ProviderMessages() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, isLoading: provLoading } = useProviderDashboard(slug);
   const [selectedConv, setSelectedConv] = useState<ConversationSummary | null>(null);
+  const queryClient = useQueryClient();
 
   const {
     data: conversations,

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { useConversations, type ConversationSummary } from "@/hooks/useConversations";
@@ -16,6 +17,7 @@ export default function OrgMessages() {
   const { slug } = useParams<{ slug: string }>();
   const { organization, isLoading: orgLoading } = useOrganizationDashboard(slug);
   const [selectedConv, setSelectedConv] = useState<ConversationSummary | null>(null);
+  const queryClient = useQueryClient();
 
   const {
     data: conversations,
