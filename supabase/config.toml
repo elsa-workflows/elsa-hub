@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.send-message-notification]
 verify_jwt = false
+
+[functions.send-work-notification]
+verify_jwt = false
