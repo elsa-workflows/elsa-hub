@@ -9,6 +9,7 @@ import {
   ConversationList,
   ConversationThread,
   MessageInput,
+  NewConversationDialog,
 } from "@/components/messaging";
 
 export default function OrgMessages() {
