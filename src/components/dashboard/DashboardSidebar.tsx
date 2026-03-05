@@ -14,6 +14,7 @@ import {
   Mail,
   FileText,
   Activity,
+  MessageSquare,
 } from "lucide-react";
 import {
   Sidebar,
