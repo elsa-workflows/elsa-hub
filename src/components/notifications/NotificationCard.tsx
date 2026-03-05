@@ -5,6 +5,7 @@ import {
   ShoppingCart, 
   RefreshCw, 
   Phone,
+  MessageSquare,
   X,
   Check,
   ExternalLink
