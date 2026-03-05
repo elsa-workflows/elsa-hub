@@ -108,7 +108,7 @@ export default function OrgSettings() {
                       <Button
                         size="sm"
                         onClick={handleSaveContactEmail}
-                        disabled={isSavingEmail || currentContactEmail === ((organization as any)?.contact_email ?? "")}
+                        disabled={isSavingEmail || currentContactEmail === (organization?.contact_email ?? "")}
                       >
                         {isSavingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
                       </Button>
