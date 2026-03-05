@@ -16,11 +16,36 @@ export default function OrgSettings() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { organization, teamMembers, isLoading, notFound, isAdmin } = useOrganizationDashboard(slug);
+  const queryClient = useQueryClient();
+
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
 
   // Find current user's role
   const currentMember = teamMembers.find(m => m.user_id === user?.id);
   const userRole = currentMember?.role || "member";
   const isOwner = userRole === "owner";
+
+  const currentContactEmail = contactEmail ?? (organization as any)?.contact_email ?? "";
+
+  const handleSaveContactEmail = async () => {
+    if (!organization?.id || !isAdmin) return;
+    setIsSavingEmail(true);
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({ contact_email: currentContactEmail || null } as any)
+        .eq("id", organization.id);
+      if (error) throw error;
+      toast.success("Contact email updated");
+      queryClient.invalidateQueries({ queryKey: ["organization", slug] });
+    } catch (err) {
+      console.error("Failed to update contact email:", err);
+      toast.error("Failed to update contact email");
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
 
   if (notFound && !isLoading) {
     return (
