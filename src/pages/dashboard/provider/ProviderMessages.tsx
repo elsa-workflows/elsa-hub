@@ -51,6 +51,14 @@ export default function ProviderMessages() {
     [markAsRead]
   );
 
+  const handleConversationCreated = useCallback(
+    (conv: ConversationSummary) => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      setSelectedConv(conv);
+    },
+    [queryClient]
+  );
+
   if (provLoading) {
     return (
       <div className="p-6">
