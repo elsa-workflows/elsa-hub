@@ -38,6 +38,7 @@ const orgNavItems = [
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Credits", icon: Coins, path: "credits" },
   { label: "Team", icon: Users, path: "team" },
+  { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Activity", icon: Activity, path: "activity" },
   { label: "Settings", icon: Settings, path: "settings" },
 ];
