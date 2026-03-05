@@ -141,6 +141,13 @@ export default function ProviderSettings() {
                   <p className="text-sm text-muted-foreground">URL Slug</p>
                   <p className="font-medium font-mono text-sm">/{provider?.slug}</p>
                 </div>
+                {isAdmin && (
+                  <ContactEmailField
+                    providerId={provider?.id}
+                    currentValue={(provider as any)?.contact_email ?? ""}
+                    slug={slug}
+                  />
+                )}
               </>
             )}
           </CardContent>
