@@ -50,6 +50,8 @@ import ProviderCustomers from "./pages/dashboard/provider/ProviderCustomers";
 import ProviderWorkLogs from "./pages/dashboard/provider/ProviderWorkLogs";
 import ProviderBundles from "./pages/dashboard/provider/ProviderBundles";
 import ProviderSettings from "./pages/dashboard/provider/ProviderSettings";
+import OrgMessages from "./pages/dashboard/org/OrgMessages";
+import ProviderMessages from "./pages/dashboard/provider/ProviderMessages";
 import AdminOverview from "./pages/dashboard/admin/AdminOverview";
 import AdminUsers from "./pages/dashboard/admin/AdminUsers";
 import AdminOrganizations from "./pages/dashboard/admin/AdminOrganizations";
