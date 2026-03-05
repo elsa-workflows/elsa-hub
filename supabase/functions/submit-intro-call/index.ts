@@ -22,10 +22,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data, error } = await supabaseAdmin
       .from("intro_call_requests")
@@ -48,6 +48,39 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Trigger notification to provider admins (server-side, using service role)
+    try {
+      const notifResponse = await fetch(
+        `${supabaseUrl}/functions/v1/create-notification`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            recipientUserIds: [], // Will be auto-populated by create-notification for intro_call_submitted
+            type: "intro_call_submitted",
+            title: "New Intro Call Request",
+            message: `${full_name} from ${company_name} submitted an intro call request`,
+            payload: {
+              request_id: data.id,
+              company_name,
+              full_name,
+              email,
+              project_stage,
+            },
+            actionUrl: "/dashboard/provider/valence-works/customers",
+          }),
+        }
+      );
+      const notifResult = await notifResponse.json();
+      console.log("Intro call notification result:", notifResult);
+    } catch (notifErr) {
+      console.error("Failed to send intro call notification:", notifErr);
+      // Don't fail the main operation
     }
 
     return new Response(

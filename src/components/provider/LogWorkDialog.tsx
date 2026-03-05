@@ -129,20 +129,16 @@ export function LogWorkDialog({
 
       if (error) throw error;
 
-      // Send notification to org members (fire and forget)
+      // Send notification to org members via authenticated edge function (fire and forget)
       const customer = customers.find(c => c.organization_id === values.customerId);
-      supabase.functions.invoke("create-notification", {
+      supabase.functions.invoke("send-work-notification", {
         body: {
-          type: "work_logged",
-          recipientUserIds: [], // Will be auto-populated by backend based on org members
-          title: "Work Logged",
-          message: `${values.hours}h ${values.minutes}m of ${workCategories.find(c => c.value === values.category)?.label || values.category} work was logged`,
-          payload: {
-            provider_name: providerName,
-            category: workCategories.find(c => c.value === values.category)?.label || values.category,
-            description: values.description.trim(),
-            minutes: totalMinutes,
-          },
+          organizationId: values.customerId,
+          providerId: providerId,
+          providerName: providerName,
+          category: workCategories.find(c => c.value === values.category)?.label || values.category,
+          description: values.description.trim(),
+          minutes: totalMinutes,
           actionUrl: customer ? `/dashboard/org/${customer.organization_id}/credits` : undefined,
         },
       }).catch((err) => {

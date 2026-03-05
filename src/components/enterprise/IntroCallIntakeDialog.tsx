@@ -128,25 +128,7 @@ export function IntroCallIntakeDialog({ open, onOpenChange }: IntroCallIntakeDia
       if (fnError) throw fnError;
       const insertedRequest = fnData;
 
-      // Trigger notification to provider admins (fire and forget)
-      supabase.functions.invoke("create-notification", {
-        body: {
-          recipientUserIds: [], // Will be populated by edge function based on provider
-          type: "intro_call_submitted",
-          title: "New Intro Call Request",
-          message: `${fullName} from ${companyName} submitted an intro call request`,
-          payload: {
-            request_id: insertedRequest?.id,
-            company_name: companyName,
-            full_name: fullName,
-            email: email,
-            project_stage: projectStage,
-          },
-          actionUrl: "/dashboard/provider/valence-works/customers",
-        },
-      }).catch((err) => {
-        console.error("Failed to send intro call notification:", err);
-      });
+      // Notification is now triggered server-side by submit-intro-call edge function
 
       setIsSubmitted(true);
     } catch (err: unknown) {
