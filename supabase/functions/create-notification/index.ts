@@ -14,7 +14,8 @@ type NotificationType =
   | "work_logged"
   | "purchase_completed"
   | "subscription_renewed"
-  | "intro_call_submitted";
+  | "intro_call_submitted"
+  | "new_message";
 
 interface CreateNotificationRequest {
   recipientUserIds: string[];
