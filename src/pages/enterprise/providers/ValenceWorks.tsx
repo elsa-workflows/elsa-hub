@@ -95,7 +95,7 @@ export default function ValenceWorks() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
-  const [introCallDialogOpen, setIntroCallDialogOpen] = useState(false);
+  
   const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
     open: false,
     title: "",
