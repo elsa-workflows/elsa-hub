@@ -989,6 +989,7 @@ export type Database = {
         Row: {
           accepting_new_purchases: boolean
           availability_status: string | null
+          booking_url: string | null
           capacity_threshold_percent: number | null
           contact_email: string | null
           created_at: string
@@ -1006,6 +1007,7 @@ export type Database = {
         Insert: {
           accepting_new_purchases?: boolean
           availability_status?: string | null
+          booking_url?: string | null
           capacity_threshold_percent?: number | null
           contact_email?: string | null
           created_at?: string
@@ -1023,6 +1025,7 @@ export type Database = {
         Update: {
           accepting_new_purchases?: boolean
           availability_status?: string | null
+          booking_url?: string | null
           capacity_threshold_percent?: number | null
           contact_email?: string | null
           created_at?: string

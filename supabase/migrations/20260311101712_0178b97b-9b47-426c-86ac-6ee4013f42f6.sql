@@ -1,0 +1,1 @@
+ALTER TABLE public.service_providers ADD COLUMN booking_url text;
