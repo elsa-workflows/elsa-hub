@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer, AvailabilityStatusBadge } from "@/components/enterprise";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Loader2, Headphones } from "lucide-react";
+import { ArrowRight, Loader2, Headphones, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ExpertServicesProviders() {
