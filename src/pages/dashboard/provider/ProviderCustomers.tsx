@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
-import { useIntroCallRequests } from "@/hooks/useIntroCallRequests";
-import { IntroCallRequestsCard } from "@/components/provider/IntroCallRequestsCard";
 
 function minutesToHours(minutes: number): string {
   const hours = minutes / 60;
