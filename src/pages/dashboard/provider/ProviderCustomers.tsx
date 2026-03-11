@@ -62,21 +62,6 @@ export default function ProviderCustomers() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Pending Intro Calls
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {introCallsLoading ? (
-              <div className="h-8 bg-muted/50 animate-pulse rounded w-16" />
-            ) : (
-              <p className="text-3xl font-bold text-primary">{pendingIntroCallsCount}</p>
-            )}
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="pb-2">
