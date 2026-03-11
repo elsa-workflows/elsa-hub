@@ -1,24 +1,38 @@
 
 
-## Fix: Growth Pack Card Bottom Misalignment
+# Plan: Add Booking URL to Service Providers
 
-### Problem
-The "Popular" Growth Pack card uses `md:-translate-y-2` to visually elevate it, but this causes its bottom edge to sit higher than the other cards, creating a visible misalignment at the bottom of the row. The CSS `translate` only moves the card visually without affecting the grid layout, so the other cards don't adjust.
+## Database
 
-### Solution
-Add `items-end` to the grid container so all cards align at their bottom edges. This way, the Growth Pack still "pops up" visually but its bottom edge stays aligned with the other cards.
+Add `booking_url text` column to `service_providers`.
 
-### File Change
-**`src/pages/enterprise/providers/ValenceWorks.tsx`** (line 343)
-
-Change:
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-```
-To:
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+```sql
+ALTER TABLE service_providers ADD COLUMN booking_url text;
 ```
 
-This single class addition ensures all four cards share a common bottom edge while the Growth Pack still extends upward with its `-translate-y-2` and "Popular" badge.
+Then set the value for Valence Works: `UPDATE service_providers SET booking_url = 'https://tidycal.com/valenceworks' WHERE slug = 'valence-works';`
+
+## UI Changes
+
+### Provider Settings (`ProviderSettings.tsx`)
+Add an editable "Booking URL" input field below the Contact Email field (admin-only), same pattern as `ContactEmailField`.
+
+### Public Provider Page (`ValenceWorks.tsx`)
+Show a "Book a Call" button linking to the booking URL (opens in new tab). Only render if `booking_url` is set.
+
+### Expert Services Listing (`ExpertServicesProviders.tsx`)
+Optionally show a small "Book" link/button on each provider card if `booking_url` is present.
+
+### Customer Dashboard
+Add a "Book a Call" button in the org's provider-facing views (e.g. `OrgOverview.tsx` or `OrgCredits.tsx`) that links to the provider's booking URL.
+
+## Files
+
+| Action | File |
+|--------|------|
+| Migrate | Add `booking_url` column + seed Valence Works value |
+| Modify | `src/pages/dashboard/provider/ProviderSettings.tsx` — add booking URL input |
+| Modify | `src/pages/enterprise/providers/ValenceWorks.tsx` — add Book a Call button |
+| Modify | `src/pages/enterprise/ExpertServicesProviders.tsx` — optional booking link on cards |
+| Modify | `src/integrations/supabase/types.ts` — will auto-update |
 
