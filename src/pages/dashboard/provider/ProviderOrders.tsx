@@ -213,6 +213,7 @@ export default function ProviderOrders() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Order #</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Bundle</TableHead>
