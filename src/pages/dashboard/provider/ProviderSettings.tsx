@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
+import { ProviderLogoUpload } from "@/components/provider/ProviderLogoUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -246,6 +247,13 @@ export default function ProviderSettings() {
                   <p className="text-sm text-muted-foreground">URL Slug</p>
                   <p className="font-medium font-mono text-sm">/{provider?.slug}</p>
                 </div>
+                {isAdmin && provider?.id && (
+                  <ProviderLogoUpload
+                    providerId={provider.id}
+                    currentLogoUrl={provider.logo_url}
+                    slug={slug}
+                  />
+                )}
                 {isAdmin && (
                   <ContactEmailField
                     providerId={provider?.id}
