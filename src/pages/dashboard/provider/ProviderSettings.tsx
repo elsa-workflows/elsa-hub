@@ -253,6 +253,13 @@ export default function ProviderSettings() {
                     slug={slug}
                   />
                 )}
+                {isAdmin && (
+                  <BookingUrlField
+                    providerId={provider?.id}
+                    currentValue={(provider as any)?.booking_url ?? ""}
+                    slug={slug}
+                  />
+                )}
               </>
             )}
           </CardContent>

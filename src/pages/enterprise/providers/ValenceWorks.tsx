@@ -211,9 +211,19 @@ export default function ValenceWorks() {
               Get focused, senior-level guidance to design, extend, and operate Elsa Workflows 
               in real-world systems. Whether you need architectural clarity, hands-on pairing, 
               or help unblocking production issues,{" "}
-              <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
+               <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
               provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
             </p>
+            <div className="mt-8">
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={() => window.open("https://tidycal.com/valenceworks", "_blank", "noopener,noreferrer")}
+              >
+                <Calendar className="h-4 w-4" />
+                Book a Call
+              </Button>
+            </div>
           </div>
         </div>
       </section>
