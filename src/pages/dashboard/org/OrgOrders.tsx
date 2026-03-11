@@ -204,6 +204,11 @@ export default function OrgOrders() {
                 {filteredPurchases.map((purchase) => (
                   <TableRow key={purchase.id}>
                     <TableCell>
+                      <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                        {purchase.id.slice(0, 8).toUpperCase()}
+                      </code>
+                    </TableCell>
+                    <TableCell>
                       {format(new Date(purchase.created_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell>
