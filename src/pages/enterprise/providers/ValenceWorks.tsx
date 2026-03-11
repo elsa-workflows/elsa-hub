@@ -27,7 +27,7 @@ import {
   Users,
   Search,
   Clock,
-  Calendar,
+  Calendar as CalendarIcon,
   Zap,
   AlertTriangle,
   CreditCard,
