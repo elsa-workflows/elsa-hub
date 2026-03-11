@@ -213,6 +213,7 @@ export default function ProviderOrders() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Order #</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Bundle</TableHead>
@@ -225,6 +226,11 @@ export default function ProviderOrders() {
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
+                      <TableCell>
+                        <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                          {order.id.slice(0, 8).toUpperCase()}
+                        </code>
+                      </TableCell>
                       <TableCell>
                         <Tooltip>
                           <TooltipTrigger asChild>
