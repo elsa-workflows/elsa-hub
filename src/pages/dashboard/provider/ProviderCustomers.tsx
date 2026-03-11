@@ -15,9 +15,6 @@ function minutesToHours(minutes: number): string {
 export default function ProviderCustomers() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, customers, isLoading, notFound } = useProviderDashboard(slug);
-  const { requests: introCallRequests, isLoading: introCallsLoading } = useIntroCallRequests();
-  
-  const pendingIntroCallsCount = introCallRequests.filter(r => r.status === "pending").length;
 
   if (notFound && !isLoading) {
     return (
