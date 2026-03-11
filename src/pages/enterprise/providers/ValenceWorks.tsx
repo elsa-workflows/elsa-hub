@@ -149,7 +149,7 @@ export default function ValenceWorks() {
     }
 
     if (introCall === "true") {
-      setIntroCallDialogOpen(true);
+      window.open("https://tidycal.com/valenceworks/30-minute-intro-call", "_blank");
       setSearchParams((prev) => {
         prev.delete("introCall");
         return prev;
