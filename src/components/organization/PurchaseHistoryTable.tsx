@@ -120,6 +120,7 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Order #</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Bundle</TableHead>
                 <TableHead>Amount</TableHead>
