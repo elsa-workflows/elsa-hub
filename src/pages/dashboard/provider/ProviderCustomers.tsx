@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { Building2, Users, Clock, TrendingUp, Phone } from "lucide-react";
+import { Building2, Users, Clock, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
