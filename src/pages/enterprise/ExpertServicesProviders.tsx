@@ -21,7 +21,7 @@ export default function ExpertServicesProviders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_providers")
-        .select("id, name, slug, logo_url, availability_status, estimated_lead_time_days")
+        .select("id, name, slug, logo_url, availability_status, estimated_lead_time_days, booking_url")
         .order("name");
 
       if (error) throw error;
