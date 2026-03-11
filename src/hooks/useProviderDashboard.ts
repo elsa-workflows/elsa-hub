@@ -66,7 +66,7 @@ export function useProviderDashboard(slug: string | undefined) {
       if (!slug) return null;
       const { data, error } = await supabase
         .from("service_providers")
-        .select("id, name, slug, logo_url, accepting_new_purchases, purchase_pause_message, availability_status, estimated_lead_time_days, enforce_consumption_caps, total_available_minutes_per_month, capacity_threshold_percent, enforce_capacity_gating, contact_email")
+        .select("id, name, slug, logo_url, accepting_new_purchases, purchase_pause_message, availability_status, estimated_lead_time_days, enforce_consumption_caps, total_available_minutes_per_month, capacity_threshold_percent, enforce_capacity_gating, contact_email, booking_url")
         .eq("slug", slug)
         .maybeSingle();
       
