@@ -622,11 +622,6 @@ export default function ValenceWorks() {
         preSelectedBundleId={selectedBundleId}
       />
 
-      {/* Intro Call Intake Dialog */}
-      <IntroCallIntakeDialog
-        open={introCallDialogOpen}
-        onOpenChange={setIntroCallDialogOpen}
-      />
 
       {/* Newsletter Dialog */}
       <NewsletterSubscribeDialog

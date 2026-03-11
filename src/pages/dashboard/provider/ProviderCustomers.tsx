@@ -111,8 +111,6 @@ export default function ProviderCustomers() {
         </Card>
       </div>
 
-      {/* Intro Call Requests */}
-      <IntroCallRequestsCard />
 
       {/* Customers Table */}
       <Card>
