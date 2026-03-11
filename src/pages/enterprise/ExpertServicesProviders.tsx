@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer, AvailabilityStatusBadge } from "@/components/enterprise";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Loader2, Headphones } from "lucide-react";
+import { ArrowRight, Loader2, Headphones, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ExpertServicesProviders() {
@@ -21,7 +22,7 @@ export default function ExpertServicesProviders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_providers")
-        .select("id, name, slug, logo_url, availability_status, estimated_lead_time_days")
+        .select("id, name, slug, logo_url, availability_status, estimated_lead_time_days, booking_url")
         .order("name");
 
       if (error) throw error;
@@ -123,6 +124,20 @@ export default function ExpertServicesProviders() {
                               Expert advisory and engineering services for Elsa Workflows
                             </p>
                           </div>
+                          {(provider as any).booking_url && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="shrink-0 gap-1.5"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                window.open((provider as any).booking_url, "_blank", "noopener,noreferrer");
+                              }}
+                            >
+                              <Calendar className="h-3.5 w-3.5" />
+                              Book
+                            </Button>
+                          )}
                           <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                         </div>
                       </CardContent>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Settings, Users, Crown, ShieldCheck, User, ShoppingBag, AlertTriangle, Loader2, Mail } from "lucide-react";
+import { Building2, Settings, Users, Crown, ShieldCheck, User, ShoppingBag, AlertTriangle, Loader2, Mail, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +74,58 @@ function ContactEmailField({ providerId, currentValue, slug }: { providerId: str
       </div>
       <p className="text-xs text-muted-foreground">
         Visible to customer organizations. Falls back to owner's email if not set.
+      </p>
+    </div>
+  );
+}
+
+function BookingUrlField({ providerId, currentValue, slug }: { providerId: string | undefined; currentValue: string; slug: string | undefined }) {
+  const [bookingUrl, setBookingUrl] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const displayValue = bookingUrl ?? currentValue;
+
+  const handleSave = async () => {
+    if (!providerId) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("service_providers")
+        .update({ booking_url: displayValue || null } as any)
+        .eq("id", providerId);
+      if (error) throw error;
+      toast.success("Booking URL updated");
+      queryClient.invalidateQueries({ queryKey: ["provider", slug] });
+    } catch (err) {
+      console.error("Failed to update booking URL:", err);
+      toast.error("Failed to update booking URL");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 pt-2">
+      <Label htmlFor="provider-booking-url">Booking URL</Label>
+      <div className="flex gap-2">
+        <Input
+          id="provider-booking-url"
+          type="url"
+          placeholder="https://tidycal.com/yourprovider"
+          value={displayValue}
+          onChange={(e) => setBookingUrl(e.target.value)}
+        />
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={isSaving || displayValue === currentValue}
+        >
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Shown as a "Book a Call" button on your public profile and customer dashboards.
       </p>
     </div>
   );
@@ -198,6 +250,13 @@ export default function ProviderSettings() {
                   <ContactEmailField
                     providerId={provider?.id}
                     currentValue={(provider as any)?.contact_email ?? ""}
+                    slug={slug}
+                  />
+                )}
+                {isAdmin && (
+                  <BookingUrlField
+                    providerId={provider?.id}
+                    currentValue={(provider as any)?.booking_url ?? ""}
                     slug={slug}
                   />
                 )}
