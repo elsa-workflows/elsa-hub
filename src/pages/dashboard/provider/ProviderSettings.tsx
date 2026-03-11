@@ -79,6 +79,58 @@ function ContactEmailField({ providerId, currentValue, slug }: { providerId: str
   );
 }
 
+function BookingUrlField({ providerId, currentValue, slug }: { providerId: string | undefined; currentValue: string; slug: string | undefined }) {
+  const [bookingUrl, setBookingUrl] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const displayValue = bookingUrl ?? currentValue;
+
+  const handleSave = async () => {
+    if (!providerId) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("service_providers")
+        .update({ booking_url: displayValue || null } as any)
+        .eq("id", providerId);
+      if (error) throw error;
+      toast.success("Booking URL updated");
+      queryClient.invalidateQueries({ queryKey: ["provider", slug] });
+    } catch (err) {
+      console.error("Failed to update booking URL:", err);
+      toast.error("Failed to update booking URL");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 pt-2">
+      <Label htmlFor="provider-booking-url">Booking URL</Label>
+      <div className="flex gap-2">
+        <Input
+          id="provider-booking-url"
+          type="url"
+          placeholder="https://tidycal.com/yourprovider"
+          value={displayValue}
+          onChange={(e) => setBookingUrl(e.target.value)}
+        />
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={isSaving || displayValue === currentValue}
+        >
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Shown as a "Book a Call" button on your public profile and customer dashboards.
+      </p>
+    </div>
+  );
+}
+
 export default function ProviderSettings() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, teamMembers, isLoading, notFound, isAdmin } = useProviderDashboard(slug);
