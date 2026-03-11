@@ -508,11 +508,13 @@ export default function ValenceWorks() {
 
             <Button 
               size="lg" 
-              onClick={() => setIntroCallDialogOpen(true)}
+              asChild
               className="gap-2"
             >
-              <Phone className="h-4 w-4" />
-              Book a 30-Minute Intro Call
+              <a href="https://tidycal.com/valenceworks/30-minute-intro-call" target="_blank" rel="noopener noreferrer">
+                <Phone className="h-4 w-4" />
+                Book a 30-Minute Intro Call
+              </a>
             </Button>
             
             <p className="text-xs text-muted-foreground mt-4">
