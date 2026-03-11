@@ -1,0 +1,1 @@
+UPDATE service_providers SET booking_url = 'https://tidycal.com/valenceworks' WHERE slug = 'valence-works';
