@@ -1,13 +1,11 @@
 import { useParams, Link } from "react-router-dom";
-import { Building2, Users, Clock, TrendingUp, Phone } from "lucide-react";
+import { Building2, Users, Clock, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
-import { useIntroCallRequests } from "@/hooks/useIntroCallRequests";
-import { IntroCallRequestsCard } from "@/components/provider/IntroCallRequestsCard";
 
 function minutesToHours(minutes: number): string {
   const hours = minutes / 60;
@@ -17,9 +15,6 @@ function minutesToHours(minutes: number): string {
 export default function ProviderCustomers() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, customers, isLoading, notFound } = useProviderDashboard(slug);
-  const { requests: introCallRequests, isLoading: introCallsLoading } = useIntroCallRequests();
-  
-  const pendingIntroCallsCount = introCallRequests.filter(r => r.status === "pending").length;
 
   if (notFound && !isLoading) {
     return (
@@ -67,21 +62,6 @@ export default function ProviderCustomers() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Pending Intro Calls
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {introCallsLoading ? (
-              <div className="h-8 bg-muted/50 animate-pulse rounded w-16" />
-            ) : (
-              <p className="text-3xl font-bold text-primary">{pendingIntroCallsCount}</p>
-            )}
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="pb-2">
@@ -116,8 +96,6 @@ export default function ProviderCustomers() {
         </Card>
       </div>
 
-      {/* Intro Call Requests */}
-      <IntroCallRequestsCard />
 
       {/* Customers Table */}
       <Card>

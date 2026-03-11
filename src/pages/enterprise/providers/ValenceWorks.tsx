@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer, AvailabilityDisclaimer } from "@/components/enterprise";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
-import { IntroCallIntakeDialog } from "@/components/enterprise/IntroCallIntakeDialog";
+
 import { NewsletterSubscribeDialog } from "@/components/newsletter";
 import { useCreditBundles } from "@/hooks/useCreditBundles";
 import { toast } from "sonner";
@@ -95,7 +95,7 @@ export default function ValenceWorks() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
-  const [introCallDialogOpen, setIntroCallDialogOpen] = useState(false);
+  
   const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
     open: false,
     title: "",
@@ -149,7 +149,7 @@ export default function ValenceWorks() {
     }
 
     if (introCall === "true") {
-      setIntroCallDialogOpen(true);
+      window.open("https://tidycal.com/valenceworks/30-minute-intro-call", "_blank");
       setSearchParams((prev) => {
         prev.delete("introCall");
         return prev;
@@ -508,11 +508,13 @@ export default function ValenceWorks() {
 
             <Button 
               size="lg" 
-              onClick={() => setIntroCallDialogOpen(true)}
+              asChild
               className="gap-2"
             >
-              <Phone className="h-4 w-4" />
-              Book a 30-Minute Intro Call
+              <a href="https://tidycal.com/valenceworks/30-minute-intro-call" target="_blank" rel="noopener noreferrer">
+                <Phone className="h-4 w-4" />
+                Book a 30-Minute Intro Call
+              </a>
             </Button>
             
             <p className="text-xs text-muted-foreground mt-4">
@@ -620,11 +622,6 @@ export default function ValenceWorks() {
         preSelectedBundleId={selectedBundleId}
       />
 
-      {/* Intro Call Intake Dialog */}
-      <IntroCallIntakeDialog
-        open={introCallDialogOpen}
-        onOpenChange={setIntroCallDialogOpen}
-      />
 
       {/* Newsletter Dialog */}
       <NewsletterSubscribeDialog

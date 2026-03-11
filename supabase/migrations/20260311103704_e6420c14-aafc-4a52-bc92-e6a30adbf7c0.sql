@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS public.intro_call_requests;
