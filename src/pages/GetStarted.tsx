@@ -13,6 +13,7 @@ import {
   Code2,
 } from "lucide-react";
 import { GuideCard, PathCard } from "@/components/get-started";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 const paths = [
   {
@@ -113,16 +114,20 @@ export default function GetStarted() {
       {/* Choose Your Path */}
       <section className="py-16 md:py-20">
         <div className="container">
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-4">Choose Your Path</h2>
-            <p className="text-muted-foreground max-w-2xl">
-              Just want to explore? Try our Docker containers. Ready to build? Create your own project from scratch.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="mb-12">
+              <h2 className="text-2xl font-bold mb-4">Choose Your Path</h2>
+              <p className="text-muted-foreground max-w-2xl">
+                Just want to explore? Try our Docker containers. Ready to build? Create your own project from scratch.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
-            {paths.map((path) => (
-              <PathCard key={path.title} {...path} />
+            {paths.map((path, index) => (
+              <ScrollReveal key={path.title} delay={index * 100}>
+                <PathCard {...path} />
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -131,16 +136,20 @@ export default function GetStarted() {
       {/* Build Your Own - Guide Cards */}
       <section id="build-your-own" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
         <div className="container">
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-4">Build Your Own</h2>
-            <p className="text-muted-foreground max-w-2xl">
-              Elsa Workflows offers flexible deployment options. Select the setup that matches your architecture.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="mb-12">
+              <h2 className="text-2xl font-bold mb-4">Build Your Own</h2>
+              <p className="text-muted-foreground max-w-2xl">
+                Elsa Workflows offers flexible deployment options. Select the setup that matches your architecture.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {guides.map((guide) => (
-              <GuideCard key={guide.title} {...guide} />
+            {guides.map((guide, index) => (
+              <ScrollReveal key={guide.title} delay={index * 100}>
+                <GuideCard {...guide} />
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -149,32 +158,36 @@ export default function GetStarted() {
       {/* Resources */}
       <section className="py-16 md:py-24">
         <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Resources & Documentation</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to master Elsa Workflows.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Resources & Documentation</h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Everything you need to master Elsa Workflows.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {resources.map((resource) => (
-              <a key={resource.title} href={resource.href} target="_blank" rel="noopener noreferrer" className="group">
-                <Card className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
-                  <CardHeader>
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
-                      <resource.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg">{resource.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
-                    <span className="text-sm font-medium text-primary inline-flex items-center gap-1 group-hover:gap-2 transition-all">
-                      {resource.cta}
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  </CardContent>
-                </Card>
-              </a>
+            {resources.map((resource, index) => (
+              <ScrollReveal key={resource.title} delay={index * 100}>
+                <a href={resource.href} target="_blank" rel="noopener noreferrer" className="group block h-full">
+                  <Card className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
+                    <CardHeader>
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
+                        <resource.icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <CardTitle className="text-lg">{resource.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4">{resource.description}</p>
+                      <span className="text-sm font-medium text-primary inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+                        {resource.cta}
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </CardContent>
+                  </Card>
+                </a>
+              </ScrollReveal>
             ))}
           </div>
         </div>

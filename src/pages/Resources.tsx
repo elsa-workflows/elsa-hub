@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 const primaryResources = [
   {
@@ -117,30 +118,31 @@ export default function Resources() {
       <section className="py-16 md:py-24">
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {primaryResources.map((resource) => (
-              <a
-                key={resource.title}
-                href={resource.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group"
-              >
-                <Card className="h-full hover:border-primary/50 transition-all hover:shadow-xl">
-                  <CardHeader className="pb-4">
-                    <div className="h-14 w-14 rounded-xl gradient-primary flex items-center justify-center mb-4">
-                      <resource.icon className="h-7 w-7 text-primary-foreground" />
-                    </div>
-                    <CardTitle className="text-xl">{resource.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-6">{resource.description}</p>
-                    <span className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all">
-                      {resource.cta}
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  </CardContent>
-                </Card>
-              </a>
+            {primaryResources.map((resource, index) => (
+              <ScrollReveal key={resource.title} delay={index * 100}>
+                <a
+                  href={resource.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block h-full"
+                >
+                  <Card className="h-full hover:border-primary/50 transition-all hover:shadow-xl">
+                    <CardHeader className="pb-4">
+                      <div className="h-14 w-14 rounded-xl gradient-primary flex items-center justify-center mb-4">
+                        <resource.icon className="h-7 w-7 text-primary-foreground" />
+                      </div>
+                      <CardTitle className="text-xl">{resource.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground mb-6">{resource.description}</p>
+                      <span className="inline-flex items-center gap-2 text-primary font-medium group-hover:gap-3 transition-all">
+                        {resource.cta}
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </CardContent>
+                  </Card>
+                </a>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -149,15 +151,17 @@ export default function Resources() {
       {/* Additional Resources */}
       <section className="py-16 md:py-24 bg-surface-subtle">
         <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">More Resources</h2>
-            <p className="text-lg text-muted-foreground">
-              Dive deeper into the Elsa ecosystem.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">More Resources</h2>
+              <p className="text-lg text-muted-foreground">
+                Dive deeper into the Elsa ecosystem.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {additionalResources.map((resource) => {
+            {additionalResources.map((resource, index) => {
               const isInternal = "isInternal" in resource && resource.isInternal;
               const CardWrapper = isInternal ? Link : "a";
               const linkProps = isInternal
@@ -165,31 +169,32 @@ export default function Resources() {
                 : { href: resource.href, target: "_blank", rel: "noopener noreferrer" };
 
               return (
-                <CardWrapper
-                  key={resource.title}
-                  {...(linkProps as any)}
-                  className="group block"
-                >
-                  <Card className="h-full hover:border-primary/50 transition-all">
-                    <CardContent className="p-6">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                        <resource.icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <h3 className="font-semibold mb-1 flex items-center gap-2">
-                        {resource.title}
-                        {!isInternal && (
-                          <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        )}
-                        {isInternal && (
-                          <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        )}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {resource.description}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </CardWrapper>
+                <ScrollReveal key={resource.title} delay={index * 100}>
+                  <CardWrapper
+                    {...(linkProps as any)}
+                    className="group block h-full"
+                  >
+                    <Card className="h-full hover:border-primary/50 transition-all">
+                      <CardContent className="p-6">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                          <resource.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <h3 className="font-semibold mb-1 flex items-center gap-2">
+                          {resource.title}
+                          {!isInternal && (
+                            <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                          {isInternal && (
+                            <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {resource.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </CardWrapper>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -200,34 +205,37 @@ export default function Resources() {
       <section className="py-16 md:py-24">
         <div className="container">
           <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold mb-4">Get Involved</h2>
-              <p className="text-lg text-muted-foreground">
-                Join the conversation, report issues, or contribute to the project.
-              </p>
-            </div>
+            <ScrollReveal>
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold mb-4">Get Involved</h2>
+                <p className="text-lg text-muted-foreground">
+                  Join the conversation, report issues, or contribute to the project.
+                </p>
+              </div>
+            </ScrollReveal>
 
             <div className="space-y-4">
-              {communityLinks.map((link) => (
-                <a
-                  key={link.title}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block"
-                >
-                  <Card className="hover:border-primary/50 transition-all">
-                    <CardContent className="p-6 flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold mb-1">{link.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {link.description}
-                        </p>
-                      </div>
-                      <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </CardContent>
-                  </Card>
-                </a>
+              {communityLinks.map((link, index) => (
+                <ScrollReveal key={link.title} delay={index * 100}>
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block"
+                  >
+                    <Card className="hover:border-primary/50 transition-all">
+                      <CardContent className="p-6 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold mb-1">{link.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {link.description}
+                          </p>
+                        </div>
+                        <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </CardContent>
+                    </Card>
+                  </a>
+                </ScrollReveal>
               ))}
             </div>
           </div>
@@ -237,18 +245,20 @@ export default function Resources() {
       {/* CTA */}
       <section className="py-16 md:py-24 bg-surface-subtle">
         <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold mb-4">Need Professional Support?</h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              Get professional services, priority support, and training from the Elsa team.
-            </p>
-            <Button size="lg" className="gap-2" asChild>
-              <Link to="/elsa-plus">
-                Explore Elsa+
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
+          <ScrollReveal>
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-3xl font-bold mb-4">Need Professional Support?</h2>
+              <p className="text-lg text-muted-foreground mb-8">
+                Get professional services, priority support, and training from the Elsa team.
+              </p>
+              <Button size="lg" className="gap-2" asChild>
+                <Link to="/elsa-plus">
+                  Explore Elsa+
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
     </Layout>
