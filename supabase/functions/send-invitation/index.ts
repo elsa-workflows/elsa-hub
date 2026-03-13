@@ -59,7 +59,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Service client for privileged operations
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { organizationId, email, role }: InvitationRequest = await req.json();
+    const { organizationId, email, role, cancelInvitationId }: InvitationRequest & { cancelInvitationId?: string } = await req.json();
 
     // Validate input
     if (!organizationId || !email || !role) {
