@@ -1,13 +1,18 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building2, Users, Crown, ShieldCheck, User, Clock, Mail } from "lucide-react";
+import { Building2, Users, Crown, ShieldCheck, User, Clock, Mail, RotateCw, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { useOrganizationDashboard, TeamMember } from "@/hooks/useOrganizationDashboard";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { InviteMemberDialog, RemoveMemberDialog, RoleSelect } from "@/components/organization";
+import { CancelInvitationDialog } from "@/components/organization/CancelInvitationDialog";
 
 const roleIcons: Record<string, React.ReactNode> = {
   owner: <Crown className="h-3 w-3" />,
