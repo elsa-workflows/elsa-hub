@@ -203,7 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
             const { subject, html } = getEmailTemplate(type, title, message, payload, actionUrl);
 
             const { error: emailError } = await resend.emails.send({
-              from: "Elsa Workflows <notifications@elsa-workflows.io>",
+              from: "Elsa Workflows <notifications@elsa-workflws.io>",
               to: [profile.email],
               subject,
               html,
