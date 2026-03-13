@@ -1,6 +1,7 @@
 import { Users, Container, GraduationCap, Cloud } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { CategoryCard, NeutralityDisclaimer } from "@/components/enterprise";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 const categories = [
   {
@@ -59,15 +60,16 @@ export default function Enterprise() {
       <section className="py-12 md:py-16">
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category) => (
-              <CategoryCard
-                key={category.href}
-                title={category.title}
-                description={category.description}
-                icon={category.icon}
-                href={category.href}
-                comingSoon={category.comingSoon}
-              />
+            {categories.map((category, index) => (
+              <ScrollReveal key={category.href} delay={index * 100}>
+                <CategoryCard
+                  title={category.title}
+                  description={category.description}
+                  icon={category.icon}
+                  href={category.href}
+                  comingSoon={category.comingSoon}
+                />
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -76,7 +78,9 @@ export default function Enterprise() {
       {/* Neutrality Disclaimer */}
       <section className="py-12 md:py-16">
         <div className="container max-w-4xl">
-          <NeutralityDisclaimer />
+          <ScrollReveal>
+            <NeutralityDisclaimer />
+          </ScrollReveal>
         </div>
       </section>
     </Layout>

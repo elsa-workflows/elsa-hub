@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
 import { HeroScreenshot } from "@/components/home";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 const benefits = ["Build complex workflows with .NET", "Visual workflow designer included", "Extensible activity system", "Long-running workflow support", "Open source & MIT licensed"];
 const features = [{
@@ -124,27 +125,31 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-20 md:py-28 bg-surface-subtle">
         <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Elsa Workflows?
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to build, run, and manage workflows in your .NET applications.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Why Elsa Workflows?
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Everything you need to build, run, and manage workflows in your .NET applications.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => <Card key={feature.title} variant="glass" className="border-0 shadow-lg hover:shadow-xl transition-shadow animate-fade-in-up" style={{
-            animationDelay: `${index * 0.1}s`
-          }}>
-                <CardContent className="p-6">
-                  <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center mb-4">
-                    <feature.icon className="h-6 w-6 text-primary-foreground" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>)}
+            {features.map((feature, index) => (
+              <ScrollReveal key={feature.title} delay={index * 100}>
+                <Card variant="glass" className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center mb-4">
+                      <feature.icon className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                    <p className="text-muted-foreground">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              </ScrollReveal>
+            ))}
           </div>
         </div>
       </section>
@@ -152,32 +157,36 @@ export default function Home() {
       {/* Ecosystem Section */}
       <section className="py-20 md:py-28">
         <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Join the Ecosystem
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Explore our resources and become part of the growing Elsa community.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Join the Ecosystem
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Explore our resources and become part of the growing Elsa community.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {ecosystemLinks.map((link, index) => <a key={link.title} href={link.href} target="_blank" rel="noopener noreferrer" className="group block animate-fade-in-up" style={{
-            animationDelay: `${index * 0.1}s`
-          }}>
-                <Card variant="glass" className="h-full border hover:border-primary/50 transition-all hover:shadow-lg">
-                  <CardContent className="p-6 text-center">
-                    <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
-                      <link.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2 flex items-center justify-center gap-2">
-                      {link.title}
-                      <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </h3>
-                    <p className="text-sm text-muted-foreground">{link.description}</p>
-                  </CardContent>
-                </Card>
-              </a>)}
+            {ecosystemLinks.map((link, index) => (
+              <ScrollReveal key={link.title} delay={index * 100}>
+                <a href={link.href} target="_blank" rel="noopener noreferrer" className="group block h-full">
+                  <Card variant="glass" className="h-full border hover:border-primary/50 transition-all hover:shadow-lg">
+                    <CardContent className="p-6 text-center">
+                      <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
+                        <link.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 flex items-center justify-center gap-2">
+                        {link.title}
+                        <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </h3>
+                      <p className="text-sm text-muted-foreground">{link.description}</p>
+                    </CardContent>
+                  </Card>
+                </a>
+              </ScrollReveal>
+            ))}
           </div>
         </div>
       </section>
@@ -185,28 +194,30 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20 md:py-28 bg-surface-subtle">
         <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Build?
-            </h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              Start building workflow-driven applications today. It's free, open source,
-              and backed by an active community.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" className="gap-2 px-8" asChild>
-                <Link to="/get-started">
-                  Get Started Now
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="gap-2" asChild>
-                <Link to="/elsa-plus">
-                  Explore Elsa+
-                </Link>
-              </Button>
+          <ScrollReveal>
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Ready to Build?
+              </h2>
+              <p className="text-lg text-muted-foreground mb-8">
+                Start building workflow-driven applications today. It's free, open source,
+                and backed by an active community.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button size="lg" className="gap-2 px-8" asChild>
+                  <Link to="/get-started">
+                    Get Started Now
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="gap-2" asChild>
+                  <Link to="/elsa-plus">
+                    Explore Elsa+
+                  </Link>
+                </Button>
+              </div>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
     </Layout>;
