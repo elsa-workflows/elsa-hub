@@ -1,24 +1,31 @@
 
 
-## Fix: Growth Pack Card Bottom Misalignment
+## Scroll-triggered slide-in animations
 
-### Problem
-The "Popular" Growth Pack card uses `md:-translate-y-2` to visually elevate it, but this causes its bottom edge to sit higher than the other cards, creating a visible misalignment at the bottom of the row. The CSS `translate` only moves the card visually without affecting the grid layout, so the other cards don't adjust.
+Add subtle reveal animations to cards and sections as they enter the viewport on scroll, using Intersection Observer.
 
-### Solution
-Add `items-end` to the grid container so all cards align at their bottom edges. This way, the Growth Pack still "pops up" visually but its bottom edge stays aligned with the other cards.
+### Approach
 
-### File Change
-**`src/pages/enterprise/providers/ValenceWorks.tsx`** (line 343)
+1. **Create a reusable `useScrollReveal` hook** — wraps Intersection Observer, returns a ref and `isVisible` boolean. Configurable threshold and optional "once" mode (default: animate once).
 
-Change:
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-```
-To:
-```tsx
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-```
+2. **Create a `ScrollReveal` wrapper component** — accepts children, animation variant (`fade-up`, `fade-in`, `scale-in`), delay, and duration. Applies CSS transition classes when visible. This keeps usage simple: wrap any element in `<ScrollReveal>`.
 
-This single class addition ensures all four cards share a common bottom edge while the Growth Pack still extends upward with its `-translate-y-2` and "Popular" badge.
+3. **Apply to key pages/components**:
+   - **Home** — hero sections, feature cards
+   - **Enterprise** — `CategoryCard`, `ServiceCard`
+   - **Get Started** — `GuideCard`, `PathCard`
+   - **Resources** — `CommunityResourceCard`
+   - **Elsa Plus** — section cards
+
+4. **CSS** — add a few utility classes in `index.css`:
+   - `.scroll-hidden` — `opacity: 0; transform: translateY(20px)`
+   - `.scroll-visible` — `opacity: 1; transform: translateY(0)` with transition
+   - Staggered delays via `style={{ transitionDelay }}` prop
+
+### Technical details
+
+- No external library needed — native `IntersectionObserver` with `threshold: 0.1`
+- `rootMargin: "0px 0px -50px 0px"` so elements animate slightly before fully in view
+- Respects `prefers-reduced-motion` — skip animations if enabled
+- Stagger support: pass `delay` prop (e.g., `index * 100`) for card grids
 
