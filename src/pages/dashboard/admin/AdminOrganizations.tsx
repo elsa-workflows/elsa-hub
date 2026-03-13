@@ -70,7 +70,7 @@ export default function AdminOrganizations() {
           <TableHeader>
             <TableRow>
               <TableHead>Organization</TableHead>
-              <TableHead>Slug</TableHead>
+              <TableHead>Slug / ID</TableHead>
               <TableHead>Members</TableHead>
               <TableHead>Credits Purchased</TableHead>
               <TableHead>Available Credits</TableHead>
