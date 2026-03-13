@@ -1,13 +1,18 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { Building2, Users, Crown, ShieldCheck, User, Clock, Mail } from "lucide-react";
+import { Building2, Users, Crown, ShieldCheck, User, Clock, Mail, RotateCw, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { useOrganizationDashboard, TeamMember } from "@/hooks/useOrganizationDashboard";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { InviteMemberDialog, RemoveMemberDialog, RoleSelect } from "@/components/organization";
+import { CancelInvitationDialog } from "@/components/organization/CancelInvitationDialog";
 
 const roleIcons: Record<string, React.ReactNode> = {
   owner: <Crown className="h-3 w-3" />,
@@ -30,7 +35,9 @@ function getDisplayName(member: TeamMember): string {
 export default function OrgTeam() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const { 
     organization, 
     teamMembers, 
@@ -43,6 +50,47 @@ export default function OrgTeam() {
 
   const refetchTeam = () => {
     queryClient.invalidateQueries({ queryKey: ["team-members", organization?.id] });
+  };
+
+  const handleResendInvitation = async (invite: { id: string; email: string; role: string }) => {
+    if (!organization) return;
+    setResendingId(invite.id);
+    try {
+      // Cancel existing invitation
+      const { error: cancelError } = await supabase
+        .from("invitations")
+        .update({ status: "cancelled" })
+        .eq("id", invite.id);
+
+      if (cancelError) throw cancelError;
+
+      // Send a new invitation
+      const { data, error: fnError } = await supabase.functions.invoke("send-invitation", {
+        body: {
+          organizationId: organization.id,
+          email: invite.email,
+          role: invite.role,
+        },
+      });
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Invitation resent",
+        description: `A new invitation has been sent to ${invite.email}`,
+      });
+      refetchInvitations();
+    } catch (error) {
+      console.error("Error resending invitation:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to resend invitation",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
   };
 
   if (notFound && !isLoading) {
@@ -193,14 +241,41 @@ export default function OrgTeam() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="gap-1">
                       {roleIcons[invite.role]}
                       {roleLabels[invite.role] || invite.role}
                     </Badge>
-                    <Badge variant="outline" className="text-muted-foreground">
-                      Pending
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => handleResendInvitation(invite)}
+                          disabled={resendingId === invite.id}
+                        >
+                          {resendingId === invite.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RotateCw className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Resend invitation</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <CancelInvitationDialog
+                            invitationId={invite.id}
+                            email={invite.email}
+                            onCancelled={refetchInvitations}
+                          />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Cancel invitation</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               ))}

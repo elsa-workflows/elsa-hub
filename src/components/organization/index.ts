@@ -15,3 +15,4 @@ export { WorkLogsTable } from "./WorkLogsTable";
 export { UsagePacingCard } from "./UsagePacingCard";
 export { UsagePeriodSelector } from "./UsagePeriodSelector";
 export { UsageSummaryCard } from "./UsageSummaryCard";
+export { CancelInvitationDialog } from "./CancelInvitationDialog";
