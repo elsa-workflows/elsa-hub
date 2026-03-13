@@ -35,7 +35,9 @@ function getDisplayName(member: TeamMember): string {
 export default function OrgTeam() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const { 
     organization, 
     teamMembers, 
@@ -48,6 +50,47 @@ export default function OrgTeam() {
 
   const refetchTeam = () => {
     queryClient.invalidateQueries({ queryKey: ["team-members", organization?.id] });
+  };
+
+  const handleResendInvitation = async (invite: { id: string; email: string; role: string }) => {
+    if (!organization) return;
+    setResendingId(invite.id);
+    try {
+      // Cancel existing invitation
+      const { error: cancelError } = await supabase
+        .from("invitations")
+        .update({ status: "cancelled" })
+        .eq("id", invite.id);
+
+      if (cancelError) throw cancelError;
+
+      // Send a new invitation
+      const { data, error: fnError } = await supabase.functions.invoke("send-invitation", {
+        body: {
+          organizationId: organization.id,
+          email: invite.email,
+          role: invite.role,
+        },
+      });
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Invitation resent",
+        description: `A new invitation has been sent to ${invite.email}`,
+      });
+      refetchInvitations();
+    } catch (error) {
+      console.error("Error resending invitation:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to resend invitation",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingId(null);
+    }
   };
 
   if (notFound && !isLoading) {
