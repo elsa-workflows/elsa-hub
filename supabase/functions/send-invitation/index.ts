@@ -175,7 +175,7 @@ const handler = async (req: Request): Promise<Response> => {
     const inviteUrl = `https://elsa-hub.lovable.app/invite/${token_value}`;
 
     const { error: emailError } = await resend.emails.send({
-      from: "Elsa Workflows <noreply@resend.dev>",
+      from: "Elsa Workflows <notifications@elsa-workflows.io>",
       to: [email],
       subject: `You're invited to join ${org.name} on Elsa Workflows`,
       html: `
