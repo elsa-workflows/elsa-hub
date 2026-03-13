@@ -241,14 +241,41 @@ export default function OrgTeam() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="gap-1">
                       {roleIcons[invite.role]}
                       {roleLabels[invite.role] || invite.role}
                     </Badge>
-                    <Badge variant="outline" className="text-muted-foreground">
-                      Pending
-                    </Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => handleResendInvitation(invite)}
+                          disabled={resendingId === invite.id}
+                        >
+                          {resendingId === invite.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RotateCw className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Resend invitation</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <CancelInvitationDialog
+                            invitationId={invite.id}
+                            email={invite.email}
+                            onCancelled={refetchInvitations}
+                          />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>Cancel invitation</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               ))}
