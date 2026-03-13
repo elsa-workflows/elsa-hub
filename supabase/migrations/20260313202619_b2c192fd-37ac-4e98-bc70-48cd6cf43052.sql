@@ -1,0 +1,2 @@
+ALTER TABLE invitations DROP CONSTRAINT invitations_status_check;
+ALTER TABLE invitations ADD CONSTRAINT invitations_status_check CHECK (status = ANY (ARRAY['pending', 'accepted', 'expired', 'revoked', 'cancelled', 'ignored']));
