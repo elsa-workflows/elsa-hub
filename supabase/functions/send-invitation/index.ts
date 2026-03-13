@@ -59,7 +59,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Service client for privileged operations
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { organizationId, email, role }: InvitationRequest = await req.json();
+    const { organizationId, email, role, cancelInvitationId }: InvitationRequest & { cancelInvitationId?: string } = await req.json();
 
     // Validate input
     if (!organizationId || !email || !role) {
@@ -119,6 +119,23 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("organization_id", organizationId)
       .eq("user_id", userId)
       .maybeSingle();
+
+    // If resending, cancel the previous invitation first (using service client to bypass RLS)
+    if (cancelInvitationId) {
+      const { error: cancelError } = await serviceClient
+        .from("invitations")
+        .update({ status: "cancelled" })
+        .eq("id", cancelInvitationId)
+        .eq("organization_id", organizationId);
+
+      if (cancelError) {
+        console.error("Error cancelling previous invitation:", cancelError);
+        return new Response(
+          JSON.stringify({ error: "Failed to cancel previous invitation" }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
 
     // Check if there's already a pending invitation for this email
     const { data: existingInvite } = await serviceClient
