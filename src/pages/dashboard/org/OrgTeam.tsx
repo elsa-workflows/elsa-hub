@@ -56,20 +56,12 @@ export default function OrgTeam() {
     if (!organization) return;
     setResendingId(invite.id);
     try {
-      // Cancel existing invitation
-      const { error: cancelError } = await supabase
-        .from("invitations")
-        .update({ status: "cancelled" })
-        .eq("id", invite.id);
-
-      if (cancelError) throw cancelError;
-
-      // Send a new invitation
       const { data, error: fnError } = await supabase.functions.invoke("send-invitation", {
         body: {
           organizationId: organization.id,
           email: invite.email,
           role: invite.role,
+          cancelInvitationId: invite.id,
         },
       });
 
