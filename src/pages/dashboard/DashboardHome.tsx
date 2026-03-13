@@ -98,6 +98,7 @@ export default function DashboardHome() {
                       <div>
                         <CardTitle className="text-base">{org.name}</CardTitle>
                         <CardDescription className="text-xs">/{org.slug}</CardDescription>
+                        <CardDescription className="text-[10px] font-mono opacity-60">{org.id}</CardDescription>
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">

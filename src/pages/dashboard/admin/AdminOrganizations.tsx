@@ -109,8 +109,9 @@ export default function AdminOrganizations() {
                       <span className="font-medium">{org.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-sm">
-                    {org.slug}
+                  <TableCell>
+                    <div className="font-mono text-sm text-muted-foreground">{org.slug}</div>
+                    <div className="font-mono text-[10px] text-muted-foreground/60">{org.id}</div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{org.member_count}</Badge>
