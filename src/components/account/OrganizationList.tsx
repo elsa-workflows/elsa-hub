@@ -68,6 +68,7 @@ export function OrganizationList({ organizations, loading }: OrganizationListPro
                   <div>
                     <p className="font-medium">{org.name}</p>
                     <p className="text-sm text-muted-foreground">/{org.slug}</p>
+                    <p className="text-xs text-muted-foreground/60 font-mono">{org.id}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
