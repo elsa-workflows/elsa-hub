@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Clock, Users, Package, TrendingUp, Copy, Check } from "lucide-react";
+import { Building2, CalendarDays, Clock, Copy, Check, Users, Package, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
+import { useTidyCalBookings } from "@/hooks/useTidyCalBookings";
+import { format } from "date-fns";
 import { toast } from "sonner";
 
 function minutesToHours(minutes: number): string {
@@ -14,7 +16,10 @@ function minutesToHours(minutes: number): string {
 export default function ProviderOverview() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, customers, workLogs, bundles, isLoading, notFound } = useProviderDashboard(slug);
+  const { data: bookingsData, isLoading: bookingsLoading } = useTidyCalBookings(provider?.id, "upcoming");
   const [copiedId, setCopiedId] = useState(false);
+  
+  const upcomingBookings = bookingsData?.bookings?.slice(0, 3) || [];
 
   const handleCopyId = async () => {
     if (!provider?.id) return;
@@ -138,6 +143,56 @@ export default function ProviderOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Upcoming Bookings */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Upcoming Bookings</CardTitle>
+            <CardDescription>Next 3 scheduled calls</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/dashboard/provider/${slug}/bookings`}>View All</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {bookingsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 bg-muted/50 animate-pulse rounded" />
+              ))}
+            </div>
+          ) : upcomingBookings.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No upcoming bookings.</p>
+              <p className="text-sm mt-1">Scheduled calls will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {upcomingBookings.map((booking) => (
+                <div
+                  key={booking.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                >
+                  <div>
+                    <p className="font-medium">{booking.booking_type_title || "Booking"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {booking.contact_name || booking.contact_email || "No contact info"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">{format(new Date(booking.starts_at), "MMM d, yyyy")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(booking.starts_at), "h:mm a")} • {booking.booking_type_duration} min
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Work Logs */}
       <Card>
