@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, Crown, Users, ShieldCheck, ChevronRight } from "lucide-react";
+import { Building2, Crown, Users, ShieldCheck, ChevronRight, Copy, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Organization {
   id: string;
