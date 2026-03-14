@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Building2, Briefcase, ArrowRight, Plus } from "lucide-react";
+import { Building2, Briefcase, ArrowRight, Plus, Copy, Check } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useProviderMemberships } from "@/hooks/useProviderMemberships";
 import { CreateOrganizationDialog } from "@/components/account/CreateOrganizationDialog";
+import { toast } from "sonner";
 
 export default function DashboardHome() {
   const navigate = useNavigate();
