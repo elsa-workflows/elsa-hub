@@ -197,3 +197,84 @@ function QuickLinkCard({ title, description, href }: { title: string; descriptio
     </Card>
   );
 }
+
+function useOrgProviders(orgId: string | undefined) {
+  return useQuery({
+    queryKey: ["org-providers", orgId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provider_customers")
+        .select("service_provider_id")
+        .eq("organization_id", orgId!);
+      if (error) throw error;
+      return data?.map((d) => d.service_provider_id) || [];
+    },
+    enabled: !!orgId,
+  });
+}
+
+function BookACallCard({ orgId, slug }: { orgId: string | undefined; slug: string | undefined }) {
+  const { data: providerIds } = useOrgProviders(orgId);
+  const firstProviderId = providerIds?.[0];
+  const { data: bookingTypes, isLoading } = useTidyCalBookingTypes(firstProviderId);
+
+  // Don't render if no provider or no booking types
+  if (!firstProviderId) return null;
+  if (!isLoading && (!bookingTypes || bookingTypes.length === 0)) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Book a Call
+          </span>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to={`/dashboard/org/${slug}/bookings`}>
+              View All
+              <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex gap-3">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-16 flex-1" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {bookingTypes?.slice(0, 3).map((bt) => (
+              <a
+                key={bt.id}
+                href={bt.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors group"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{bt.title}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {bt.duration}m
+                    </span>
+                    {bt.price > 0 ? (
+                      <span>${(bt.price / 100).toFixed(0)}</span>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] px-1 py-0">Free</Badge>
+                    )}
+                  </div>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              </a>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
