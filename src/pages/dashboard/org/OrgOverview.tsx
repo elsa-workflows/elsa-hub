@@ -100,18 +100,21 @@ export default function OrgOverview() {
               <h1 className="text-2xl font-bold">{organization?.name}</h1>
               <p className="text-sm text-muted-foreground">/{organization?.slug}</p>
               {organization?.id && (
-                <button
-                  onClick={handleCopyId}
-                  className="text-xs text-muted-foreground/60 font-mono flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
-                  title="Click to copy Organization ID"
-                >
-                  {organization.id}
-                  {copiedId ? (
-                    <Check className="h-3 w-3 text-primary" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                </button>
+                <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted border border-border">
+                  <span className="text-xs text-muted-foreground font-medium">Org ID:</span>
+                  <button
+                    onClick={handleCopyId}
+                    className="text-sm font-mono text-foreground flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
+                    title="Click to copy Organization ID"
+                  >
+                    {organization.id}
+                    {copiedId ? (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
