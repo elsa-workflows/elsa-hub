@@ -184,6 +184,18 @@ export default function DashboardHome() {
                       <div>
                         <CardTitle className="text-base">{provider.name}</CardTitle>
                         <CardDescription className="text-xs">/{provider.slug}</CardDescription>
+                        <button
+                          onClick={(e) => handleCopyProviderId(e, provider.id)}
+                          className="text-[10px] font-mono opacity-60 flex items-center gap-1 hover:opacity-100 hover:text-primary transition-all cursor-pointer"
+                          title="Click to copy Provider ID"
+                        >
+                          {provider.id}
+                          {copiedProviderId === provider.id ? (
+                            <Check className="h-3 w-3 text-primary" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">

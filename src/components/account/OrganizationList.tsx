@@ -85,7 +85,18 @@ export function OrganizationList({ organizations, loading }: OrganizationListPro
                   <div>
                     <p className="font-medium">{org.name}</p>
                     <p className="text-sm text-muted-foreground">/{org.slug}</p>
-                    <p className="text-xs text-muted-foreground/60 font-mono">{org.id}</p>
+                    <button
+                      onClick={(e) => handleCopyId(e, org.id)}
+                      className="text-xs text-muted-foreground/60 font-mono flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                      title="Click to copy Organization ID"
+                    >
+                      {org.id}
+                      {copiedId === org.id ? (
+                        <Check className="h-3 w-3 text-primary" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
