@@ -334,6 +334,11 @@ export default function ProviderSettings() {
           </Card>
         )}
 
+        {/* TidyCal Integration */}
+        {isAdmin && (
+          <TidyCalIntegrationCard providerId={provider?.id} slug={slug} />
+        )}
+
         {/* Team Members */}
         <Card>
           <CardHeader>
