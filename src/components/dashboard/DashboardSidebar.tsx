@@ -15,6 +15,7 @@ import {
   FileText,
   Activity,
   MessageSquare,
+  CalendarDays,
 } from "lucide-react";
 import {
   Sidebar,
