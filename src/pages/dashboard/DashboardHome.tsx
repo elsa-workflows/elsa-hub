@@ -13,6 +13,32 @@ export default function DashboardHome() {
   const navigate = useNavigate();
   const { organizations, loading: orgsLoading, createOrganization } = useOrganizations();
   const { providers, loading: providersLoading } = useProviderMemberships();
+  const [copiedOrgId, setCopiedOrgId] = useState<string | null>(null);
+  const [copiedProviderId, setCopiedProviderId] = useState<string | null>(null);
+
+  const handleCopyOrgId = async (e: React.MouseEvent, orgId: string) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(orgId);
+      setCopiedOrgId(orgId);
+      toast.success("Organization ID copied to clipboard");
+      setTimeout(() => setCopiedOrgId(null), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
+
+  const handleCopyProviderId = async (e: React.MouseEvent, providerId: string) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(providerId);
+      setCopiedProviderId(providerId);
+      toast.success("Provider ID copied to clipboard");
+      setTimeout(() => setCopiedProviderId(null), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
 
   const loading = orgsLoading || providersLoading;
   const hasOnlyOrgs = organizations.length >= 1 && providers.length === 0;
