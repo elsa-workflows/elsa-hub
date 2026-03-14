@@ -32,6 +32,21 @@ const roleLabels: Record<string, string> = {
 };
 
 export function OrganizationList({ organizations, loading }: OrganizationListProps) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyId = async (e: React.MouseEvent, orgId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(orgId);
+      setCopiedId(orgId);
+      toast.success("Organization ID copied to clipboard");
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
