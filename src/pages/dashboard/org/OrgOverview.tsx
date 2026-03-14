@@ -148,6 +148,9 @@ export default function OrgOverview() {
         />
       </div>
 
+      {/* Book a Call */}
+      <BookACallCard orgId={organization?.id} slug={slug} />
+
       {/* Active Subscriptions */}
       <SubscriptionCard 
         subscriptions={subscriptions || []} 
