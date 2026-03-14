@@ -14,6 +14,19 @@ function minutesToHours(minutes: number): string {
 export default function ProviderOverview() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, customers, workLogs, bundles, isLoading, notFound } = useProviderDashboard(slug);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyId = async () => {
+    if (!provider?.id) return;
+    try {
+      await navigator.clipboard.writeText(provider.id);
+      setCopiedId(true);
+      toast.success("Provider ID copied to clipboard");
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
 
   if (notFound && !isLoading) {
     return (
