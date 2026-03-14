@@ -38,6 +38,7 @@ const orgNavItems = [
   { label: "Overview", icon: LayoutDashboard, path: "" },
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Credits", icon: Coins, path: "credits" },
+  { label: "Bookings", icon: CalendarDays, path: "bookings" },
   { label: "Team", icon: Users, path: "team" },
   { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Activity", icon: Activity, path: "activity" },
