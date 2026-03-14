@@ -111,7 +111,21 @@ export default function AdminOrganizations() {
                   </TableCell>
                   <TableCell>
                     <div className="font-mono text-sm text-muted-foreground">{org.slug}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground/60">{org.id}</div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(org.id);
+                          toast.success("Organization ID copied to clipboard");
+                        } catch {
+                          toast.error("Failed to copy ID");
+                        }
+                      }}
+                      className="font-mono text-[10px] text-muted-foreground/60 flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                      title="Click to copy Organization ID"
+                    >
+                      {org.id}
+                      <Copy className="h-3 w-3" />
+                    </button>
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{org.member_count}</Badge>
