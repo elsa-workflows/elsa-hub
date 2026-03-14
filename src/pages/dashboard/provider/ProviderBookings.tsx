@@ -85,9 +85,13 @@ function BookingCard({ booking }: { booking: TidyCalBooking }) {
               <Badge variant="destructive" className="text-xs">
                 Cancelled
               </Badge>
-            ) : (
+            ) : booking.approved_at ? (
               <Badge variant="outline" className="text-xs border-green-500/30 text-green-600 dark:text-green-400">
                 Confirmed
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs border-yellow-500/30 text-yellow-600 dark:text-yellow-400">
+                Awaiting Approval
               </Badge>
             )}
 
