@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Clock, Users, Package, TrendingUp } from "lucide-react";
+import { Building2, Clock, Users, Package, TrendingUp, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
+import { toast } from "sonner";
 
 function minutesToHours(minutes: number): string {
   const hours = minutes / 60;
