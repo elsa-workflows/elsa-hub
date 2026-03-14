@@ -132,6 +132,162 @@ function BookingUrlField({ providerId, currentValue, slug }: { providerId: strin
   );
 }
 
+function TidyCalIntegrationCard({ providerId, slug }: { providerId: string | undefined; slug: string | undefined }) {
+  const [token, setToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const queryClient = useQueryClient();
+
+  // Check if token is already configured
+  useEffect(() => {
+    if (!providerId) return;
+    const check = async () => {
+      const { data } = await supabase
+        .from("provider_integrations" as any)
+        .select("tidycal_api_token")
+        .eq("service_provider_id", providerId)
+        .maybeSingle();
+      setHasToken(!!(data as any)?.tidycal_api_token);
+    };
+    check();
+  }, [providerId]);
+
+  const handleSave = async () => {
+    if (!providerId || !token.trim()) return;
+    setIsSaving(true);
+    try {
+      // Upsert the integration record
+      const { error } = await supabase
+        .from("provider_integrations" as any)
+        .upsert(
+          {
+            service_provider_id: providerId,
+            tidycal_api_token: token.trim(),
+          } as any,
+          { onConflict: "service_provider_id" }
+        );
+      if (error) throw error;
+      toast.success("TidyCal API token saved");
+      setHasToken(true);
+      setToken("");
+      queryClient.invalidateQueries({ queryKey: ["tidycal-booking-types"] });
+    } catch (err) {
+      console.error("Failed to save TidyCal token:", err);
+      toast.error("Failed to save TidyCal token");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!providerId) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("provider_integrations" as any)
+        .update({ tidycal_api_token: null } as any)
+        .eq("service_provider_id", providerId);
+      if (error) throw error;
+      toast.success("TidyCal API token removed");
+      setHasToken(false);
+      queryClient.invalidateQueries({ queryKey: ["tidycal-booking-types"] });
+    } catch (err) {
+      console.error("Failed to remove TidyCal token:", err);
+      toast.error("Failed to remove token");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="h-5 w-5" />
+          TidyCal Integration
+        </CardTitle>
+        <CardDescription>
+          Connect your TidyCal account to show booking types and booking history to your customers
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Status:</span>
+          {hasToken === null ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : hasToken ? (
+            <Badge variant="default" className="gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Connected
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1">
+              <XCircle className="h-3 w-3" />
+              Not configured
+            </Badge>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="tidycal-token">
+            {hasToken ? "Replace API Token" : "API Token"}
+          </Label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                id="tidycal-token"
+                type={showToken ? "text" : "password"}
+                placeholder="Enter your TidyCal API token"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowToken(!showToken)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving || !token.trim()}
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Create a personal access token at{" "}
+            <a
+              href="https://tidycal.com/integrations/oauth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              tidycal.com/integrations/oauth
+            </a>
+            . Your token is stored securely and never exposed to the client.
+          </p>
+        </div>
+
+        {hasToken && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRemove}
+            disabled={isSaving}
+            className="text-destructive hover:text-destructive"
+          >
+            Remove Token
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ProviderSettings() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, teamMembers, isLoading, notFound, isAdmin } = useProviderDashboard(slug);
