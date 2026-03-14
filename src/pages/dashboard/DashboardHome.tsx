@@ -125,7 +125,18 @@ export default function DashboardHome() {
                       <div>
                         <CardTitle className="text-base">{org.name}</CardTitle>
                         <CardDescription className="text-xs">/{org.slug}</CardDescription>
-                        <CardDescription className="text-[10px] font-mono opacity-60">{org.id}</CardDescription>
+                        <button
+                          onClick={(e) => handleCopyOrgId(e, org.id)}
+                          className="text-[10px] font-mono opacity-60 flex items-center gap-1 hover:opacity-100 hover:text-primary transition-all cursor-pointer"
+                          title="Click to copy Organization ID"
+                        >
+                          {org.id}
+                          {copiedOrgId === org.id ? (
+                            <Check className="h-3 w-3 text-primary" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">
