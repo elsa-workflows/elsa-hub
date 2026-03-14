@@ -6,11 +6,15 @@ export interface TidyCalBooking {
   starts_at: string;
   ends_at: string;
   cancelled: boolean;
+  cancelled_at: string | null;
   cancel_reason: string | null;
   contact_name: string | null;
   contact_email: string | null;
   booking_type_title: string | null;
   booking_type_duration: number | null;
+  meeting_url: string | null;
+  timezone: string | null;
+  questions: { id: number; question: string; answer: string }[];
   answers: any[] | null;
 }
 
