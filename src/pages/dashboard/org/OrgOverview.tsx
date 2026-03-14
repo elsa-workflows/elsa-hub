@@ -12,6 +12,7 @@ export default function OrgOverview() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [copiedId, setCopiedId] = useState(false);
   const { 
     organization, 
     creditBalances, 
