@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Clock, Users, Package, TrendingUp } from "lucide-react";
+import { Building2, Clock, Users, Package, TrendingUp, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
+import { toast } from "sonner";
 
 function minutesToHours(minutes: number): string {
   const hours = minutes / 60;
@@ -12,6 +14,19 @@ function minutesToHours(minutes: number): string {
 export default function ProviderOverview() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, customers, workLogs, bundles, isLoading, notFound } = useProviderDashboard(slug);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyId = async () => {
+    if (!provider?.id) return;
+    try {
+      await navigator.clipboard.writeText(provider.id);
+      setCopiedId(true);
+      toast.success("Provider ID copied to clipboard");
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
 
   if (notFound && !isLoading) {
     return (
@@ -39,10 +54,22 @@ export default function ProviderOverview() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Provider Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Overview for {provider?.name}
-        </p>
+        <h1 className="text-2xl font-bold">{provider?.name}</h1>
+        <p className="text-sm text-muted-foreground">/{provider?.slug}</p>
+        {provider?.id && (
+          <button
+            onClick={handleCopyId}
+            className="text-xs text-muted-foreground/60 font-mono flex items-center gap-1 hover:text-primary transition-colors cursor-pointer mt-0.5"
+            title="Click to copy Provider ID"
+          >
+            {provider.id}
+            {copiedId ? (
+              <Check className="h-3 w-3 text-primary" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Stats Grid */}

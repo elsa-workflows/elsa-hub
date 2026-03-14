@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Building2 } from "lucide-react";
+import { ArrowRight, Building2, Copy, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
@@ -12,6 +12,7 @@ export default function OrgOverview() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [copiedId, setCopiedId] = useState(false);
   const { 
     organization, 
     creditBalances, 
@@ -47,6 +48,18 @@ export default function OrgOverview() {
       return () => clearTimeout(timeout);
     }
   }, [notFound, isLoading, navigate]);
+
+  const handleCopyId = async () => {
+    if (!organization?.id) return;
+    try {
+      await navigator.clipboard.writeText(organization.id);
+      setCopiedId(true);
+      toast.success("Organization ID copied to clipboard");
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
 
   if (notFound && !isLoading) {
     return (
@@ -86,6 +99,20 @@ export default function OrgOverview() {
             <div>
               <h1 className="text-2xl font-bold">{organization?.name}</h1>
               <p className="text-sm text-muted-foreground">/{organization?.slug}</p>
+              {organization?.id && (
+                <button
+                  onClick={handleCopyId}
+                  className="text-xs text-muted-foreground/60 font-mono flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                  title="Click to copy Organization ID"
+                >
+                  {organization.id}
+                  {copiedId ? (
+                    <Check className="h-3 w-3 text-primary" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}
