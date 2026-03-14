@@ -1,17 +1,44 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Building2, Briefcase, ArrowRight, Plus } from "lucide-react";
+import { Building2, Briefcase, ArrowRight, Plus, Copy, Check } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useProviderMemberships } from "@/hooks/useProviderMemberships";
 import { CreateOrganizationDialog } from "@/components/account/CreateOrganizationDialog";
+import { toast } from "sonner";
 
 export default function DashboardHome() {
   const navigate = useNavigate();
   const { organizations, loading: orgsLoading, createOrganization } = useOrganizations();
   const { providers, loading: providersLoading } = useProviderMemberships();
+  const [copiedOrgId, setCopiedOrgId] = useState<string | null>(null);
+  const [copiedProviderId, setCopiedProviderId] = useState<string | null>(null);
+
+  const handleCopyOrgId = async (e: React.MouseEvent, orgId: string) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(orgId);
+      setCopiedOrgId(orgId);
+      toast.success("Organization ID copied to clipboard");
+      setTimeout(() => setCopiedOrgId(null), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
+
+  const handleCopyProviderId = async (e: React.MouseEvent, providerId: string) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(providerId);
+      setCopiedProviderId(providerId);
+      toast.success("Provider ID copied to clipboard");
+      setTimeout(() => setCopiedProviderId(null), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
 
   const loading = orgsLoading || providersLoading;
   const hasOnlyOrgs = organizations.length >= 1 && providers.length === 0;
@@ -98,7 +125,18 @@ export default function DashboardHome() {
                       <div>
                         <CardTitle className="text-base">{org.name}</CardTitle>
                         <CardDescription className="text-xs">/{org.slug}</CardDescription>
-                        <CardDescription className="text-[10px] font-mono opacity-60">{org.id}</CardDescription>
+                        <button
+                          onClick={(e) => handleCopyOrgId(e, org.id)}
+                          className="text-[10px] font-mono opacity-60 flex items-center gap-1 hover:opacity-100 hover:text-primary transition-all cursor-pointer"
+                          title="Click to copy Organization ID"
+                        >
+                          {org.id}
+                          {copiedOrgId === org.id ? (
+                            <Check className="h-3 w-3 text-primary" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">
@@ -146,6 +184,18 @@ export default function DashboardHome() {
                       <div>
                         <CardTitle className="text-base">{provider.name}</CardTitle>
                         <CardDescription className="text-xs">/{provider.slug}</CardDescription>
+                        <button
+                          onClick={(e) => handleCopyProviderId(e, provider.id)}
+                          className="text-[10px] font-mono opacity-60 flex items-center gap-1 hover:opacity-100 hover:text-primary transition-all cursor-pointer"
+                          title="Click to copy Provider ID"
+                        >
+                          {provider.id}
+                          {copiedProviderId === provider.id ? (
+                            <Check className="h-3 w-3 text-primary" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-xs">

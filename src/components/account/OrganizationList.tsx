@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, Crown, Users, ShieldCheck, ChevronRight } from "lucide-react";
+import { Building2, Crown, Users, ShieldCheck, ChevronRight, Copy, Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Organization {
   id: string;
@@ -30,6 +32,21 @@ const roleLabels: Record<string, string> = {
 };
 
 export function OrganizationList({ organizations, loading }: OrganizationListProps) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyId = async (e: React.MouseEvent, orgId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(orgId);
+      setCopiedId(orgId);
+      toast.success("Organization ID copied to clipboard");
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -68,7 +85,18 @@ export function OrganizationList({ organizations, loading }: OrganizationListPro
                   <div>
                     <p className="font-medium">{org.name}</p>
                     <p className="text-sm text-muted-foreground">/{org.slug}</p>
-                    <p className="text-xs text-muted-foreground/60 font-mono">{org.id}</p>
+                    <button
+                      onClick={(e) => handleCopyId(e, org.id)}
+                      className="text-xs text-muted-foreground/60 font-mono flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+                      title="Click to copy Organization ID"
+                    >
+                      {org.id}
+                      {copiedId === org.id ? (
+                        <Check className="h-3 w-3 text-primary" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
