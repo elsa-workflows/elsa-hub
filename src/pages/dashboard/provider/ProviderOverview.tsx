@@ -16,7 +16,10 @@ function minutesToHours(minutes: number): string {
 export default function ProviderOverview() {
   const { slug } = useParams<{ slug: string }>();
   const { provider, customers, workLogs, bundles, isLoading, notFound } = useProviderDashboard(slug);
+  const { data: bookingsData, isLoading: bookingsLoading } = useTidyCalBookings(provider?.id, "upcoming");
   const [copiedId, setCopiedId] = useState(false);
+  
+  const upcomingBookings = bookingsData?.bookings?.slice(0, 3) || [];
 
   const handleCopyId = async () => {
     if (!provider?.id) return;
