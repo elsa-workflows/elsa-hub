@@ -942,6 +942,7 @@ export type Database = {
           name: string
           purchase_pause_message: string | null
           slug: string
+          tidycal_api_token: string | null
           total_available_minutes_per_month: number | null
           updated_at: string
         }
@@ -960,6 +961,7 @@ export type Database = {
           name: string
           purchase_pause_message?: string | null
           slug: string
+          tidycal_api_token?: string | null
           total_available_minutes_per_month?: number | null
           updated_at?: string
         }
@@ -978,6 +980,7 @@ export type Database = {
           name?: string
           purchase_pause_message?: string | null
           slug?: string
+          tidycal_api_token?: string | null
           total_available_minutes_per_month?: number | null
           updated_at?: string
         }
