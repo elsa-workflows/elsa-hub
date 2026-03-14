@@ -202,6 +202,7 @@ Deno.serve(async (req) => {
         cancelled: !!b.cancelled_at,
         cancelled_at: b.cancelled_at || null,
         cancel_reason: b.cancel_reason || null,
+        approved_at: b.approved_at || null,
         contact_name: b.contact?.name || null,
         contact_email: b.contact?.email || null,
         booking_type_title: b.booking_type?.title || null,

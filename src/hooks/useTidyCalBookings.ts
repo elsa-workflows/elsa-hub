@@ -8,6 +8,7 @@ export interface TidyCalBooking {
   cancelled: boolean;
   cancelled_at: string | null;
   cancel_reason: string | null;
+  approved_at: string | null;
   contact_name: string | null;
   contact_email: string | null;
   booking_type_title: string | null;
