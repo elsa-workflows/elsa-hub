@@ -144,6 +144,56 @@ export default function ProviderOverview() {
         </Card>
       </div>
 
+      {/* Upcoming Bookings */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Upcoming Bookings</CardTitle>
+            <CardDescription>Next 3 scheduled calls</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/dashboard/provider/${slug}/bookings`}>View All</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {bookingsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 bg-muted/50 animate-pulse rounded" />
+              ))}
+            </div>
+          ) : upcomingBookings.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CalendarDays className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No upcoming bookings.</p>
+              <p className="text-sm mt-1">Scheduled calls will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {upcomingBookings.map((booking) => (
+                <div
+                  key={booking.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                >
+                  <div>
+                    <p className="font-medium">{booking.booking_type_title || "Booking"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {booking.contact_name || booking.contact_email || "No contact info"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">{format(new Date(booking.starts_at), "MMM d, yyyy")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(booking.starts_at), "h:mm a")} • {booking.booking_type_duration} min
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Recent Work Logs */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
