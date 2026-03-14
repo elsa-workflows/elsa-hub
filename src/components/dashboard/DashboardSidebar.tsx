@@ -15,6 +15,7 @@ import {
   FileText,
   Activity,
   MessageSquare,
+  CalendarDays,
 } from "lucide-react";
 import {
   Sidebar,
@@ -37,6 +38,7 @@ const orgNavItems = [
   { label: "Overview", icon: LayoutDashboard, path: "" },
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Credits", icon: Coins, path: "credits" },
+  { label: "Bookings", icon: CalendarDays, path: "bookings" },
   { label: "Team", icon: Users, path: "team" },
   { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Activity", icon: Activity, path: "activity" },
@@ -48,6 +50,7 @@ const providerNavItems = [
   { label: "Usage", icon: BarChart3, path: "usage" },
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Customers", icon: Building2, path: "customers" },
+  { label: "Bookings", icon: CalendarDays, path: "bookings" },
   { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Work Logs", icon: Clock, path: "work-logs" },
   { label: "Bundles", icon: Package, path: "bundles" },

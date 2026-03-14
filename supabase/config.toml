@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.send-work-notification]
 verify_jwt = false
+
+[functions.tidycal-proxy]
+verify_jwt = false

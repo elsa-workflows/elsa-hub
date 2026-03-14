@@ -894,6 +894,38 @@ export type Database = {
           },
         ]
       }
+      provider_integrations: {
+        Row: {
+          created_at: string
+          id: string
+          service_provider_id: string
+          tidycal_api_token: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          service_provider_id: string
+          tidycal_api_token?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          service_provider_id?: string
+          tidycal_api_token?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_integrations_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: true
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       provider_members: {
         Row: {
           created_at: string
