@@ -28,6 +28,10 @@ const features = [{
   title: "Full Observability",
   description: "Monitor workflow execution in real-time. Debug, trace, and analyze every step of your workflows."
 }, {
+  icon: Layers,
+  title: "Multi-Tenancy",
+  description: "Built-in multi-tenant support with flexible isolation levels—from record-level tenancy to fully isolated service collections per tenant using CShells."
+}, {
   icon: Shield,
   title: "Enterprise Ready",
   description: "Built for production. Supports clustering, persistence, and scales from small apps to enterprise systems."
