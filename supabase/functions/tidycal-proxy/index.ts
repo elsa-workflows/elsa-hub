@@ -165,13 +165,15 @@ Deno.serve(async (req) => {
 
     if (action === "list-bookings") {
       const now = new Date();
+      // TidyCal requires Y-m-d\TH:i:s\Z format (no milliseconds)
+      const nowFormatted = now.toISOString().replace(/\.\d{3}Z$/, "Z");
       const params = new URLSearchParams();
       if (page) params.set("page", String(page));
 
       if (mode === "upcoming") {
-        params.set("starts_at", now.toISOString());
+        params.set("starts_at", nowFormatted);
       } else if (mode === "past") {
-        params.set("ends_at", now.toISOString());
+        params.set("ends_at", nowFormatted);
       }
 
       // Don't filter cancelled by default — let the frontend show status
