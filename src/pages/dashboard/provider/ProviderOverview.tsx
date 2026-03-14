@@ -54,10 +54,22 @@ export default function ProviderOverview() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Provider Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Overview for {provider?.name}
-        </p>
+        <h1 className="text-2xl font-bold">{provider?.name}</h1>
+        <p className="text-sm text-muted-foreground">/{provider?.slug}</p>
+        {provider?.id && (
+          <button
+            onClick={handleCopyId}
+            className="text-xs text-muted-foreground/60 font-mono flex items-center gap-1 hover:text-primary transition-colors cursor-pointer mt-0.5"
+            title="Click to copy Provider ID"
+          >
+            {provider.id}
+            {copiedId ? (
+              <Check className="h-3 w-3 text-primary" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Stats Grid */}
