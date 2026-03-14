@@ -49,6 +49,18 @@ export default function OrgOverview() {
     }
   }, [notFound, isLoading, navigate]);
 
+  const handleCopyId = async () => {
+    if (!organization?.id) return;
+    try {
+      await navigator.clipboard.writeText(organization.id);
+      setCopiedId(true);
+      toast.success("Organization ID copied to clipboard");
+      setTimeout(() => setCopiedId(false), 2000);
+    } catch {
+      toast.error("Failed to copy ID");
+    }
+  };
+
   if (notFound && !isLoading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center px-4">
