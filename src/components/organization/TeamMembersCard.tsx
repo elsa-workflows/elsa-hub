@@ -1,8 +1,14 @@
-import { Users, Crown, ShieldCheck, User, Clock, Mail } from "lucide-react";
+import { useState } from "react";
+import { Users, Crown, ShieldCheck, User, Clock, Mail, RotateCw, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InviteMemberDialog } from "./InviteMemberDialog";
+import { CancelInvitationDialog } from "./CancelInvitationDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { TeamMember } from "@/hooks/useOrganizationDashboard";
 
 interface PendingInvitation {
@@ -50,6 +56,32 @@ export function TeamMembersCard({
   pendingInvitations = [],
   onInviteSent,
 }: TeamMembersCardProps) {
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResendInvitation = async (invite: { id: string; email: string; role: string }) => {
+    if (!organizationId) return;
+    setResendingId(invite.id);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("send-invitation", {
+        body: {
+          organizationId,
+          email: invite.email,
+          role: invite.role,
+          cancelInvitationId: invite.id,
+        },
+      });
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Invitation resent to ${invite.email}`);
+      onInviteSent?.();
+    } catch (error) {
+      console.error("Error resending invitation:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to resend invitation");
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -145,9 +177,45 @@ export function TeamMembersCard({
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline" className="gap-1 text-muted-foreground">
-                  Pending
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <Badge variant="outline" className="gap-1 text-muted-foreground">
+                    Pending
+                  </Badge>
+                  {isAdmin && (
+                    <>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                            onClick={() => handleResendInvitation(invite)}
+                            disabled={resendingId === invite.id}
+                          >
+                            {resendingId === invite.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RotateCw className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Resend invitation</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <CancelInvitationDialog
+                              invitationId={invite.id}
+                              email={invite.email}
+                              onCancelled={onInviteSent}
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Cancel invitation</TooltipContent>
+                      </Tooltip>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
