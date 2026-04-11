@@ -74,7 +74,7 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              Elsa 3.5 is now available
+              Elsa 3.6 is now available
             </div>
 
             {/* Headline */}
