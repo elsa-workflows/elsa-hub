@@ -6,6 +6,7 @@ import {
   Package,
   FileCode2,
   Handshake,
+  ShieldCheck,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {
@@ -21,6 +22,13 @@ const servicesAndSupport = [
       "Architecture review, workflow design, production troubleshooting, and hands-on pairing with Elsa experts.",
     icon: Users,
     href: "/elsa-plus/expert-services",
+  },
+  {
+    title: "Priority Support",
+    description:
+      "Structured, best-effort support with faster response times for teams running Elsa in production.",
+    icon: ShieldCheck,
+    href: "/elsa-plus/priority-support",
   },
   {
     title: "Cloud & Managed Services",
