@@ -56,11 +56,11 @@ export default function ExpertServicesProviders() {
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Expert Advisory & Engineering
+              Expert Advisory, Engineering & Support
             </h1>
             <p className="text-xl text-muted-foreground">
               Connect with qualified service providers who offer expert guidance, 
-              architecture reviews, and hands-on engineering support for Elsa Workflows.
+              architecture reviews, priority support, and hands-on engineering for Elsa Workflows.
             </p>
           </div>
         </div>
@@ -121,7 +121,7 @@ export default function ExpertServicesProviders() {
                               />
                             </div>
                             <p className="text-muted-foreground text-sm">
-                              Expert advisory and engineering services for Elsa Workflows
+                              Expert advisory, engineering, and priority support for Elsa Workflows
                             </p>
                           </div>
                           {(provider as any).booking_url && (
