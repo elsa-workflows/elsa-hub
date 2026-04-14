@@ -16,7 +16,7 @@ import {
 
 const servicesAndSupport = [
   {
-    title: "Expert Advisory & Engineering",
+    title: "Expert Advisory, Engineering & Support",
     description:
       "Architecture review, workflow design, production troubleshooting, priority support, and hands-on pairing with Elsa experts.",
     icon: Users,
