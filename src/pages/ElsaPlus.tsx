@@ -19,16 +19,9 @@ const servicesAndSupport = [
   {
     title: "Expert Advisory & Engineering",
     description:
-      "Architecture review, workflow design, production troubleshooting, and hands-on pairing with Elsa experts.",
+      "Architecture review, workflow design, production troubleshooting, priority support, and hands-on pairing with Elsa experts.",
     icon: Users,
     href: "/elsa-plus/expert-services",
-  },
-  {
-    title: "Priority Support",
-    description:
-      "Structured, best-effort support with faster response times for teams running Elsa in production.",
-    icon: ShieldCheck,
-    href: "/elsa-plus/priority-support",
   },
   {
     title: "Cloud & Managed Services",

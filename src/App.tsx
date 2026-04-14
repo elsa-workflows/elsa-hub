@@ -89,7 +89,7 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<DockerImages />} />
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
-              <Route path="/elsa-plus/priority-support" element={<PrioritySupport />} />
+              <Route path="/elsa-plus/priority-support" element={<Navigate to="/elsa-plus/expert-services/valence-works" replace />} />
               {/* Backward compatibility redirects */}
               <Route path="/enterprise" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/enterprise/expert-services" element={<Navigate to="/elsa-plus/expert-services" replace />} />

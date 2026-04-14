@@ -19,6 +19,14 @@ import { NewsletterSubscribeDialog } from "@/components/newsletter";
 import { useCreditBundles } from "@/hooks/useCreditBundles";
 import { toast } from "sonner";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   ArrowRight,
   Check,
   X,
@@ -33,6 +41,8 @@ import {
   CreditCard,
   Loader2,
   Phone,
+  ShieldCheck,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -74,13 +84,36 @@ const howWeWork = [
 ];
 
 const notIncluded = [
-  "Guaranteed response times or SLAs",
+  "Guaranteed response times or formal SLAs",
   "24/7 or on-call availability",
+  "Managed service or production ownership",
+  "Incident response or guaranteed resolution times",
   "Unlimited async support",
   "Acting as a long-term team member",
   "Ownership of project delivery or deadlines",
   "General .NET, cloud, or DevOps consulting unrelated to Elsa",
   "Bypassing open-source community processes",
+];
+
+const responseTargets = [
+  {
+    severity: "Critical",
+    description: "Production blocking issue",
+    target: "Within 4–8 business hours",
+    badgeVariant: "destructive" as const,
+  },
+  {
+    severity: "High",
+    description: "Major issue or risk",
+    target: "Within 1 business day",
+    badgeVariant: "default" as const,
+  },
+  {
+    severity: "Normal",
+    description: "General questions",
+    target: "Within 2–3 business days",
+    badgeVariant: "secondary" as const,
+  },
 ];
 
 interface DialogConfig {
@@ -446,7 +479,11 @@ export default function ValenceWorks() {
                           </li>
                           <li className="flex items-start gap-3">
                             <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>Priority scheduling</span>
+                            <span>Priority response times (best-effort)</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Direct communication channel</span>
                           </li>
                           <li className="flex items-start gap-3">
                             <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
@@ -470,6 +507,118 @@ export default function ValenceWorks() {
           </section>
         );
       })()}
+
+      {/* Priority Support */}
+      <section className="py-16 md:py-24 bg-surface-subtle">
+        <div className="container">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 mb-4">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+                <h2 className="text-3xl md:text-4xl font-bold">
+                  Priority Support
+                </h2>
+              </div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                For teams that require faster response times and direct access to expertise, 
+                Priority Support provides a structured, best-effort support model designed for engineering teams.
+              </p>
+            </div>
+
+            {/* Response Targets Table */}
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-xl">Response Targets (Best-Effort)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[120px]">Severity</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Target Response Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {responseTargets.map((row) => (
+                      <TableRow key={row.severity}>
+                        <TableCell>
+                          <Badge variant={row.badgeVariant}>{row.severity}</Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{row.description}</TableCell>
+                        <TableCell className="text-right font-medium">{row.target}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <div className="mt-4 flex items-start gap-2 text-sm text-muted-foreground">
+                  <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <p>
+                    Response times are targets, not guarantees, and apply during business hours. 
+                    This is not a formal SLA.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* What You Get */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">What You Get</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {[
+                      "Priority access over community channels",
+                      "Direct communication channel (private email or Slack/Teams)",
+                      "Faster response times (best-effort)",
+                      "Architecture and design guidance",
+                      "Help diagnosing issues in collaboration with your team",
+                      "Optional scheduled sessions (e.g. weekly check-ins)",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground text-sm">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Designed for Production</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    For regulated or mission-critical systems, reliability depends on:
+                  </p>
+                  <ul className="space-y-3">
+                    {[
+                      "System architecture (redundancy, failover)",
+                      "Observability and monitoring",
+                      "Workflow design (idempotency, retries)",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground text-sm">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-muted-foreground text-sm mt-4">
+                    Priority Support helps teams design and operate these systems with confidence.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <p className="text-sm text-muted-foreground text-center mt-8">
+              Priority Support is available with Retained Advisory subscriptions or larger credit bundles.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Not Sure Where to Start - Intro Call Section */}
       <section className="py-16 md:py-24 bg-surface-subtle">
