@@ -22,7 +22,7 @@ import ExpertServiceProvider from "./pages/enterprise/ExpertServiceProvider";
 import DockerImages from "./pages/enterprise/DockerImages";
 import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
-import PrioritySupport from "./pages/elsa-plus/PrioritySupport";
+
 import Resources from "./pages/Resources";
 import CommunityContent from "./pages/resources/CommunityContent";
 import Login from "./pages/Login";
@@ -89,7 +89,7 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<DockerImages />} />
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
-              <Route path="/elsa-plus/priority-support" element={<PrioritySupport />} />
+              <Route path="/elsa-plus/priority-support" element={<Navigate to="/elsa-plus/expert-services/valence-works" replace />} />
               {/* Backward compatibility redirects */}
               <Route path="/enterprise" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/enterprise/expert-services" element={<Navigate to="/elsa-plus/expert-services" replace />} />
