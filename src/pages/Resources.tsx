@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Landmark } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BookOpen,
@@ -76,6 +77,12 @@ const additionalResources = [
     title: "Contributing Guide",
     description: "How to contribute to Elsa",
     href: "https://github.com/elsa-workflows/elsa-core/blob/main/CONTRIBUTING.md",
+  },
+  {
+    icon: Landmark,
+    title: "Project Governance",
+    description: "How features are prioritized",
+    href: "https://github.com/elsa-workflows/elsa-core/blob/main/CONTRIBUTING.md#feature-requests--prioritization",
   },
 ];
 
@@ -160,7 +167,7 @@ export default function Resources() {
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {additionalResources.map((resource, index) => {
               const isInternal = "isInternal" in resource && resource.isInternal;
               const CardWrapper = isInternal ? Link : "a";
