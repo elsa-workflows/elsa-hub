@@ -6,7 +6,6 @@ import {
   Package,
   FileCode2,
   Handshake,
-  ShieldCheck,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {

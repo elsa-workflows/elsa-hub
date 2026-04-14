@@ -22,7 +22,7 @@ import ExpertServiceProvider from "./pages/enterprise/ExpertServiceProvider";
 import DockerImages from "./pages/enterprise/DockerImages";
 import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
-import PrioritySupport from "./pages/elsa-plus/PrioritySupport";
+
 import Resources from "./pages/Resources";
 import CommunityContent from "./pages/resources/CommunityContent";
 import Login from "./pages/Login";
