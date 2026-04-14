@@ -78,6 +78,12 @@ const additionalResources = [
     description: "How to contribute to Elsa",
     href: "https://github.com/elsa-workflows/elsa-core/blob/main/CONTRIBUTING.md",
   },
+  {
+    icon: Landmark,
+    title: "Project Governance",
+    description: "How features are prioritized",
+    href: "https://github.com/elsa-workflows/elsa-core/blob/main/CONTRIBUTING.md#feature-requests--prioritization",
+  },
 ];
 
 const communityLinks = [
