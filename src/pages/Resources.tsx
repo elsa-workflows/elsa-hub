@@ -167,7 +167,7 @@ export default function Resources() {
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {additionalResources.map((resource, index) => {
               const isInternal = "isInternal" in resource && resource.isInternal;
               const CardWrapper = isInternal ? Link : "a";
