@@ -100,18 +100,21 @@ const responseTargets = [
     severity: "Critical",
     description: "Production blocking issue",
     target: "Within 4–8 business hours",
+    handling: "Prioritized immediately upon engagement; active investigation starts as soon as possible",
     badgeVariant: "destructive" as const,
   },
   {
     severity: "High",
     description: "Major issue or risk",
     target: "Within 1 business day",
+    handling: "Scheduled with priority over normal requests",
     badgeVariant: "default" as const,
   },
   {
     severity: "Normal",
     description: "General questions",
     target: "Within 2–3 business days",
+    handling: "Handled in regular support flow",
     badgeVariant: "secondary" as const,
   },
 ];
@@ -245,7 +248,10 @@ export default function ValenceWorks() {
               in real-world systems. Whether you need architectural clarity, hands-on pairing, 
               or help unblocking production issues,{" "}
                <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
-              provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
+               provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
+            </p>
+            <p className="text-base text-muted-foreground/80 italic mt-3">
+              Priority Support provides faster access to expertise — not outsourced operations.
             </p>
             <div className="mt-8">
               <Button
@@ -536,7 +542,8 @@ export default function ValenceWorks() {
                     <TableRow>
                       <TableHead className="w-[120px]">Severity</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Target Response Time</TableHead>
+                      <TableHead>Target Response Time</TableHead>
+                      <TableHead>Priority Handling</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -546,7 +553,8 @@ export default function ValenceWorks() {
                           <Badge variant={row.badgeVariant}>{row.severity}</Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">{row.description}</TableCell>
-                        <TableCell className="text-right font-medium">{row.target}</TableCell>
+                        <TableCell className="font-medium">{row.target}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{row.handling}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -616,6 +624,148 @@ export default function ValenceWorks() {
             <p className="text-sm text-muted-foreground text-center mt-8">
               Priority Support is available with Retained Advisory subscriptions or larger credit bundles.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* How Support Is Billed */}
+      <section className="py-16 md:py-24">
+        <div className="container">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 mb-4">
+                <CreditCard className="h-6 w-6 text-primary" />
+                <h2 className="text-3xl md:text-4xl font-bold">
+                  How Support Is Billed
+                </h2>
+              </div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Support is delivered through Service Credits:
+              </p>
+            </div>
+
+            <div className="max-w-3xl mx-auto space-y-4 mb-12">
+              <ul className="space-y-3">
+                {[
+                  "1 credit = 1 hour of engineering time",
+                  "Work is billed based on time spent, not outcome guarantees",
+                  "Resolution time depends on the complexity of the issue",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-muted-foreground text-sm pt-2">
+                This model ensures flexibility and allows support to scale with the nature of the work.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {/* Working with Priority Support */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Working with Priority Support</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm">
+                    Priority Support ensures faster access and responsiveness, but does not change the underlying billing model.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Critical Issues */}
+              <Card className="border-destructive/30">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Badge variant="destructive" className="text-xs">Critical</Badge>
+                    Critical Issues
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground text-sm mb-3">
+                    For production-blocking issues:
+                  </p>
+                  <ul className="space-y-2">
+                    {[
+                      "Work begins as soon as possible after initial response",
+                      "Time is billed continuously while actively investigating",
+                      "A minimum of 2 credits per engagement may apply",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground text-sm">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-muted-foreground text-xs mt-3 pt-3 border-t">
+                    This reflects the need to prioritize and allocate focused time on short notice.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* High & Normal Issues */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">High & Normal Issues</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {[
+                      "Billed at the standard rate (1 credit per hour)",
+                      "Typically handled asynchronously or through scheduled sessions",
+                      "No minimum credit usage required",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground text-sm">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* What to Expect */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">What to Expect</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {[
+                      "Support is collaborative — we work with your engineering team",
+                      "Focus is on diagnosis, guidance, and resolution strategy",
+                      "Not all issues can be resolved immediately; some require deeper investigation",
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground text-sm">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Important Notes */}
+            <div className="max-w-3xl mx-auto p-6 rounded-lg bg-surface-subtle border flex items-start gap-4">
+              <Info className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium mb-2">Important Notes</p>
+                <ul className="space-y-1.5">
+                  {[
+                    "Priority Support provides faster response, not guaranteed resolution times",
+                    "This is not a managed service or incident response contract",
+                    "Customers remain responsible for their own production systems",
+                  ].map((item) => (
+                    <li key={item} className="text-sm text-muted-foreground">
+                      • {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </section>
