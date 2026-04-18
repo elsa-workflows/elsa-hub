@@ -1,6 +1,7 @@
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, ExternalLink } from "lucide-react";
+import { ArrowRight, BookOpen, ExternalLink, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   CodeBlock,
   StepItem,
@@ -9,76 +10,101 @@ import {
   GuideNavigation,
 } from "@/components/get-started";
 
-const packages = `dotnet add package Elsa
-dotnet add package Elsa.EntityFrameworkCore
-dotnet add package Elsa.EntityFrameworkCore.Sqlite
-dotnet add package Elsa.Identity
-dotnet add package Elsa.Scheduling
-dotnet add package Elsa.Workflows.Api
-dotnet add package Elsa.CSharp
-dotnet add package Elsa.JavaScript
-dotnet add package Elsa.Liquid`;
+const packages = `dotnet add package Elsa --version 3.6.1
+dotnet add package Elsa.Persistence.EFCore --version 3.6.1
+dotnet add package Elsa.Persistence.EFCore.Sqlite --version 3.6.1
+dotnet add package Elsa.Identity --version 3.6.1
+dotnet add package Elsa.Scheduling --version 3.6.1
+dotnet add package Elsa.Workflows.Api --version 3.6.1
+dotnet add package Elsa.Http --version 3.6.1
+dotnet add package Elsa.Expressions.CSharp --version 3.6.1
+dotnet add package Elsa.Expressions.JavaScript --version 3.6.1
+dotnet add package Elsa.Expressions.Liquid --version 3.6.1`;
 
-const programCs = `using Elsa.EntityFrameworkCore.Extensions;
-using Elsa.EntityFrameworkCore.Modules.Management;
-using Elsa.EntityFrameworkCore.Modules.Runtime;
-using Elsa.Extensions;
+const programCs = `using Elsa.Extensions;
+using Elsa.Persistence.EFCore.Extensions;
+using Elsa.Persistence.EFCore.Modules.Management;
+using Elsa.Persistence.EFCore.Modules.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
 
 builder.Services.AddElsa(elsa =>
 {
-    // Configure management feature to use EF Core
-    elsa.UseWorkflowManagement(management => 
+    // Persistence (SQLite for evaluation; switch the provider for production).
+    elsa.UseWorkflowManagement(management =>
         management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
 
-    // Configure runtime feature to use EF Core
-    elsa.UseWorkflowRuntime(runtime => 
+    elsa.UseWorkflowRuntime(runtime =>
         runtime.UseEntityFrameworkCore(ef => ef.UseSqlite()));
 
-    // Expose API endpoints
-    elsa.UseWorkflowsApi();
-
-    // Use default authentication (API key based)
+    // Identity + token-based authentication for the management API.
     elsa.UseIdentity(identity =>
     {
-        identity.UseAdminUserProvider();
-        identity.TokenOptions = options =>
-        {
-            options.SigningKey = "my-long-256-bit-secret-token-signing-key";
-            options.AccessTokenLifetime = TimeSpan.FromDays(1);
-        };
+        identity.UseConfigurationBasedUserProvider(o => configuration.GetSection("Identity").Bind(o));
+        identity.TokenOptions = options => configuration.GetSection("Identity:Tokens").Bind(options);
     });
-
-    // Default authentication for API endpoints
     elsa.UseDefaultAuthentication();
 
-    // Add scheduling capabilities
+    // HTTP activities + Studio-facing API surface.
+    elsa.UseHttp();
+    elsa.UseWorkflowsApi();
+
+    // Background scheduling.
     elsa.UseScheduling();
 
-    // Enable C# workflow expressions
+    // Expression languages.
     elsa.UseCSharp();
-
-    // Enable JavaScript workflow expressions
     elsa.UseJavaScript();
-
-    // Enable Liquid workflow expressions
     elsa.UseLiquid();
 });
 
-// CORS for studio access
-builder.Services.AddCors(cors => 
-    cors.AddDefaultPolicy(policy => 
+// CORS so a separately hosted Elsa Studio can call the API during development.
+builder.Services.AddCors(cors =>
+    cors.AddDefaultPolicy(policy =>
         policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod()));
 
 var app = builder.Build();
+
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map Elsa management API + HTTP workflow endpoints.
 app.UseWorkflowsApi();
+app.UseWorkflows();
+
 app.Run();`;
+
+const appSettings = `{
+  "ConnectionStrings": {
+    "Sqlite": "Data Source=elsa.sqlite.db;Cache=Shared;"
+  },
+  "Identity": {
+    "Tokens": {
+      "SigningKey": "REPLACE-WITH-A-LONG-RANDOM-256-BIT-SECRET",
+      "AccessTokenLifetime": "1.00:00:00"
+    },
+    "Roles": [
+      { "Id": "admin", "Name": "Administrator", "Permissions": [ "*" ] }
+    ],
+    "Users": [
+      {
+        "Id": "admin",
+        "Name": "admin",
+        "Email": "admin@elsa.local",
+        "Password": "password",
+        "Roles": [ "admin" ]
+      }
+    ]
+  },
+  "Http": {
+    "BaseUrl": "https://localhost:5001",
+    "BasePath": "/workflows"
+  }
+}`;
 
 export default function ElsaServer() {
   return (
@@ -94,8 +120,9 @@ export default function ElsaServer() {
               Set Up Elsa Server
             </h1>
             <p className="text-xl text-muted-foreground">
-              Create an ASP.NET Core application that manages and executes
-              workflows via REST API. This is the workflow engine backend.
+              Build a minimal ASP.NET Core backend that hosts the Elsa workflow
+              engine and exposes the management API consumed by Elsa Studio.
+              Targets the released <strong>3.6.1</strong> packages.
             </p>
           </div>
         </div>
@@ -110,8 +137,30 @@ export default function ElsaServer() {
               items={[
                 ".NET 8.0 SDK or later",
                 "IDE (Visual Studio, Rider, or VS Code)",
+                "Familiarity with ASP.NET Core hosting",
               ]}
             />
+
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>This is a minimal custom server</AlertTitle>
+              <AlertDescription>
+                The steps below produce a working backend you can point Elsa
+                Studio at. For a production-shaped configuration (multi-database
+                providers, multitenancy, OpenTelemetry, real-time workflows,
+                etc.) use the official reference app{" "}
+                <a
+                  href="https://github.com/elsa-workflows/elsa-core/tree/release/3.6.1/src/apps/Elsa.Server.Web"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-4"
+                >
+                  src/apps/Elsa.Server.Web
+                </a>{" "}
+                in <code className="px-1 rounded bg-muted font-mono text-xs">elsa-core</code> on the{" "}
+                <code className="px-1 rounded bg-muted font-mono text-xs">release/3.6.1</code> branch.
+              </AlertDescription>
+            </Alert>
 
             {/* Step 1 */}
             <StepItem
@@ -130,12 +179,19 @@ cd ElsaServer`}
             {/* Step 2 */}
             <StepItem
               number={2}
-              title="Add Elsa Packages"
+              title="Add Elsa 3.6.1 Packages"
               description={
                 <p>
-                  Install the core Elsa packages. These include the workflow
-                  engine, persistence with SQLite, identity management,
-                  scheduling, and scripting support.
+                  Install the core Elsa packages. Note the 3.6 naming:
+                  persistence packages are{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
+                    Elsa.Persistence.EFCore.*
+                  </code>{" "}
+                  and the scripting packages are{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
+                    Elsa.Expressions.*
+                  </code>
+                  .
                 </p>
               }
             >
@@ -148,31 +204,65 @@ cd ElsaServer`}
               title="Configure Program.cs"
               description={
                 <p>
-                  Replace the contents of <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Program.cs</code> with
-                  the Elsa configuration. This sets up EF Core persistence, API
-                  endpoints, authentication, and expression languages.
+                  Replace the contents of{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
+                    Program.cs
+                  </code>{" "}
+                  with the configuration below. This wires up persistence,
+                  identity, the management API, HTTP activities, scheduling and
+                  the expression languages.
                 </p>
               }
             >
-              <CodeBlock code={programCs} language="csharp" title="Program.cs" />
+              <CodeBlock
+                code={programCs}
+                language="csharp"
+                title="Program.cs"
+              />
             </StepItem>
 
             {/* Step 4 */}
             <StepItem
               number={4}
+              title="Configure appsettings.json"
+              description={
+                <p>
+                  Add the signing key, an admin user, and the HTTP base URL used
+                  by HTTP-triggered workflows. Replace the signing key with a
+                  long random secret before running anywhere other than your
+                  local machine.
+                </p>
+              }
+            >
+              <CodeBlock
+                code={appSettings}
+                language="json"
+                title="appsettings.json"
+              />
+            </StepItem>
+
+            {/* Step 5 */}
+            <StepItem
+              number={5}
               title="Run the Server"
               description={
                 <p>
-                  Start the application. The server will expose REST API
-                  endpoints for workflow management.
+                  Start the application. The server exposes the management API
+                  at <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">/elsa/api</code>{" "}
+                  and HTTP workflow endpoints under{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">/workflows</code>.
                 </p>
               }
             >
               <CodeBlock code="dotnet run" language="bash" title="Terminal" />
-              <div className="mt-6 p-4 rounded-lg border bg-muted/30">
+              <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  The server will start on <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">https://localhost:5001</code> (or similar).
-                  You can test the API by navigating to <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">/elsa/api/workflow-definitions</code>.
+                  The default admin credentials are{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">admin</code> /{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">password</code>.
+                  Point Elsa Studio at the API base URL (for example{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">https://localhost:5001/elsa/api</code>)
+                  to start designing workflows.
                 </p>
               </div>
             </StepItem>
@@ -183,15 +273,15 @@ cd ElsaServer`}
               <div className="grid sm:grid-cols-2 gap-4">
                 <Button variant="outline" className="h-auto p-4 justify-start" asChild>
                   <a
-                    href="https://docs.elsaworkflows.io/application-types/elsa-server"
+                    href="https://github.com/elsa-workflows/elsa-core/tree/release/3.6.1/src/apps/Elsa.Server.Web"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <BookOpen className="h-5 w-5 mr-3 text-primary" />
                     <div className="text-left">
-                      <p className="font-medium">Full Documentation</p>
+                      <p className="font-medium">Reference Server App</p>
                       <p className="text-sm text-muted-foreground">
-                        Advanced configuration options
+                        elsa-core release/3.6.1
                       </p>
                     </div>
                     <ExternalLink className="h-4 w-4 ml-auto" />
@@ -199,15 +289,15 @@ cd ElsaServer`}
                 </Button>
                 <Button variant="outline" className="h-auto p-4 justify-start" asChild>
                   <a
-                    href="https://github.com/elsa-workflows/elsa-samples"
+                    href="https://docs.elsaworkflows.io/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <ArrowRight className="h-5 w-5 mr-3 text-primary" />
                     <div className="text-left">
-                      <p className="font-medium">Sample Projects</p>
+                      <p className="font-medium">Documentation</p>
                       <p className="text-sm text-muted-foreground">
-                        Real-world examples
+                        Guides and API reference
                       </p>
                     </div>
                     <ExternalLink className="h-4 w-4 ml-auto" />
