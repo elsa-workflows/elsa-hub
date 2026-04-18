@@ -14,8 +14,12 @@ const cloneAndCheckout = `git clone https://github.com/elsa-workflows/elsa-studi
 cd elsa-studio
 git checkout release/3.6.1`;
 
-const buildAssets = `# Frontend assets used by the Studio shell.
-cd src/framework/Elsa.Studio.DomInterop/ClientLib
+const buildDomInteropAssets = `cd src/framework/Elsa.Studio.DomInterop/ClientLib
+npm install
+npm run build
+cd ../../../..`;
+
+const buildDesignerAssets = `cd src/modules/Elsa.Studio.Workflows.Designer/ClientLib
 npm install
 npm run build
 cd ../../../..`;
