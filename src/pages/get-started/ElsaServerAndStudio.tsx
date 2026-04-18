@@ -1,7 +1,8 @@
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { BookOpen, ExternalLink, Sparkles } from "lucide-react";
+import { BookOpen, ExternalLink, Sparkles, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   CodeBlock,
   StepItem,
@@ -10,154 +11,31 @@ import {
   GuideNavigation,
 } from "@/components/get-started";
 
-const hostProgramCs = `using Elsa.EntityFrameworkCore.Extensions;
-using Elsa.EntityFrameworkCore.Modules.Management;
-using Elsa.EntityFrameworkCore.Modules.Runtime;
-using Elsa.Extensions;
-using Elsa.Studio.Host.Options;
+const cloneCore = `git clone https://github.com/elsa-workflows/elsa-core.git
+cd elsa-core
+git checkout release/3.6.1`;
 
-var builder = WebApplication.CreateBuilder(args);
-var config = builder.Configuration;
+const runServerWeb = `dotnet run --project ./src/apps/Elsa.Server.Web/Elsa.Server.Web.csproj`;
 
-// Add Elsa services
-builder.Services.AddElsa(elsa =>
-{
-    elsa.UseWorkflowManagement(management => 
-        management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
+const cloneStudio = `git clone https://github.com/elsa-workflows/elsa-studio.git
+cd elsa-studio
+git checkout release/3.6.1`;
 
-    elsa.UseWorkflowRuntime(runtime => 
-        runtime.UseEntityFrameworkCore(ef => ef.UseSqlite()));
+const buildStudioAssets = `cd src/framework/Elsa.Studio.DomInterop/ClientLib
+npm install
+npm run build
+cd ../../../..
 
-    elsa.UseWorkflowsApi();
+dotnet restore Elsa.Studio.sln
+dotnet build Elsa.Studio.sln`;
 
-    elsa.UseIdentity(identity =>
-    {
-        identity.UseAdminUserProvider();
-        identity.TokenOptions = options =>
-        {
-            options.SigningKey = config["Identity:SigningKey"]!;
-            options.AccessTokenLifetime = TimeSpan.FromDays(1);
-        };
-    });
+const runStudioServerHost = `dotnet run --project ./src/hosts/Elsa.Studio.Host.Server/Elsa.Studio.Host.Server.csproj`;
 
-    elsa.UseDefaultAuthentication();
-    elsa.UseScheduling();
-    elsa.UseCSharp();
-    elsa.UseJavaScript();
-    elsa.UseLiquid();
-});
-
-// Add Elsa Studio services
-builder.Services.AddElsaStudio(elsa =>
-{
-    elsa.HostOptions = new ElsaHostOptions
-    {
-        HeadlessMode = true
-    };
-});
-
-builder.Services.AddRazorPages();
-
-var app = builder.Build();
-app.UseStaticFiles();
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseWorkflowsApi();
-app.MapFallbackToPage("/_Host");
-app.Run();`;
-
-const appSettingsJson = `{
-  "Identity": {
-    "SigningKey": "my-long-256-bit-secret-token-signing-key"
-  }
-}`;
-
-const hostCshtml = `@page "/"
-@using Microsoft.AspNetCore.Components.Web
-@namespace ElsaServerAndStudio.Host.Pages
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Elsa Workflows</title>
-    <base href="/" />
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link href="_content/Elsa.Studio.Shell/css/shell.css" rel="stylesheet" />
-    <link href="Host.styles.css" rel="stylesheet" />
-</head>
-<body>
-    <component type="typeof(Client.App)" render-mode="WebAssemblyPrerendered" />
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="_content/BlazorMonaco/jsInterop.js"></script>
-    <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"></script>
-    <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"></script>
-    <script src="_framework/blazor.webassembly.js"></script>
-</body>
-</html>`;
-
-const clientProgramCs = `using Client;
-using Elsa.Studio.Core.BlazorWasm.Extensions;
-using Elsa.Studio.Extensions;
-using Elsa.Studio.Login.BlazorWasm.Extensions;
-using Elsa.Studio.Workflows.Designer.Extensions;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-
-var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.RootComponents.Add<App>("#app");
-builder.RootComponents.Add<HeadOutlet>("head::after");
-
-builder.Services.AddCore();
-builder.Services.AddShell();
-builder.Services.AddRemoteBackend(
-    elsaClient => elsaClient.AuthenticationHandler = 
-        typeof(AuthenticatingApiHttpMessageHandler));
-builder.Services.AddLoginModule();
-builder.Services.AddWorkflowsModule();
-
-await builder.Build().RunAsync();`;
-
-const clientAppRazor = `@using Elsa.Studio.Shell
-@using Elsa.Studio.Shell.Components
-
-<Routes />`;
-
-const clientMainLayoutRazor = `@inherits LayoutComponentBase
-@using Elsa.Studio.Shell.Components
-
-<ElsaStudioShell />`;
-
-const clientRoutesRazor = `@using Elsa.Studio.Shell.Components
-
-<ElsaRoutes />`;
-
-const clientAppSettingsJson = `{
+const studioBackendConfig = `{
   "Backend": {
-    "Url": "/elsa/api"
+    "Url": "https://localhost:5001/elsa/api"
   }
 }`;
-
-const hostPackages = `dotnet add package Elsa
-dotnet add package Elsa.EntityFrameworkCore
-dotnet add package Elsa.EntityFrameworkCore.Sqlite
-dotnet add package Elsa.Identity
-dotnet add package Elsa.Scheduling
-dotnet add package Elsa.Workflows.Api
-dotnet add package Elsa.CSharp
-dotnet add package Elsa.JavaScript
-dotnet add package Elsa.Liquid
-dotnet add package Elsa.Studio.Host.Server`;
-
-const clientPackages = `dotnet add package Elsa.Studio
-dotnet add package Elsa.Studio.Core.BlazorWasm
-dotnet add package Elsa.Studio.Login.BlazorWasm
-dotnet add package Elsa.Studio.Shell.BlazorWasm
-dotnet add package Elsa.Studio.Workflows.Designer
-dotnet add package Elsa.Studio.Workflows.Core
-dotnet add package Elsa.Studio.Workflows.Monaco`;
 
 export default function ElsaServerAndStudio() {
   return (
@@ -169,9 +47,9 @@ export default function ElsaServerAndStudio() {
             <GuideBreadcrumb currentPage="Server + Studio" />
           </div>
           <div className="max-w-3xl">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
               <h1 className="text-4xl md:text-5xl font-bold">
-                Set Up Elsa Server + Studio
+                Run Elsa Server + Studio
               </h1>
               <Badge className="gap-1">
                 <Sparkles className="h-3 w-3" />
@@ -179,8 +57,9 @@ export default function ElsaServerAndStudio() {
               </Badge>
             </div>
             <p className="text-xl text-muted-foreground">
-              Build a single application that runs both the workflow engine and
-              visual designer. The quickest path to a complete solution.
+              The most reliable evaluation path for{" "}
+              <strong>release/3.6.1</strong>: run the official Elsa Server
+              reference app and the official Elsa Studio host side by side.
             </p>
           </div>
         </div>
@@ -190,28 +69,54 @@ export default function ElsaServerAndStudio() {
       <section className="py-16 md:py-24">
         <div className="container">
           <div className="max-w-4xl mx-auto space-y-16">
-            {/* Prerequisites */}
-            <PrerequisitesBox items={[".NET 8.0 SDK or later"]} />
+            <PrerequisitesBox
+              items={[
+                ".NET 8.0 SDK (the 3.6.1 sources also build on .NET 9 / .NET 10 SDKs)",
+                "Node.js 20+ and npm (for the Studio frontend assets)",
+                "Git",
+              ]}
+            />
 
             {/* Architecture Overview */}
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Two apps working together — not one combined app</AlertTitle>
+              <AlertDescription>
+                This guide does <strong>not</strong> scaffold a custom combined
+                Host+Client solution. Instead you run two released apps: the
+                Elsa Server reference app from the{" "}
+                <code className="px-1 rounded bg-muted font-mono text-xs">elsa-core</code> repo and
+                the Elsa Studio host from the{" "}
+                <code className="px-1 rounded bg-muted font-mono text-xs">elsa-studio</code> repo,
+                both on the <code className="px-1 rounded bg-muted font-mono text-xs">release/3.6.1</code> branch.
+                That is the path with the highest chance of success and the
+                shortest distance from clone to working dashboard.
+              </AlertDescription>
+            </Alert>
+
             <div className="rounded-lg border bg-muted/30 p-6">
-              <h3 className="font-semibold mb-3">Architecture Overview</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                This setup uses two projects: a <strong>Host</strong> (ASP.NET
-                Core server) that runs the workflow engine and serves the
-                studio, and a <strong>Client</strong> (Blazor WebAssembly) that
-                provides the visual designer. The Host serves the Client as a
-                static web app.
-              </p>
-              <div className="flex items-center gap-4 text-sm">
+              <h3 className="font-semibold mb-3">What you will run</h3>
+              <div className="flex items-center gap-4 text-sm flex-wrap">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-primary" />
-                  <span>Host (Server)</span>
+                  <span>
+                    Elsa Server (
+                    <code className="px-1 rounded bg-muted font-mono text-xs">
+                      elsa-core/src/apps/Elsa.Server.Web
+                    </code>
+                    )
+                  </span>
                 </div>
-                <span className="text-muted-foreground">→</span>
+                <span className="text-muted-foreground">↔</span>
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-primary/50" />
-                  <span>Client (Studio)</span>
+                  <span>
+                    Elsa Studio (
+                    <code className="px-1 rounded bg-muted font-mono text-xs">
+                      elsa-studio/src/hosts/Elsa.Studio.Host.Server
+                    </code>
+                    )
+                  </span>
                 </div>
               </div>
             </div>
@@ -219,217 +124,167 @@ export default function ElsaServerAndStudio() {
             {/* Step 1 */}
             <StepItem
               number={1}
-              title="Create Solution Structure"
-              description="Create the solution directory and initialize a new .NET solution."
+              title="Clone elsa-core at release/3.6.1"
+              description="Get the released backend source. The reference server app already has persistence, identity, HTTP and the management API wired up correctly for 3.6.1."
             >
-              <CodeBlock
-                code={`mkdir ElsaServerAndStudio && cd ElsaServerAndStudio
-dotnet new sln`}
-                language="bash"
-                title="Terminal"
-              />
+              <CodeBlock code={cloneCore} language="bash" title="Terminal" />
             </StepItem>
 
             {/* Step 2 */}
             <StepItem
               number={2}
-              title="Create the Host Project"
-              description="Create the ASP.NET Core host project that will run both the workflow engine and serve the studio."
+              title="Run the Reference Server App"
+              description={
+                <p>
+                  Launch{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
+                    Elsa.Server.Web
+                  </code>
+                  . By default it listens on{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">https://localhost:5001</code>{" "}
+                  and exposes the management API at{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">/elsa/api</code>.
+                  Leave this terminal running.
+                </p>
+              }
             >
-              <div className="space-y-4">
-                <CodeBlock
-                  code={`dotnet new web -n "Host"
-cd Host`}
-                  language="bash"
-                  title="Terminal"
-                />
-                <CodeBlock
-                  code={hostPackages}
-                  language="bash"
-                  title="Terminal - Add Packages"
-                />
-              </div>
+              <CodeBlock code={runServerWeb} language="bash" title="Terminal — elsa-core" />
             </StepItem>
 
             {/* Step 3 */}
             <StepItem
               number={3}
-              title="Configure Host Program.cs"
-              description="Replace the contents of Host/Program.cs with the combined server and studio configuration."
+              title="Clone elsa-studio at release/3.6.1"
+              description="In a second terminal, clone the dashboard repo at the matching release branch."
             >
-              <CodeBlock
-                code={hostProgramCs}
-                language="csharp"
-                title="Host/Program.cs"
-              />
+              <CodeBlock code={cloneStudio} language="bash" title="Terminal — elsa-studio" />
             </StepItem>
 
             {/* Step 4 */}
             <StepItem
               number={4}
-              title="Create Host Configuration"
-              description="Create the appsettings.json file in the Host project."
+              title="Build Studio Assets and Solution"
+              description={
+                <p>
+                  Build the Studio's frontend assets (required), then restore
+                  and build the .NET solution.
+                </p>
+              }
             >
-              <CodeBlock
-                code={appSettingsJson}
-                language="json"
-                title="Host/appsettings.json"
-              />
+              <CodeBlock code={buildStudioAssets} language="bash" title="Terminal — elsa-studio" />
             </StepItem>
 
             {/* Step 5 */}
             <StepItem
               number={5}
-              title="Create _Host.cshtml"
+              title="Point Studio at the Server"
               description={
                 <p>
-                  Create <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Host/Pages/_Host.cshtml</code> to
-                  serve the Blazor app.
+                  Update{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
+                    src/hosts/Elsa.Studio.Host.Server/appsettings.json
+                  </code>{" "}
+                  so{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Backend.Url</code>{" "}
+                  matches the URL of the Elsa Server you started in Step 2.
                 </p>
               }
             >
               <CodeBlock
-                code={hostCshtml}
-                language="html"
-                title="Host/Pages/_Host.cshtml"
+                code={studioBackendConfig}
+                language="json"
+                title="src/hosts/Elsa.Studio.Host.Server/appsettings.json"
               />
             </StepItem>
 
             {/* Step 6 */}
             <StepItem
               number={6}
-              title="Create the Client Project"
-              description="Go back to the solution root and create the Blazor client project."
-            >
-              <div className="space-y-4">
-                <CodeBlock
-                  code={`cd ..
-dotnet new razorclasslib -n "Client"
-cd Client`}
-                  language="bash"
-                  title="Terminal"
-                />
-                <CodeBlock
-                  code={clientPackages}
-                  language="bash"
-                  title="Terminal - Add Packages"
-                />
-              </div>
-            </StepItem>
-
-            {/* Step 7 */}
-            <StepItem
-              number={7}
-              title="Configure Client"
-              description="Create the Blazor components and configuration for the client."
-            >
-              <div className="space-y-4">
-                <CodeBlock
-                  code={clientProgramCs}
-                  language="csharp"
-                  title="Client/Program.cs"
-                />
-                <CodeBlock
-                  code={clientAppRazor}
-                  language="razor"
-                  title="Client/App.razor"
-                />
-                <CodeBlock
-                  code={clientMainLayoutRazor}
-                  language="razor"
-                  title="Client/MainLayout.razor"
-                />
-                <CodeBlock
-                  code={clientRoutesRazor}
-                  language="razor"
-                  title="Client/Routes.razor"
-                />
-                <CodeBlock
-                  code={clientAppSettingsJson}
-                  language="json"
-                  title="Client/wwwroot/appsettings.json"
-                />
-              </div>
-            </StepItem>
-
-            {/* Step 8 */}
-            <StepItem
-              number={8}
-              title="Link Projects and Run"
-              description="Add project references, add to solution, and run the application."
+              title="Run the Studio Host"
+              description="Start the Blazor Server host for Elsa Studio. Use a different port than Elsa Server."
             >
               <CodeBlock
-                code={`cd ../Host
-dotnet add reference ../Client
-cd ..
-dotnet sln add Host
-dotnet sln add Client
-cd Host
-dotnet run`}
+                code={runStudioServerHost}
                 language="bash"
-                title="Terminal"
+                title="Terminal — elsa-studio"
               />
               <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Open your browser and navigate to the URL shown in the
-                  terminal. Login with:
+                  Open the Studio URL printed in the terminal and sign in with
+                  the default credentials from the reference Elsa Server:{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">admin</code> /{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">password</code>.
                 </p>
-                <ul className="text-sm text-muted-foreground list-disc list-inside">
-                  <li>
-                    Username:{" "}
-                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
-                      admin
-                    </code>
-                  </li>
-                  <li>
-                    Password:{" "}
-                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
-                      password
-                    </code>
-                  </li>
-                </ul>
+                <p className="text-sm text-muted-foreground">
+                  Prefer the WebAssembly host? Run{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
+                    Elsa.Studio.Host.Wasm
+                  </code>{" "}
+                  instead — its config lives under{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">wwwroot/appsettings.json</code>.
+                </p>
               </div>
             </StepItem>
+
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Want to customize deeply?</AlertTitle>
+              <AlertDescription>
+                Once the released apps run end-to-end, fork or copy them as a
+                starting point. The Server reference lives at{" "}
+                <a
+                  href="https://github.com/elsa-workflows/elsa-core/tree/release/3.6.1/src/apps/Elsa.Server.Web"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-4"
+                >
+                  elsa-core / src/apps/Elsa.Server.Web
+                </a>{" "}
+                and the Studio hosts live under{" "}
+                <a
+                  href="https://github.com/elsa-workflows/elsa-studio/tree/release/3.6.1/src/hosts"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline underline-offset-4"
+                >
+                  elsa-studio / src/hosts
+                </a>
+                . Building a single combined custom Host+Client app is an
+                advanced scenario and is intentionally not covered here.
+              </AlertDescription>
+            </Alert>
 
             {/* Next Steps */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Next Steps</h2>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-auto p-4 justify-start"
-                  asChild
-                >
+                <Button variant="outline" className="h-auto p-4 justify-start" asChild>
                   <a
-                    href="https://docs.elsaworkflows.io/application-types/elsa-server-+-studio-wasm"
+                    href="https://github.com/elsa-workflows/elsa-core/tree/release/3.6.1"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <BookOpen className="h-5 w-5 mr-3 text-primary" />
                     <div className="text-left">
-                      <p className="font-medium">Full Documentation</p>
+                      <p className="font-medium">elsa-core (3.6.1)</p>
                       <p className="text-sm text-muted-foreground">
-                        Production deployment
+                        Engine source and reference apps
                       </p>
                     </div>
                     <ExternalLink className="h-4 w-4 ml-auto" />
                   </a>
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-auto p-4 justify-start"
-                  asChild
-                >
+                <Button variant="outline" className="h-auto p-4 justify-start" asChild>
                   <a
-                    href="https://github.com/elsa-workflows/elsa-samples"
+                    href="https://github.com/elsa-workflows/elsa-studio/tree/release/3.6.1"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     <Sparkles className="h-5 w-5 mr-3 text-primary" />
                     <div className="text-left">
-                      <p className="font-medium">Sample Projects</p>
+                      <p className="font-medium">elsa-studio (3.6.1)</p>
                       <p className="text-sm text-muted-foreground">
-                        Real-world examples
+                        Dashboard hosts and modules
                       </p>
                     </div>
                     <ExternalLink className="h-4 w-4 ml-auto" />
