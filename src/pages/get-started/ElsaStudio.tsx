@@ -65,8 +65,8 @@ export default function ElsaStudio() {
           <div className="max-w-4xl mx-auto space-y-16">
             <PrerequisitesBox
               items={[
-                ".NET 8.0 SDK (the 3.6.1 hosts also build on .NET 9 / .NET 10 SDKs)",
-                "Node.js 20+ and npm (used to build the Studio frontend assets)",
+                "The .NET SDK versions required by the elsa-studio release/3.6.1 README",
+                "Node.js and npm (used to build the Studio frontend assets, per the released repo)",
                 "Git",
                 "A running Elsa Server reachable from your machine",
               ]}
@@ -116,14 +116,26 @@ export default function ElsaStudio() {
               title="Build the Frontend Assets"
               description={
                 <p>
-                  The Studio shell depends on bundled JS/CSS assets produced by{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">npm run build</code>.
-                  Run this once after cloning and again whenever you pull asset
-                  changes.
+                  The released Studio repo ships two{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">ClientLib</code>{" "}
+                  folders that need their JS/CSS assets built before the
+                  solution will run correctly. Build both, in order. Re-run
+                  these whenever you pull asset changes.
                 </p>
               }
             >
-              <CodeBlock code={buildAssets} language="bash" title="Terminal" />
+              <div className="space-y-4">
+                <CodeBlock
+                  code={buildDomInteropAssets}
+                  language="bash"
+                  title="Terminal — Elsa.Studio.DomInterop"
+                />
+                <CodeBlock
+                  code={buildDesignerAssets}
+                  language="bash"
+                  title="Terminal — Elsa.Studio.Workflows.Designer"
+                />
+              </div>
             </StepItem>
 
             {/* Step 3 */}
