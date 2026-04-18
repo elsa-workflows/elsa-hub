@@ -21,7 +21,14 @@ const cloneStudio = `git clone https://github.com/elsa-workflows/elsa-studio.git
 cd elsa-studio
 git checkout release/3.6.1`;
 
-const buildStudioAssets = `cd src/framework/Elsa.Studio.DomInterop/ClientLib
+const buildStudioAssets = `# Asset bundle #1 — DOM interop
+cd src/framework/Elsa.Studio.DomInterop/ClientLib
+npm install
+npm run build
+cd ../../../..
+
+# Asset bundle #2 — Workflow Designer
+cd src/modules/Elsa.Studio.Workflows.Designer/ClientLib
 npm install
 npm run build
 cd ../../../..
@@ -71,8 +78,8 @@ export default function ElsaServerAndStudio() {
           <div className="max-w-4xl mx-auto space-y-16">
             <PrerequisitesBox
               items={[
-                ".NET 8.0 SDK (the 3.6.1 sources also build on .NET 9 / .NET 10 SDKs)",
-                "Node.js 20+ and npm (for the Studio frontend assets)",
+                "The .NET SDK versions required by elsa-core and elsa-studio at release/3.6.1",
+                "Node.js and npm (used to build the Studio frontend assets, per the released repo)",
                 "Git",
               ]}
             />
@@ -140,10 +147,12 @@ export default function ElsaServerAndStudio() {
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
                     Elsa.Server.Web
                   </code>
-                  . By default it listens on{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">https://localhost:5001</code>{" "}
-                  and exposes the management API at{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">/elsa/api</code>.
+                  . The app exposes the management API at{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">/elsa/api</code>{" "}
+                  on whatever URL it prints in the terminal (this depends on
+                  the app's launch profile and your local environment — don't
+                  assume a specific port). <strong>Note the actual base URL
+                  shown in the terminal — you'll need it in Step 5.</strong>{" "}
                   Leave this terminal running.
                 </p>
               }
@@ -166,8 +175,11 @@ export default function ElsaServerAndStudio() {
               title="Build Studio Assets and Solution"
               description={
                 <p>
-                  Build the Studio's frontend assets (required), then restore
-                  and build the .NET solution.
+                  The released Studio repo has two{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">ClientLib</code>{" "}
+                  asset bundles that must be built before the .NET solution
+                  will run correctly. Build both, then restore and build the
+                  solution.
                 </p>
               }
             >
@@ -186,7 +198,11 @@ export default function ElsaServerAndStudio() {
                   </code>{" "}
                   so{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Backend.Url</code>{" "}
-                  matches the URL of the Elsa Server you started in Step 2.
+                  matches the actual Elsa Server URL from Step 2 exactly,
+                  including scheme, host, port and the{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">/elsa/api</code>{" "}
+                  suffix. The example below is illustrative — replace it with
+                  your real URL.
                 </p>
               }
             >
@@ -211,15 +227,16 @@ export default function ElsaServerAndStudio() {
               <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                 <p className="text-sm text-muted-foreground">
                   Open the Studio URL printed in the terminal and sign in with
-                  the default credentials from the reference Elsa Server:{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">admin</code> /{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">password</code>.
+                  the credentials configured by the reference Elsa Server (the{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Elsa.Server.Web</code>{" "}
+                  app's <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">appsettings.json</code>{" "}
+                  defines the seeded admin user). If sign-in fails, double-check
+                  that <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Backend.Url</code>{" "}
+                  exactly matches the server URL from Step 2.
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Prefer the WebAssembly host? Run{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
-                    Elsa.Studio.Host.Wasm
-                  </code>{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Elsa.Studio.Host.Wasm</code>{" "}
                   instead — its config lives under{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">wwwroot/appsettings.json</code>.
                 </p>
