@@ -137,34 +137,11 @@ export default function GetStarted() {
       <section id="build-your-own" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
         <div className="container">
           <ScrollReveal>
-            <div className="mb-8">
+            <div className="mb-12">
               <h2 className="text-2xl font-bold mb-4">Build Your Own</h2>
               <p className="text-muted-foreground max-w-2xl">
-                Elsa Workflows offers flexible deployment options for the released{" "}
-                <strong>3.6.1</strong> codebase. Select the setup that matches your architecture.
+                Elsa Workflows offers flexible deployment options. Select the setup that matches your architecture.
               </p>
-            </div>
-          </ScrollReveal>
-
-          <ScrollReveal>
-            <div className="mb-10 grid gap-4 md:grid-cols-2 max-w-4xl">
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <p className="text-sm font-semibold mb-1">Need the fastest path?</p>
-                <p className="text-sm text-muted-foreground">
-                  Run the official Elsa Server and Elsa Studio side by side from the{" "}
-                  <code className="px-1 rounded bg-muted font-mono text-xs">release/3.6.1</code>{" "}
-                  branches. See <strong>Server + Studio</strong> below.
-                </p>
-              </div>
-              <div className="rounded-lg border bg-muted/30 p-4">
-                <p className="text-sm font-semibold mb-1">Want to customize deeply?</p>
-                <p className="text-sm text-muted-foreground">
-                  Start from the reference apps in the{" "}
-                  <code className="px-1 rounded bg-muted font-mono text-xs">elsa-core</code> and{" "}
-                  <code className="px-1 rounded bg-muted font-mono text-xs">elsa-studio</code>{" "}
-                  repositories rather than scaffolding from scratch.
-                </p>
-              </div>
             </div>
           </ScrollReveal>
 

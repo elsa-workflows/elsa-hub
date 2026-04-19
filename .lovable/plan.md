@@ -1,44 +1,40 @@
 
-## Generate Markdown File for Get Started Guides
 
-Create a single combined markdown file consolidating the three setup guides (Elsa Server, Elsa Studio, Elsa Server + Studio) for offline reading or reuse.
+## Consolidation: Priority Support into Valence Works
 
-### Output
+### Analysis
 
-File: `/mnt/documents/elsa-getting-started.md`
+The current Valence Works page and the Priority Support page share considerable overlap:
+- Both describe credit-based pricing (1 credit = 1 hour)
+- Both target production teams
+- Both cover architecture guidance and issue diagnosis
+- The "Retained Advisory" subscription already includes "Priority scheduling"
+- Both have similar "what's not included" sections
 
-### Structure
+The Priority Support page adds value with: **response time targets table**, **explicit best-effort SLA framing**, and **clearer production-readiness messaging**.
 
-```text
-# Getting Started with Elsa Workflows
+### Proposed Approach
 
-## 1. Elsa Server
-   - Overview, Prerequisites
-   - Steps 1-4 (create project, packages, Program.cs, run)
-   - Next steps / links
+**Merge Priority Support content into the Valence Works page** rather than maintaining two separate pages. Specifically:
 
-## 2. Elsa Studio
-   - Overview, Prerequisites, "Server Required" note
-   - Steps 1-8 (project, packages, remove defaults, Program.cs,
-     Razor components, appsettings, index.html, run)
-   - Next steps / links
+1. **Add a "Priority Support" section** to ValenceWorks.tsx (between "Retained Advisory" and "Not Sure Where to Start?") containing:
+   - The response targets table (Critical/High/Normal severity with business-hour targets)
+   - The best-effort disclaimer
+   - A note that Priority Support is available with Retained Advisory subscriptions or larger credit bundles
 
-## 3. Elsa Server + Studio (Recommended)
-   - Overview, Prerequisites, Architecture overview
-   - Steps 1-8 (solution, Host project + packages, Host Program.cs,
-     appsettings, _Host.cshtml, Client project + packages,
-     client config, link & run)
-   - Next steps / links
-```
+2. **Enhance the "Retained Advisory" card** to explicitly mention priority response times as a benefit
 
-### Formatting
+3. **Update the "What's Not Included" section** to incorporate the Priority Support transparency points (not 24/7, not managed service, no guaranteed resolution times) — most are already there
 
-- Each guide as a top-level `##` section, steps as `###` headings
-- All shell, C#, Razor, JSON, and HTML snippets in fenced code blocks with proper language tags (`bash`, `csharp`, `razor`, `json`, `html`)
-- File-name banners (e.g. `Program.cs`, `wwwroot/appsettings.json`) preserved as a line above each code block
-- Default credentials, prerequisites, and notes preserved as callout-style blockquotes
-- Links to docs.elsaworkflows.io and the elsa-samples repo retained
+4. **Remove the standalone Priority Support page** (`src/pages/elsa-plus/PrioritySupport.tsx`) and its route from `App.tsx`
 
-### Delivery
+5. **Update the Elsa+ overview page** (`ElsaPlus.tsx`):
+   - Remove the "Priority Support" card from `servicesAndSupport`
+   - The expert services card description can be broadened to mention priority support
 
-After generation, emit a `presentation-artifact` tag pointing to `elsa-getting-started.md` (mime `text/markdown`) so you can download it.
+6. **Add a redirect** from `/elsa-plus/priority-support` to `/elsa-plus/expert-services/valence-works` for any existing links
+
+### Result
+
+One comprehensive Valence Works page that covers expert advisory, credit bundles, retained advisory with priority support, and production readiness — all in one place. No duplication, clearer value proposition.
+
