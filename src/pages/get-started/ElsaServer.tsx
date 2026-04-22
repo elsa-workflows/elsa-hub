@@ -10,18 +10,19 @@ import {
 } from "@/components/get-started";
 
 const packages = `dotnet add package Elsa
-dotnet add package Elsa.EntityFrameworkCore
-dotnet add package Elsa.EntityFrameworkCore.Sqlite
+dotnet add package Elsa.Persistence.EFCore
+dotnet add package Elsa.Persistence.EFCore.Sqlite
+dotnet add package Elsa.Http
 dotnet add package Elsa.Identity
 dotnet add package Elsa.Scheduling
 dotnet add package Elsa.Workflows.Api
-dotnet add package Elsa.CSharp
-dotnet add package Elsa.JavaScript
-dotnet add package Elsa.Liquid`;
+dotnet add package Elsa.Expressions.CSharp
+dotnet add package Elsa.Expressions.JavaScript
+dotnet add package Elsa.Expressions.Liquid`;
 
-const programCs = `using Elsa.EntityFrameworkCore.Extensions;
-using Elsa.EntityFrameworkCore.Modules.Management;
-using Elsa.EntityFrameworkCore.Modules.Runtime;
+const programCs = `using Elsa.Persistence.EFCore.Extensions;
+using Elsa.Persistence.EFCore.Modules.Management;
+using Elsa.Persistence.EFCore.Modules.Runtime;
 using Elsa.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
