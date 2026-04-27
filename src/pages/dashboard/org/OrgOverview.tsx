@@ -204,23 +204,33 @@ function useOrgProviders(orgId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_customers")
-        .select("service_provider_id")
+        .select("service_provider_id, service_providers(slug, booking_url)")
         .eq("organization_id", orgId!);
       if (error) throw error;
-      return data?.map((d) => d.service_provider_id) || [];
+      return data?.map((d) => {
+        const provider = Array.isArray((d as any).service_providers)
+          ? (d as any).service_providers[0]
+          : (d as any).service_providers;
+
+        return {
+          id: d.service_provider_id,
+          slug: provider?.slug as string | undefined,
+          bookingUrl: provider?.booking_url as string | null | undefined,
+        };
+      }) || [];
     },
     enabled: !!orgId,
   });
 }
 
 function BookACallCard({ orgId, slug }: { orgId: string | undefined; slug: string | undefined }) {
-  const { data: providerIds } = useOrgProviders(orgId);
-  const firstProviderId = providerIds?.[0];
-  const { data: bookingTypes, isLoading } = useTidyCalBookingTypes(firstProviderId);
+  const { data: providers } = useOrgProviders(orgId);
+  const firstProvider = providers?.[0];
+  const { data: bookingTypes, isLoading } = useTidyCalBookingTypes(firstProvider?.id);
 
   // Don't render if no provider or no booking types
-  if (!firstProviderId) return null;
-  if (!isLoading && (!bookingTypes || bookingTypes.length === 0)) return null;
+  if (!firstProvider) return null;
+  if (!firstProvider.bookingUrl && !isLoading && (!bookingTypes || bookingTypes.length === 0)) return null;
 
   return (
     <Card>
@@ -239,7 +249,20 @@ function BookACallCard({ orgId, slug }: { orgId: string | undefined; slug: strin
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {firstProvider.bookingUrl ? (
+          <a
+            href={firstProvider.bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border hover:border-primary/50 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Book a Call</span>
+            </div>
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          </a>
+        ) : isLoading ? (
           <div className="flex gap-3">
             {[1, 2].map((i) => (
               <Skeleton key={i} className="h-16 flex-1" />
