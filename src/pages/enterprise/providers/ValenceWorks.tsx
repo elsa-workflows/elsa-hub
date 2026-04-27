@@ -46,6 +46,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const VALENCE_WORKS_SCHEDULE_URL = "https://schedule.valence.works/";
+
 const capabilities = [
   "Workflow and domain modeling",
   "Architecture and system design",
@@ -185,7 +187,7 @@ export default function ValenceWorks() {
     }
 
     if (introCall === "true") {
-      window.open("https://tidycal.com/valenceworks/30-minute-intro-call", "_blank");
+      window.open(VALENCE_WORKS_SCHEDULE_URL, "_blank", "noopener,noreferrer");
       setSearchParams((prev) => {
         prev.delete("introCall");
         return prev;
@@ -257,7 +259,7 @@ export default function ValenceWorks() {
               <Button
                 size="lg"
                 className="gap-2"
-                onClick={() => window.open("https://tidycal.com/valenceworks", "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(VALENCE_WORKS_SCHEDULE_URL, "_blank", "noopener,noreferrer")}
               >
                 <Calendar className="h-4 w-4" />
                 Book a Call
@@ -810,7 +812,7 @@ export default function ValenceWorks() {
               asChild
               className="gap-2"
             >
-              <a href="https://tidycal.com/valenceworks/30-minute-intro-call" target="_blank" rel="noopener noreferrer">
+              <a href={VALENCE_WORKS_SCHEDULE_URL} target="_blank" rel="noopener noreferrer">
                 <Phone className="h-4 w-4" />
                 Book a 30-Minute Intro Call
               </a>
