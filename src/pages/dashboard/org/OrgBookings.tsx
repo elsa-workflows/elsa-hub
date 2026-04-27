@@ -11,8 +11,23 @@ import { useTidyCalBookingTypes } from "@/hooks/useTidyCalBookingTypes";
 import { useTidyCalBookings, TidyCalBooking } from "@/hooks/useTidyCalBookings";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 
-function BookingTypeCards({ providerId }: { providerId: string | undefined }) {
+function BookingTypeCards({ providerId, bookingUrl }: { providerId: string | undefined; bookingUrl?: string | null }) {
   const { data: bookingTypes, isLoading } = useTidyCalBookingTypes(providerId);
+
+  if (bookingUrl) {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <Button asChild className="w-full sm:w-auto">
+            <a href={bookingUrl} target="_blank" rel="noopener noreferrer">
+              Book Now
+              <ExternalLink className="ml-2 h-3.5 w-3.5" />
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -202,20 +217,30 @@ function useOrgProviders(orgId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provider_customers")
-        .select("service_provider_id")
+        .select("service_provider_id, service_providers(slug, booking_url)")
         .eq("organization_id", orgId!);
       if (error) throw error;
-      return data?.map((d) => d.service_provider_id) || [];
+      return data?.map((d) => {
+        const provider = Array.isArray((d as any).service_providers)
+          ? (d as any).service_providers[0]
+          : (d as any).service_providers;
+
+        return {
+          id: d.service_provider_id,
+          slug: provider?.slug as string | undefined,
+          bookingUrl: provider?.booking_url as string | null | undefined,
+        };
+      }) || [];
     },
     enabled: !!orgId,
   });
 }
 
 function OrgBookingTypesWithProvider({ orgId }: { orgId: string | undefined }) {
-  const { data: providerIds } = useOrgProviders(orgId);
-  const firstProviderId = providerIds?.[0];
+  const { data: providers } = useOrgProviders(orgId);
+  const firstProvider = providers?.[0];
 
-  return <BookingTypeCards providerId={firstProviderId} />;
+  return <BookingTypeCards providerId={firstProvider?.id} bookingUrl={firstProvider?.bookingUrl} />;
 }
 
 function OrgBookingsListWithProvider({
@@ -225,8 +250,8 @@ function OrgBookingsListWithProvider({
   orgId: string | undefined;
   mode: "upcoming" | "past";
 }) {
-  const { data: providerIds } = useOrgProviders(orgId);
-  const firstProviderId = providerIds?.[0];
+  const { data: providers } = useOrgProviders(orgId);
+  const firstProviderId = providers?.[0]?.id;
 
   return (
     <BookingsList providerId={firstProviderId} orgId={orgId} mode={mode} />
