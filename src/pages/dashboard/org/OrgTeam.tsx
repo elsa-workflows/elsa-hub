@@ -194,6 +194,13 @@ export default function OrgTeam() {
                           onRemoved={refetchTeam}
                         />
                       )}
+                      {isCurrentUser && !isOwner && organization && (
+                        <LeaveOrganizationDialog
+                          organizationId={organization.id}
+                          organizationName={organization.name}
+                          userRole={member.role}
+                        />
+                      )}
                     </div>
                   </div>
                 );
