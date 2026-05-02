@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteMemberDialog, RemoveMemberDialog, RoleSelect } from "@/components/organization";
 import { CancelInvitationDialog } from "@/components/organization/CancelInvitationDialog";
+import { LeaveOrganizationDialog } from "@/components/organization/LeaveOrganizationDialog";
 
 const roleIcons: Record<string, React.ReactNode> = {
   owner: <Crown className="h-3 w-3" />,
