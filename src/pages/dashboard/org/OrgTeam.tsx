@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { InviteMemberDialog, RemoveMemberDialog, RoleSelect } from "@/components/organization";
 import { CancelInvitationDialog } from "@/components/organization/CancelInvitationDialog";
+import { LeaveOrganizationDialog } from "@/components/organization/LeaveOrganizationDialog";
 
 const roleIcons: Record<string, React.ReactNode> = {
   owner: <Crown className="h-3 w-3" />,
@@ -191,6 +192,13 @@ export default function OrgTeam() {
                           memberName={getDisplayName(member)}
                           organizationName={organization.name}
                           onRemoved={refetchTeam}
+                        />
+                      )}
+                      {isCurrentUser && !isOwner && organization && (
+                        <LeaveOrganizationDialog
+                          organizationId={organization.id}
+                          organizationName={organization.name}
+                          userRole={member.role}
                         />
                       )}
                     </div>
