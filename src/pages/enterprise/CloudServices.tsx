@@ -128,7 +128,7 @@ const relatedOfferings = [
     title: "Production Docker Images",
     description:
       "Production-ready container images for organizations running their own container platforms.",
-    href: "/elsa-plus/production-docker",
+    href: "/elsa-plus/docker-images",
     icon: Container,
   },
   {
