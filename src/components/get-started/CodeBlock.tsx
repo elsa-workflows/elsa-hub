@@ -16,6 +16,8 @@ const languageMap: Record<string, string> = {
   json: "json",
   html: "markup",
   razor: "markup",
+  yaml: "yaml",
+  yml: "yaml",
 };
 
 export function CodeBlock({ code, language, title }: CodeBlockProps) {
