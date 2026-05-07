@@ -1,113 +1,95 @@
-## Update Production Docker Images page with Early Preview content
+## Split Production Docker Images into a catalog + per-image detail pages
 
-Rewrite `src/pages/enterprise/DockerImages.tsx` to reflect the now-available early preview of `valenceworks/elsa-pro-server` and `valenceworks/elsa-pro-studio-blazorserver`, free to try out. Replace the "Coming Soon" / "Notify Me" framing with overview + getting-started steps grounded in CShells/Nuplane configuration, and include a sample `docker-compose.yml`.
+Refactor `/elsa-plus/production-docker` into a clean image catalog, and give each image its own detail page with full instructions.
 
-### Page structure
+### Routes
 
-1. **Hero**
-   - Badges: "Provided by Valence Works", "Early Preview", "Free to try"
-   - Title: "Production Docker Images"
-   - Subtitle: hardened, production-oriented Elsa container built on .NET 10 with Elsa 3.8 preview, configurable via mounted `config.json`, NuGet feeds + packages loaded at runtime (Nuplane), and per-shell features (CShells).
+- Keep current route working but rename canonically:
+  - **Catalog**: `/elsa-plus/docker-images`
+  - **Detail**: `/elsa-plus/docker-images/:slug`
+- Add a redirect from the old `/elsa-plus/production-docker` → `/elsa-plus/docker-images` so existing links don't break.
+- Update `App.tsx` routes and any internal links (Elsa+ landing page card, footer, navigation if present).
 
-2. **What's in the box** (feature grid, ~6 items, lucide icons)
-   - Workflow runtime + Blazor Server Studio
-   - CShells multi-shell architecture (multiple isolated engines per host)
-   - Nuplane runtime plugin system (NuGet packages loaded at startup)
-   - Identity & per-shell admin provisioning
-   - OpenTelemetry observability (metrics, traces, logs)
-   - Health endpoints (`/health`, `/alive`)
+### Static registry
 
-3. **Quick Start — `docker run`** (use existing `DockerSection` + `CodeBlock`)
-   - **Prerequisites box**: Docker 20.10+, free ports 8080/8081
-   - **Step 1 — Create a shared network**: `docker network create elsa`
-   - **Step 2 — Run Elsa Pro Server** (`valenceworks/elsa-pro-server:latest`) on `--network elsa`, port 8080, with env vars:
-     - `CShells__Shells__0__Features__DefaultAdminUser__AdminUsername`
-     - `CShells__Shells__0__Features__DefaultAdminUser__AdminPassword`
-     - `CShells__Shells__0__Features__Identity__SigningKey`
-     - Access URL `http://localhost:8080`, health `http://localhost:8080/health`
-   - **Step 3 — Run Elsa Pro Studio** (`valenceworks/elsa-pro-studio-blazorserver:latest`) on `--network elsa`, port 8081, with `Backend__Url=http://elsa-server:8080/elsa/api`. Note: Studio reaches the server by container name on the Docker network; open Studio at `http://localhost:8081`.
+New file `src/data/dockerImages.ts` exporting a typed `DockerImage[]`:
 
-4. **Quick Start — Docker Compose** (new section)
-   - Short intro: easier to manage than two `docker run` commands; everything on one network, config files mounted from disk.
-   - `<CodeBlock language="yaml" title="docker-compose.yml">` containing a minimal but realistic compose file:
-     ```yaml
-     services:
-       elsa-server:
-         image: valenceworks/elsa-pro-server:latest
-         ports:
-           - "8080:8080"
-         environment:
-           CShells__Shells__0__Features__DefaultAdminUser__AdminUsername: admin
-           CShells__Shells__0__Features__DefaultAdminUser__AdminPassword: YourSecurePassword123!
-           CShells__Shells__0__Features__Identity__SigningKey: replace-with-256-bit-key
-         volumes:
-           - ./config/elsa-server/config.json:/config/config.json
-         networks: [elsa]
+```ts
+type DockerImage = {
+  slug: string;                    // e.g. "elsa-pro-server"
+  name: string;                    // "Elsa Pro Server"
+  tagline: string;                 // one-liner for the card
+  description: string;             // longer copy for the detail hero
+  image: string;                   // "valenceworks/elsa-pro-server"
+  icon: LucideIcon;                // visual on the card
+  tags: string[];                  // ["Server", "Preview", "Free"]
+  highlights: string[];            // 3 bullet points for the card
+  defaultPort: number;             // 8080 / 8081 ...
+  // Per-image instruction blocks:
+  envVars?: { key: string; description: string; required?: boolean }[];
+  runCommand: string;              // docker run snippet
+  composeService: string;          // YAML fragment for this service
+  notes?: string[];                // extra notes (e.g. Studio backend URL)
+  dockerHubUrl: string;
+};
+```
 
-       elsa-studio:
-         image: valenceworks/elsa-pro-studio-blazorserver:latest
-         ports:
-           - "8081:8080"
-         environment:
-           Backend__Url: http://elsa-server:8080/elsa/api
-         volumes:
-           - ./config/elsa-studio/config.json:/config/config.json
-         depends_on: [elsa-server]
-         networks: [elsa]
+Initial entries:
+1. `elsa-pro-server` — API server, port 8080, admin/identity env vars.
+2. `elsa-pro-studio-blazorserver` — Blazor Server Studio, port 8081, `Backend__Url` env var.
 
-     networks:
-       elsa:
-     ```
-   - One-liner: `docker compose up -d`, then open `http://localhost:8081`.
+Adding a new image later = one entry in this file.
 
-5. **Configuration via mounted `config.json`**
-   - Short paragraph + precedence list (appsettings → `/config/config.json` → env vars)
-   - `CodeBlock` showing the `-v $(pwd)/config.json:/config/config.json` mount
-   - Note that an annotated `config.example.json` ships in the repo
+### Catalog page (`src/pages/enterprise/DockerImages.tsx`)
 
-6. **Per-shell admin & identity (CShells)**
-   - JSON snippet for `DefaultAdminUser` feature under `CShells.Shells.Default.Features` (username/password/role/permissions)
-   - Call out: `Identity__SigningKey` must be set to a secure 256-bit value in production; never ship the placeholder
+Sections:
+1. **Hero** — same badges (Provided by Valence Works, Early Preview, Free to try), short intro paragraph about the program (CShells, Nuplane, mounted `config.json`).
+2. **Available images** — grid of `DockerImageCard`s built from the registry. Each card:
+   - Icon + name
+   - One-line description
+   - 2-3 key highlight bullets
+   - Tag pills (Server / Studio / Preview)
+   - "View instructions" CTA → `/elsa-plus/docker-images/:slug`
+3. **Roadmap** (kept from current page).
+4. **Resources** (Docker Hub org, GitHub repo, Issues, Discussions).
+5. **Neutrality disclaimer**.
 
-7. **Extending via Nuplane**
-   - Short paragraph: configure NuGet feed + package list in `config.json`; packages (Postgres, SQL Server, RabbitMQ, Azure Service Bus, Quartz, etc.) are downloaded at startup and enabled per shell through CShells features. Catalog of feeds/packages will be documented separately.
-   - Small JSON snippet of `PostgreSqlWorkflowPersistence` / `PostgreSqlIdentityPersistence` connection strings under `CShells.Shells.Default.Features` as a concrete example.
+Removed from the catalog: long quick-start, compose, config.json deep-dive, per-shell admin, Nuplane example, image tag table — all of these move to the detail page (and the shared concepts map to the per-image instruction page).
 
-8. **Image tags** (small table)
-   - `latest`, `<version>-preview.<build>`, stable `<version>`, `<major>.<minor>`, `<major>`, `elsa-<elsa-version>`, `sha-<commit>`
-   - Two available images: `valenceworks/elsa-pro-server`, `valenceworks/elsa-pro-studio-blazorserver`
+### Detail page (`src/pages/enterprise/DockerImageDetail.tsx`)
 
-9. **Roadmap** (compact list, clearly marked as "Planned, not yet available")
-   - Hardened security defaults & container scanning
-   - Multi-tenancy
-   - AI-assisted workflow development
-   - Enterprise integrations (SAP, Salesforce, …)
-   - HA deployment templates
-   - Reverse proxy templates (nginx, Traefik)
+Reads `:slug`, looks up the registry entry, 404s gracefully if not found. Sections:
 
-10. **Resources / Links**
-    - Docker Hub: `valenceworks/elsa-pro-server`, `valenceworks/elsa-pro-studio-blazorserver`
-    - GitHub repo: https://github.com/valence-works/elsa-pro-docker
-    - Issues + Discussions
+1. **Breadcrumb**: Elsa+ › Docker Images › {Image name}
+2. **Hero**: icon + name + tags + Docker Hub link + short description.
+3. **Quick start (`docker run`)**:
+   - Prerequisites box (Docker 20.10+, free port).
+   - `docker network create elsa` step (shown if image needs the shared network — true for both current images).
+   - `runCommand` from the registry.
+   - Access URL + health URL where applicable.
+4. **Quick start (Docker Compose)**: snippet that includes this image's `composeService` plus a minimal `networks: [elsa]` declaration.
+5. **Environment variables** table from `envVars`.
+6. **Configuration via mounted `config.json`** (shared explainer + precedence list + mount snippet).
+7. **Per-shell admin & identity** (only for the server image — gate via a flag or just inline since server is the relevant one).
+8. **Extending via Nuplane** (only for the server image).
+9. **Image tags** (shared tag-pattern table — same for all images).
+10. **Resources** (Docker Hub link for this image, source repo).
 
-11. **Neutrality disclaimer** — keep existing `<NeutralityDisclaimer />` at the bottom.
+Shared explainer blocks (config.json, Nuplane, image tags, per-shell admin) extracted into small components in `src/components/docker-images/` so the detail page composes them and the catalog stays lean.
 
-### What to remove
+### New components
 
-- "Coming Soon" badge
-- "Notify Me" CTA + `NewsletterSubscribeDialog` import/usage on this page
-- The generic 3-feature grid (replaced by the richer "What's in the box")
+- `src/components/docker-images/DockerImageCard.tsx`
+- `src/components/docker-images/ConfigJsonExplainer.tsx`
+- `src/components/docker-images/NuplaneExplainer.tsx`
+- `src/components/docker-images/ImageTagsTable.tsx`
+- `src/components/docker-images/PerShellAdminExplainer.tsx`
+- `src/components/docker-images/index.ts`
 
-### Technical notes
-
-- Reuse `DockerSection`, `CodeBlock`, `PrerequisitesBox` from `src/components/get-started/`.
-- Add `yaml` to `CodeBlock`'s `languageMap` (maps to Prism `yaml`) so the compose snippet highlights correctly.
-- For JSON config snippets, use `<CodeBlock language="json" />`.
-- Confident senior tone per project memory; no marketing buzzwords; clearly label "Early preview" and "Planned" where applicable.
-- Semantic Tailwind tokens only; no raw colors.
-- Pure presentation update — no DB, edge-function, or business-logic changes.
+Reuse existing `CodeBlock` and `PrerequisitesBox` from `src/components/get-started/`.
 
 ### Out of scope
 
-- Cross-linking from the open-source Get Started Docker page to these Pro images.
-- Generating a downloadable example `config.json` artifact.
+- Pulling live tag/version data from Docker Hub (static registry only).
+- Search/filter on the catalog (only 2 images today).
+- A "compare images" view.
