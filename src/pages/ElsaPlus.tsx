@@ -38,7 +38,7 @@ const runtimeAndOperations = [
     description:
       "Production-ready container images with regular updates, security patches, and documentation.",
     icon: Container,
-    href: "/elsa-plus/production-docker",
+    href: "/elsa-plus/docker-images",
     comingSoon: true,
   },
 ];
