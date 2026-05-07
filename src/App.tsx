@@ -20,6 +20,7 @@ import ElsaPlus from "./pages/ElsaPlus";
 import ExpertServicesProviders from "./pages/enterprise/ExpertServicesProviders";
 import ExpertServiceProvider from "./pages/enterprise/ExpertServiceProvider";
 import DockerImages from "./pages/enterprise/DockerImages";
+import DockerImageDetail from "./pages/enterprise/DockerImageDetail";
 import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
 
