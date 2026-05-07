@@ -11,6 +11,7 @@ interface ElsaPlusCardItem {
   icon: LucideIcon;
   href?: string;
   comingSoon?: boolean;
+  badge?: string;
 }
 
 interface ElsaPlusSectionCardProps {
@@ -41,7 +42,11 @@ function ItemCard({ item }: { item: ElsaPlusCardItem }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-lg font-semibold">{item.title}</h3>
-              {item.comingSoon && (
+              {item.badge ? (
+                <Badge variant="secondary" className="text-xs">
+                  {item.badge}
+                </Badge>
+              ) : item.comingSoon && (
                 <Badge variant="secondary" className="text-xs">
                   Coming Soon
                 </Badge>

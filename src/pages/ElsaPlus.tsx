@@ -39,7 +39,7 @@ const runtimeAndOperations = [
       "Production-ready container images with regular updates, security patches, and documentation.",
     icon: Container,
     href: "/elsa-plus/docker-images",
-    comingSoon: true,
+    badge: "Preview",
   },
 ];
 
