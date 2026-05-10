@@ -199,6 +199,7 @@ export const dockerImages: DockerImage[] = [
       "Open Studio from the host at http://localhost:8081.",
     ],
     dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-studio",
+    requiresServer: true,
   },
   {
     slug: "elsa-pro-combined",
