@@ -18,9 +18,10 @@ import {
   ImageTagsTable,
 } from "@/components/docker-images";
 import { NeutralityDisclaimer } from "@/components/enterprise";
-import { getDockerImage } from "@/data/dockerImages";
+import { getDockerImage, dockerImages } from "@/data/dockerImages";
 import { renderInlineCode } from "@/lib/renderInlineCode";
-import { ExternalLink } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function DockerImageDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -31,8 +32,12 @@ export default function DockerImageDetail() {
   }
 
   const Icon = image.icon;
+  const serverImage = image.requiresServer
+    ? dockerImages.find((i) => i.slug === "elsa-pro-server")
+    : undefined;
+
   const composeFile = `services:
-${image.composeService}
+${serverImage ? serverImage.composeService + "\n" : ""}${image.composeService}
 
 networks:
   elsa:`;
@@ -94,6 +99,29 @@ networks:
         </div>
       </section>
 
+      {/* Requires-server alert */}
+      {image.requiresServer && serverImage && (
+        <section className="pt-4">
+          <div className="container max-w-4xl">
+            <Alert className="border-warning/40 bg-warning/5">
+              <AlertCircle className="h-4 w-4 text-warning" />
+              <AlertTitle>Requires a running Elsa Pro Server</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                Studio is a UI only — it cannot execute or persist workflows on its own. You need a reachable{" "}
+                <Link to="/elsa-plus/docker-images/elsa-pro-server" className="text-primary hover:underline">
+                  Elsa Pro Server
+                </Link>{" "}
+                (or the all-in-one{" "}
+                <Link to="/elsa-plus/docker-images/elsa-pro-combined" className="text-primary hover:underline">
+                  Elsa Pro Combined
+                </Link>{" "}
+                image) before Studio is useful. Sample commands for running the server are included below.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </section>
+      )}
+
       {/* Quick Start — docker run */}
       <section className="py-10">
         <div className="container max-w-4xl space-y-4">
@@ -106,6 +134,7 @@ networks:
               "Docker 20.10 or later",
               `Free local port ${image.hostPort}`,
               ...(image.needsSharedNetwork ? ["A shared Docker network named 'elsa'"] : []),
+              ...(image.requiresServer ? ["A running Elsa Pro Server reachable from this container"] : []),
             ]}
           />
 
@@ -116,8 +145,25 @@ networks:
             </div>
           )}
 
+          {serverImage && (
+            <div>
+              <h3 className="font-semibold mb-2">
+                {image.needsSharedNetwork ? "2." : "1."} Run an Elsa Pro Server (skip if you already have one)
+              </h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                Studio will connect to this container. If you already have a server running, skip ahead.
+              </p>
+              <CodeBlock code={serverImage.runCommand} language="bash" title={serverImage.name} />
+            </div>
+          )}
+
           <div>
-            <h3 className="font-semibold mb-2">{image.needsSharedNetwork ? "2. Run the container" : "1. Run the container"}</h3>
+            <h3 className="font-semibold mb-2">
+              {(() => {
+                const stepNum = 1 + (image.needsSharedNetwork ? 1 : 0) + (serverImage ? 1 : 0);
+                return `${stepNum}. Run the ${image.name} container`;
+              })()}
+            </h3>
             <CodeBlock code={image.runCommand} language="bash" title={image.name} />
             {(image.accessUrl || image.healthUrl) && (
               <p className="text-sm text-muted-foreground mt-2">
