@@ -157,7 +157,7 @@ export const dockerImages: DockerImage[] = [
     name: "Elsa Pro Studio",
     tagline: "Visual workflow designer — requires a running Elsa Pro Server.",
     description:
-      "The standalone Elsa Studio UI for designing and managing workflows in the browser. Studio is a **frontend only** — it must connect to a running Elsa Pro Server (or Combined) instance to function; on its own it cannot execute or persist workflows. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the `Studio__HostingModel` environment variable. Point it at your server via `Studio__Client__Backend__Url` (WebAssembly) or `Backend__Url` (Blazor Server).",
+      "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the `Studio__HostingModel` environment variable. Point it at your server via `Studio__Client__Backend__Url` (WebAssembly) or `Backend__Url` (Blazor Server).",
     image: "valenceworks/elsa-pro-studio",
     icon: LayoutDashboard,
     tags: ["Studio", "WebAssembly / Server", "Early Preview", "Free"],
