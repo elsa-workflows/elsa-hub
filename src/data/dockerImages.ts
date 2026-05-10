@@ -101,7 +101,7 @@ export const dockerImages: DockerImage[] = [
     name: "Elsa Pro Server",
     tagline: "Backend-only Elsa workflow runtime and management API.",
     description:
-      "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with CShells, load NuGet packages at startup with Nuplane, and supply settings via a mounted config.json.",
+      "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with `CShells`, load NuGet packages at startup with `Nuplane`, and supply settings via a mounted `config.json`.",
     image: "valenceworks/elsa-pro-server",
     icon: Container,
     tags: ["Server", "Early Preview", "Free"],
