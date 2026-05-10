@@ -15,12 +15,17 @@ import { dockerImages } from "@/data/dockerImages";
 import { ExternalLink } from "lucide-react";
 
 const roadmap = [
+  "Observability (structured logs, console logs, OpenTelemetry)",
+  "Webhooks",
+  "Upload NuGet packages (custom code, activities, integrations)",
+  "User tasks",
   "Hardened security defaults & container scanning",
   "Multi-tenancy support",
   "AI-assisted workflow development",
   "Enterprise integrations (SAP, Salesforce, …)",
   "High-availability deployment templates",
   "Reverse proxy configuration templates (nginx, Traefik)",
+  "More…",
 ];
 
 const links = [
