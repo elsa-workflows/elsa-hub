@@ -101,7 +101,7 @@ export const dockerImages: DockerImage[] = [
     name: "Elsa Pro Server",
     tagline: "Backend-only Elsa workflow runtime and management API.",
     description:
-      "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with CShells, load NuGet packages at startup with Nuplane, and supply settings via a mounted config.json.",
+      "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with `CShells`, load NuGet packages at startup with `Nuplane`, and supply settings via a mounted `config.json`.",
     image: "valenceworks/elsa-pro-server",
     icon: Container,
     tags: ["Server", "Early Preview", "Free"],
@@ -154,7 +154,7 @@ export const dockerImages: DockerImage[] = [
     name: "Elsa Pro Studio",
     tagline: "Visual workflow designer — Blazor WebAssembly or Blazor Server.",
     description:
-      "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the Studio__HostingModel environment variable. Point it at a running Elsa Pro Server via Studio__Client__Backend__Url (WebAssembly) or Backend__Url (Blazor Server).",
+      "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the `Studio__HostingModel` environment variable. Point it at a running Elsa Pro Server via `Studio__Client__Backend__Url` (WebAssembly) or `Backend__Url` (Blazor Server).",
     image: "valenceworks/elsa-pro-studio",
     icon: LayoutDashboard,
     tags: ["Studio", "WebAssembly / Server", "Early Preview", "Free"],
@@ -202,7 +202,7 @@ export const dockerImages: DockerImage[] = [
     name: "Elsa Pro Combined",
     tagline: "Server + Studio in a single container, served from one origin.",
     description:
-      "A single-container deployment that hosts both the Elsa workflow API and the Studio UI in one process. Studio is served at the root and the API at /elsa/api on the same origin — ideal for single-host deployments, demos, and self-contained appliances. Studio defaults to Blazor WebAssembly and can be switched to Blazor Server via Studio__HostingModel.",
+      "A single-container deployment that hosts both the Elsa workflow API and the Studio UI in one process. Studio is served at the root and the API at `/elsa/api` on the same origin — ideal for single-host deployments, demos, and self-contained appliances. Studio defaults to Blazor WebAssembly and can be switched to Blazor Server via `Studio__HostingModel`.",
     image: "valenceworks/elsa-pro-combined",
     icon: Boxes,
     tags: ["Server + Studio", "Single container", "Early Preview", "Free"],
