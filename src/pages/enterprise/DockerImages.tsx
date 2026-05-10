@@ -85,7 +85,7 @@ export default function DockerImages() {
               and Docker Compose snippets, and configuration details.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dockerImages.map((img) => (
               <DockerImageCard key={img.slug} image={img} />
             ))}

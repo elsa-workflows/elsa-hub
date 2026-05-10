@@ -1,4 +1,4 @@
-import { Container, LayoutDashboard, type LucideIcon } from "lucide-react";
+import { Container, LayoutDashboard, Boxes, type LucideIcon } from "lucide-react";
 
 export type DockerImageEnvVar = {
   key: string;
@@ -35,9 +35,10 @@ export type DockerImage = {
 const serverRunCommand = `docker run -d \\
   --network elsa \\
   -p 8080:8080 \\
-  -e CShells__Shells__0__Features__DefaultAdminUser__AdminUsername=admin \\
-  -e CShells__Shells__0__Features__DefaultAdminUser__AdminPassword=YourSecurePassword123! \\
-  -e CShells__Shells__0__Features__Identity__SigningKey=replace-with-256-bit-key \\
+  -e CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername=admin \\
+  -e CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword=YourSecurePassword123! \\
+  -e CShells__Shells__Default__Features__Identity__SigningKey=replace-with-256-bit-key \\
+  -e Elsa__Cors__AllowedOrigins__0=http://localhost:8081 \\
   --name elsa-server \\
   valenceworks/elsa-pro-server:latest`;
 
@@ -46,9 +47,10 @@ const serverComposeService = `  elsa-server:
     ports:
       - "8080:8080"
     environment:
-      CShells__Shells__0__Features__DefaultAdminUser__AdminUsername: admin
-      CShells__Shells__0__Features__DefaultAdminUser__AdminPassword: YourSecurePassword123!
-      CShells__Shells__0__Features__Identity__SigningKey: replace-with-256-bit-key
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername: admin
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword: YourSecurePassword123!
+      CShells__Shells__Default__Features__Identity__SigningKey: replace-with-256-bit-key
+      Elsa__Cors__AllowedOrigins__0: http://localhost:8081
     volumes:
       - ./config/elsa-server/config.json:/config/config.json
     networks: [elsa]`;
@@ -56,26 +58,50 @@ const serverComposeService = `  elsa-server:
 const studioRunCommand = `docker run -d \\
   --network elsa \\
   -p 8081:8080 \\
-  -e Backend__Url=http://elsa-server:8080/elsa/api \\
+  -e Studio__HostingModel=WebAssembly \\
+  -e Studio__Client__Backend__Url=http://localhost:8080/elsa/api \\
   --name elsa-studio \\
-  valenceworks/elsa-pro-studio-blazorserver:latest`;
+  valenceworks/elsa-pro-studio:latest`;
 
 const studioComposeService = `  elsa-studio:
-    image: valenceworks/elsa-pro-studio-blazorserver:latest
+    image: valenceworks/elsa-pro-studio:latest
     ports:
       - "8081:8080"
     environment:
-      Backend__Url: http://elsa-server:8080/elsa/api
+      Studio__HostingModel: WebAssembly
+      Studio__Client__Backend__Url: http://localhost:8080/elsa/api
+    volumes:
+      - ./config/elsa-studio/config.json:/config/config.json
     depends_on: [elsa-server]
+    networks: [elsa]`;
+
+const combinedRunCommand = `docker run -d \\
+  -p 8080:8080 \\
+  -e CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername=admin \\
+  -e CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword=YourSecurePassword123! \\
+  -e CShells__Shells__Default__Features__Identity__SigningKey=replace-with-256-bit-key \\
+  --name elsa-pro \\
+  valenceworks/elsa-pro-combined:latest`;
+
+const combinedComposeService = `  elsa-pro:
+    image: valenceworks/elsa-pro-combined:latest
+    ports:
+      - "8080:8080"
+    environment:
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername: admin
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword: YourSecurePassword123!
+      CShells__Shells__Default__Features__Identity__SigningKey: replace-with-256-bit-key
+    volumes:
+      - ./config/elsa-pro/config.json:/config/config.json
     networks: [elsa]`;
 
 export const dockerImages: DockerImage[] = [
   {
     slug: "elsa-pro-server",
     name: "Elsa Pro Server",
-    tagline: "Production-oriented Elsa workflow runtime and management API.",
+    tagline: "Backend-only Elsa workflow runtime and management API.",
     description:
-      "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Configure features per shell with CShells, load NuGet packages at startup with Nuplane, and supply settings via a mounted config.json.",
+      "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with CShells, load NuGet packages at startup with Nuplane, and supply settings via a mounted config.json.",
     image: "valenceworks/elsa-pro-server",
     icon: Container,
     tags: ["Server", "Early Preview", "Free"],
@@ -88,29 +114,29 @@ export const dockerImages: DockerImage[] = [
     hostPort: 8080,
     containerName: "elsa-server",
     needsSharedNetwork: true,
-    accessUrl: "http://localhost:8080",
+    accessUrl: "http://localhost:8080/elsa/api",
     healthUrl: "http://localhost:8080/health",
     envVars: [
       {
-        key: "CShells__Shells__0__Features__DefaultAdminUser__AdminUsername",
+        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername",
         description: "Default shell admin username.",
         required: true,
         example: "admin",
       },
       {
-        key: "CShells__Shells__0__Features__DefaultAdminUser__AdminPassword",
+        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword",
         description: "Default shell admin password.",
         required: true,
         example: "YourSecurePassword123!",
       },
       {
-        key: "CShells__Shells__0__Features__Identity__SigningKey",
+        key: "CShells__Shells__Default__Features__Identity__SigningKey",
         description: "Identity signing key for the default shell. Use a secure 256-bit value in production.",
         required: true,
       },
       {
         key: "Elsa__Cors__AllowedOrigins__0",
-        description: "First allowed CORS origin. Use specific trusted domains in production.",
+        description: "First allowed CORS origin. Set to the Studio origin (e.g. http://localhost:8081) when Studio runs separately.",
       },
       {
         key: "ASPNETCORE_ENVIRONMENT",
@@ -124,18 +150,18 @@ export const dockerImages: DockerImage[] = [
     showNuplane: true,
   },
   {
-    slug: "elsa-pro-studio-blazorserver",
-    name: "Elsa Pro Studio (Blazor Server)",
-    tagline: "Visual workflow designer that connects to an Elsa Pro Server.",
+    slug: "elsa-pro-studio",
+    name: "Elsa Pro Studio",
+    tagline: "Visual workflow designer — Blazor WebAssembly or Blazor Server.",
     description:
-      "The Blazor Server build of Elsa Studio for designing and managing workflows in the browser. Point it at a running Elsa Pro Server via the Backend__Url environment variable.",
-    image: "valenceworks/elsa-pro-studio-blazorserver",
+      "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the Studio__HostingModel environment variable. Point it at a running Elsa Pro Server via Studio__Client__Backend__Url (WebAssembly) or Backend__Url (Blazor Server).",
+    image: "valenceworks/elsa-pro-studio",
     icon: LayoutDashboard,
-    tags: ["Studio", "Blazor Server", "Early Preview", "Free"],
+    tags: ["Studio", "WebAssembly / Server", "Early Preview", "Free"],
     highlights: [
       "Browser-based visual designer",
-      "Connects to Elsa Pro Server",
-      "Same config.json mount pattern",
+      "Blazor WebAssembly or Blazor Server via one config flag",
+      "Connects to any Elsa Pro Server",
     ],
     defaultPort: 8080,
     hostPort: 8081,
@@ -144,20 +170,95 @@ export const dockerImages: DockerImage[] = [
     accessUrl: "http://localhost:8081",
     envVars: [
       {
+        key: "Studio__HostingModel",
+        description: "Studio hosting model: WebAssembly (default) or BlazorServer.",
+        example: "WebAssembly",
+      },
+      {
+        key: "Studio__Client__Backend__Url",
+        description:
+          "Browser-visible Elsa API URL for WebAssembly Studio. Must be reachable from the user's browser.",
+        required: true,
+        example: "http://localhost:8080/elsa/api",
+      },
+      {
         key: "Backend__Url",
         description:
-          "Elsa Pro Server API URL. Use the server container name on the Docker network (e.g. http://elsa-server:8080/elsa/api).",
-        required: true,
+          "Server-side Elsa API URL for Blazor Server Studio. Use the server container name on the shared Docker network (e.g. http://elsa-server:8080/elsa/api).",
         example: "http://elsa-server:8080/elsa/api",
       },
     ],
     runCommand: studioRunCommand,
     composeService: studioComposeService,
     notes: [
-      "Studio reaches the server by container name on the shared Docker network — not via localhost.",
+      "WebAssembly mode: the browser calls the API directly, so Studio__Client__Backend__Url must be reachable from the browser. Configure CORS on the server (Elsa__Cors__AllowedOrigins__0) when Studio and API are on different origins.",
+      "Blazor Server mode: the Studio container calls the API from inside the Docker network, so Backend__Url should use the server container name (e.g. http://elsa-server:8080/elsa/api).",
       "Open Studio from the host at http://localhost:8081.",
     ],
-    dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-studio-blazorserver",
+    dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-studio",
+  },
+  {
+    slug: "elsa-pro-combined",
+    name: "Elsa Pro Combined",
+    tagline: "Server + Studio in a single container, served from one origin.",
+    description:
+      "A single-container deployment that hosts both the Elsa workflow API and the Studio UI in one process. Studio is served at the root and the API at /elsa/api on the same origin — ideal for single-host deployments, demos, and self-contained appliances. Studio defaults to Blazor WebAssembly and can be switched to Blazor Server via Studio__HostingModel.",
+    image: "valenceworks/elsa-pro-combined",
+    icon: Boxes,
+    tags: ["Server + Studio", "Single container", "Early Preview", "Free"],
+    highlights: [
+      "API + Studio in one image",
+      "One origin, no CORS to configure",
+      "WebAssembly or Blazor Server hosting",
+    ],
+    defaultPort: 8080,
+    hostPort: 8080,
+    containerName: "elsa-pro",
+    needsSharedNetwork: false,
+    accessUrl: "http://localhost:8080",
+    healthUrl: "http://localhost:8080/health",
+    envVars: [
+      {
+        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername",
+        description: "Default shell admin username.",
+        required: true,
+        example: "admin",
+      },
+      {
+        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword",
+        description: "Default shell admin password.",
+        required: true,
+        example: "YourSecurePassword123!",
+      },
+      {
+        key: "CShells__Shells__Default__Features__Identity__SigningKey",
+        description: "Identity signing key for the default shell. Use a secure 256-bit value in production.",
+        required: true,
+      },
+      {
+        key: "Studio__HostingModel",
+        description: "Studio hosting model: WebAssembly (default) or BlazorServer.",
+        example: "WebAssembly",
+      },
+      {
+        key: "Backend__Url",
+        description: "Required when running Studio in Blazor Server mode. Set to http://localhost:8080/elsa/api.",
+        example: "http://localhost:8080/elsa/api",
+      },
+      {
+        key: "ASPNETCORE_ENVIRONMENT",
+        description: "ASP.NET Core environment. Defaults to Production.",
+      },
+    ],
+    runCommand: combinedRunCommand,
+    composeService: combinedComposeService,
+    notes: [
+      "Open Studio at http://localhost:8080 — the API is available at http://localhost:8080/elsa/api on the same origin.",
+      "Because Studio and API share an origin, no CORS configuration is required.",
+    ],
+    dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-combined",
+    showPerShellAdmin: true,
+    showNuplane: true,
   },
 ];
 
