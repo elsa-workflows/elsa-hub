@@ -30,6 +30,9 @@ export type DockerImage = {
   // Concept blocks to include on the detail page:
   showPerShellAdmin?: boolean;
   showNuplane?: boolean;
+  // When true, the detail page renders a "requires Elsa Pro Server" alert
+  // and a server-startup snippet alongside the Studio quick-start.
+  requiresServer?: boolean;
 };
 
 const serverRunCommand = `docker run -d \\
