@@ -81,7 +81,7 @@ networks:
               </div>
             </div>
           </div>
-          <p className="text-lg text-muted-foreground">{image.description}</p>
+          <p className="text-lg text-muted-foreground">{renderInlineCode(image.description)}</p>
           <div className="mt-5">
             <Button asChild variant="outline" className="gap-2">
               <a href={image.dockerHubUrl} target="_blank" rel="noopener noreferrer">
