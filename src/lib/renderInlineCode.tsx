@@ -1,11 +1,11 @@
 import { Fragment, ReactNode } from "react";
 
 /**
- * Render a string with `backtick` segments converted to <code> elements.
- * Keeps everything else as plain text. Safe for short marketing copy.
+ * Render a string with `backtick` segments converted to <code> elements
+ * and **double-asterisk** segments converted to <strong>. Safe for short copy.
  */
 export function renderInlineCode(text: string): ReactNode {
-  const parts = text.split(/(`[^`]+`)/g);
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("`") && part.endsWith("`") && part.length > 1) {
       return (
@@ -15,6 +15,13 @@ export function renderInlineCode(text: string): ReactNode {
         >
           {part.slice(1, -1)}
         </code>
+      );
+    }
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return (
+        <strong key={i} className="font-semibold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
       );
     }
     return <Fragment key={i}>{part}</Fragment>;
