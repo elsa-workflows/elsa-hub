@@ -19,6 +19,7 @@ import {
 } from "@/components/docker-images";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { getDockerImage } from "@/data/dockerImages";
+import { renderInlineCode } from "@/lib/renderInlineCode";
 import { ExternalLink } from "lucide-react";
 
 export default function DockerImageDetail() {
