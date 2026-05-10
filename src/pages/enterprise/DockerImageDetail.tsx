@@ -32,8 +32,12 @@ export default function DockerImageDetail() {
   }
 
   const Icon = image.icon;
+  const serverImage = image.requiresServer
+    ? dockerImages.find((i) => i.slug === "elsa-pro-server")
+    : undefined;
+
   const composeFile = `services:
-${image.composeService}
+${serverImage ? serverImage.composeService + "\n" : ""}${image.composeService}
 
 networks:
   elsa:`;
