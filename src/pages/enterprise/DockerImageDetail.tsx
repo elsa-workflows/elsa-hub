@@ -18,9 +18,10 @@ import {
   ImageTagsTable,
 } from "@/components/docker-images";
 import { NeutralityDisclaimer } from "@/components/enterprise";
-import { getDockerImage } from "@/data/dockerImages";
+import { getDockerImage, dockerImages } from "@/data/dockerImages";
 import { renderInlineCode } from "@/lib/renderInlineCode";
-import { ExternalLink } from "lucide-react";
+import { AlertCircle, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function DockerImageDetail() {
   const { slug } = useParams<{ slug: string }>();
