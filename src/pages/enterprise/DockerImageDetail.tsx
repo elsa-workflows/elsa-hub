@@ -99,9 +99,6 @@ networks:
         </div>
       </section>
 
-      {/* Quick Start — docker run */}
-      <section className="py-10">
-        <div className="container max-w-4xl space-y-4">
       {/* Requires-server alert */}
       {image.requiresServer && serverImage && (
         <section className="pt-4">
