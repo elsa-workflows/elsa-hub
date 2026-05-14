@@ -1,0 +1,24 @@
+# Elsa Workflows
+
+> Elsa is an open-source workflow engine for .NET. Build workflow-driven applications with a visual designer, C# code, and scale from small apps to enterprise systems. Elsa+ adds commercial Docker images, expert services, training, and managed cloud hosting from independent providers.
+
+## Pages
+
+- [Home](/): Overview of Elsa Workflows and the Elsa+ ecosystem.
+- [Get started](/get-started): Setup guides and onboarding paths for Elsa.
+- [Get started with Elsa Server](/get-started/elsa-server): Run a standalone Elsa Server.
+- [Get started with Elsa Studio](/get-started/elsa-studio): Run the Elsa Studio designer UI.
+- [Get started with Elsa Server and Studio](/get-started/elsa-server-and-studio): Combined server + designer setup.
+- [Get started with Docker](/get-started/docker): Containerized Elsa setup.
+- [Elsa+](/elsa-plus): Commercial ecosystem of Docker images, services, training, and hosting.
+- [Expert services](/elsa-plus/expert-services): Vetted independent providers offering Elsa expert services.
+- [Production Docker images](/elsa-plus/docker-images): Production-oriented Elsa containers from Valence Works.
+- [Cloud services](/elsa-plus/cloud-services): Managed Elsa hosting providers.
+- [Training](/elsa-plus/training): Elsa training programs.
+- [Resources](/resources): Documentation, samples, community content, and governance links.
+- [Community content](/resources/community-content): Articles, videos, and demos from the Elsa community.
+
+## Optional
+
+- [Login](/login): Sign in to the Elsa+ dashboard.
+- [Sign up](/signup): Create an Elsa+ account.
