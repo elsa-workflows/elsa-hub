@@ -349,6 +349,7 @@ export const dockerImages: DockerImage[] = [
       "Because Studio and API share an origin, no CORS configuration is required.",
     ],
     dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-combined",
+    fullStackComposeFile: combinedFullStackCompose,
     showPerShellAdmin: true,
     showNuplane: true,
   },
