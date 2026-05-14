@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { ResourceCategorySection } from "@/components/resources";
 import { CommunityResource } from "@/components/resources/CommunityResourceCard";

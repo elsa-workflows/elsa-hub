@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { GuideBreadcrumb, PrerequisitesBox, DockerSection } from "@/components/get-started";
 import { Button } from "@/components/ui/button";
