@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Badge } from "@/components/ui/badge";
