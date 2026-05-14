@@ -210,6 +210,7 @@ export default function ValenceWorks() {
 
   return (
     <Layout>
+      <Seo path="/elsa-plus/expert-services/valence-works" title="Valence Works — Elsa expert services" description="Valence Works provides Elsa Workflows expert services: implementation help, advisory, priority support, and production Docker images." />
       {/* Breadcrumb */}
       <section className="pt-8 pb-4">
         <div className="container">
