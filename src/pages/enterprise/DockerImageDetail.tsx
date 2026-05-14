@@ -209,6 +209,29 @@ networks:
           </p>
           <CodeBlock code={composeFile} language="yaml" title="docker-compose.yml" />
           <CodeBlock code="docker compose up -d" language="bash" />
+
+          {image.fullStackComposeFile && (
+            <div className="pt-6 space-y-3">
+              <h3 className="text-2xl font-bold">Full stack with PostgreSQL and RabbitMQ</h3>
+              <p className="text-muted-foreground">
+                A more complete example that provisions PostgreSQL (for persistence) and RabbitMQ (for messaging
+                and scheduling) alongside {image.name}. The Elsa container waits for both services to report healthy
+                before starting, and receives connection strings via environment variables that you can reference
+                from your <code className="font-mono">config.json</code>.
+              </p>
+              <CodeBlock
+                code={image.fullStackComposeFile}
+                language="yaml"
+                title="docker-compose.full-stack.yml"
+              />
+              <p className="text-sm text-muted-foreground">
+                Update your <code className="font-mono">config.json</code> to enable the PostgreSQL and RabbitMQ
+                features per shell (see Nuplane and CShells configuration below) and reference the injected{" "}
+                <code className="font-mono">ConnectionStrings__Postgres</code> and{" "}
+                <code className="font-mono">ConnectionStrings__RabbitMq</code> values.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
