@@ -236,6 +236,7 @@ export const dockerImages: DockerImage[] = [
     runCommand: serverRunCommand,
     composeService: serverComposeService,
     dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-server",
+    fullStackComposeFile: serverFullStackCompose,
     showPerShellAdmin: true,
     showNuplane: true,
   },
