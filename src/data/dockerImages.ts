@@ -100,6 +100,91 @@ const combinedComposeService = `  elsa-pro:
       - ./config/elsa-pro/config.json:/config/config.json
     networks: [elsa]`;
 
+const infraComposeServices = `  postgres:
+    image: postgres:latest
+    command: -c 'max_connections=2000'
+    environment:
+      POSTGRES_USER: elsa
+      POSTGRES_PASSWORD: elsa
+      POSTGRES_DB: elsa
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elsa -d elsa"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: "rabbitmq:4-management"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5`;
+
+const serverFullStackCompose = `services:
+
+${infraComposeServices}
+
+  elsa-server:
+    image: valenceworks/elsa-pro-server:latest
+    ports:
+      - "8080:8080"
+    environment:
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername: admin
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword: YourSecurePassword123!
+      CShells__Shells__Default__Features__Identity__SigningKey: replace-with-256-bit-key
+      Elsa__Cors__AllowedOrigins__0: http://localhost:8081
+      # Reference these connection strings from your config.json
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=elsa;Username=elsa;Password=elsa"
+      ConnectionStrings__RabbitMq: "amqp://guest:guest@rabbitmq:5672"
+    volumes:
+      - ./config/elsa-server/config.json:/config/config.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [elsa]
+
+volumes:
+  postgres-data:
+
+networks:
+  elsa:`;
+
+const combinedFullStackCompose = `services:
+
+${infraComposeServices}
+
+  elsa-pro:
+    image: valenceworks/elsa-pro-combined:latest
+    ports:
+      - "8080:8080"
+    environment:
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername: admin
+      CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword: YourSecurePassword123!
+      CShells__Shells__Default__Features__Identity__SigningKey: replace-with-256-bit-key
+      # Reference these connection strings from your config.json
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=elsa;Username=elsa;Password=elsa"
+      ConnectionStrings__RabbitMq: "amqp://guest:guest@rabbitmq:5672"
+    volumes:
+      - ./config/elsa-pro/config.json:/config/config.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres-data:`;
+
 export const dockerImages: DockerImage[] = [
   {
     slug: "elsa-pro-server",
