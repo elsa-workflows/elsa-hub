@@ -162,6 +162,7 @@ dotnet add package Elsa.Studio.Workflows.Monaco`;
 export default function ElsaServerAndStudio() {
   return (
     <Layout>
+      <Seo path="/get-started/elsa-server-and-studio" title="Get started with Elsa Server and Studio" description="Run Elsa Server and Elsa Studio together: a complete designer + engine setup for building and managing workflows." />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">

@@ -38,6 +38,7 @@ const links = [
 export default function DockerImages() {
   return (
     <Layout>
+      <Seo path="/elsa-plus/docker-images" title="Production Docker images for Elsa — Elsa+" description="Production-oriented Elsa containers from Valence Works: server, studio, and combined images on .NET 10 with Elsa 3.8 preview. Configure via mounted config.json and Nuplane." />
       <section className="pt-8 pb-4">
         <div className="container">
           <Breadcrumb>

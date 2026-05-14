@@ -81,6 +81,7 @@ const marketplace = [
 export default function ElsaPlus() {
   return (
     <Layout>
+      <Seo path="/elsa-plus" title="Elsa+ — Commercial ecosystem for Elsa Workflows" description="Production Docker images, expert services, training, and managed cloud hosting for Elsa Workflows from independent providers." />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">

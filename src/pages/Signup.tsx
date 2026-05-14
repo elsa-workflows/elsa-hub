@@ -81,6 +81,7 @@ export default function Signup() {
 
   return (
     <Layout>
+      <Seo path="/signup" title="Sign up — Elsa+" description="Create an Elsa+ account to purchase credits, manage your organization, and work with Elsa expert service providers." />
       <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
