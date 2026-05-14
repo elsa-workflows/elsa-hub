@@ -10,14 +10,22 @@ export function HeroScreenshot() {
           src={elsaStudioDesignerMobile}
           alt="Elsa Studio workflow designer"
           className="block md:hidden w-full h-auto rounded-lg"
+          width={800}
+          height={600}
           loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         {/* Desktop: detailed screenshot */}
         <img
           src={elsaStudioDesigner}
           alt="Elsa Studio visual workflow designer showing a workflow with connected activities"
           className="hidden md:block w-full h-auto rounded-lg"
+          width={1600}
+          height={1000}
           loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
       </div>
     </div>

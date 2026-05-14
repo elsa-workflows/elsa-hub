@@ -254,7 +254,7 @@ export default function ValenceWorks() {
                <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
                provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
             </p>
-            <p className="text-base text-muted-foreground/80 italic mt-3">
+            <p className="text-base text-muted-foreground italic mt-3">
               Priority Support provides faster access to expertise — not outsourced operations.
             </p>
             <div className="mt-8">
