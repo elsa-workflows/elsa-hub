@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,11 @@ networks:
 
   return (
     <Layout>
+      <Seo
+        path={`/elsa-plus/docker-images/${image.slug}`}
+        title={`${image.name} Docker image — Elsa+`}
+        description={`${image.name} (${image.image}): production-ready Elsa container. Configuration, environment variables, docker run and Docker Compose snippets.`}
+      />
       <section className="pt-8 pb-4">
         <div className="container">
           <Breadcrumb>

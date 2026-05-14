@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpen, ExternalLink, AlertCircle } from "lucide-react";
@@ -96,6 +97,7 @@ rm _Imports.razor`;
 export default function ElsaStudio() {
   return (
     <Layout>
+      <Seo path="/get-started/elsa-studio" title="Get started with Elsa Studio" description="Run Elsa Studio, the visual designer for Elsa Workflows. Connect it to a running Elsa Server to design and manage workflows." />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">

@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -45,6 +46,7 @@ export default function Training() {
 
   return (
     <Layout>
+      <Seo path="/elsa-plus/training" title="Elsa Workflows training — Elsa+" description="Training programs for Elsa Workflows: bring your team up to speed on the engine, the designer, and production patterns." />
       {/* Breadcrumb */}
       <section className="pt-8 pb-4">
         <div className="container">

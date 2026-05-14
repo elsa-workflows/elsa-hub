@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
 import { HeroScreenshot } from "@/components/home";
+import { Seo } from "@/components/Seo";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
 const benefits = ["Build complex workflows with .NET", "Visual workflow designer included", "Extensible activity system", "Long-running workflow support", "Open source & MIT licensed"];
@@ -58,7 +59,12 @@ const ecosystemLinks = [{
   href: "https://discord.gg/hhChk5H472"
 }];
 export default function Home() {
+  const jsonLd = [
+    { "@context": "https://schema.org", "@type": "Organization", name: "Elsa Workflows", url: "https://www.elsa-workflows.io", logo: "https://www.elsa-workflows.io/elsa-logo.png" },
+    { "@context": "https://schema.org", "@type": "WebSite", name: "Elsa Workflows", url: "https://www.elsa-workflows.io" },
+  ];
   return <Layout>
+    <Seo path="/" title="Elsa Workflows — Open-source workflow engine for .NET" description="Build workflow-driven .NET apps with Elsa: visual designer, C# code, and scale from small apps to enterprise systems. Open source." jsonLd={jsonLd} />
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         {/* Background gradient */}

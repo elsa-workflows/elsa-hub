@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
@@ -32,6 +33,7 @@ export default function ExpertServicesProviders() {
 
   return (
     <Layout>
+      <Seo path="/elsa-plus/expert-services" title="Elsa expert services — Elsa+" description="Vetted independent providers offering Elsa Workflows expert services: implementation help, advisory, and priority support." />
       {/* Breadcrumb */}
       <section className="pt-8 pb-4">
         <div className="container">

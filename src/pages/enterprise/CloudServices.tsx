@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState } from "react";
 import {
   Cloud,
@@ -145,6 +146,7 @@ export default function CloudServices() {
 
   return (
     <Layout>
+      <Seo path="/elsa-plus/cloud-services" title="Managed cloud hosting for Elsa — Elsa+" description="Managed Elsa hosting providers: hand off operations, upgrades, and scaling so your team can focus on building workflows." />
       {/* Breadcrumb */}
       <section className="pt-8 pb-4">
         <div className="container">

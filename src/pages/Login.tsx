@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -86,6 +87,7 @@ export default function Login() {
 
   return (
     <Layout>
+      <Seo path="/login" title="Log in — Elsa+" description="Sign in to your Elsa+ account to manage credits, orders, organizations, and provider services." />
       <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">

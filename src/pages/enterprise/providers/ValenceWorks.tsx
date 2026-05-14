@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
@@ -210,6 +211,7 @@ export default function ValenceWorks() {
 
   return (
     <Layout>
+      <Seo path="/elsa-plus/expert-services/valence-works" title="Valence Works — Elsa expert services" description="Valence Works provides Elsa Workflows expert services: implementation help, advisory, priority support, and production Docker images." />
       {/* Breadcrumb */}
       <section className="pt-8 pb-4">
         <div className="container">
@@ -252,7 +254,7 @@ export default function ValenceWorks() {
                <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
                provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
             </p>
-            <p className="text-base text-muted-foreground/80 italic mt-3">
+            <p className="text-base text-muted-foreground italic mt-3">
               Priority Support provides faster access to expertise — not outsourced operations.
             </p>
             <div className="mt-8">

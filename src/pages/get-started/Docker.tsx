@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { GuideBreadcrumb, PrerequisitesBox, DockerSection } from "@/components/get-started";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ const dockerOptions = [
 export default function Docker() {
   return (
     <Layout>
+      <Seo path="/get-started/docker" title="Get started with Elsa on Docker" description="Run Elsa Workflows in containers: Docker setup for local development and production deployments." />
       {/* Hero */}
       <section className="py-12 md:py-16 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">

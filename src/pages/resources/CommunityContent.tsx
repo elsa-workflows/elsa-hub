@@ -1,3 +1,4 @@
+import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { ResourceCategorySection } from "@/components/resources";
 import { CommunityResource } from "@/components/resources/CommunityResourceCard";
@@ -243,6 +244,7 @@ const categories = [
 export default function CommunityContent() {
   return (
     <Layout>
+      <Seo path="/resources/community-content" title="Community content — Elsa Workflows" description="Articles, videos, and demos from the Elsa Workflows community. Learn from real-world implementations and patterns." />
       {/* Breadcrumb */}
       <section className="py-6 border-b">
         <div className="container">
