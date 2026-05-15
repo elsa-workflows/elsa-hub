@@ -96,7 +96,11 @@ export function CopilotThread({ threadId, initialMessages }: CopilotThreadProps)
           {messages.map((m) => (
             <Message key={m.id} from={m.role === "user" ? "user" : "assistant"}>
               <MessageContent
-                variant={m.role === "user" ? "contained" : "flat"}
+                className={
+                  m.role === "user"
+                    ? "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground"
+                    : "bg-transparent p-0"
+                }
               >
                 {m.parts.map((part, idx) => {
                   if (part.type === "text") {
