@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { Loader2 } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCopilot } from "@/contexts/CopilotContext";
@@ -75,7 +75,7 @@ export function CopilotThread({ threadId, initialMessages }: CopilotThreadProps)
     if (status === "ready") textareaRef.current?.focus();
   }, [status]);
 
-  const isStreaming = status === "submitted" || status === "streaming";
+  
 
   return (
     <div className="flex h-full flex-col">
