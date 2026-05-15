@@ -12,12 +12,14 @@ export const createLovableAiGatewayProvider = (lovableApiKey: string) =>
 
 /**
  * Embed an array of strings using Lovable AI Gateway.
- * Returns an array of 768-dimensional vectors (google/text-embedding-004).
+ * Returns 768-dimensional vectors to match the copilot_documents.embedding column.
+ * Uses google/gemini-embedding-001 with explicit dimensions=768.
  */
 export async function embedTexts(
   apiKey: string,
   texts: string[],
-  model = "google/text-embedding-004",
+  model = "google/gemini-embedding-001",
+  dimensions = 768,
 ): Promise<number[][]> {
   const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
     method: "POST",
@@ -26,7 +28,7 @@ export async function embedTexts(
       "Lovable-API-Key": apiKey,
       "X-Lovable-AIG-SDK": "vercel-ai-sdk",
     },
-    body: JSON.stringify({ model, input: texts }),
+    body: JSON.stringify({ model, input: texts, dimensions }),
   });
   if (!res.ok) {
     const body = await res.text();
