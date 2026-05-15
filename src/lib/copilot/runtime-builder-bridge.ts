@@ -64,7 +64,7 @@ export function applyRbIntent(
       return { ok: true, message: `Set ${intent.name} on ${intent.featureId}.` };
     }
     case "rb.selectInfrastructure": {
-      const provider = catalog?.providers.find((p) => p.id === intent.providerId);
+      const provider = catalog?.infrastructureProviders.find((p) => p.id === intent.providerId);
       if (!provider)
         return { ok: false, message: `Unknown provider: ${intent.providerId}` };
       store.setInfrastructure(
