@@ -223,6 +223,9 @@ export default function Home() {
                 <Button size="lg" variant="outline" className="gap-2" asChild>
                   <Link to="/elsa-plus/runtime-builder">
                     Try the Runtime Builder
+                    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                      Preview
+                    </span>
                   </Link>
                 </Button>
                 <Button size="lg" variant="ghost" className="gap-2" asChild>

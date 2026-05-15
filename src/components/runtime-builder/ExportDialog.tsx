@@ -64,6 +64,13 @@ export function ExportDialog({ open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
 
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Preview schema.</span>{" "}
+          The exported config follows{" "}
+          <code className="font-mono">elsa-runtime-builder/v1</code> and may
+          change as the catalog moves out of preview.
+        </div>
+
         <div className="max-h-[55vh] overflow-auto rounded-lg border border-border/60 bg-background/60">
           <Highlight theme={themes.vsDark} code={json} language="json">
             {({ className, style, tokens, getLineProps, getTokenProps }) => (

@@ -141,9 +141,14 @@ export default function Docker() {
               <Boxes className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">Prefer a guided setup?</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold">Prefer a guided setup?</h3>
+                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                  Preview
+                </span>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Try the Runtime Builder to compose an Elsa runtime visually and generate a tailored docker-compose bundle.
+                Try the Runtime Builder to compose an Elsa runtime visually and preview a tailored docker-compose bundle. Concept build on sample data.
               </p>
             </div>
             <Button asChild variant="outline" className="gap-2 shrink-0">
