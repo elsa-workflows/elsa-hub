@@ -61,6 +61,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
     id: threadId,
     transport,
     messages: initialMessages,
+    onFinish: () => onFinish?.(),
   });
 
   // Focus management
