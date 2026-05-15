@@ -79,6 +79,7 @@ const App = () => (
           <ScrollToTop />
           <AuthProvider>
             <OrganizationProvider>
+            <CopilotProvider>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
