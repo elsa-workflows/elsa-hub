@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
-import type { BuilderState } from "@/lib/runtime-builder/types";
+import type { BuilderStateV2 } from "@/lib/runtime-builder/types-v2";
 
 interface Props {
   open: boolean;
@@ -27,12 +27,17 @@ export function ImportDialog({ open, onOpenChange }: Props) {
   function applyText(value: string) {
     try {
       const parsed = JSON.parse(value);
-      const incoming: Partial<BuilderState> = {
-        imageId: parsed.imageId ?? null,
-        imageVersion: parsed.imageVersion ?? null,
-        capabilityIds: Array.isArray(parsed.capabilityIds) ? parsed.capabilityIds : [],
-        settings: parsed.settings ?? {},
-        overrides: parsed.overrides ?? {},
+      const incoming: Partial<BuilderStateV2> = {
+        schemaVersion: 2,
+        packageSources: Array.isArray(parsed.packageSources)
+          ? parsed.packageSources
+          : undefined,
+        selectedPackages: Array.isArray(parsed.selectedPackages)
+          ? parsed.selectedPackages
+          : [],
+        infrastructureSelections: Array.isArray(parsed.infrastructureSelections)
+          ? parsed.infrastructureSelections
+          : [],
         advancedMode: Boolean(parsed.advancedMode),
         meta: parsed.meta,
       };
@@ -61,8 +66,9 @@ export function ImportDialog({ open, onOpenChange }: Props) {
 
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Preview schema.</span>{" "}
-          Configs follow <code className="font-mono">elsa-runtime-builder/v1</code>{" "}
-          and may need re-export once the catalog leaves preview.
+          Configs follow{" "}
+          <code className="font-mono">elsa-runtime-builder/v2</code> and may
+          change as the catalog leaves preview.
         </div>
 
         <div className="space-y-3">
@@ -94,7 +100,7 @@ export function ImportDialog({ open, onOpenChange }: Props) {
             rows={12}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder='{"imageId":"elsa-pro-server", ...}'
+            placeholder='{"schemaVersion":2,"selectedPackages":[...]}'
             className="font-mono text-xs"
           />
         </div>

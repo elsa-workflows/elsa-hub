@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
 import { Highlight, themes } from "prism-react-renderer";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
-import { generateBundleFiles } from "@/lib/runtime-builder/generate";
-import { validateBuild } from "@/lib/runtime-builder/validate";
+import {
+  useCatalogQuery,
+  useResolveQuery,
+} from "@/lib/runtime-builder/catalog-client";
+import { generateBundleFilesV2 } from "@/lib/runtime-builder/generate";
+import { validateBuildV2 } from "@/lib/runtime-builder/validate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,20 +18,28 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Copy, Download, FileText } from "lucide-react";
+import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
+
+const EMPTY_CATALOG: CatalogV2 = { packages: [], infrastructureProviders: [] };
 
 const languageMap: Record<string, string> = {
   json: "json",
   yaml: "yaml",
   ini: "bash",
   markdown: "markdown",
-  text: "text",
+  text: "csharp",
 };
 
 export function StepBundle() {
-  const { catalog, state } = useRuntimeBuilder();
-  const validation = useMemo(() => validateBuild(state, catalog), [state, catalog]);
+  const { state } = useRuntimeBuilder();
+  const { data: catalog } = useCatalogQuery();
+  const { data: apiResolve } = useResolveQuery(state, true);
+  const validation = useMemo(
+    () => validateBuildV2(state, catalog ?? EMPTY_CATALOG, apiResolve),
+    [state, catalog, apiResolve],
+  );
   const files = useMemo(
-    () => generateBundleFiles(state, catalog),
+    () => generateBundleFilesV2(state, catalog ?? EMPTY_CATALOG),
     [state, catalog],
   );
   const [activeIndex, setActiveIndex] = useState(0);

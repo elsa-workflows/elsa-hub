@@ -7,7 +7,6 @@ import {
   Download,
   Info,
   Package,
-  Server,
   Sparkles,
   XCircle,
 } from "lucide-react";
@@ -15,8 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
-import { findCapability, findImage } from "@/lib/runtime-builder/catalog-utils";
-import { validateBuild } from "@/lib/runtime-builder/validate";
+import {
+  useCatalogQuery,
+  useResolveQuery,
+} from "@/lib/runtime-builder/catalog-client";
+import { validateBuildV2 } from "@/lib/runtime-builder/validate";
+import { findPackage } from "@/lib/runtime-builder/requirements";
+import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -24,23 +28,26 @@ interface Props {
   onOpenExport: () => void;
 }
 
-export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
-  const { catalog, state } = useRuntimeBuilder();
-  const image = findImage(catalog, state.imageId);
-  const validation = useMemo(() => validateBuild(state, catalog), [state, catalog]);
+const EMPTY_CATALOG: CatalogV2 = { packages: [], infrastructureProviders: [] };
 
-  const capabilityNames = state.capabilityIds
-    .map((id) => findCapability(catalog, id)?.displayName)
+export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
+  const { state } = useRuntimeBuilder();
+  const { data: catalog } = useCatalogQuery();
+  const { data: apiResolve } = useResolveQuery(state, true);
+
+  const validation = useMemo(
+    () => validateBuildV2(state, catalog ?? EMPTY_CATALOG, apiResolve),
+    [state, catalog, apiResolve],
+  );
+
+  const packageNames = state.selectedPackages
+    .map((p) => findPackage(catalog ?? EMPTY_CATALOG, p.packageId)?.displayName)
     .filter(Boolean) as string[];
 
-  const featureCount = state.capabilityIds.reduce((acc, id) => {
-    const cap = findCapability(catalog, id);
-    return acc + (cap?.features.length ?? 0);
-  }, 0);
-
-  const sizeMb = image
-    ? image.estimatedSizeMb + state.capabilityIds.length * 8
-    : 0;
+  const featureCount = state.selectedPackages.reduce(
+    (acc, p) => acc + p.selectedFeatures.length,
+    0,
+  );
 
   return (
     <aside className="sticky top-24 flex flex-col gap-5 rounded-2xl border border-border/60 bg-card/40 p-5 backdrop-blur-xl">
@@ -51,44 +58,29 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
         <h3 className="mt-1 font-display text-lg font-semibold">Your runtime</h3>
       </div>
 
-      <SummaryRow icon={Server} label="Image">
-        {image ? (
-          <span className="flex items-center gap-2">
-            <span className="font-medium">{image.displayName}</span>
-            <code className="font-mono text-[11px] text-muted-foreground">
-              {state.imageVersion ?? image.versions[0]}
-            </code>
-          </span>
+      <SummaryRow icon={Package} label="Packages">
+        {packageNames.length === 0 ? (
+          <span className="text-muted-foreground">None selected</span>
         ) : (
-          <span className="text-muted-foreground">Not selected</span>
+          <span className="text-foreground">
+            {packageNames.length} · {featureCount} feature
+            {featureCount === 1 ? "" : "s"}
+          </span>
         )}
       </SummaryRow>
 
-      <SummaryRow icon={Sparkles} label="Capabilities">
-        <span>
-          {capabilityNames.length === 0 ? (
-            <span className="text-muted-foreground">None enabled</span>
-          ) : (
-            <span className="text-foreground">
-              {capabilityNames.length} enabled · {featureCount} feature
-              {featureCount === 1 ? "" : "s"}
-            </span>
-          )}
+      <SummaryRow icon={Database} label="Infrastructure">
+        <span className="text-foreground">
+          {state.infrastructureSelections.length === 0
+            ? "—"
+            : `${state.infrastructureSelections.length} selection${state.infrastructureSelections.length === 1 ? "" : "s"}`}
         </span>
       </SummaryRow>
 
-      <SummaryRow icon={Package} label="License">
-        {image ? (
-          <Badge variant="outline" className="border-primary/40 text-primary">
-            {image.licenseTier}
-          </Badge>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        )}
-      </SummaryRow>
-
-      <SummaryRow icon={Database} label="Estimated size">
-        <span className="text-foreground">~ {sizeMb} MB</span>
+      <SummaryRow icon={Sparkles} label="Sources">
+        <span className="text-foreground">
+          {state.packageSources.filter((s) => s.enabled).length} active
+        </span>
       </SummaryRow>
 
       <Separator />
@@ -129,11 +121,11 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
       <Button
         size="sm"
         className="w-full"
-        disabled={!validation.isValid || !image}
-        asChild={validation.isValid && !!image}
+        disabled={!validation.isValid || state.selectedPackages.length === 0}
+        asChild={validation.isValid && state.selectedPackages.length > 0}
       >
-        {validation.isValid && image ? (
-          <Link to="?step=5">
+        {validation.isValid && state.selectedPackages.length > 0 ? (
+          <Link to="?step=7">
             <Download className="mr-2 h-4 w-4" /> Preview bundle
           </Link>
         ) : (
@@ -175,7 +167,7 @@ function SummaryRow({
 function ValidationPill({
   validation,
 }: {
-  validation: ReturnType<typeof validateBuild>;
+  validation: ReturnType<typeof validateBuildV2>;
 }) {
   const ready = validation.readiness;
   return (
