@@ -419,6 +419,7 @@ Deno.serve(async (req) => {
       tools,
       stopWhen: stepCountIs(50),
       messages: convertToModelMessages(body.messages),
+      abortSignal: req.signal,
     });
   } catch (e) {
     return new Response(
@@ -433,13 +434,15 @@ Deno.serve(async (req) => {
   return result.toUIMessageStreamResponse({
     originalMessages: body.messages,
     headers: corsHeaders,
-    onFinish: async ({ messages }) => {
+    onFinish: async ({ messages, isAborted }) => {
       if (!userId) return;
+      // Aborted runs are persisted by the client (server may be torn down
+      // with the connection on edge runtimes). See client onFinish handler.
+      if (isAborted) return;
       const last = messages[messages.length - 1];
       if (!last || last.role !== "assistant") return;
+      if (!last.parts || last.parts.length === 0) return;
       try {
-        // Use the service role client to bypass the user-insert role check
-        // (we only insert assistant messages for threads we just verified).
         await supabaseService.from("copilot_messages").insert({
           thread_id: body.threadId,
           role: "assistant",
