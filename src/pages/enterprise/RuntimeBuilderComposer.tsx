@@ -26,6 +26,8 @@ import { StepValidate } from "@/components/runtime-builder/StepValidate";
 import { StepBundle } from "@/components/runtime-builder/StepBundle";
 import { ImportDialog } from "@/components/runtime-builder/ImportDialog";
 import { ExportDialog } from "@/components/runtime-builder/ExportDialog";
+import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
+import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
 
 const STEPS = [
   { id: 1, label: "Runtime image", short: "Image" },
@@ -73,8 +75,9 @@ export default function RuntimeBuilderComposer() {
     <Layout>
       <Seo
         path="/elsa-plus/runtime-builder/new"
-        title="Elsa Runtime Builder — compose & deploy"
-        description="Visually compose an Elsa runtime, configure capabilities, validate compatibility, and preview a Docker deployment bundle."
+        title="Elsa Runtime Builder (Preview) — compose & deploy"
+        description="An early concept of the Elsa Runtime Builder composer. Visually compose a runtime, validate compatibility, and preview a Docker deployment bundle. Sample catalog data."
+        noIndex
       />
 
       <section className="border-b border-border/50 bg-background/60 backdrop-blur-md">
@@ -96,6 +99,7 @@ export default function RuntimeBuilderComposer() {
               <h1 className="font-display text-base font-semibold tracking-tight">
                 Compose runtime
               </h1>
+              <PreviewBadge />
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -129,6 +133,10 @@ export default function RuntimeBuilderComposer() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="container mx-auto px-4 pt-6">
+        <PreviewBanner compact />
       </section>
 
       <section className="container mx-auto px-4 py-8">
