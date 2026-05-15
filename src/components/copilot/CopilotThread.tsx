@@ -40,9 +40,10 @@ interface CopilotThreadProps {
 }
 
 export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotThreadProps) {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { routeContext } = useCopilot();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cancelSavedRef = useRef(false);
 
   const transport = useMemo(
     () =>
@@ -62,8 +63,50 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
     id: threadId,
     transport,
     messages: initialMessages,
-    onFinish: () => onFinish?.(),
+    onError: (e) => toast.error(e.message),
+    onFinish: async ({ message, isAbort }) => {
+      // On abort the edge runtime can be torn down with the connection,
+      // so the server's onFinish is unreliable. Persist the partial
+      // assistant message from the client instead.
+      if (isAbort && user && !cancelSavedRef.current) {
+        cancelSavedRef.current = true;
+        const parts = ((message?.parts ?? []) as UIMessage["parts"]).map(
+          (p) => ({ ...p }),
+        ) as UIMessage["parts"];
+        let lastTextIdx = -1;
+        parts.forEach((p, i) => {
+          if (p.type === "text") lastTextIdx = i;
+        });
+        if (lastTextIdx >= 0) {
+          const t = parts[lastTextIdx] as { type: "text"; text: string };
+          t.text = `${t.text}\n\n_Stopped._`;
+        } else {
+          parts.push({ type: "text", text: "_Stopped._" } as never);
+        }
+        if (parts.length > 0) {
+          const { error: insertErr } = await supabase
+            .from("copilot_messages")
+            .insert({
+              thread_id: threadId,
+              role: "assistant",
+              ai_sdk_id: message?.id ?? null,
+              parts: parts as never,
+            });
+          if (insertErr) {
+            console.error("Failed to persist canceled message", insertErr);
+          }
+        }
+      }
+      onFinish?.();
+    },
   });
+
+  // Reset the cancel-saved guard whenever a new turn starts.
+  useEffect(() => {
+    if (status === "submitted" || status === "streaming") {
+      cancelSavedRef.current = false;
+    }
+  }, [status]);
 
   // Focus management
   useEffect(() => {
@@ -73,6 +116,16 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
   useEffect(() => {
     if (status === "ready") textareaRef.current?.focus();
   }, [status]);
+
+  // Show shimmer while submitted, or while streaming but the assistant
+  // message has not produced any text/tool parts yet.
+  const lastMessage = messages[messages.length - 1];
+  const lastIsAssistantWithContent =
+    lastMessage?.role === "assistant" && (lastMessage.parts?.length ?? 0) > 0;
+  const showThinking =
+    status === "submitted" ||
+    (status === "streaming" && !lastIsAssistantWithContent);
+  const showStreamingPill = status === "streaming" && lastIsAssistantWithContent;
 
   
 
