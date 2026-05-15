@@ -1,7 +1,32 @@
 // V2 domain model: package-manifest + infrastructure driven.
 // The legacy v1 types in `./types.ts` remain for the migration code path only.
 
-import type { SettingSchema } from "./types";
+export type SettingType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "enum"
+  | "object";
+
+export interface SettingSchema {
+  name: string;
+  displayName: string;
+  type: SettingType;
+  required?: boolean;
+  secret?: boolean;
+  defaultValue?: unknown;
+  description?: string;
+  placeholder?: string;
+  enumValues?: { value: string; label: string }[];
+  advanced?: boolean;
+  group?: string;
+  envHint?: string;
+  settings?: SettingSchema[];
+}
+
+export function envVarFromHint(hint: string): string {
+  return hint.replace(/[^A-Z0-9_]/gi, "_").toUpperCase();
+}
 
 export type Strategy =
   | "compose-sidecar"
