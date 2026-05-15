@@ -35,13 +35,8 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<CopilotState>({ open: false, threadId: null });
   const location = useLocation();
   const navigate = useNavigate();
-  let organizationId: string | null = null;
-  try {
-    const org = useOrganization();
-    organizationId = org?.selectedOrganization?.id ?? null;
-  } catch {
-    organizationId = null;
-  }
+  const { selectedOrganization } = useOrganization();
+  const organizationId = selectedOrganization?.id ?? null;
 
   const routeContext = useMemo(
     () => ({
