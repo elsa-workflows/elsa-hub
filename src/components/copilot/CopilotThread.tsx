@@ -208,11 +208,27 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
             </div>
           ) : null}
 
-          {error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              {error.message}
-            </div>
-          ) : null}
+          {error ? (() => {
+            const parsed = parseCopilotError(error.message);
+            const isRateLimited = parsed?.code === "rate_limited";
+            return (
+              <div
+                role="alert"
+                className={
+                  isRateLimited
+                    ? "rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300"
+                    : "rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                }
+              >
+                <div className="font-medium">
+                  {isRateLimited ? "Slow down a moment" : "Something went wrong"}
+                </div>
+                <div className="mt-1 opacity-90">
+                  {parsed?.error ?? error.message}
+                </div>
+              </div>
+            );
+          })() : null}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
