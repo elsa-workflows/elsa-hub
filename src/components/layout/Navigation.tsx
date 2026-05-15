@@ -148,7 +148,7 @@ export function Navigation() {
                 </NavLink>
               ))}
               <hr className="my-4" />
-              <
+              <a
                 href="https://docs.elsaworkflows.io/"
                 target="_blank"
                 rel="noopener noreferrer"
