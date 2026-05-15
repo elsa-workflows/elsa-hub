@@ -35,9 +35,10 @@ const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/co
 interface CopilotThreadProps {
   threadId: string;
   initialMessages?: UIMessage[];
+  onFinish?: () => void;
 }
 
-export function CopilotThread({ threadId, initialMessages }: CopilotThreadProps) {
+export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotThreadProps) {
   const { session } = useAuth();
   const { routeContext } = useCopilot();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
