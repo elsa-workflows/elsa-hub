@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.runtime-builder-catalog]
 verify_jwt = false
+
+[functions.copilot-chat]
+verify_jwt = false
+
+[functions.copilot-ingest]
+verify_jwt = false

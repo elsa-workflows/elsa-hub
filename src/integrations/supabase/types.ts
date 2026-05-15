@@ -107,6 +107,110 @@ export type Database = {
           },
         ]
       }
+      copilot_documents: {
+        Row: {
+          body: string
+          created_at: string
+          embedding: string | null
+          external_id: string | null
+          id: string
+          metadata: Json
+          source: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          embedding?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          source: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          embedding?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          source?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      copilot_messages: {
+        Row: {
+          ai_sdk_id: string | null
+          created_at: string
+          id: string
+          parts: Json
+          role: string
+          thread_id: string
+        }
+        Insert: {
+          ai_sdk_id?: string | null
+          created_at?: string
+          id?: string
+          parts?: Json
+          role: string
+          thread_id: string
+        }
+        Update: {
+          ai_sdk_id?: string | null
+          created_at?: string
+          id?: string
+          parts?: Json
+          role?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "copilot_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_threads: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          route_context: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          route_context?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          route_context?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_bundles: {
         Row: {
           billing_type: Database["public"]["Enums"]["billing_type"]
@@ -1427,6 +1531,22 @@ export type Database = {
       is_provider_admin: { Args: { p_provider_id: string }; Returns: boolean }
       is_provider_customer: { Args: { p_org_id: string }; Returns: boolean }
       is_provider_member: { Args: { p_provider_id: string }; Returns: boolean }
+      match_copilot_documents: {
+        Args: {
+          match_count?: number
+          query_embedding: string
+          source_filter?: string
+        }
+        Returns: {
+          body: string
+          id: string
+          metadata: Json
+          similarity: number
+          source: string
+          title: string
+          url: string
+        }[]
+      }
       process_expired_credit_lots: {
         Args: never
         Returns: {

@@ -1,258 +1,125 @@
+# Elsa Copilot — site-wide AI assistant
 
-# Runtime Builder v2 — Package & Infrastructure Driven
+A floating launcher (bottom-right) opens a slide-over chat panel on every page. Anonymous users get a limited Q&A mode over public content; signed-in users unlock account/dashboard/Runtime Builder tools. Conversations are threaded and persisted in Lovable Cloud.
 
-Move the Runtime Builder from a static, image-defined capability picker to a deployment builder driven by **package manifests** and **first-class infrastructure selections**, sourced from the Elsa Package Catalog API.
+## Stack
 
-Preview framing (banner, badges, `noindex`, disabled real downloads) stays. Existing `v1` localStorage state is migrated, not erased.
+- **AI SDK** (`ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`) on a Supabase Edge Function (`copilot-chat`) talking to **Lovable AI Gateway** with `google/gemini-3-flash-preview`.
+- **AI Elements** (`conversation`, `message`, `prompt-input`, `tool`, `shimmer`) for the chat surface.
+- Streaming via `streamText` + `toUIMessageStreamResponse`; client uses `useChat` with `DefaultChatTransport`.
+- Vector grounding via **pgvector** in the existing Supabase project.
 
----
+## UX
 
-## 1. API contract (verified)
+- **Launcher**: floating button bottom-right, hidden on `/auth` and embedded checkout flows.
+- **Panel**: right-side `Sheet` (sm: 480px, lg: 560px), full-height, glassmorphism per Deep Noir.
+- **Header**: thread title, "New chat" + thread switcher (popover list), close.
+- **Empty state**: domain identity (custom small Elsa+ mark, not Sparkles), 4 suggested prompts that vary by route (e.g. on `/elsa-plus/expert-services`: "Compare Implementation vs Advisory bundles"; in `/dashboard`: "How many credits do we have left?"; in Runtime Builder: "Add Identity with OpenIddict and Postgres").
+- **Composer**: `PromptInput` + `PromptInputTextarea` + `PromptInputFooter` (right-aligned `PromptInputSubmit`). Auto-focused on open, after send, after thread switch.
+- **Messages**: assistant text on transparent surface, user messages in `primary`/`primary-foreground` bubble, markdown via `MessageResponse`.
+- **Tool calls**: rendered with `Tool` accordion (closed by default) + custom compact renderers for the most-used tools (e.g. credit balance card, bundle card, builder diff).
+- **Write actions** show an inline confirmation card ("Add `Elsa.Workflows.Identity` and select OpenIddict?") with Confirm / Cancel before the tool executes.
 
-Base URL: `https://api-k35qdj734hds2.azurewebsites.net`
-Auth: `X-Api-Key: <ELSA_PACKAGE_CATALOG_API_KEY>` (already saved as a runtime secret; **never** shipped to the browser).
+## Threads & persistence
 
-Confirmed endpoints:
+Dedicated route `/copilot/:threadId` for full-page view; the side panel reads/writes the same threads. Tables (new):
 
-- `GET /api/builder/catalog` →
-  ```json
-  {
-    "packages": [ /* manifest entries — currently empty, schema to be inferred */ ],
-    "infrastructureProviders": [
-      { "id": "postgres-compose", "displayName": "PostgreSQL",
-        "kind": "database", "strategy": "compose-sidecar",
-        "provider": "postgres",
-        "capabilities": ["relational","transactions"],
-        "outputs": ["connectionString"] },
-      ...
-    ]
-  }
-  ```
-  Kinds present: `database`, `message-broker`, `cache`, `blob-storage`, `smtp`.
-  Strategies present: `compose-sidecar`, `external-service` (we also model `managed` and `none` client-side for future use).
+- `copilot_threads(id, user_id, title, last_message_at, route_context jsonb, created_at, updated_at)`
+- `copilot_messages(id, thread_id, role, parts jsonb, created_at)` — DB-generated UUIDs; AI SDK `msg_...` ids stored only if needed.
 
-- `POST /api/builder/resolve`
-  Body: `{ "packages": [...], "infrastructure": [...] }`
-  → `{ "compatible": boolean, "findings": Array<{ level, code, message, scope? }> }`
+RLS: user sees only their own threads/messages. Save assistant messages from `onFinish` of `toUIMessageStreamResponse`.
 
-- `GET /api/packages` → flat package list (`[]` today).
-- `GET /health` → `{ "status": "ok" }`.
+## Grounding (RAG)
 
----
+- `copilot_documents(id, source, url, title, body, metadata jsonb, embedding vector(1536), updated_at)` with HNSW index.
+- `match_copilot_documents(query_embedding, match_count, filter)` SQL function for similarity search.
+- Ingestion edge function `copilot-ingest` (admin-only) that chunks and embeds:
+  - All public marketing pages (Home, ElsaPlus, Expert Services, Managed Cloud Hosting, Get Started, Docker pages, Runtime Builder landing).
+  - Live package catalog (`runtime-builder-catalog` proxy → packages, features, infra providers).
+  - Provider/bundle data from Supabase (Valence Works, bundles, intro call info).
+  - Curated FAQ snippets sourced from existing memory entries (pricing, terminology, engagement boundaries).
+- Embeddings via Lovable AI Gateway (`google/text-embedding-004` or fallback). Re-ingest nightly via cron + manual button in the existing admin dashboard.
 
-## 2. Backend — catalog proxy edge function
+## Tools (server-side, AI SDK `tool({...})`)
 
-Add `supabase/functions/runtime-builder-catalog/index.ts`:
+**Public (no auth):**
+- `searchKnowledge({query, topK})` — pgvector retrieval, returns chunks + source URLs.
+- `navigate({path, reason})` — returns a navigation directive the client follows after user click; never auto-navigates.
+- `listBundles({providerSlug?})` / `getBundle({slug})` — public bundle catalog.
+- `listPackages({query?, category?})` / `getPackage({id})` — proxied through `runtime-builder-catalog`.
+- `bookIntroCall()` — returns the TidyCal URL.
 
-- Reads `ELSA_PACKAGE_CATALOG_API_BASE_URL` (default to the verified URL) and `ELSA_PACKAGE_CATALOG_API_KEY` from `Deno.env`.
-- Routes:
-  - `GET  ?action=catalog` → proxies `GET /api/builder/catalog`
-  - `POST ?action=resolve` → proxies `POST /api/builder/resolve` with validated body (Zod).
-- Standard CORS, JSON only, `verify_jwt = false` (catalog is public, but the API key stays server-side).
-- 30s timeout, 5s in-memory cache for `catalog` keyed on the API base URL to avoid hammering Azure.
-- Frontend calls it via `supabase.functions.invoke("runtime-builder-catalog", { body: { action, payload } })`.
+**Authenticated read:**
+- `getMyOrganizations()`, `getCreditBalance({orgId})`, `listOrders({orgId})`, `listSubscriptions({orgId})`, `listWorkHistory({orgId})`, `listMessageThreads({orgId})`, `getNotifications()`.
 
-No new tables, no migrations.
+**Authenticated write (`needsApproval: true`):**
+- `startBundlePurchase({orgId, bundleSlug})` → returns Stripe checkout URL (existing flow).
+- `sendProviderMessage({threadId, body})`.
+- `inviteTeamMember({orgId, email, role})`.
+- `cancelInvite({inviteId})` / `resendInvite({inviteId})`.
+- `bookIntroCall()` (auth variant prefills).
 
----
+**Runtime Builder (write, `needsApproval: true`):**
+- `rb.addPackage({packageId})`, `rb.removePackage({packageId})`.
+- `rb.toggleFeature({packageId, featureId, enabled})`.
+- `rb.setFeatureSetting({packageId, featureId, key, value})`.
+- `rb.selectInfrastructure({kind, providerId})`, `rb.autoFillInfrastructure()`.
+- `rb.validate()` → runs `resolveBuild` and returns findings.
+- `rb.generateBundle()` → triggers existing `generate.ts` and surfaces the download.
+- `rb.applyPreset({name})` (e.g. "Identity + Postgres + Redis").
 
-## 3. New domain types (`src/lib/runtime-builder/types-v2.ts`)
+These are exposed to the model only when the panel is open inside `/runtime-builder/*`. The client owns the Zustand store; the edge function returns intent payloads and the client applies them after the user confirms in the inline approval card.
 
-```ts
-type Strategy = "compose-sidecar" | "external-service" | "managed" | "none";
-type InfraKind = "database" | "message-broker" | "cache"
-               | "blob-storage" | "smtp" | "search" | "secrets";
-
-interface PackageSource {
-  id: string;             // uuid
-  name: string;           // "Elsa OSS", "Acme Internal"
-  url: string;            // NuGet v3 index
-  protocol: "nuget-v3";
-  authMode: "none" | "apiKey";
-  apiKeySecretName?: string;
-  enabled: boolean;
-}
-
-interface PackageFeature {
-  id: string;             // "elsa.persistence.ef-core.postgres"
-  displayName: string;
-  description?: string;
-  requires?: { infrastructure?: { kind: InfraKind; capabilities?: string[] }[] };
-  settings: SettingSchema[];   // reused from v1
-}
-
-interface PackageManifest {
-  id: string;             // "Elsa.Persistence.EFCore.PostgreSql"
-  displayName: string;
-  description?: string;
-  version: string;        // selected version (from manifest "versions[]")
-  versions: string[];
-  licenseTier: "OSS" | "Professional" | "Enterprise";
-  stability: "Stable" | "Preview" | "Experimental";
-  category: string;       // "Persistence", "Messaging", ...
-  features: PackageFeature[];
-  conflictsWith?: string[]; // package ids
-  tags?: string[];
-}
-
-interface InfrastructureProvider {
-  id: string;             // "postgres-compose"
-  displayName: string;
-  kind: InfraKind;
-  strategy: Strategy;
-  provider: string;       // "postgres"
-  capabilities: string[];
-  outputs: string[];      // "connectionString", "host", "port", ...
-  settings?: SettingSchema[];
-}
-
-interface InfrastructureSelection {
-  kind: InfraKind;            // logical requirement key
-  providerId: string | null;  // chosen provider, or null when strategy === "none"
-  strategy: Strategy;
-  settings: Record<string, unknown>;
-}
-
-interface SelectedPackage {
-  packageId: string;
-  version: string;
-  selectedFeatures: string[]; // feature ids
-  settings: Record<string, Record<string, unknown>>; // featureId → setting map
-}
-
-interface BuilderStateV2 {
-  schemaVersion: 2;
-  packageSources: PackageSource[];
-  selectedPackages: SelectedPackage[];
-  infrastructureSelections: InfrastructureSelection[];
-  shellProfile?: { id: string; settings?: Record<string, unknown> }; // reserved
-  advancedMode: boolean;
-  meta?: { name?: string; description?: string; createdAt?: string; updatedAt?: string };
-}
-
-interface CatalogV2 {
-  packages: PackageManifest[];
-  infrastructureProviders: InfrastructureProvider[];
-}
-```
-
-Old `v1` types stay in `types.ts`; v2 lives in `types-v2.ts` so the migration code can reference both.
-
----
-
-## 4. Catalog client + resolve hook
-
-`src/lib/runtime-builder/catalog-client.ts`:
-- `fetchCatalog(): Promise<CatalogV2>` — calls the edge function, normalizes provider records, dedupes by id.
-- `resolveBuild(req): Promise<{ compatible, findings }>` — wraps `POST ?action=resolve`.
-- `useCatalogQuery()` and `useResolveQuery(state)` React Query hooks (5 min stale, debounced resolve).
-
-`src/lib/runtime-builder/requirements.ts`:
-- `derivePackageCapabilities(selectedPackages, catalog)` → flat list of capability ids contributed by selected features (replaces image-driven `capabilities`).
-- `deriveInfrastructureRequirements(selectedPackages, catalog)` → `{ kind, capabilities[], sources: feature[] }[]`.
-- `autoFillInfrastructure(state, catalog)` → adds default `compose-sidecar` selection per missing required kind.
-
----
-
-## 5. Local validation + migration
-
-Rewrite `validate.ts` against v2:
-- `errors`: missing required infra for a selected feature; missing required settings; `conflictsWith` violations.
-- `warnings`: `external-service` strategy without a connection string set; preview-stability features.
-- Then merges authoritative `findings` from the API resolve call (API findings always win on overlap).
-
-`store.ts` (zustand, persisted):
-- `STORAGE_KEY` stays `elsa-runtime-builder/v1`, but the persisted blob now carries `schemaVersion: 2`.
-- `migrate()` reads any v1 blob, maps `imageId + capabilityIds + settings` → seeded `selectedPackages` (best-effort using a static `v1 → package` map kept in `migration-map.ts`) and seeds default infra selections. If no map entry, those caps are dropped and a one-time toast tells the user the build was reset to v2.
-- New mutators: `addPackageSource`, `togglePackage`, `setPackageVersion`, `toggleFeature`, `setFeatureSetting`, `setInfrastructure(kind, providerId, strategy)`, `setInfrastructureSetting`, plus retained `setMeta`, `importState`, `reset`.
-
----
-
-## 6. Wizard restructure (7 steps)
-
-`src/pages/enterprise/RuntimeBuilderComposer.tsx` becomes:
+## Architecture diagram
 
 ```text
-1. Sources       → manage NuGet feeds (add/edit/disable; default OSS feed seeded)
-2. Packages      → browse + select packages from CatalogV2.packages
-3. Features      → per selected package, pick features and required settings
-4. Infrastructure→ for each derived requirement, pick provider + strategy
-5. Configure     → cross-cutting settings (env, host, telemetry)
-6. Validate      → local + API resolve findings, blocks on errors
-7. Bundle        → preview generated files, copy-to-clipboard only
+ Browser
+ ├── CopilotLauncher (global)
+ └── CopilotPanel (Sheet)
+      ├── useChat({ id: threadId, transport: '/functions/v1/copilot-chat' })
+      ├── route-aware system context (path, orgId, builder snapshot)
+      └── Tool dispatcher (navigate, rb.*, confirmations)
+                       │
+                       ▼
+ Supabase Edge Functions
+ ├── copilot-chat       → streamText (Lovable AI) + tools + RAG
+ ├── copilot-ingest     → chunk + embed → copilot_documents
+ └── runtime-builder-catalog (existing proxy, reused)
+                       │
+                       ▼
+ Postgres
+ ├── copilot_threads / copilot_messages   (RLS: user-scoped)
+ └── copilot_documents (pgvector)         (read-only via RPC)
 ```
 
-New components in `src/components/runtime-builder/`:
-- `StepSources.tsx`
-- `StepPackages.tsx` (replaces `StepImage`)
-- `StepFeatures.tsx` (replaces `StepCapabilities`)
-- `StepInfrastructure.tsx`
-- `PackageCard.tsx`, `FeatureRow.tsx`, `InfrastructurePicker.tsx`, `StrategyBadge.tsx`
+## Step-by-step build
 
-Keep, refactored to v2 shape: `StepConfigure`, `StepValidate`, `StepBundle`, `BuildSummary`, `Stepper`, `SchemaField`, `Import/ExportDialog`, `PreviewBanner`, `PreviewBadge`.
+1. **DB migration**: `copilot_threads`, `copilot_messages`, `copilot_documents` (+ pgvector extension, HNSW index, `match_copilot_documents` RPC), RLS policies.
+2. **Edge function `copilot-chat`**: AI SDK + Lovable AI Gateway, dynamic tool set based on caller auth + route context sent in the request body, `stopWhen: stepCountIs(50)`, persist messages in `onFinish`.
+3. **Edge function `copilot-ingest`**: admin-only; embed marketing pages, package catalog, bundles, FAQ; upsert into `copilot_documents`.
+4. **Install AI Elements** primitives.
+5. **Client surfaces**:
+   - `src/components/copilot/CopilotProvider.tsx` (route + builder-snapshot context).
+   - `src/components/copilot/CopilotLauncher.tsx`.
+   - `src/components/copilot/CopilotPanel.tsx` (Sheet + AI Elements).
+   - `src/components/copilot/ToolRenderers/*` (BundleCard, CreditBalance, BuilderDiff, NavigateLink, ConfirmCard).
+   - `src/pages/copilot/CopilotThread.tsx` at `/copilot/:threadId`.
+   - `src/lib/copilot/store.ts` (active thread, panel open state) + `useCopilotTools.ts` (client-side handlers for `navigate` and `rb.*`).
+6. **Wire Runtime Builder**: expose Zustand store snapshot + apply-intent helpers to the Copilot context provider.
+7. **Admin**: small "Re-index Copilot knowledge" button in the existing admin dashboard.
+8. **Mount** `<CopilotProvider>` at app root, render launcher except on `/auth`, `/lovable/*`, and embedded checkout.
+9. **Verify**: anonymous Q&A → answers with citations; signed-in → credit balance tool; Runtime Builder → "Add OpenIddict" produces a confirm card that toggles the right feature; thread reload restores messages.
 
-Delete after migration: `StepImage.tsx`, `StepCapabilities.tsx`, `ImagePickerCard.tsx`.
+## Out of scope (v1)
 
----
+- Voice / speech.
+- Multi-user collaboration in a thread.
+- Provider-side admin actions inside the Copilot.
+- Auto-execution of write tools without explicit confirmation.
+- File upload to chat (can be added later via AI Elements attachments).
 
-## 7. Provider-driven generator
+## Open questions before build
 
-Rewrite `src/lib/runtime-builder/generate.ts`:
-
-- Output unchanged in shape (`GeneratedFile[]`), new contents:
-  - `appsettings.Generated.json` — merges feature settings.
-  - `Program.Generated.cs` — emits one `services.AddXxx(...)` per selected package/feature using a per-package emitter registry (`generators/<package-id>.ts`, falls back to a generic comment block).
-  - `docker-compose.yml` — composed from `infrastructureSelections` where `strategy === "compose-sidecar"`. Each provider has a `composeFragment(settings)` helper in `generators/infra/<provider>.ts` (postgres, sqlserver, rabbitmq, redis, azurite, mailpit). `external-service` and `managed` strategies contribute only env vars; `none` contributes nothing.
-  - `.env.example` — built from provider `outputs[]` and feature `envHint`s.
-  - `README.md` — summarizes selected packages, infra strategies, and next steps.
-
-Generation is **blocked** when local validation or API resolve returns errors.
-
----
-
-## 8. Preview framing (unchanged)
-
-- `PreviewBanner` and `PreviewBadge` stay mounted on landing/composer/entry points.
-- `Seo noIndex` stays on the composer.
-- Bundle step keeps "Download — coming soon" and copy-only actions.
-- Mem entry `mem://features/elsa-plus/runtime-builder-preview` updated with the v2 architecture note (sources → packages → features → infrastructure → configure → validate → bundle, API-backed).
-
----
-
-## 9. Out of scope
-
-- No real archive/zip download, no auth on the catalog API call beyond the proxy key, no per-user package source persistence (sources live in local builder state for now), no shell profile UI (type reserved only), no NuGet credential storage, no changes to unrelated pages.
-
----
-
-## Files
-
-**New**
-- `supabase/functions/runtime-builder-catalog/index.ts`
-- `src/lib/runtime-builder/types-v2.ts`
-- `src/lib/runtime-builder/catalog-client.ts`
-- `src/lib/runtime-builder/requirements.ts`
-- `src/lib/runtime-builder/migration-map.ts`
-- `src/lib/runtime-builder/generators/index.ts` + per-package + per-infra emitters
-- `src/components/runtime-builder/StepSources.tsx`
-- `src/components/runtime-builder/StepPackages.tsx`
-- `src/components/runtime-builder/StepFeatures.tsx`
-- `src/components/runtime-builder/StepInfrastructure.tsx`
-- `src/components/runtime-builder/PackageCard.tsx`
-- `src/components/runtime-builder/FeatureRow.tsx`
-- `src/components/runtime-builder/InfrastructurePicker.tsx`
-- `src/components/runtime-builder/StrategyBadge.tsx`
-
-**Edited**
-- `src/lib/runtime-builder/store.ts` (v2 + migration)
-- `src/lib/runtime-builder/validate.ts` (v2 + merge API findings)
-- `src/lib/runtime-builder/generate.ts` (provider-driven)
-- `src/lib/runtime-builder/types.ts` (kept, marked legacy)
-- `src/pages/enterprise/RuntimeBuilderComposer.tsx` (7-step flow)
-- `src/components/runtime-builder/{Stepper,BuildSummary,StepConfigure,StepValidate,StepBundle,ImportDialog,ExportDialog}.tsx`
-- `mem://features/elsa-plus/runtime-builder-preview`
-
-**Removed** (after migration lands)
-- `src/components/runtime-builder/StepImage.tsx`
-- `src/components/runtime-builder/StepCapabilities.tsx`
-- `src/components/runtime-builder/ImagePickerCard.tsx`
+- Re-index cadence: nightly cron OK, or manual-only for v1?
+- Should anonymous users be allowed to read public bundle/package data through tools, or only RAG snippets?
+- Default model: stick with `google/gemini-3-flash-preview`, or use `google/gemini-3.1-pro-preview` for Runtime Builder threads where reasoning matters more?
