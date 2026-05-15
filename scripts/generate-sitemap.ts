@@ -27,6 +27,7 @@ const entries: SitemapEntry[] = [
   { path: "/elsa-plus/docker-images/elsa-pro-combined", changefreq: "monthly", priority: "0.7" },
   { path: "/elsa-plus/cloud-services", changefreq: "monthly", priority: "0.7" },
   { path: "/elsa-plus/training", changefreq: "monthly", priority: "0.7" },
+  { path: "/elsa-plus/runtime-builder", changefreq: "weekly", priority: "0.8" },
   { path: "/resources", changefreq: "weekly", priority: "0.8" },
   { path: "/resources/community-content", changefreq: "weekly", priority: "0.7" },
   { path: "/login", changefreq: "yearly", priority: "0.3" },
