@@ -30,11 +30,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { CopilotToolPart } from "./CopilotToolPart";
 import { CopilotEmptyState } from "./CopilotEmptyState";
 
-const FUNCTIONS_BASE = (() => {
-  // Derive functions URL from the configured supabase URL
-  const url = (supabase as unknown as { supabaseUrl: string }).supabaseUrl;
-  return `${url}/functions/v1/copilot-chat`;
-})();
+const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/copilot-chat";
 
 interface CopilotThreadProps {
   threadId: string;
