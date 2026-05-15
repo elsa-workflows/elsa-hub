@@ -177,12 +177,25 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
             </Message>
           ))}
 
-          {status === "submitted" ? (
+          {showThinking ? (
             <Message from="assistant">
               <MessageContent className="bg-transparent p-0">
                 <Shimmer>Thinking…</Shimmer>
               </MessageContent>
             </Message>
+          ) : null}
+
+          {showStreamingPill ? (
+            <div
+              className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
+              aria-live="polite"
+            >
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-primary" />
+              </span>
+              <Shimmer>Streaming…</Shimmer>
+            </div>
           ) : null}
 
           {error ? (
