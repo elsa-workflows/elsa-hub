@@ -354,6 +354,64 @@ Deno.serve(async (req) => {
     userId = data.user?.id ?? null;
   }
 
+  // ---- Rate limiting (per-IP for anonymous, per-user for authed) ----
+  // Anonymous traffic is the higher-risk surface, so it gets the tighter cap.
+  const RATE_LIMITS = userId
+    ? { max: 30, windowSeconds: 300 } // 30 msgs / 5 min / signed-in user
+    : { max: 8, windowSeconds: 300 }; // 8 msgs / 5 min / IP
+
+  const ipHeader =
+    req.headers.get("x-forwarded-for") ??
+    req.headers.get("cf-connecting-ip") ??
+    "unknown";
+  const clientIp = ipHeader.split(",")[0].trim() || "unknown";
+  const rateKey = userId ? `user:${userId}` : `ip:${clientIp}`;
+  const windowStart = new Date(
+    Date.now() - RATE_LIMITS.windowSeconds * 1000,
+  ).toISOString();
+
+  try {
+    const { count, error: countErr } = await supabaseService
+      .from("copilot_rate_events")
+      .select("id", { count: "exact", head: true })
+      .eq("key", rateKey)
+      .gte("created_at", windowStart);
+    if (countErr) throw countErr;
+    if ((count ?? 0) >= RATE_LIMITS.max) {
+      const retryAfter = RATE_LIMITS.windowSeconds;
+      return new Response(
+        JSON.stringify({
+          error:
+            `Rate limit reached. The Copilot allows ${RATE_LIMITS.max} messages every ${
+              Math.round(RATE_LIMITS.windowSeconds / 60)
+            } minutes${userId ? "" : " per visitor"}. Please wait a few minutes and try again.`,
+          code: "rate_limited",
+          retryAfterSeconds: retryAfter,
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Retry-After": String(retryAfter),
+          },
+        },
+      );
+    }
+    // Record this request and opportunistically prune very old rows.
+    await supabaseService.from("copilot_rate_events").insert({ key: rateKey });
+    if (Math.random() < 0.05) {
+      const pruneBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      await supabaseService
+        .from("copilot_rate_events")
+        .delete()
+        .lt("created_at", pruneBefore);
+    }
+  } catch (e) {
+    // Never fail-close on rate-limit infra errors — log and proceed.
+    console.error("rate-limit check failed", e);
+  }
+
   // Build dynamic tool set
   const route = body.routeContext ?? {};
   const tools = {
