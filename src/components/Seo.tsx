@@ -7,12 +7,13 @@ interface SeoProps {
   image?: string;
   type?: "website" | "article";
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  noIndex?: boolean;
 }
 
 const SITE_URL = "https://www.elsa-workflows.io";
 const DEFAULT_IMAGE = `${SITE_URL}/elsa-logo.png`;
 
-export function Seo({ title, description, path, image, type = "website", jsonLd }: SeoProps) {
+export function Seo({ title, description, path, image, type = "website", jsonLd, noIndex }: SeoProps) {
   const url = `${SITE_URL}${path}`;
   const ogImage = image ?? DEFAULT_IMAGE;
   const ldArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
@@ -21,6 +22,7 @@ export function Seo({ title, description, path, image, type = "website", jsonLd 
     <Helmet>
       <title>{title}</title>
       <meta name="description" content={description} />
+      {noIndex && <meta name="robots" content="noindex,nofollow" />}
       <link rel="canonical" href={url} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
