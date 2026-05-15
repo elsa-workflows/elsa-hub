@@ -33,6 +33,27 @@ import { CopilotEmptyState } from "./CopilotEmptyState";
 
 const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/copilot-chat";
 
+type CopilotServerError = {
+  error: string;
+  code?: string;
+  retryAfterSeconds?: number;
+};
+
+// The AI SDK's `Error.message` for a non-OK response is the raw response body.
+// Our edge function returns JSON for known failures; fall back to plain text.
+function parseCopilotError(message: string): CopilotServerError | null {
+  if (!message) return null;
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed && typeof parsed === "object" && typeof parsed.error === "string") {
+      return parsed as CopilotServerError;
+    }
+  } catch {
+    // not JSON
+  }
+  return null;
+}
+
 interface CopilotThreadProps {
   threadId: string;
   initialMessages?: UIMessage[];
