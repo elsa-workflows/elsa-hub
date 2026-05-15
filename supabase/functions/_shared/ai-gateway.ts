@@ -1,4 +1,4 @@
-import { createOpenAICompatible } from "npm:@ai-sdk/openai-compatible@^0.2.16";
+import { createOpenAICompatible } from "npm:@ai-sdk/openai-compatible@^1.0.0";
 
 export const createLovableAiGatewayProvider = (lovableApiKey: string) =>
   createOpenAICompatible({
