@@ -3,9 +3,8 @@ import type { RuntimeImage } from "@/lib/runtime-builder/types";
 export const runtimeImages: RuntimeImage[] = [
   {
     id: "elsa-oss",
-    displayName: "Elsa OSS",
-    description:
-      "Open-source Elsa Server. Great for getting started and self-managed deployments.",
+    displayName: "Elsa Free Server",
+    description: "Free Elsa Server. Great for getting started and self-managed deployments.",
     longDescription:
       "The community Elsa Server image. Includes the workflow engine, REST API and a built-in UI. Use this when you want full control and zero licensing.",
     versions: ["3.8.0", "3.7.4", "3.6.1"],
@@ -31,8 +30,7 @@ export const runtimeImages: RuntimeImage[] = [
   {
     id: "elsa-pro-server",
     displayName: "Elsa Pro Server",
-    description:
-      "Production-tuned Elsa Server with the Pro module ecosystem and CShells runtime.",
+    description: "Production-tuned Elsa Server with the Pro module ecosystem and CShells runtime.",
     longDescription:
       "Headless Elsa Server with the full Pro module set: messaging, scheduling, AI agents and runtime extensions. Combine with Elsa Pro Studio for a separate UI.",
     versions: ["1.4.0", "1.3.2", "1.2.0"],
@@ -52,11 +50,7 @@ export const runtimeImages: RuntimeImage[] = [
       "ai-agents",
       "cshells-runtime",
     ],
-    recommendedCapabilities: [
-      "postgresql-persistence",
-      "rabbitmq-messaging",
-      "open-telemetry",
-    ],
+    recommendedCapabilities: ["postgresql-persistence", "rabbitmq-messaging", "open-telemetry"],
     licenseTier: "Professional",
     stability: "Stable",
     audience: "Production teams running Elsa headlessly.",
@@ -87,11 +81,7 @@ export const runtimeImages: RuntimeImage[] = [
       "ai-agents",
       "cshells-runtime",
     ],
-    recommendedCapabilities: [
-      "postgresql-persistence",
-      "rabbitmq-messaging",
-      "open-telemetry",
-    ],
+    recommendedCapabilities: ["postgresql-persistence", "rabbitmq-messaging", "open-telemetry"],
     licenseTier: "Professional",
     stability: "Stable",
     audience: "Teams that prefer one container to operate.",
@@ -102,8 +92,7 @@ export const runtimeImages: RuntimeImage[] = [
   {
     id: "elsa-ai-runtime",
     displayName: "Elsa AI Runtime",
-    description:
-      "Pro Server tuned for AI agents and orchestration. Includes vector store integrations.",
+    description: "Pro Server tuned for AI agents and orchestration. Includes vector store integrations.",
     versions: ["1.0.0-preview.3"],
     elsaVersion: "3.8.0",
     capabilities: [
@@ -117,12 +106,7 @@ export const runtimeImages: RuntimeImage[] = [
       "blob-storage",
       "cshells-runtime",
     ],
-    recommendedCapabilities: [
-      "ai-agents",
-      "ai-vector-store",
-      "redis-cache",
-      "open-telemetry",
-    ],
+    recommendedCapabilities: ["ai-agents", "ai-vector-store", "redis-cache", "open-telemetry"],
     licenseTier: "Enterprise",
     stability: "Preview",
     audience: "AI-first workflow orchestration.",
@@ -133,8 +117,7 @@ export const runtimeImages: RuntimeImage[] = [
   {
     id: "elsa-minimal",
     displayName: "Minimal Runtime",
-    description:
-      "Stripped-down Elsa Server for embedded, edge or constrained environments.",
+    description: "Stripped-down Elsa Server for embedded, edge or constrained environments.",
     versions: ["3.8.0"],
     elsaVersion: "3.8.0",
     capabilities: ["sqlite-persistence", "in-memory-runtime", "identity-jwt"],
@@ -149,17 +132,10 @@ export const runtimeImages: RuntimeImage[] = [
   {
     id: "elsa-developer",
     displayName: "Developer Runtime",
-    description:
-      "Dev-friendly image with hot reload, sample workflows and verbose logging.",
+    description: "Dev-friendly image with hot reload, sample workflows and verbose logging.",
     versions: ["3.8.0-dev"],
     elsaVersion: "3.8.0",
-    capabilities: [
-      "sqlite-persistence",
-      "in-memory-runtime",
-      "scheduling-quartz",
-      "identity-jwt",
-      "open-telemetry",
-    ],
+    capabilities: ["sqlite-persistence", "in-memory-runtime", "scheduling-quartz", "identity-jwt", "open-telemetry"],
     recommendedCapabilities: ["sqlite-persistence", "open-telemetry"],
     licenseTier: "OSS",
     stability: "Preview",
