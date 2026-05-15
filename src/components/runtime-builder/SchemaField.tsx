@@ -12,8 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import type { SettingSchema } from "@/lib/runtime-builder/types";
-import { envVarFromHint } from "@/lib/runtime-builder/catalog-utils";
+import { envVarFromHint, type SettingSchema } from "@/lib/runtime-builder/types-v2";
 
 interface Props {
   setting: SettingSchema;
