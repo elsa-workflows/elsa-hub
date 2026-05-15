@@ -475,7 +475,7 @@ Deno.serve(async (req) => {
       model,
       system: systemWithRoute,
       tools,
-      stopWhen: stepCountIs(50),
+      stopWhen: stepCountIs(userId ? 50 : 8),
       messages: convertToModelMessages(body.messages),
       abortSignal: req.signal,
     });
