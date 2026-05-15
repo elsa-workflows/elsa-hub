@@ -13,7 +13,8 @@ import {
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { DockerImageCard } from "@/components/docker-images";
 import { dockerImages } from "@/data/dockerImages";
-import { ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Boxes, ExternalLink } from "lucide-react";
 
 const roadmap = [
   "Observability (structured logs, console logs, OpenTelemetry)",
@@ -91,6 +92,25 @@ export default function DockerImages() {
             {dockerImages.map((img) => (
               <DockerImageCard key={img.slug} image={img} />
             ))}
+          </div>
+
+          {/* Runtime Builder CTA */}
+          <div className="mt-10 rounded-xl border border-primary/20 bg-primary/5 p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-5 md:gap-6">
+            <div className="h-12 w-12 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <Boxes className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-1">Not sure which image you need?</h3>
+              <p className="text-sm text-muted-foreground">
+                Compose your runtime visually — pick an image, enable capabilities, and preview a complete Docker deployment bundle.
+              </p>
+            </div>
+            <Button asChild className="gap-2 shrink-0">
+              <Link to="/elsa-plus/runtime-builder">
+                Open Runtime Builder
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

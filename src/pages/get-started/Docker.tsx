@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { GuideBreadcrumb, PrerequisitesBox, DockerSection } from "@/components/get-started";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowRight, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle, Boxes } from "lucide-react";
 
 const dockerOptions = [
   {
@@ -129,6 +129,29 @@ export default function Docker() {
             {dockerOptions.map((option) => (
               <DockerSection key={option.title} {...option} />
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Runtime Builder tip */}
+      <section className="py-8">
+        <div className="container max-w-4xl">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-5">
+            <div className="h-11 w-11 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <Boxes className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold mb-1">Prefer a guided setup?</h3>
+              <p className="text-sm text-muted-foreground">
+                Try the Runtime Builder to compose an Elsa runtime visually and generate a tailored docker-compose bundle.
+              </p>
+            </div>
+            <Button asChild variant="outline" className="gap-2 shrink-0">
+              <Link to="/elsa-plus/runtime-builder">
+                Open Runtime Builder
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
