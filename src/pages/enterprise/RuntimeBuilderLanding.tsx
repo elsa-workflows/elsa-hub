@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Boxes,
   Cpu,
@@ -12,6 +11,8 @@ import {
   Sparkles,
   Wand2,
 } from "lucide-react";
+import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
+import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
 
 const FEATURES = [
   {
@@ -51,27 +52,27 @@ export default function RuntimeBuilderLanding() {
     <Layout>
       <Seo
         path="/elsa-plus/runtime-builder"
-        title="Elsa Runtime Builder — compose your Docker deployment"
-        description="Visually compose a production-ready Elsa runtime: pick an image, enable capabilities, configure features, validate compatibility, preview the deployment bundle."
+        title="Elsa Runtime Builder (Preview) — compose your Docker deployment"
+        description="An early concept of the Elsa Runtime Builder: visually compose a runtime, enable capabilities, and preview a deployment bundle. Public preview running on sample catalog data."
       />
 
+      <section className="container mx-auto px-4 pt-6">
+        <PreviewBanner />
+      </section>
+
       <section className="border-b border-border/50">
-        <div className="container mx-auto px-4 py-20">
+        <div className="container mx-auto px-4 py-16">
           <div className="mx-auto max-w-3xl text-center">
-            <Badge
-              variant="outline"
-              className="mb-5 border-primary/40 bg-primary/5 text-primary"
-            >
-              <Sparkles className="mr-1.5 h-3 w-3" /> Public preview
-            </Badge>
+            <PreviewBadge className="mb-5" label="Public preview · Concept" />
             <h1 className="font-display text-4xl font-semibold tracking-tight md:text-6xl">
               Compose your Elsa runtime
               <br />
               <span className="text-primary">visually.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-base text-muted-foreground md:text-lg">
-              Pick a Docker image, toggle the capabilities you need, configure
-              the details, and preview a deployment bundle ready for{" "}
+              An early look at how teams will compose Elsa runtimes. Pick a
+              Docker image, toggle capabilities, configure the details, and
+              preview a deployment bundle ready for{" "}
               <code className="font-mono text-foreground/80">docker compose up</code>.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -87,6 +88,34 @@ export default function RuntimeBuilderLanding() {
             <p className="mt-4 text-xs text-muted-foreground">
               No sign-in required. Your build auto-saves to this browser.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* What's real today vs what's coming */}
+      <section className="container mx-auto px-4 pt-12">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-border/60 bg-card/40 p-6 backdrop-blur-xl">
+            <h3 className="font-display text-base font-semibold">
+              What you can do today
+            </h3>
+            <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+              <li>• Walk through the full 5-step composer flow</li>
+              <li>• Toggle capabilities and see compatibility validation</li>
+              <li>• Preview every file in the generated bundle</li>
+              <li>• Export and re-import your build configuration as JSON</li>
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-card/40 p-6 backdrop-blur-xl">
+            <h3 className="font-display text-base font-semibold">
+              What's coming next
+            </h3>
+            <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
+              <li>• Catalog backed by real, versioned Docker images</li>
+              <li>• Single-click <code className="font-mono">deployment.zip</code> download</li>
+              <li>• Saved builds for teams and shareable links</li>
+              <li>• Direct push to your registry of choice</li>
+            </ul>
           </div>
         </div>
       </section>
@@ -114,11 +143,11 @@ export default function RuntimeBuilderLanding() {
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-10">
           <div>
             <h2 className="font-display text-xl font-semibold">
-              Ready to assemble your runtime?
+              Try the concept
             </h2>
             <p className="text-sm text-muted-foreground">
-              The composer is live in public preview. Saved builds for teams
-              are coming next.
+              The composer is a public preview running on sample data. Real
+              bundle generation and saved builds ship next.
             </p>
           </div>
           <Button asChild size="lg">

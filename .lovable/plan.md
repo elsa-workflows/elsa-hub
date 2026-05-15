@@ -1,49 +1,83 @@
-# Promote the Runtime Builder
+## Goal
 
-Add discoverable entry points to `/elsa-plus/runtime-builder` across the site so users naturally find it from navigation, related product pages, and conversion moments.
+Keep all existing entry points to the Runtime Builder, but make it unmistakable that it is a **proof-of-concept preview** running on sample data — so visitors understand the direction without expecting a working bundle download.
 
-## 1. Primary navigation (`src/components/layout/Navigation.tsx`)
+## Changes
 
-- Keep top-level items unchanged (Home / Get Started / Elsa+ / Resources) to avoid bloat.
-- Add a small **"Runtime Builder"** pill/button next to the Docs/DeepWiki/GitHub cluster on desktop, with a `Sparkles` or `Boxes` icon and a subtle "New" badge. Routes to `/elsa-plus/runtime-builder`.
-- In the mobile sheet, add a matching link with the same badge below the main nav items.
+### 1. New shared component: `RuntimeBuilderPreviewBanner`
+`src/components/runtime-builder/PreviewBanner.tsx`
 
-## 2. Elsa+ hub (`src/pages/ElsaPlus.tsx`)
+A dismissible (session-only) callout used at the top of both the landing page and the composer. Uses existing `Alert` + `Sparkles`/`FlaskConical` icon, Deep Noir tokens.
 
-- Promote Runtime Builder into the **Runtime & Operations** section as a first-class card (alongside Production Docker Images), with a `Boxes`/`Wand2` icon and a "New" badge. Description: visually compose a production-ready Elsa runtime and download a deployment bundle.
+Copy (single source of truth):
+> **Preview — Concept build.** The Runtime Builder is an early prototype showcasing where Elsa+ is heading. The image catalog, capabilities, and generated bundle are illustrative samples — not yet wired to real registries. Explore the flow, then [tell us what you'd want it to produce](mailto:hello@…) (or link to existing feedback channel).
 
-## 3. Docker Images list (`src/pages/enterprise/DockerImages.tsx`)
+### 2. "Preview" badge everywhere the builder is surfaced
 
-- Add a banner/CTA strip above or below the image grid: "Not sure which image you need? Compose your runtime visually." → button to `/elsa-plus/runtime-builder`.
+Replace the current "New" badge with a **"Preview"** badge (amber/secondary variant, not primary) in:
+- `src/components/layout/Footer.tsx` — Elsa+ column entry
+- `src/pages/ElsaPlus.tsx` — Runtime Builder card in `runtimeAndOperations`
+- `src/pages/Home.tsx` — Runtime Builder CTA
+- `src/pages/enterprise/DockerImages.tsx` — top CTA + section
+- `src/pages/enterprise/DockerImageDetail.tsx` — "Compose a runtime" CTA
+- `src/pages/get-started/Docker.tsx` — tip box
 
-## 4. Docker Image detail (`src/pages/enterprise/DockerImageDetail.tsx`)
+A small reusable `<PreviewBadge />` keeps wording consistent.
 
-- Add a contextual callout near the top (after hero, before tabs) for Elsa Pro Server / Elsa Pro Combined: "Use this image in the Runtime Builder to wire it up with PostgreSQL, RabbitMQ, Redis and download a complete deployment bundle." Deep-links to `/elsa-plus/runtime-builder/new?image={slug}` (composer already reads imageId from store; we'll accept the query param as a hint and pre-select if recognized — small additive change in `RuntimeBuilderComposer.tsx`).
+### 3. Landing page (`RuntimeBuilderLanding.tsx`)
+- Mount `<PreviewBanner />` at the very top of the page content.
+- Update hero subhead to acknowledge the preview state ("An early look at how teams will compose Elsa runtimes…").
+- Add a small "What's real today / What's coming" two-column block under the hero so visitors understand scope without digging.
 
-## 5. Get Started → Docker (`src/pages/get-started/Docker.tsx`)
+### 4. Composer page (`RuntimeBuilderComposer.tsx`)
+- Mount `<PreviewBanner />` directly under the sticky topbar, dismissible per session.
+- Add a `Preview` chip inside the topbar next to the title.
 
-- Add a tip card: "Prefer a guided setup? Try the Runtime Builder to generate a tailored docker-compose bundle."
+### 5. Disable real "Export" / "Download" actions
+The bundle generator currently produces files only locally, but the UI implies a real artifact. Update:
+- `StepBundle.tsx` — keep file previews and "Copy to clipboard" working. Replace any "Download bundle" / "Download all" primary buttons with a disabled button labelled **"Download — coming soon"** plus a one-line explanation: *"Bundle generation will be enabled once the catalog is backed by real images."*
+- `ExportDialog.tsx` — keep JSON export of the **builder state** (useful for feedback), but add a banner inside the dialog clarifying the exported config is a preview schema and may change.
+- `ImportDialog.tsx` — unchanged, but add the same "preview schema" note.
 
-## 6. Home page (`src/pages/Home.tsx`)
+### 6. SEO / discoverability
+- `RuntimeBuilderLanding.tsx` `<Seo>`: append " (Preview)" to the title and update the description to mention "early concept".
+- `RuntimeBuilderComposer.tsx` `<Seo>`: same treatment, plus `noindex` on the composer route (the landing page can stay indexed so the concept itself is shareable).
+- `scripts/generate-sitemap.ts` / `public/sitemap.xml`: keep `/runtime-builder` (landing) in the sitemap, **remove** `/runtime-builder/new` (composer) since it's a stateful tool preview.
 
-- Add a compact secondary CTA in an existing section (not a new hero band) pointing to the Runtime Builder, framed as "Compose your Elsa runtime visually." Keep it understated to not compete with the primary hero.
+### 7. Memory
+Add a project memory entry under `mem://features/elsa-plus/runtime-builder-preview` documenting:
+- Status: public preview, sample data, no real bundle download.
+- Required signals: `<PreviewBanner />`, "Preview" badge, disabled download CTAs.
+- Why: protect brand expectations until catalog and generator are real.
 
-## 7. Footer (`src/components/layout/Footer.tsx`)
+Then update `mem://index.md` to reference it.
 
-- Add a "Runtime Builder" link under the Elsa+ / Product column.
+## Out of scope (deliberate)
 
-## 8. Sitemap (`scripts/generate-sitemap.ts` + `public/sitemap.xml`)
+- No backend wiring of the catalog (still `runtimeImages.ts`).
+- No real archive/zip download.
+- No auth gating — the preview stays fully public.
+- No changes to validation, schema, or composer step logic.
 
-- Confirm `/elsa-plus/runtime-builder` is listed (landing only — `/new` is a tool view). Add if missing and regenerate.
+## Files touched
 
-## Out of scope
+New:
+- `src/components/runtime-builder/PreviewBanner.tsx`
+- `src/components/runtime-builder/PreviewBadge.tsx`
+- `mem://features/elsa-plus/runtime-builder-preview`
 
-- No changes to the builder's internal UX or data model.
-- No new "New" badge component if one already exists — reuse `Badge` from shadcn with a subtle accent variant.
-- No backend/auth changes.
-
-## Technical notes
-
-- "New" badge: small `Badge` with `variant="secondary"` plus accent text color, e.g. `bg-primary/10 text-primary`.
-- Composer pre-select from query: in `RuntimeBuilderComposer.tsx` read `?image=` once on mount; if it matches a catalog id and store has no image yet, set it.
-- All new copy follows project tone: confident, senior, no marketing fluff.
+Edited:
+- `src/pages/enterprise/RuntimeBuilderLanding.tsx`
+- `src/pages/enterprise/RuntimeBuilderComposer.tsx`
+- `src/components/runtime-builder/StepBundle.tsx`
+- `src/components/runtime-builder/ExportDialog.tsx`
+- `src/components/runtime-builder/ImportDialog.tsx`
+- `src/components/layout/Footer.tsx`
+- `src/pages/ElsaPlus.tsx`
+- `src/pages/Home.tsx`
+- `src/pages/enterprise/DockerImages.tsx`
+- `src/pages/enterprise/DockerImageDetail.tsx`
+- `src/pages/get-started/Docker.tsx`
+- `scripts/generate-sitemap.ts`
+- `public/sitemap.xml`
+- `mem://index.md`

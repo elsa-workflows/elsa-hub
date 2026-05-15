@@ -41,7 +41,7 @@ const runtimeAndOperations = [
       "Visually compose an Elsa runtime — pick an image, enable capabilities, configure settings, and preview a complete Docker deployment bundle.",
     icon: Boxes,
     href: "/elsa-plus/runtime-builder",
-    badge: "New",
+    badge: "Preview",
   },
   {
     title: "Production Docker Images",

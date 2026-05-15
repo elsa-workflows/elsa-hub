@@ -100,9 +100,14 @@ export default function DockerImages() {
               <Boxes className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold mb-1">Not sure which image you need?</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-semibold">Not sure which image you need?</h3>
+                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                  Preview
+                </span>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Compose your runtime visually — pick an image, enable capabilities, and preview a complete Docker deployment bundle.
+                Compose your runtime visually — pick an image, enable capabilities, and preview a complete Docker deployment bundle. Concept build on sample data.
               </p>
             </div>
             <Button asChild className="gap-2 shrink-0">

@@ -113,9 +113,14 @@ networks:
               <Boxes className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">Compose this image in the Runtime Builder</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold">Compose this image in the Runtime Builder</h3>
+                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                  Preview
+                </span>
+              </div>
               <p className="text-sm text-muted-foreground">
-                Wire up PostgreSQL, RabbitMQ, Redis and other capabilities visually, then preview a complete deployment bundle.
+                Wire up PostgreSQL, RabbitMQ, Redis and other capabilities visually, then preview a deployment bundle. Public preview running on sample data.
               </p>
             </div>
             <Button asChild className="gap-2 shrink-0">

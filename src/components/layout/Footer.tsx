@@ -15,7 +15,8 @@ const footerLinks = {
     to: "/elsa-plus"
   }, {
     label: "Runtime Builder",
-    to: "/elsa-plus/runtime-builder"
+    to: "/elsa-plus/runtime-builder",
+    badge: "Preview"
   }, {
     label: "Resources",
     to: "/resources"
@@ -86,8 +87,13 @@ export function Footer() {
             <h4 className="font-semibold mb-4">Product</h4>
             <ul className="space-y-3">
               {footerLinks.product.map(link => <li key={link.to}>
-                  <Link to={link.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link to={link.to} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                     {link.label}
+                    {"badge" in link && link.badge ? (
+                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                        {link.badge}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>)}
             </ul>

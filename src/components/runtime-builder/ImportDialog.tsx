@@ -59,6 +59,12 @@ export function ImportDialog({ open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
 
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">Preview schema.</span>{" "}
+          Configs follow <code className="font-mono">elsa-runtime-builder/v1</code>{" "}
+          and may need re-export once the catalog leaves preview.
+        </div>
+
         <div className="space-y-3">
           <div>
             <input
