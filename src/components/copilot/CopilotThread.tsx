@@ -156,16 +156,7 @@ export function CopilotThread({ threadId, initialMessages }: CopilotThreadProps)
             autoFocus
           />
           <PromptInputFooter className="justify-end">
-            <PromptInputSubmit
-              status={status}
-              disabled={isStreaming ? false : undefined}
-              onStop={stop}
-              size="icon-sm"
-            >
-              {status === "streaming" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : undefined}
-            </PromptInputSubmit>
+            <PromptInputSubmit status={status} onStop={stop} />
           </PromptInputFooter>
         </PromptInput>
       </div>
