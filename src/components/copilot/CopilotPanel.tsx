@@ -152,6 +152,7 @@ export function CopilotPanel() {
               key={threadId}
               threadId={threadId}
               initialMessages={initialMessages ?? []}
+              onFinish={handleFinish}
             />
           )
         ) : null}
