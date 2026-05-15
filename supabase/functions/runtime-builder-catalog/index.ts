@@ -2,7 +2,12 @@
 // Keeps the X-Api-Key strictly server-side. Browser must call this function via
 // supabase.functions.invoke() — never call the upstream URL directly.
 
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+};
 
 const DEFAULT_BASE_URL = "https://api-k35qdj734hds2.azurewebsites.net";
 const TIMEOUT_MS = 30_000;
