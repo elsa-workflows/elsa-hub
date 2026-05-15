@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.tidycal-proxy]
 verify_jwt = false
+
+[functions.runtime-builder-catalog]
+verify_jwt = false

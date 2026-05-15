@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Highlight, themes } from "prism-react-renderer";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import { Check, Copy, Download } from "lucide-react";
-import { CATALOG_VERSION } from "@/data/runtime-builder";
 
 interface Props {
   open: boolean;
@@ -26,8 +25,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
     () =>
       JSON.stringify(
         {
-          $schema: "elsa-runtime-builder/v1",
-          catalogVersion: CATALOG_VERSION,
+          $schema: "elsa-runtime-builder/v2",
           exportedAt: new Date().toISOString(),
           ...state,
         },
@@ -67,8 +65,7 @@ export function ExportDialog({ open, onOpenChange }: Props) {
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Preview schema.</span>{" "}
           The exported config follows{" "}
-          <code className="font-mono">elsa-runtime-builder/v1</code> and may
-          change as the catalog moves out of preview.
+          <code className="font-mono">elsa-runtime-builder/v2</code>.
         </div>
 
         <div className="max-h-[55vh] overflow-auto rounded-lg border border-border/60 bg-background/60">

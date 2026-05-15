@@ -17,10 +17,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
+import { useCatalogQuery } from "@/lib/runtime-builder/catalog-client";
 import { Stepper } from "@/components/runtime-builder/Stepper";
 import { BuildSummary } from "@/components/runtime-builder/BuildSummary";
-import { StepImage } from "@/components/runtime-builder/StepImage";
-import { StepCapabilities } from "@/components/runtime-builder/StepCapabilities";
+import { StepSources } from "@/components/runtime-builder/StepSources";
+import { StepPackages } from "@/components/runtime-builder/StepPackages";
+import { StepFeatures } from "@/components/runtime-builder/StepFeatures";
+import { StepInfrastructure } from "@/components/runtime-builder/StepInfrastructure";
 import { StepConfigure } from "@/components/runtime-builder/StepConfigure";
 import { StepValidate } from "@/components/runtime-builder/StepValidate";
 import { StepBundle } from "@/components/runtime-builder/StepBundle";
@@ -30,36 +33,44 @@ import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
 import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
 
 const STEPS = [
-  { id: 1, label: "Runtime image", short: "Image" },
-  { id: 2, label: "Capabilities", short: "Capabilities" },
-  { id: 3, label: "Configure", short: "Configure" },
-  { id: 4, label: "Validate", short: "Validate" },
-  { id: 5, label: "Bundle", short: "Bundle" },
+  { id: 1, label: "Sources", short: "Sources" },
+  { id: 2, label: "Packages", short: "Packages" },
+  { id: 3, label: "Features", short: "Features" },
+  { id: 4, label: "Infrastructure", short: "Infra" },
+  { id: 5, label: "Configure", short: "Configure" },
+  { id: 6, label: "Validate", short: "Validate" },
+  { id: 7, label: "Bundle", short: "Bundle" },
 ];
+const MAX_STEP = STEPS.length;
 
 export default function RuntimeBuilderComposer() {
   const [params, setParams] = useSearchParams();
-  const { state, catalog, setImage, setAdvancedMode, reset } = useRuntimeBuilder();
+  const { state, setAdvancedMode, reset, togglePackage } = useRuntimeBuilder();
+  const { data: catalog } = useCatalogQuery();
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
-  const step = clamp(Number(params.get("step") ?? "1"), 1, 5);
+  const step = clamp(Number(params.get("step") ?? "1"), 1, MAX_STEP);
 
-  // Pre-select an image from `?image=` if recognized and none chosen yet.
+  // Pre-select a package from `?package=<id>` if recognized and none chosen.
   useEffect(() => {
-    const requested = params.get("image");
-    if (!requested || state.imageId) return;
-    if (catalog.images.some((i) => i.id === requested)) {
-      setImage(requested);
-    }
-  }, [params, state.imageId, catalog.images, setImage]);
+    const requested = params.get("package");
+    if (!requested || !catalog) return;
+    if (state.selectedPackages.some((p) => p.packageId === requested)) return;
+    const pkg = catalog.packages.find((p) => p.id === requested);
+    if (pkg) togglePackage(pkg.id, pkg.version);
+  }, [params, catalog, state.selectedPackages, togglePackage]);
 
-  const furthestUnlocked = state.imageId
-    ? state.capabilityIds.length > 0
-      ? 5
-      : 2
-    : 1;
+  const hasPackages = state.selectedPackages.length > 0;
+  const hasFeatures = state.selectedPackages.some(
+    (p) => p.selectedFeatures.length > 0,
+  );
+  const furthestUnlocked = !hasPackages
+    ? 2
+    : !hasFeatures
+      ? 3
+      : MAX_STEP;
 
   function goTo(id: number) {
     setParams({ step: String(id) }, { replace: false });
@@ -76,7 +87,7 @@ export default function RuntimeBuilderComposer() {
       <Seo
         path="/elsa-plus/runtime-builder/new"
         title="Elsa Runtime Builder (Preview) — compose & deploy"
-        description="An early concept of the Elsa Runtime Builder composer. Visually compose a runtime, validate compatibility, and preview a Docker deployment bundle. Sample catalog data."
+        description="An early concept of the Elsa Runtime Builder composer. Pick packages and infrastructure, validate compatibility, and preview a Docker deployment bundle."
         noIndex
       />
 
@@ -142,11 +153,13 @@ export default function RuntimeBuilderComposer() {
       <section className="container mx-auto px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
-            {step === 1 && <StepImage />}
-            {step === 2 && <StepCapabilities />}
-            {step === 3 && <StepConfigure />}
-            {step === 4 && <StepValidate />}
-            {step === 5 && <StepBundle />}
+            {step === 1 && <StepSources />}
+            {step === 2 && <StepPackages />}
+            {step === 3 && <StepFeatures />}
+            {step === 4 && <StepInfrastructure />}
+            {step === 5 && <StepConfigure />}
+            {step === 6 && <StepValidate />}
+            {step === 7 && <StepBundle />}
 
             <div className="mt-10 flex items-center justify-between border-t border-border/40 pt-5">
               <Button
@@ -157,7 +170,7 @@ export default function RuntimeBuilderComposer() {
                 <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
               </Button>
               <Button
-                disabled={step === 5 || step >= furthestUnlocked}
+                disabled={step === MAX_STEP || step >= furthestUnlocked}
                 onClick={() => goTo(step + 1)}
               >
                 Continue <ArrowRight className="ml-1.5 h-4 w-4" />
@@ -182,8 +195,8 @@ export default function RuntimeBuilderComposer() {
           <AlertDialogHeader>
             <AlertDialogTitle>Reset this build?</AlertDialogTitle>
             <AlertDialogDescription>
-              All capabilities and settings will be cleared. This cannot be
-              undone.
+              All packages, features, and infrastructure choices will be
+              cleared. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

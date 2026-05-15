@@ -1,83 +1,258 @@
-## Goal
 
-Keep all existing entry points to the Runtime Builder, but make it unmistakable that it is a **proof-of-concept preview** running on sample data — so visitors understand the direction without expecting a working bundle download.
+# Runtime Builder v2 — Package & Infrastructure Driven
 
-## Changes
+Move the Runtime Builder from a static, image-defined capability picker to a deployment builder driven by **package manifests** and **first-class infrastructure selections**, sourced from the Elsa Package Catalog API.
 
-### 1. New shared component: `RuntimeBuilderPreviewBanner`
-`src/components/runtime-builder/PreviewBanner.tsx`
+Preview framing (banner, badges, `noindex`, disabled real downloads) stays. Existing `v1` localStorage state is migrated, not erased.
 
-A dismissible (session-only) callout used at the top of both the landing page and the composer. Uses existing `Alert` + `Sparkles`/`FlaskConical` icon, Deep Noir tokens.
+---
 
-Copy (single source of truth):
-> **Preview — Concept build.** The Runtime Builder is an early prototype showcasing where Elsa+ is heading. The image catalog, capabilities, and generated bundle are illustrative samples — not yet wired to real registries. Explore the flow, then [tell us what you'd want it to produce](mailto:hello@…) (or link to existing feedback channel).
+## 1. API contract (verified)
 
-### 2. "Preview" badge everywhere the builder is surfaced
+Base URL: `https://api-k35qdj734hds2.azurewebsites.net`
+Auth: `X-Api-Key: <ELSA_PACKAGE_CATALOG_API_KEY>` (already saved as a runtime secret; **never** shipped to the browser).
 
-Replace the current "New" badge with a **"Preview"** badge (amber/secondary variant, not primary) in:
-- `src/components/layout/Footer.tsx` — Elsa+ column entry
-- `src/pages/ElsaPlus.tsx` — Runtime Builder card in `runtimeAndOperations`
-- `src/pages/Home.tsx` — Runtime Builder CTA
-- `src/pages/enterprise/DockerImages.tsx` — top CTA + section
-- `src/pages/enterprise/DockerImageDetail.tsx` — "Compose a runtime" CTA
-- `src/pages/get-started/Docker.tsx` — tip box
+Confirmed endpoints:
 
-A small reusable `<PreviewBadge />` keeps wording consistent.
+- `GET /api/builder/catalog` →
+  ```json
+  {
+    "packages": [ /* manifest entries — currently empty, schema to be inferred */ ],
+    "infrastructureProviders": [
+      { "id": "postgres-compose", "displayName": "PostgreSQL",
+        "kind": "database", "strategy": "compose-sidecar",
+        "provider": "postgres",
+        "capabilities": ["relational","transactions"],
+        "outputs": ["connectionString"] },
+      ...
+    ]
+  }
+  ```
+  Kinds present: `database`, `message-broker`, `cache`, `blob-storage`, `smtp`.
+  Strategies present: `compose-sidecar`, `external-service` (we also model `managed` and `none` client-side for future use).
 
-### 3. Landing page (`RuntimeBuilderLanding.tsx`)
-- Mount `<PreviewBanner />` at the very top of the page content.
-- Update hero subhead to acknowledge the preview state ("An early look at how teams will compose Elsa runtimes…").
-- Add a small "What's real today / What's coming" two-column block under the hero so visitors understand scope without digging.
+- `POST /api/builder/resolve`
+  Body: `{ "packages": [...], "infrastructure": [...] }`
+  → `{ "compatible": boolean, "findings": Array<{ level, code, message, scope? }> }`
 
-### 4. Composer page (`RuntimeBuilderComposer.tsx`)
-- Mount `<PreviewBanner />` directly under the sticky topbar, dismissible per session.
-- Add a `Preview` chip inside the topbar next to the title.
+- `GET /api/packages` → flat package list (`[]` today).
+- `GET /health` → `{ "status": "ok" }`.
 
-### 5. Disable real "Export" / "Download" actions
-The bundle generator currently produces files only locally, but the UI implies a real artifact. Update:
-- `StepBundle.tsx` — keep file previews and "Copy to clipboard" working. Replace any "Download bundle" / "Download all" primary buttons with a disabled button labelled **"Download — coming soon"** plus a one-line explanation: *"Bundle generation will be enabled once the catalog is backed by real images."*
-- `ExportDialog.tsx` — keep JSON export of the **builder state** (useful for feedback), but add a banner inside the dialog clarifying the exported config is a preview schema and may change.
-- `ImportDialog.tsx` — unchanged, but add the same "preview schema" note.
+---
 
-### 6. SEO / discoverability
-- `RuntimeBuilderLanding.tsx` `<Seo>`: append " (Preview)" to the title and update the description to mention "early concept".
-- `RuntimeBuilderComposer.tsx` `<Seo>`: same treatment, plus `noindex` on the composer route (the landing page can stay indexed so the concept itself is shareable).
-- `scripts/generate-sitemap.ts` / `public/sitemap.xml`: keep `/runtime-builder` (landing) in the sitemap, **remove** `/runtime-builder/new` (composer) since it's a stateful tool preview.
+## 2. Backend — catalog proxy edge function
 
-### 7. Memory
-Add a project memory entry under `mem://features/elsa-plus/runtime-builder-preview` documenting:
-- Status: public preview, sample data, no real bundle download.
-- Required signals: `<PreviewBanner />`, "Preview" badge, disabled download CTAs.
-- Why: protect brand expectations until catalog and generator are real.
+Add `supabase/functions/runtime-builder-catalog/index.ts`:
 
-Then update `mem://index.md` to reference it.
+- Reads `ELSA_PACKAGE_CATALOG_API_BASE_URL` (default to the verified URL) and `ELSA_PACKAGE_CATALOG_API_KEY` from `Deno.env`.
+- Routes:
+  - `GET  ?action=catalog` → proxies `GET /api/builder/catalog`
+  - `POST ?action=resolve` → proxies `POST /api/builder/resolve` with validated body (Zod).
+- Standard CORS, JSON only, `verify_jwt = false` (catalog is public, but the API key stays server-side).
+- 30s timeout, 5s in-memory cache for `catalog` keyed on the API base URL to avoid hammering Azure.
+- Frontend calls it via `supabase.functions.invoke("runtime-builder-catalog", { body: { action, payload } })`.
 
-## Out of scope (deliberate)
+No new tables, no migrations.
 
-- No backend wiring of the catalog (still `runtimeImages.ts`).
-- No real archive/zip download.
-- No auth gating — the preview stays fully public.
-- No changes to validation, schema, or composer step logic.
+---
 
-## Files touched
+## 3. New domain types (`src/lib/runtime-builder/types-v2.ts`)
 
-New:
-- `src/components/runtime-builder/PreviewBanner.tsx`
-- `src/components/runtime-builder/PreviewBadge.tsx`
+```ts
+type Strategy = "compose-sidecar" | "external-service" | "managed" | "none";
+type InfraKind = "database" | "message-broker" | "cache"
+               | "blob-storage" | "smtp" | "search" | "secrets";
+
+interface PackageSource {
+  id: string;             // uuid
+  name: string;           // "Elsa OSS", "Acme Internal"
+  url: string;            // NuGet v3 index
+  protocol: "nuget-v3";
+  authMode: "none" | "apiKey";
+  apiKeySecretName?: string;
+  enabled: boolean;
+}
+
+interface PackageFeature {
+  id: string;             // "elsa.persistence.ef-core.postgres"
+  displayName: string;
+  description?: string;
+  requires?: { infrastructure?: { kind: InfraKind; capabilities?: string[] }[] };
+  settings: SettingSchema[];   // reused from v1
+}
+
+interface PackageManifest {
+  id: string;             // "Elsa.Persistence.EFCore.PostgreSql"
+  displayName: string;
+  description?: string;
+  version: string;        // selected version (from manifest "versions[]")
+  versions: string[];
+  licenseTier: "OSS" | "Professional" | "Enterprise";
+  stability: "Stable" | "Preview" | "Experimental";
+  category: string;       // "Persistence", "Messaging", ...
+  features: PackageFeature[];
+  conflictsWith?: string[]; // package ids
+  tags?: string[];
+}
+
+interface InfrastructureProvider {
+  id: string;             // "postgres-compose"
+  displayName: string;
+  kind: InfraKind;
+  strategy: Strategy;
+  provider: string;       // "postgres"
+  capabilities: string[];
+  outputs: string[];      // "connectionString", "host", "port", ...
+  settings?: SettingSchema[];
+}
+
+interface InfrastructureSelection {
+  kind: InfraKind;            // logical requirement key
+  providerId: string | null;  // chosen provider, or null when strategy === "none"
+  strategy: Strategy;
+  settings: Record<string, unknown>;
+}
+
+interface SelectedPackage {
+  packageId: string;
+  version: string;
+  selectedFeatures: string[]; // feature ids
+  settings: Record<string, Record<string, unknown>>; // featureId → setting map
+}
+
+interface BuilderStateV2 {
+  schemaVersion: 2;
+  packageSources: PackageSource[];
+  selectedPackages: SelectedPackage[];
+  infrastructureSelections: InfrastructureSelection[];
+  shellProfile?: { id: string; settings?: Record<string, unknown> }; // reserved
+  advancedMode: boolean;
+  meta?: { name?: string; description?: string; createdAt?: string; updatedAt?: string };
+}
+
+interface CatalogV2 {
+  packages: PackageManifest[];
+  infrastructureProviders: InfrastructureProvider[];
+}
+```
+
+Old `v1` types stay in `types.ts`; v2 lives in `types-v2.ts` so the migration code can reference both.
+
+---
+
+## 4. Catalog client + resolve hook
+
+`src/lib/runtime-builder/catalog-client.ts`:
+- `fetchCatalog(): Promise<CatalogV2>` — calls the edge function, normalizes provider records, dedupes by id.
+- `resolveBuild(req): Promise<{ compatible, findings }>` — wraps `POST ?action=resolve`.
+- `useCatalogQuery()` and `useResolveQuery(state)` React Query hooks (5 min stale, debounced resolve).
+
+`src/lib/runtime-builder/requirements.ts`:
+- `derivePackageCapabilities(selectedPackages, catalog)` → flat list of capability ids contributed by selected features (replaces image-driven `capabilities`).
+- `deriveInfrastructureRequirements(selectedPackages, catalog)` → `{ kind, capabilities[], sources: feature[] }[]`.
+- `autoFillInfrastructure(state, catalog)` → adds default `compose-sidecar` selection per missing required kind.
+
+---
+
+## 5. Local validation + migration
+
+Rewrite `validate.ts` against v2:
+- `errors`: missing required infra for a selected feature; missing required settings; `conflictsWith` violations.
+- `warnings`: `external-service` strategy without a connection string set; preview-stability features.
+- Then merges authoritative `findings` from the API resolve call (API findings always win on overlap).
+
+`store.ts` (zustand, persisted):
+- `STORAGE_KEY` stays `elsa-runtime-builder/v1`, but the persisted blob now carries `schemaVersion: 2`.
+- `migrate()` reads any v1 blob, maps `imageId + capabilityIds + settings` → seeded `selectedPackages` (best-effort using a static `v1 → package` map kept in `migration-map.ts`) and seeds default infra selections. If no map entry, those caps are dropped and a one-time toast tells the user the build was reset to v2.
+- New mutators: `addPackageSource`, `togglePackage`, `setPackageVersion`, `toggleFeature`, `setFeatureSetting`, `setInfrastructure(kind, providerId, strategy)`, `setInfrastructureSetting`, plus retained `setMeta`, `importState`, `reset`.
+
+---
+
+## 6. Wizard restructure (7 steps)
+
+`src/pages/enterprise/RuntimeBuilderComposer.tsx` becomes:
+
+```text
+1. Sources       → manage NuGet feeds (add/edit/disable; default OSS feed seeded)
+2. Packages      → browse + select packages from CatalogV2.packages
+3. Features      → per selected package, pick features and required settings
+4. Infrastructure→ for each derived requirement, pick provider + strategy
+5. Configure     → cross-cutting settings (env, host, telemetry)
+6. Validate      → local + API resolve findings, blocks on errors
+7. Bundle        → preview generated files, copy-to-clipboard only
+```
+
+New components in `src/components/runtime-builder/`:
+- `StepSources.tsx`
+- `StepPackages.tsx` (replaces `StepImage`)
+- `StepFeatures.tsx` (replaces `StepCapabilities`)
+- `StepInfrastructure.tsx`
+- `PackageCard.tsx`, `FeatureRow.tsx`, `InfrastructurePicker.tsx`, `StrategyBadge.tsx`
+
+Keep, refactored to v2 shape: `StepConfigure`, `StepValidate`, `StepBundle`, `BuildSummary`, `Stepper`, `SchemaField`, `Import/ExportDialog`, `PreviewBanner`, `PreviewBadge`.
+
+Delete after migration: `StepImage.tsx`, `StepCapabilities.tsx`, `ImagePickerCard.tsx`.
+
+---
+
+## 7. Provider-driven generator
+
+Rewrite `src/lib/runtime-builder/generate.ts`:
+
+- Output unchanged in shape (`GeneratedFile[]`), new contents:
+  - `appsettings.Generated.json` — merges feature settings.
+  - `Program.Generated.cs` — emits one `services.AddXxx(...)` per selected package/feature using a per-package emitter registry (`generators/<package-id>.ts`, falls back to a generic comment block).
+  - `docker-compose.yml` — composed from `infrastructureSelections` where `strategy === "compose-sidecar"`. Each provider has a `composeFragment(settings)` helper in `generators/infra/<provider>.ts` (postgres, sqlserver, rabbitmq, redis, azurite, mailpit). `external-service` and `managed` strategies contribute only env vars; `none` contributes nothing.
+  - `.env.example` — built from provider `outputs[]` and feature `envHint`s.
+  - `README.md` — summarizes selected packages, infra strategies, and next steps.
+
+Generation is **blocked** when local validation or API resolve returns errors.
+
+---
+
+## 8. Preview framing (unchanged)
+
+- `PreviewBanner` and `PreviewBadge` stay mounted on landing/composer/entry points.
+- `Seo noIndex` stays on the composer.
+- Bundle step keeps "Download — coming soon" and copy-only actions.
+- Mem entry `mem://features/elsa-plus/runtime-builder-preview` updated with the v2 architecture note (sources → packages → features → infrastructure → configure → validate → bundle, API-backed).
+
+---
+
+## 9. Out of scope
+
+- No real archive/zip download, no auth on the catalog API call beyond the proxy key, no per-user package source persistence (sources live in local builder state for now), no shell profile UI (type reserved only), no NuGet credential storage, no changes to unrelated pages.
+
+---
+
+## Files
+
+**New**
+- `supabase/functions/runtime-builder-catalog/index.ts`
+- `src/lib/runtime-builder/types-v2.ts`
+- `src/lib/runtime-builder/catalog-client.ts`
+- `src/lib/runtime-builder/requirements.ts`
+- `src/lib/runtime-builder/migration-map.ts`
+- `src/lib/runtime-builder/generators/index.ts` + per-package + per-infra emitters
+- `src/components/runtime-builder/StepSources.tsx`
+- `src/components/runtime-builder/StepPackages.tsx`
+- `src/components/runtime-builder/StepFeatures.tsx`
+- `src/components/runtime-builder/StepInfrastructure.tsx`
+- `src/components/runtime-builder/PackageCard.tsx`
+- `src/components/runtime-builder/FeatureRow.tsx`
+- `src/components/runtime-builder/InfrastructurePicker.tsx`
+- `src/components/runtime-builder/StrategyBadge.tsx`
+
+**Edited**
+- `src/lib/runtime-builder/store.ts` (v2 + migration)
+- `src/lib/runtime-builder/validate.ts` (v2 + merge API findings)
+- `src/lib/runtime-builder/generate.ts` (provider-driven)
+- `src/lib/runtime-builder/types.ts` (kept, marked legacy)
+- `src/pages/enterprise/RuntimeBuilderComposer.tsx` (7-step flow)
+- `src/components/runtime-builder/{Stepper,BuildSummary,StepConfigure,StepValidate,StepBundle,ImportDialog,ExportDialog}.tsx`
 - `mem://features/elsa-plus/runtime-builder-preview`
 
-Edited:
-- `src/pages/enterprise/RuntimeBuilderLanding.tsx`
-- `src/pages/enterprise/RuntimeBuilderComposer.tsx`
-- `src/components/runtime-builder/StepBundle.tsx`
-- `src/components/runtime-builder/ExportDialog.tsx`
-- `src/components/runtime-builder/ImportDialog.tsx`
-- `src/components/layout/Footer.tsx`
-- `src/pages/ElsaPlus.tsx`
-- `src/pages/Home.tsx`
-- `src/pages/enterprise/DockerImages.tsx`
-- `src/pages/enterprise/DockerImageDetail.tsx`
-- `src/pages/get-started/Docker.tsx`
-- `scripts/generate-sitemap.ts`
-- `public/sitemap.xml`
-- `mem://index.md`
+**Removed** (after migration lands)
+- `src/components/runtime-builder/StepImage.tsx`
+- `src/components/runtime-builder/StepCapabilities.tsx`
+- `src/components/runtime-builder/ImagePickerCard.tsx`

@@ -1,31 +1,42 @@
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
-import { findImage } from "@/lib/runtime-builder/catalog-utils";
-import { validateBuild } from "@/lib/runtime-builder/validate";
+import {
+  useCatalogQuery,
+  useResolveQuery,
+} from "@/lib/runtime-builder/catalog-client";
+import { validateBuildV2 } from "@/lib/runtime-builder/validate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   CheckCircle2,
+  Loader2,
   Sparkles,
   XCircle,
 } from "lucide-react";
-import type { ValidationFinding } from "@/lib/runtime-builder/types";
+import type { CatalogV2, ResolveFinding } from "@/lib/runtime-builder/types-v2";
+
+const EMPTY_CATALOG: CatalogV2 = { packages: [], infrastructureProviders: [] };
 
 export function StepValidate() {
-  const { catalog, state } = useRuntimeBuilder();
+  const { state } = useRuntimeBuilder();
   const navigate = useNavigate();
   const [, setSearch] = useSearchParams();
-  const validation = useMemo(() => validateBuild(state, catalog), [state, catalog]);
-  const image = findImage(catalog, state.imageId);
+  const { data: catalog } = useCatalogQuery();
+  const { data: apiResolve, isFetching } = useResolveQuery(state, true);
 
-  function jumpTo(finding: ValidationFinding) {
+  const validation = useMemo(
+    () => validateBuildV2(state, catalog ?? EMPTY_CATALOG, apiResolve),
+    [state, catalog, apiResolve],
+  );
+
+  function jumpTo(finding: ResolveFinding) {
     if (!finding.scope) return;
-    if (finding.scope.kind === "image") setSearch({ step: "1" });
-    else if (finding.scope.kind === "capability") setSearch({ step: "2" });
-    else if (finding.scope.kind === "feature") setSearch({ step: "3" });
+    if (finding.scope.kind === "package") setSearch({ step: "2" });
+    else if (finding.scope.kind === "feature") setSearch({ step: "5" });
+    else if (finding.scope.kind === "infrastructure") setSearch({ step: "4" });
   }
 
   return (
@@ -38,6 +49,11 @@ export function StepValidate() {
           <p className="max-w-2xl text-sm text-muted-foreground">
             Resolve errors before previewing the bundle. Warnings are
             recommendations — they won't block download.
+            {isFetching && (
+              <span className="ml-2 inline-flex items-center gap-1 text-xs">
+                <Loader2 className="h-3 w-3 animate-spin" /> Checking with catalog API…
+              </span>
+            )}
           </p>
         </div>
 
@@ -69,11 +85,10 @@ export function StepValidate() {
               {validation.isValid ? "Ready to ship" : "Action required"}
             </Badge>
           </div>
-          {image && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              {image.displayName} · {state.capabilityIds.length} capabilities
-            </p>
-          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            {state.selectedPackages.length} packages ·{" "}
+            {state.infrastructureSelections.length} infra selections
+          </p>
         </div>
       </div>
 
@@ -103,15 +118,12 @@ export function StepValidate() {
       />
 
       <div className="flex justify-end gap-3">
-        <Button
-          variant="outline"
-          onClick={() => navigate("?step=3")}
-        >
+        <Button variant="outline" onClick={() => navigate("?step=5")}>
           Back to configure
         </Button>
         <Button
           disabled={!validation.isValid}
-          onClick={() => navigate("?step=5")}
+          onClick={() => navigate("?step=7")}
         >
           <Sparkles className="mr-2 h-4 w-4" /> Preview bundle
         </Button>
@@ -131,9 +143,9 @@ function FindingGroup({
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   tone: "destructive" | "warning" | "success";
-  findings: ValidationFinding[];
+  findings: ResolveFinding[];
   emptyText: string;
-  onJump: (finding: ValidationFinding) => void;
+  onJump: (finding: ResolveFinding) => void;
 }) {
   const toneClass =
     tone === "destructive"
@@ -165,7 +177,7 @@ function FindingGroup({
                   {finding.code}
                 </p>
               </div>
-              {finding.scope && (
+              {finding.scope && finding.scope.kind !== "global" && (
                 <Button
                   variant="ghost"
                   size="sm"
