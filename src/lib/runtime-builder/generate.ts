@@ -3,11 +3,9 @@
 import type {
   BuilderStateV2,
   CatalogV2,
-  GeneratedFile,
   InfraKind,
   InfrastructureProvider,
   InfrastructureSelection,
-  PackageManifest,
 } from "./types-v2";
 import type { GeneratedFile as LegacyGeneratedFile } from "./types";
 import { findFeature, findPackage, findProvider } from "./requirements";
