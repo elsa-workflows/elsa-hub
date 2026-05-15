@@ -181,6 +181,24 @@ export type Database = {
           },
         ]
       }
+      copilot_rate_events: {
+        Row: {
+          created_at: string
+          id: number
+          key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          key: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          key?: string
+        }
+        Relationships: []
+      }
       copilot_threads: {
         Row: {
           created_at: string

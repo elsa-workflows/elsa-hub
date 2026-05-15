@@ -33,6 +33,27 @@ import { CopilotEmptyState } from "./CopilotEmptyState";
 
 const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/copilot-chat";
 
+type CopilotServerError = {
+  error: string;
+  code?: string;
+  retryAfterSeconds?: number;
+};
+
+// The AI SDK's `Error.message` for a non-OK response is the raw response body.
+// Our edge function returns JSON for known failures; fall back to plain text.
+function parseCopilotError(message: string): CopilotServerError | null {
+  if (!message) return null;
+  try {
+    const parsed = JSON.parse(message);
+    if (parsed && typeof parsed === "object" && typeof parsed.error === "string") {
+      return parsed as CopilotServerError;
+    }
+  } catch {
+    // not JSON
+  }
+  return null;
+}
+
 interface CopilotThreadProps {
   threadId: string;
   initialMessages?: UIMessage[];
@@ -63,7 +84,17 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
     id: threadId,
     transport,
     messages: initialMessages,
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      const parsed = parseCopilotError(e.message);
+      if (parsed?.code === "rate_limited") {
+        toast.error("Copilot rate limit reached", {
+          description: parsed.error,
+          duration: 8000,
+        });
+      } else {
+        toast.error(parsed?.error ?? e.message);
+      }
+    },
     onFinish: async ({ message, isAbort }) => {
       // On abort the edge runtime can be torn down with the connection,
       // so the server's onFinish is unreliable. Persist the partial
@@ -198,11 +229,27 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
             </div>
           ) : null}
 
-          {error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              {error.message}
-            </div>
-          ) : null}
+          {error ? (() => {
+            const parsed = parseCopilotError(error.message);
+            const isRateLimited = parsed?.code === "rate_limited";
+            return (
+              <div
+                role="alert"
+                className={
+                  isRateLimited
+                    ? "rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300"
+                    : "rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                }
+              >
+                <div className="font-medium">
+                  {isRateLimited ? "Slow down a moment" : "Something went wrong"}
+                </div>
+                <div className="mt-1 opacity-90">
+                  {parsed?.error ?? error.message}
+                </div>
+              </div>
+            );
+          })() : null}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
