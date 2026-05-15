@@ -64,6 +64,13 @@ export function CopilotPanel() {
     if (open && !threadId) newThread();
   }, [open, threadId, newThread]);
 
+  const handleFinish = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["copilot-threads", user?.id] });
+    if (threadId) {
+      queryClient.invalidateQueries({ queryKey: ["copilot-messages", threadId] });
+    }
+  }, [queryClient, user?.id, threadId]);
+
   return (
     <Sheet open={open} onOpenChange={(o) => (!o ? closePanel() : null)}>
       <SheetContent
