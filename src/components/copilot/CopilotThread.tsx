@@ -63,7 +63,17 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
     id: threadId,
     transport,
     messages: initialMessages,
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      const parsed = parseCopilotError(e.message);
+      if (parsed?.code === "rate_limited") {
+        toast.error("Copilot rate limit reached", {
+          description: parsed.error,
+          duration: 8000,
+        });
+      } else {
+        toast.error(parsed?.error ?? e.message);
+      }
+    },
     onFinish: async ({ message, isAbort }) => {
       // On abort the edge runtime can be torn down with the connection,
       // so the server's onFinish is unreliable. Persist the partial
