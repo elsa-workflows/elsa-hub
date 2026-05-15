@@ -21,7 +21,7 @@ import {
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { getDockerImage, dockerImages } from "@/data/dockerImages";
 import { renderInlineCode } from "@/lib/renderInlineCode";
-import { AlertCircle, ExternalLink } from "lucide-react";
+import { AlertCircle, ArrowRight, Boxes, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function DockerImageDetail() {
@@ -100,6 +100,29 @@ networks:
                 View on Docker Hub
                 <ExternalLink className="h-4 w-4" />
               </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Runtime Builder callout */}
+      <section className="pt-6">
+        <div className="container max-w-4xl">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-4 md:gap-5">
+            <div className="h-11 w-11 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <Boxes className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold mb-1">Compose this image in the Runtime Builder</h3>
+              <p className="text-sm text-muted-foreground">
+                Wire up PostgreSQL, RabbitMQ, Redis and other capabilities visually, then preview a complete deployment bundle.
+              </p>
+            </div>
+            <Button asChild className="gap-2 shrink-0">
+              <Link to={`/elsa-plus/runtime-builder/new?image=${image.slug}`}>
+                Open in Builder
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
           </div>
         </div>

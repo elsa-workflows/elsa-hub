@@ -37,12 +37,21 @@ const STEPS = [
 
 export default function RuntimeBuilderComposer() {
   const [params, setParams] = useSearchParams();
-  const { state, setAdvancedMode, reset } = useRuntimeBuilder();
+  const { state, catalog, setImage, setAdvancedMode, reset } = useRuntimeBuilder();
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
   const step = clamp(Number(params.get("step") ?? "1"), 1, 5);
+
+  // Pre-select an image from `?image=` if recognized and none chosen yet.
+  useEffect(() => {
+    const requested = params.get("image");
+    if (!requested || state.imageId) return;
+    if (catalog.images.some((i) => i.id === requested)) {
+      setImage(requested);
+    }
+  }, [params, state.imageId, catalog.images, setImage]);
 
   const furthestUnlocked = state.imageId
     ? state.capabilityIds.length > 0

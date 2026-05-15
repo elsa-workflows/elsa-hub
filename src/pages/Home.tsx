@@ -221,6 +221,11 @@ export default function Home() {
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="gap-2" asChild>
+                  <Link to="/elsa-plus/runtime-builder">
+                    Try the Runtime Builder
+                  </Link>
+                </Button>
+                <Button size="lg" variant="ghost" className="gap-2" asChild>
                   <Link to="/elsa-plus">
                     Explore Elsa+
                   </Link>
