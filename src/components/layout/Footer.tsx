@@ -14,6 +14,9 @@ const footerLinks = {
     label: "Elsa+",
     to: "/elsa-plus"
   }, {
+    label: "Runtime Builder",
+    to: "/elsa-plus/runtime-builder"
+  }, {
     label: "Resources",
     to: "/resources"
   }],

@@ -7,6 +7,7 @@ import {
   Package,
   FileCode2,
   Handshake,
+  Boxes,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {
@@ -34,6 +35,14 @@ const servicesAndSupport = [
 ];
 
 const runtimeAndOperations = [
+  {
+    title: "Runtime Builder",
+    description:
+      "Visually compose an Elsa runtime — pick an image, enable capabilities, configure settings, and preview a complete Docker deployment bundle.",
+    icon: Boxes,
+    href: "/elsa-plus/runtime-builder",
+    badge: "New",
+  },
   {
     title: "Production Docker Images",
     description:

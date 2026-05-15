@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Menu, Github, ExternalLink, User, LogOut, Sparkles } from "lucide-react";
+import { Menu, Github, ExternalLink, User, LogOut, Sparkles, Boxes } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavLink } from "@/components/NavLink";
@@ -62,6 +63,13 @@ export function Navigation() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-2">
+          <Button variant="ghost" size="sm" asChild className="gap-2">
+            <Link to="/elsa-plus/runtime-builder">
+              <Boxes className="h-4 w-4" />
+              Runtime Builder
+              <Badge variant="secondary" className="ml-1 h-5 bg-primary/15 text-primary px-1.5 text-[10px] font-semibold">New</Badge>
+            </Link>
+          </Button>
           <Button variant="ghost" size="sm" asChild>
             <a
               href="https://docs.elsaworkflows.io/"
@@ -147,6 +155,15 @@ export function Navigation() {
                 </NavLink>
               ))}
               <hr className="my-4" />
+              <Link
+                to="/elsa-plus/runtime-builder"
+                onClick={() => setOpen(false)}
+                className="px-4 py-3 text-lg font-medium rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <Boxes className="h-4 w-4" />
+                Runtime Builder
+                <Badge variant="secondary" className="ml-1 h-5 bg-primary/15 text-primary px-1.5 text-[10px] font-semibold">New</Badge>
+              </Link>
               <a
                 href="https://docs.elsaworkflows.io/"
                 target="_blank"
