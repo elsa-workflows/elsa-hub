@@ -1,8 +1,8 @@
 // Sliding side panel that hosts the copilot chat + a thread switcher.
 // Threaded history is loaded on demand from copilot_threads.
 
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, MessagesSquare } from "lucide-react";
 import type { UIMessage } from "ai";
 import {
@@ -22,6 +22,7 @@ import { CopilotThread } from "./CopilotThread";
 export function CopilotPanel() {
   const { open, closePanel, threadId, newThread, setThreadId } = useCopilot();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showList, setShowList] = useState(false);
 
   const { data: threads, isLoading } = useQuery({
@@ -62,6 +63,13 @@ export function CopilotPanel() {
   useEffect(() => {
     if (open && !threadId) newThread();
   }, [open, threadId, newThread]);
+
+  const handleFinish = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["copilot-threads", user?.id] });
+    if (threadId) {
+      queryClient.invalidateQueries({ queryKey: ["copilot-messages", threadId] });
+    }
+  }, [queryClient, user?.id, threadId]);
 
   return (
     <Sheet open={open} onOpenChange={(o) => (!o ? closePanel() : null)}>
@@ -144,6 +152,7 @@ export function CopilotPanel() {
               key={threadId}
               threadId={threadId}
               initialMessages={initialMessages ?? []}
+              onFinish={handleFinish}
             />
           )
         ) : null}
