@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { SpaceBackground } from "@/components/space";
+import { CopilotProvider, CopilotLauncher, CopilotPanel } from "@/components/copilot";
 
 // Public pages
 import Home from "./pages/Home";
@@ -78,6 +79,7 @@ const App = () => (
           <ScrollToTop />
           <AuthProvider>
             <OrganizationProvider>
+            <CopilotProvider>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
@@ -154,6 +156,9 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <CopilotLauncher />
+            <CopilotPanel />
+            </CopilotProvider>
             </OrganizationProvider>
           </AuthProvider>
         </BrowserRouter>
