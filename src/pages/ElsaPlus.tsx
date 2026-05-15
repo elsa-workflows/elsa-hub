@@ -106,9 +106,9 @@ export default function ElsaPlus() {
             </p>
             <div className="bg-muted/50 border rounded-lg p-6 text-left max-w-2xl mx-auto">
               <p className="text-muted-foreground leading-relaxed">
-                The core workflow engine remains fully open source and
-                community-driven. Elsa+ adds optional services and tooling
-                around it.
+                Elsa is the open-source workflow engine. Elsa+ provides optional
+                services, tooling, and production-ready capabilities for teams
+                building on it.
               </p>
             </div>
           </div>
