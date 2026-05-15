@@ -127,7 +127,7 @@ export function CopilotThread({ threadId, initialMessages }: CopilotThreadProps)
 
           {status === "submitted" ? (
             <Message from="assistant">
-              <MessageContent variant="flat">
+              <MessageContent className="bg-transparent p-0">
                 <Shimmer>Thinking…</Shimmer>
               </MessageContent>
             </Message>
