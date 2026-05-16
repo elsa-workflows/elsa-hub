@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
   }
 
   // Auth: cron secret OR platform admin
-  const CRON_SECRET = Deno.env.get("COPILOT_INGEST_CRON_SECRET");
+  const CRON_SECRET = Deno.env.get("WEAVER_INGEST_CRON_SECRET");
   const providedCronSecret = req.headers.get("x-cron-secret");
   let actor: "cron" | "admin" = "admin";
 
