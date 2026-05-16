@@ -346,8 +346,9 @@ Deno.serve(async (req) => {
     upserted += rows.length;
   }
 
+  console.log(JSON.stringify({ actor, upserted, total: docs.length }));
   return new Response(
-    JSON.stringify({ ok: true, upserted, total: docs.length }),
+    JSON.stringify({ ok: true, actor, upserted, total: docs.length }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
