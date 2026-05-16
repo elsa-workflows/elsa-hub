@@ -343,7 +343,6 @@ export type Database = {
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
           status: string
-          token: string
           token_hash: string | null
         }
         Insert: {
@@ -355,7 +354,6 @@ export type Database = {
           organization_id: string
           role?: Database["public"]["Enums"]["org_role"]
           status?: string
-          token: string
           token_hash?: string | null
         }
         Update: {
@@ -367,7 +365,6 @@ export type Database = {
           organization_id?: string
           role?: Database["public"]["Enums"]["org_role"]
           status?: string
-          token?: string
           token_hash?: string | null
         }
         Relationships: [
@@ -1392,6 +1389,10 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
+      accept_invitation_by_id: {
+        Args: { p_invitation_id: string }
+        Returns: string
+      }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
       copilot_documents_summary: {
         Args: never
