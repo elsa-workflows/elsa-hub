@@ -1,125 +1,92 @@
-# Elsa Copilot — site-wide AI assistant
 
-A floating launcher (bottom-right) opens a slide-over chat panel on every page. Anonymous users get a limited Q&A mode over public content; signed-in users unlock account/dashboard/Runtime Builder tools. Conversations are threaded and persisted in Lovable Cloud.
+## Goal
 
-## Stack
+Extend the Copilot knowledge base beyond the current site copy + catalog so it can answer real questions about Elsa Workflows itself. Two new source types:
 
-- **AI SDK** (`ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`) on a Supabase Edge Function (`copilot-chat`) talking to **Lovable AI Gateway** with `google/gemini-3-flash-preview`.
-- **AI Elements** (`conversation`, `message`, `prompt-input`, `tool`, `shimmer`) for the chat surface.
-- Streaming via `streamText` + `toUIMessageStreamResponse`; client uses `useChat` with `DefaultChatTransport`.
-- Vector grounding via **pgvector** in the existing Supabase project.
+1. `docs` — pages from `docs.elsaworkflows.io`, crawled with Firecrawl.
+2. `code` — markdown files (`README.md`, `*.md`) from the public GitHub repos:
+   `elsa-workflows/elsa`, `elsa-workflows/elsa-studio`, `elsa-workflows/elsa-samples`.
 
-## UX
+Both sources flow through the same `copilot_documents` table + `searchKnowledge` tool the Copilot already uses. Refresh is supported manually (admin button) and nightly (pg_cron).
 
-- **Launcher**: floating button bottom-right, hidden on `/auth` and embedded checkout flows.
-- **Panel**: right-side `Sheet` (sm: 480px, lg: 560px), full-height, glassmorphism per Deep Noir.
-- **Header**: thread title, "New chat" + thread switcher (popover list), close.
-- **Empty state**: domain identity (custom small Elsa+ mark, not Sparkles), 4 suggested prompts that vary by route (e.g. on `/elsa-plus/expert-services`: "Compare Implementation vs Advisory bundles"; in `/dashboard`: "How many credits do we have left?"; in Runtime Builder: "Add Identity with OpenIddict and Postgres").
-- **Composer**: `PromptInput` + `PromptInputTextarea` + `PromptInputFooter` (right-aligned `PromptInputSubmit`). Auto-focused on open, after send, after thread switch.
-- **Messages**: assistant text on transparent surface, user messages in `primary`/`primary-foreground` bubble, markdown via `MessageResponse`.
-- **Tool calls**: rendered with `Tool` accordion (closed by default) + custom compact renderers for the most-used tools (e.g. credit balance card, bundle card, builder diff).
-- **Write actions** show an inline confirmation card ("Add `Elsa.Workflows.Identity` and select OpenIddict?") with Confirm / Cancel before the tool executes.
+## What changes
 
-## Threads & persistence
+### 1. Database (one migration)
 
-Dedicated route `/copilot/:threadId` for full-page view; the side panel reads/writes the same threads. Tables (new):
+- Extend `copilot_documents.source` allowed values to include `docs` and `code` (drop + recreate the check constraint, or relax it).
+- Add columns to support chunking + change detection:
+  - `chunk_index INT NOT NULL DEFAULT 0`
+  - `content_hash TEXT` (sha-256 of the chunk body; skip re-embedding when unchanged)
+  - `repo TEXT NULL`, `path TEXT NULL`, `commit_sha TEXT NULL` (code only)
+- Replace the existing `(source, external_id)` unique constraint with `(source, external_id, chunk_index)` so a long page can store multiple chunks.
+- Bump `match_copilot_documents` RPC's `source_filter` to accept the new values (the function already filters by text, no signature change — just verify).
+- Add an index on `(source, updated_at)` for incremental refresh queries.
 
-- `copilot_threads(id, user_id, title, last_message_at, route_context jsonb, created_at, updated_at)`
-- `copilot_messages(id, thread_id, role, parts jsonb, created_at)` — DB-generated UUIDs; AI SDK `msg_...` ids stored only if needed.
+### 2. Connectors
 
-RLS: user sees only their own threads/messages. Save assistant messages from `onFinish` of `toUIMessageStreamResponse`.
+- Connect the **Firecrawl** connector via `standard_connectors--connect` (gateway-disabled connector → use `FIRECRAWL_API_KEY` directly).
+- No GitHub connector needed: public repos are reachable through the unauthenticated GitHub REST + raw URLs. Add an optional `GITHUB_TOKEN` secret later only if we hit rate limits (60 req/h unauthenticated, 5000 authenticated).
 
-## Grounding (RAG)
+### 3. New shared helpers in `supabase/functions/_shared/`
 
-- `copilot_documents(id, source, url, title, body, metadata jsonb, embedding vector(1536), updated_at)` with HNSW index.
-- `match_copilot_documents(query_embedding, match_count, filter)` SQL function for similarity search.
-- Ingestion edge function `copilot-ingest` (admin-only) that chunks and embeds:
-  - All public marketing pages (Home, ElsaPlus, Expert Services, Managed Cloud Hosting, Get Started, Docker pages, Runtime Builder landing).
-  - Live package catalog (`runtime-builder-catalog` proxy → packages, features, infra providers).
-  - Provider/bundle data from Supabase (Valence Works, bundles, intro call info).
-  - Curated FAQ snippets sourced from existing memory entries (pricing, terminology, engagement boundaries).
-- Embeddings via Lovable AI Gateway (`google/text-embedding-004` or fallback). Re-ingest nightly via cron + manual button in the existing admin dashboard.
+- `chunk.ts` — markdown-aware chunker (split on `##`/`###` headings; hard cap ~1,200 tokens ≈ 4,800 chars; carry the page title into every chunk's embedding text).
+- `hash.ts` — `sha256Hex(string)` using Web Crypto.
+- `firecrawl.ts` — thin wrappers: `firecrawlMap(url)`, `firecrawlScrape(url, formats=['markdown'])`. Uses `FIRECRAWL_API_KEY` directly per the Firecrawl skill notes.
+- `github-md.ts` — list markdown files in a public repo via `GET /repos/{owner}/{repo}/git/trees/{branch}?recursive=1`, then fetch each file via `https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}`. Records the tree's commit SHA so we only re-embed when SHA changes.
 
-## Tools (server-side, AI SDK `tool({...})`)
+### 4. Refactor `supabase/functions/copilot-ingest/index.ts`
 
-**Public (no auth):**
-- `searchKnowledge({query, topK})` — pgvector retrieval, returns chunks + source URLs.
-- `navigate({path, reason})` — returns a navigation directive the client follows after user click; never auto-navigates.
-- `listBundles({providerSlug?})` / `getBundle({slug})` — public bundle catalog.
-- `listPackages({query?, category?})` / `getPackage({id})` — proxied through `runtime-builder-catalog`.
-- `bookIntroCall()` — returns the TidyCal URL.
+- Accept an optional JSON body: `{ sources?: ("page"|"faq"|"db"|"catalog"|"docs"|"code")[] }`. Default = all.
+- Keep the current PAGE/FAQ/DB/catalog flow; add two new builders:
+  - `buildDocsDocs()` — Firecrawl `/map` on `https://docs.elsaworkflows.io`, then `/scrape` each URL (cap configurable, default 200). Returns one `Doc` per markdown chunk with `source: "docs"`, `external_id: docs:{path}`, `metadata: { section, breadcrumbs }`.
+  - `buildCodeDocs()` — for each repo (`elsa`, `elsa-studio`, `elsa-samples`) under `elsa-workflows`, list `*.md`, fetch raw, chunk, `source: "code"`, `external_id: code:{repo}:{path}`, `metadata: { repo, path, commit_sha }`.
+- Incremental upsert: compute `content_hash` per chunk; for each `(source, external_id, chunk_index)` query existing hash and skip the embed call when unchanged. Delete stale chunks (chunk_index >= newCount).
+- Add a tiny per-source summary in the response (`{ ok, perSource: { docs: { upserted, skipped, deleted }, code: {...}, ... } }`).
+- Keep the function admin-gated (current `platform_admins` check stays).
 
-**Authenticated read:**
-- `getMyOrganizations()`, `getCreditBalance({orgId})`, `listOrders({orgId})`, `listSubscriptions({orgId})`, `listWorkHistory({orgId})`, `listMessageThreads({orgId})`, `getNotifications()`.
+### 5. Expose new sources to the Copilot
 
-**Authenticated write (`needsApproval: true`):**
-- `startBundlePurchase({orgId, bundleSlug})` → returns Stripe checkout URL (existing flow).
-- `sendProviderMessage({threadId, body})`.
-- `inviteTeamMember({orgId, email, role})`.
-- `cancelInvite({inviteId})` / `resendInvite({inviteId})`.
-- `bookIntroCall()` (auth variant prefills).
+- In `copilot-chat/index.ts`, widen the `searchKnowledge` `source` enum to include `"docs"` and `"code"`. Update the tool description so the model knows it can scope a search ("use `code` for repo/sample questions, `docs` for product documentation").
+- Update `SYSTEM_PROMPT` with one line: "For SDK/API/usage questions, prefer `searchKnowledge` with `source: 'docs'` or `'code'` and cite the linked URL."
+- Result snippets stay capped at 700 chars; for `code` docs include the file path in the title so citations read e.g. `[elsa/src/.../README.md](https://github.com/...)`.
 
-**Runtime Builder (write, `needsApproval: true`):**
-- `rb.addPackage({packageId})`, `rb.removePackage({packageId})`.
-- `rb.toggleFeature({packageId, featureId, enabled})`.
-- `rb.setFeatureSetting({packageId, featureId, key, value})`.
-- `rb.selectInfrastructure({kind, providerId})`, `rb.autoFillInfrastructure()`.
-- `rb.validate()` → runs `resolveBuild` and returns findings.
-- `rb.generateBundle()` → triggers existing `generate.ts` and surfaces the download.
-- `rb.applyPreset({name})` (e.g. "Identity + Postgres + Redis").
+### 6. Scheduling
 
-These are exposed to the model only when the panel is open inside `/runtime-builder/*`. The client owns the Zustand store; the edge function returns intent payloads and the client applies them after the user confirms in the inline approval card.
+- Enable `pg_cron` + `pg_net` if not already on.
+- Insert a cron job that POSTs to `/functions/v1/copilot-ingest` nightly (03:00 UTC) using the **service-role key** in the `Authorization` header — Copilot ingest currently requires an authenticated platform admin, so add a side-door: accept service-role JWT as a valid caller (verify by decoding the role claim) **only** for the cron path. Cleaner alternative we'll use instead: add an internal shared-secret header (`x-cron-secret`) checked against `Deno.env.get("COPILOT_INGEST_CRON_SECRET")`. New secret added via the secrets tool.
+- The SQL is inserted (not migrated) so it stays out of the public migration history per project rules.
 
-## Architecture diagram
+### 7. Admin UI
 
-```text
- Browser
- ├── CopilotLauncher (global)
- └── CopilotPanel (Sheet)
-      ├── useChat({ id: threadId, transport: '/functions/v1/copilot-chat' })
-      ├── route-aware system context (path, orgId, builder snapshot)
-      └── Tool dispatcher (navigate, rb.*, confirmations)
-                       │
-                       ▼
- Supabase Edge Functions
- ├── copilot-chat       → streamText (Lovable AI) + tools + RAG
- ├── copilot-ingest     → chunk + embed → copilot_documents
- └── runtime-builder-catalog (existing proxy, reused)
-                       │
-                       ▼
- Postgres
- ├── copilot_threads / copilot_messages   (RLS: user-scoped)
- └── copilot_documents (pgvector)         (read-only via RPC)
-```
+- In `src/pages/dashboard/admin/AdminOverview.tsx` (or a new `AdminCopilot.tsx` panel), add a "Knowledge base" card with:
+  - Per-source row (page, faq, db, catalog, docs, code): last ingested at, document count, "Re-ingest" button.
+  - Each button calls `supabase.functions.invoke('copilot-ingest', { body: { sources: ['docs'] } })` and toasts the summary.
+- Counts come from a small RPC `copilot_documents_summary()` returning `(source, doc_count, last_updated_at)`.
 
-## Step-by-step build
+### 8. Cost / safety guardrails
 
-1. **DB migration**: `copilot_threads`, `copilot_messages`, `copilot_documents` (+ pgvector extension, HNSW index, `match_copilot_documents` RPC), RLS policies.
-2. **Edge function `copilot-chat`**: AI SDK + Lovable AI Gateway, dynamic tool set based on caller auth + route context sent in the request body, `stopWhen: stepCountIs(50)`, persist messages in `onFinish`.
-3. **Edge function `copilot-ingest`**: admin-only; embed marketing pages, package catalog, bundles, FAQ; upsert into `copilot_documents`.
-4. **Install AI Elements** primitives.
-5. **Client surfaces**:
-   - `src/components/copilot/CopilotProvider.tsx` (route + builder-snapshot context).
-   - `src/components/copilot/CopilotLauncher.tsx`.
-   - `src/components/copilot/CopilotPanel.tsx` (Sheet + AI Elements).
-   - `src/components/copilot/ToolRenderers/*` (BundleCard, CreditBalance, BuilderDiff, NavigateLink, ConfirmCard).
-   - `src/pages/copilot/CopilotThread.tsx` at `/copilot/:threadId`.
-   - `src/lib/copilot/store.ts` (active thread, panel open state) + `useCopilotTools.ts` (client-side handlers for `navigate` and `rb.*`).
-6. **Wire Runtime Builder**: expose Zustand store snapshot + apply-intent helpers to the Copilot context provider.
-7. **Admin**: small "Re-index Copilot knowledge" button in the existing admin dashboard.
-8. **Mount** `<CopilotProvider>` at app root, render launcher except on `/auth`, `/lovable/*`, and embedded checkout.
-9. **Verify**: anonymous Q&A → answers with citations; signed-in → credit balance tool; Runtime Builder → "Add OpenIddict" produces a confirm card that toggles the right feature; thread reload restores messages.
+- Firecrawl `map` then `scrape` is bounded: default cap 200 URLs/run, only re-embed changed chunks → typical nightly run embeds a handful of items.
+- GitHub fetch uses the recursive tree once per repo per run; raw file fetch only for changed files (compare commit SHA).
+- Reuse the existing `embedTexts` batching (32 per call).
+- Anonymous Copilot rate limits already in place from the previous round — no change.
 
-## Out of scope (v1)
+## Technical details
 
-- Voice / speech.
-- Multi-user collaboration in a thread.
-- Provider-side admin actions inside the Copilot.
-- Auto-execution of write tools without explicit confirmation.
-- File upload to chat (can be added later via AI Elements attachments).
+### File-level summary
+- **migration** — new SQL adding columns, relaxing check constraint, new unique index, summary RPC.
+- **new** `supabase/functions/_shared/chunk.ts`
+- **new** `supabase/functions/_shared/hash.ts`
+- **new** `supabase/functions/_shared/firecrawl.ts`
+- **new** `supabase/functions/_shared/github-md.ts`
+- **edit** `supabase/functions/copilot-ingest/index.ts` — selective sources, docs + code builders, incremental upsert, cron secret check.
+- **edit** `supabase/functions/copilot-chat/index.ts` — broaden `searchKnowledge` source enum + prompt nudge.
+- **edit** `src/pages/dashboard/admin/...` — knowledge-base admin panel (or extend `AdminOverview`).
+- **insert SQL** (not migration) — `pg_cron` job calling `copilot-ingest` nightly with `x-cron-secret`.
+- **secret** `COPILOT_INGEST_CRON_SECRET` — added via the secrets tool.
 
-## Open questions before build
+### What you'll be asked for
+1. To connect the **Firecrawl** connector (one click in the picker).
+2. To approve the database migration.
+3. To approve the `COPILOT_INGEST_CRON_SECRET` secret.
 
-- Re-index cadence: nightly cron OK, or manual-only for v1?
-- Should anonymous users be allowed to read public bundle/package data through tools, or only RAG snippets?
-- Default model: stick with `google/gemini-3-flash-preview`, or use `google/gemini-3.1-pro-preview` for Runtime Builder threads where reasoning matters more?
+After that I implement everything end-to-end, deploy the edge functions, and run one manual ingest of `docs` + `code` so the Copilot has data immediately.
