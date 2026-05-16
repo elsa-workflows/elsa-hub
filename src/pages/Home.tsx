@@ -3,11 +3,16 @@ import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, G
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
-import { HeroScreenshot } from "@/components/home";
+import { HeroVideo } from "@/components/home";
 import { Seo } from "@/components/Seo";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
-const benefits = ["Build complex workflows with .NET", "Visual workflow designer included", "Extensible activity system", "Long-running workflow support", "Open source & MIT licensed"];
+const benefits = [
+  "Build with code, visual designer, or JSON",
+  "Short-running, long-running, scheduled & event-driven",
+  "Extensible activity system",
+  "Open source & MIT licensed",
+];
 const features = [{
   icon: Workflow,
   title: "Visual Designer",
@@ -125,9 +130,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Hero Screenshot - outside max-w-3xl for wider display */}
+          {/* Hero Video - outside max-w-3xl for wider display */}
           <div className="mt-12 md:mt-16 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-            <HeroScreenshot />
+            <HeroVideo />
           </div>
         </div>
       </section>
