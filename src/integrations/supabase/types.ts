@@ -107,143 +107,6 @@ export type Database = {
           },
         ]
       }
-      weaver_documents: {
-        Row: {
-          body: string
-          chunk_index: number
-          commit_sha: string | null
-          content_hash: string | null
-          created_at: string
-          embedding: string | null
-          external_id: string | null
-          id: string
-          metadata: Json
-          path: string | null
-          repo: string | null
-          source: string
-          title: string
-          updated_at: string
-          url: string | null
-        }
-        Insert: {
-          body: string
-          chunk_index?: number
-          commit_sha?: string | null
-          content_hash?: string | null
-          created_at?: string
-          embedding?: string | null
-          external_id?: string | null
-          id?: string
-          metadata?: Json
-          path?: string | null
-          repo?: string | null
-          source: string
-          title: string
-          updated_at?: string
-          url?: string | null
-        }
-        Update: {
-          body?: string
-          chunk_index?: number
-          commit_sha?: string | null
-          content_hash?: string | null
-          created_at?: string
-          embedding?: string | null
-          external_id?: string | null
-          id?: string
-          metadata?: Json
-          path?: string | null
-          repo?: string | null
-          source?: string
-          title?: string
-          updated_at?: string
-          url?: string | null
-        }
-        Relationships: []
-      }
-      weaver_messages: {
-        Row: {
-          ai_sdk_id: string | null
-          created_at: string
-          id: string
-          parts: Json
-          role: string
-          thread_id: string
-        }
-        Insert: {
-          ai_sdk_id?: string | null
-          created_at?: string
-          id?: string
-          parts?: Json
-          role: string
-          thread_id: string
-        }
-        Update: {
-          ai_sdk_id?: string | null
-          created_at?: string
-          id?: string
-          parts?: Json
-          role?: string
-          thread_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "weaver_messages_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "weaver_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      weaver_rate_events: {
-        Row: {
-          created_at: string
-          id: number
-          key: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          key: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          key?: string
-        }
-        Relationships: []
-      }
-      weaver_threads: {
-        Row: {
-          created_at: string
-          id: string
-          last_message_at: string
-          route_context: Json
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_message_at?: string
-          route_context?: Json
-          title?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_message_at?: string
-          route_context?: Json
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       credit_bundles: {
         Row: {
           billing_type: Database["public"]["Enums"]["billing_type"]
@@ -1250,6 +1113,143 @@ export type Database = {
         }
         Relationships: []
       }
+      weaver_documents: {
+        Row: {
+          body: string
+          chunk_index: number
+          commit_sha: string | null
+          content_hash: string | null
+          created_at: string
+          embedding: string | null
+          external_id: string | null
+          id: string
+          metadata: Json
+          path: string | null
+          repo: string | null
+          source: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          body: string
+          chunk_index?: number
+          commit_sha?: string | null
+          content_hash?: string | null
+          created_at?: string
+          embedding?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          path?: string | null
+          repo?: string | null
+          source: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          body?: string
+          chunk_index?: number
+          commit_sha?: string | null
+          content_hash?: string | null
+          created_at?: string
+          embedding?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          path?: string | null
+          repo?: string | null
+          source?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      weaver_messages: {
+        Row: {
+          ai_sdk_id: string | null
+          created_at: string
+          id: string
+          parts: Json
+          role: string
+          thread_id: string
+        }
+        Insert: {
+          ai_sdk_id?: string | null
+          created_at?: string
+          id?: string
+          parts?: Json
+          role: string
+          thread_id: string
+        }
+        Update: {
+          ai_sdk_id?: string | null
+          created_at?: string
+          id?: string
+          parts?: Json
+          role?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "weaver_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weaver_rate_events: {
+        Row: {
+          created_at: string
+          id: number
+          key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          key: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          key?: string
+        }
+        Relationships: []
+      }
+      weaver_threads: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          route_context: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          route_context?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          route_context?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       work_logs: {
         Row: {
           category: Database["public"]["Enums"]["work_category"]
@@ -1393,7 +1393,7 @@ export type Database = {
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
-      weaver_documents_summary: {
+      copilot_documents_summary: {
         Args: never
         Returns: {
           chunk_count: number
@@ -1573,7 +1573,7 @@ export type Database = {
       is_provider_admin: { Args: { p_provider_id: string }; Returns: boolean }
       is_provider_customer: { Args: { p_org_id: string }; Returns: boolean }
       is_provider_member: { Args: { p_provider_id: string }; Returns: boolean }
-      match_weaver_documents: {
+      match_copilot_documents: {
         Args: {
           match_count?: number
           query_embedding: string
