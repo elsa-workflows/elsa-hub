@@ -1,4 +1,4 @@
-// AI Copilot chat edge function.
+// AI Weaver chat edge function.
 // - Streams responses from Lovable AI Gateway via the AI SDK.
 // - Exposes grounding (RAG) + safe read tools to anonymous users.
 // - Adds dashboard/Runtime Builder tools when the caller is authenticated.
@@ -39,7 +39,7 @@ type ChatRequestBody = {
   routeContext?: RouteContext;
 };
 
-const SYSTEM_PROMPT = `You are the Elsa Copilot, an in-product assistant for the Elsa Workflows site (elsa-workflows.io) and the Elsa+ commercial ecosystem.
+const SYSTEM_PROMPT = `You are the Elsa Weaver, an in-product assistant for the Elsa Workflows site (elsa-workflows.io) and the Elsa+ commercial ecosystem.
 
 Voice: confident, senior, calm. No buzzwords, no apologies for limits, no marketing fluff. Brief by default; longer only when the user asks for depth.
 
@@ -70,7 +70,7 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
         try {
           const [embedding] = await embedTexts(LOVABLE_API_KEY, [query]);
           const { data, error } = await supabaseAnon.rpc(
-            "match_copilot_documents",
+            "match_weaver_documents",
             {
               query_embedding: embedding,
               match_count: topK,
@@ -372,7 +372,7 @@ Deno.serve(async (req) => {
 
   try {
     const { count, error: countErr } = await supabaseService
-      .from("copilot_rate_events")
+      .from("weaver_rate_events")
       .select("id", { count: "exact", head: true })
       .eq("key", rateKey)
       .gte("created_at", windowStart);
@@ -382,7 +382,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error:
-            `Rate limit reached. The Copilot allows ${RATE_LIMITS.max} messages every ${
+            `Rate limit reached. The Weaver allows ${RATE_LIMITS.max} messages every ${
               Math.round(RATE_LIMITS.windowSeconds / 60)
             } minutes${userId ? "" : " per visitor"}. Please wait a few minutes and try again.`,
           code: "rate_limited",
@@ -399,11 +399,11 @@ Deno.serve(async (req) => {
       );
     }
     // Record this request and opportunistically prune very old rows.
-    await supabaseService.from("copilot_rate_events").insert({ key: rateKey });
+    await supabaseService.from("weaver_rate_events").insert({ key: rateKey });
     if (Math.random() < 0.05) {
       const pruneBefore = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       await supabaseService
-        .from("copilot_rate_events")
+        .from("weaver_rate_events")
         .delete()
         .lt("created_at", pruneBefore);
     }
@@ -424,12 +424,12 @@ Deno.serve(async (req) => {
   if (userId) {
     // Verify thread ownership / create on demand
     const { data: thread } = await supabaseAsUser
-      .from("copilot_threads")
+      .from("weaver_threads")
       .select("id, user_id")
       .eq("id", body.threadId)
       .maybeSingle();
     if (!thread) {
-      await supabaseAsUser.from("copilot_threads").insert({
+      await supabaseAsUser.from("weaver_threads").insert({
         id: body.threadId,
         user_id: userId,
         title: deriveTitle(body.messages),
@@ -446,13 +446,13 @@ Deno.serve(async (req) => {
     if (lastUser) {
       // Avoid duplicate inserts on resume
       const { data: existing } = await supabaseAsUser
-        .from("copilot_messages")
+        .from("weaver_messages")
         .select("id")
         .eq("thread_id", body.threadId)
         .eq("ai_sdk_id", lastUser.id)
         .maybeSingle();
       if (!existing) {
-        await supabaseAsUser.from("copilot_messages").insert({
+        await supabaseAsUser.from("weaver_messages").insert({
           thread_id: body.threadId,
           role: "user",
           parts: lastUser.parts as any,
@@ -501,18 +501,18 @@ Deno.serve(async (req) => {
       if (!last || last.role !== "assistant") return;
       if (!last.parts || last.parts.length === 0) return;
       try {
-        await supabaseService.from("copilot_messages").insert({
+        await supabaseService.from("weaver_messages").insert({
           thread_id: body.threadId,
           role: "assistant",
           parts: last.parts as any,
           ai_sdk_id: last.id,
         });
         await supabaseService
-          .from("copilot_threads")
+          .from("weaver_threads")
           .update({ last_message_at: new Date().toISOString() })
           .eq("id", body.threadId);
       } catch (err) {
-        console.error("copilot persist error", err);
+        console.error("weaver persist error", err);
       }
     },
   });
