@@ -6,7 +6,7 @@ interface Props {
   onPick: (text: string) => void;
 }
 
-export function CopilotEmptyState({ onPick }: Props) {
+export function WeaverEmptyState({ onPick }: Props) {
   const { pathname } = useLocation();
   const inRb = pathname.startsWith("/elsa-plus/runtime-builder");
   const inDashboard = pathname.startsWith("/dashboard");

@@ -16,13 +16,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useCatalogQuery } from "@/lib/runtime-builder/catalog-client";
-import { applyRbIntent } from "@/lib/copilot/runtime-builder-bridge";
-import { isCopilotIntent, type CopilotIntent } from "@/lib/copilot/intents";
+import { applyRbIntent } from "@/lib/weaver/runtime-builder-bridge";
+import { isWeaverIntent, type WeaverIntent } from "@/lib/weaver/intents";
 import { toast } from "sonner";
 
 type AnyToolPart = ToolUIPart | DynamicToolUIPart;
 
-export function CopilotToolPart({ part }: { part: AnyToolPart }) {
+export function WeaverToolPart({ part }: { part: AnyToolPart }) {
   const navigate = useNavigate();
 
   // Extract tool name from part type "tool-<name>" or dynamic-tool
@@ -33,7 +33,7 @@ export function CopilotToolPart({ part }: { part: AnyToolPart }) {
 
   const output =
     "output" in part && part.state === "output-available" ? part.output : null;
-  const intent = isCopilotIntent(output) ? (output as CopilotIntent) : null;
+  const intent = isWeaverIntent(output) ? (output as WeaverIntent) : null;
 
   // Render an inline confirmation card for action intents
   if (intent && intent.kind !== "navigate") {
@@ -72,7 +72,7 @@ function RbApprovalCard({
   intent,
   toolName,
 }: {
-  intent: CopilotIntent;
+  intent: WeaverIntent;
   toolName: string;
 }) {
   const { data: catalog } = useCatalogQuery();
@@ -125,7 +125,7 @@ function RbApprovalCard({
   );
 }
 
-function describeIntent(i: CopilotIntent): { title: string; detail: string } {
+function describeIntent(i: WeaverIntent): { title: string; detail: string } {
   switch (i.kind) {
     case "rb.addPackage":
       return { title: `Add package ${i.packageId}`, detail: i.reason ?? "Adds the package to your build." };

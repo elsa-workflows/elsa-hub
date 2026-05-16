@@ -1,3 +1,3 @@
-export { CopilotProvider, useCopilot } from "@/contexts/CopilotContext";
-export { CopilotLauncher } from "./CopilotLauncher";
-export { CopilotPanel } from "./CopilotPanel";
+export { WeaverProvider, useWeaver } from "@/contexts/WeaverContext";
+export { WeaverLauncher } from "./WeaverLauncher";
+export { WeaverPanel } from "./WeaverPanel";

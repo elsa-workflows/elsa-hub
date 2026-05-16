@@ -107,7 +107,7 @@ export type Database = {
           },
         ]
       }
-      copilot_documents: {
+      weaver_documents: {
         Row: {
           body: string
           chunk_index: number
@@ -161,7 +161,7 @@ export type Database = {
         }
         Relationships: []
       }
-      copilot_messages: {
+      weaver_messages: {
         Row: {
           ai_sdk_id: string | null
           created_at: string
@@ -188,15 +188,15 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "copilot_messages_thread_id_fkey"
+            foreignKeyName: "weaver_messages_thread_id_fkey"
             columns: ["thread_id"]
             isOneToOne: false
-            referencedRelation: "copilot_threads"
+            referencedRelation: "weaver_threads"
             referencedColumns: ["id"]
           },
         ]
       }
-      copilot_rate_events: {
+      weaver_rate_events: {
         Row: {
           created_at: string
           id: number
@@ -214,7 +214,7 @@ export type Database = {
         }
         Relationships: []
       }
-      copilot_threads: {
+      weaver_threads: {
         Row: {
           created_at: string
           id: string
@@ -1393,7 +1393,7 @@ export type Database = {
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
-      copilot_documents_summary: {
+      weaver_documents_summary: {
         Args: never
         Returns: {
           chunk_count: number
@@ -1573,7 +1573,7 @@ export type Database = {
       is_provider_admin: { Args: { p_provider_id: string }; Returns: boolean }
       is_provider_customer: { Args: { p_org_id: string }; Returns: boolean }
       is_provider_member: { Args: { p_provider_id: string }; Returns: boolean }
-      match_copilot_documents: {
+      match_weaver_documents: {
         Args: {
           match_count?: number
           query_embedding: string

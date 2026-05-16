@@ -1,5 +1,5 @@
-// Sliding side panel that hosts the copilot chat + a thread switcher.
-// Threaded history is loaded on demand from copilot_threads.
+// Sliding side panel that hosts the weaver chat + a thread switcher.
+// Threaded history is loaded on demand from weaver_threads.
 
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,21 +16,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCopilot } from "@/contexts/CopilotContext";
-import { CopilotThread } from "./CopilotThread";
+import { useWeaver } from "@/contexts/WeaverContext";
+import { WeaverThread } from "./WeaverThread";
 
-export function CopilotPanel() {
-  const { open, closePanel, threadId, newThread, setThreadId } = useCopilot();
+export function WeaverPanel() {
+  const { open, closePanel, threadId, newThread, setThreadId } = useWeaver();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showList, setShowList] = useState(false);
 
   const { data: threads, isLoading } = useQuery({
-    queryKey: ["copilot-threads", user?.id],
+    queryKey: ["weaver-threads", user?.id],
     enabled: open && !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("copilot_threads")
+        .from("weaver_threads")
         .select("id, title, last_message_at")
         .order("last_message_at", { ascending: false })
         .limit(50);
@@ -40,11 +40,11 @@ export function CopilotPanel() {
   });
 
   const { data: initialMessages, isLoading: loadingMessages } = useQuery({
-    queryKey: ["copilot-messages", threadId],
+    queryKey: ["weaver-messages", threadId],
     enabled: open && !!threadId && !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("copilot_messages")
+        .from("weaver_messages")
         .select("ai_sdk_id, role, parts, created_at")
         .eq("thread_id", threadId!)
         .order("created_at", { ascending: true });
@@ -65,9 +65,9 @@ export function CopilotPanel() {
   }, [open, threadId, newThread]);
 
   const handleFinish = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["copilot-threads", user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["weaver-threads", user?.id] });
     if (threadId) {
-      queryClient.invalidateQueries({ queryKey: ["copilot-messages", threadId] });
+      queryClient.invalidateQueries({ queryKey: ["weaver-messages", threadId] });
     }
   }, [queryClient, user?.id, threadId]);
 
@@ -148,7 +148,7 @@ export function CopilotPanel() {
               <Skeleton className="h-12 w-2/3" />
             </div>
           ) : (
-            <CopilotThread
+            <WeaverThread
               key={threadId}
               threadId={threadId}
               initialMessages={initialMessages ?? []}

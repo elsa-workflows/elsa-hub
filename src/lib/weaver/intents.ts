@@ -1,7 +1,7 @@
-// Tool-call "intent" payloads emitted by the copilot edge function.
+// Tool-call "intent" payloads emitted by the weaver edge function.
 // The client validates and applies these after the user clicks Confirm.
 
-export type CopilotIntent =
+export type WeaverIntent =
   | NavigateIntent
   | RbAddPackageIntent
   | RbRemovePackageIntent
@@ -56,7 +56,7 @@ export interface RbGenerateBundleIntent {
   kind: "rb.generateBundle";
 }
 
-export function isCopilotIntent(value: unknown): value is CopilotIntent {
+export function isWeaverIntent(value: unknown): value is WeaverIntent {
   return Boolean(
     value &&
       typeof value === "object" &&
