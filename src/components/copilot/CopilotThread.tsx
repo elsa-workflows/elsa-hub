@@ -1,4 +1,4 @@
-// CopilotThread: connects useChat to the copilot-chat edge function with the
+// WeaverThread: connects useChat to the weaver-chat edge function with the
 // user's JWT, renders messages via AI Elements, and exposes tool intents
 // to the inline approval renderer.
 
@@ -87,7 +87,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
     onError: (e) => {
       const parsed = parseCopilotError(e.message);
       if (parsed?.code === "rate_limited") {
-        toast.error("Copilot rate limit reached", {
+        toast.error("Weaver rate limit reached", {
           description: parsed.error,
           duration: 8000,
         });
@@ -264,7 +264,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
         >
           <PromptInputTextarea
             ref={textareaRef}
-            placeholder="Ask the Elsa Copilot…"
+            placeholder="Ask the Elsa Weaver…"
             autoFocus
           />
           <PromptInputFooter className="justify-end">

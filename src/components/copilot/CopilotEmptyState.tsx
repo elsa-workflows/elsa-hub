@@ -35,7 +35,7 @@ export function CopilotEmptyState({ onPick }: Props) {
         <Sparkles className="size-6" />
       </div>
       <div>
-        <h3 className="text-base font-semibold">Elsa Copilot</h3>
+        <h3 className="text-base font-semibold">Elsa Weaver</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Ask about Elsa, the dashboard, or the Runtime Builder. I'll act on what I can and confirm before changing anything.
         </p>
