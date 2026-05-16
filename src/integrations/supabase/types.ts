@@ -110,11 +110,16 @@ export type Database = {
       copilot_documents: {
         Row: {
           body: string
+          chunk_index: number
+          commit_sha: string | null
+          content_hash: string | null
           created_at: string
           embedding: string | null
           external_id: string | null
           id: string
           metadata: Json
+          path: string | null
+          repo: string | null
           source: string
           title: string
           updated_at: string
@@ -122,11 +127,16 @@ export type Database = {
         }
         Insert: {
           body: string
+          chunk_index?: number
+          commit_sha?: string | null
+          content_hash?: string | null
           created_at?: string
           embedding?: string | null
           external_id?: string | null
           id?: string
           metadata?: Json
+          path?: string | null
+          repo?: string | null
           source: string
           title: string
           updated_at?: string
@@ -134,11 +144,16 @@ export type Database = {
         }
         Update: {
           body?: string
+          chunk_index?: number
+          commit_sha?: string | null
+          content_hash?: string | null
           created_at?: string
           embedding?: string | null
           external_id?: string | null
           id?: string
           metadata?: Json
+          path?: string | null
+          repo?: string | null
           source?: string
           title?: string
           updated_at?: string
@@ -1378,6 +1393,15 @@ export type Database = {
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
+      copilot_documents_summary: {
+        Args: never
+        Returns: {
+          chunk_count: number
+          doc_count: number
+          last_updated_at: string
+          source: string
+        }[]
+      }
       create_credit_adjustment: {
         Args: {
           p_adjustment_type: string
