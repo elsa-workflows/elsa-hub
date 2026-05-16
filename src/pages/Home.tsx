@@ -97,8 +97,9 @@ export default function Home() {
             <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-fade-in-up" style={{
             animationDelay: "0.1s"
           }}>
-              Build powerful workflow-driven applications with Elsa. Design visually,
-              code in C#, and scale to any size.
+              Elsa is the workflow engine for .NET applications. Build workflows in
+              C#, the visual designer, or JSON — and run anything from short-running
+              tasks to long-running, scheduled, and event-driven processes.
             </p>
 
             {/* Benefits */}
