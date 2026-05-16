@@ -1,9 +1,9 @@
 const VIDEO_MP4 =
-  "https://raw.githubusercontent.com/elsa-workflows/elsa-core/codex/elsa-readme-video/design/video/exports/elsa-workflows-readme.mp4";
+  "https://raw.githubusercontent.com/elsa-workflows/elsa-core/main/design/video/exports/elsa-workflows-readme.mp4";
 const VIDEO_GIF =
-  "https://raw.githubusercontent.com/elsa-workflows/elsa-core/codex/elsa-readme-video/design/video/exports/elsa-workflows-readme.gif";
+  "https://raw.githubusercontent.com/elsa-workflows/elsa-core/main/design/video/exports/elsa-workflows-readme.gif";
 const VIDEO_POSTER =
-  "https://raw.githubusercontent.com/elsa-workflows/elsa-core/codex/elsa-readme-video/design/video/exports/elsa-workflows-readme-poster.png";
+  "https://raw.githubusercontent.com/elsa-workflows/elsa-core/main/design/video/exports/elsa-workflows-readme-poster.png";
 
 export function HeroVideo() {
   return (
