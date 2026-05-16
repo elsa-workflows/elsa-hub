@@ -107,143 +107,6 @@ export type Database = {
           },
         ]
       }
-      copilot_documents: {
-        Row: {
-          body: string
-          chunk_index: number
-          commit_sha: string | null
-          content_hash: string | null
-          created_at: string
-          embedding: string | null
-          external_id: string | null
-          id: string
-          metadata: Json
-          path: string | null
-          repo: string | null
-          source: string
-          title: string
-          updated_at: string
-          url: string | null
-        }
-        Insert: {
-          body: string
-          chunk_index?: number
-          commit_sha?: string | null
-          content_hash?: string | null
-          created_at?: string
-          embedding?: string | null
-          external_id?: string | null
-          id?: string
-          metadata?: Json
-          path?: string | null
-          repo?: string | null
-          source: string
-          title: string
-          updated_at?: string
-          url?: string | null
-        }
-        Update: {
-          body?: string
-          chunk_index?: number
-          commit_sha?: string | null
-          content_hash?: string | null
-          created_at?: string
-          embedding?: string | null
-          external_id?: string | null
-          id?: string
-          metadata?: Json
-          path?: string | null
-          repo?: string | null
-          source?: string
-          title?: string
-          updated_at?: string
-          url?: string | null
-        }
-        Relationships: []
-      }
-      copilot_messages: {
-        Row: {
-          ai_sdk_id: string | null
-          created_at: string
-          id: string
-          parts: Json
-          role: string
-          thread_id: string
-        }
-        Insert: {
-          ai_sdk_id?: string | null
-          created_at?: string
-          id?: string
-          parts?: Json
-          role: string
-          thread_id: string
-        }
-        Update: {
-          ai_sdk_id?: string | null
-          created_at?: string
-          id?: string
-          parts?: Json
-          role?: string
-          thread_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "copilot_messages_thread_id_fkey"
-            columns: ["thread_id"]
-            isOneToOne: false
-            referencedRelation: "copilot_threads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      copilot_rate_events: {
-        Row: {
-          created_at: string
-          id: number
-          key: string
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          key: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          key?: string
-        }
-        Relationships: []
-      }
-      copilot_threads: {
-        Row: {
-          created_at: string
-          id: string
-          last_message_at: string
-          route_context: Json
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_message_at?: string
-          route_context?: Json
-          title?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_message_at?: string
-          route_context?: Json
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       credit_bundles: {
         Row: {
           billing_type: Database["public"]["Enums"]["billing_type"]
@@ -1246,6 +1109,143 @@ export type Database = {
           id?: string
           token_hash?: string
           used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weaver_documents: {
+        Row: {
+          body: string
+          chunk_index: number
+          commit_sha: string | null
+          content_hash: string | null
+          created_at: string
+          embedding: string | null
+          external_id: string | null
+          id: string
+          metadata: Json
+          path: string | null
+          repo: string | null
+          source: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          body: string
+          chunk_index?: number
+          commit_sha?: string | null
+          content_hash?: string | null
+          created_at?: string
+          embedding?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          path?: string | null
+          repo?: string | null
+          source: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          body?: string
+          chunk_index?: number
+          commit_sha?: string | null
+          content_hash?: string | null
+          created_at?: string
+          embedding?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json
+          path?: string | null
+          repo?: string | null
+          source?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      weaver_messages: {
+        Row: {
+          ai_sdk_id: string | null
+          created_at: string
+          id: string
+          parts: Json
+          role: string
+          thread_id: string
+        }
+        Insert: {
+          ai_sdk_id?: string | null
+          created_at?: string
+          id?: string
+          parts?: Json
+          role: string
+          thread_id: string
+        }
+        Update: {
+          ai_sdk_id?: string | null
+          created_at?: string
+          id?: string
+          parts?: Json
+          role?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copilot_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "weaver_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weaver_rate_events: {
+        Row: {
+          created_at: string
+          id: number
+          key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          key: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          key?: string
+        }
+        Relationships: []
+      }
+      weaver_threads: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          route_context: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          route_context?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          route_context?: Json
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

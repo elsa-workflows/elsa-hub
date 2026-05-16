@@ -1,9 +1,9 @@
-// Admin-only ingestion job for the Copilot knowledge base.
+// Admin-only ingestion job for the Weaver knowledge base.
 // Embeds:
 //  - Service providers and their active credit bundles (from Postgres)
 //  - Packages + features + infrastructure providers (from runtime-builder-catalog API)
 //  - Curated FAQ + page snippets (hard-coded below — short, source-of-truth copy)
-// Writes embeddings into copilot_documents using the service role.
+// Writes embeddings into weaver_documents using the service role.
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { embedTexts } from "../_shared/ai-gateway.ts";
@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
   }
 
   // Auth: cron secret OR platform admin
-  const CRON_SECRET = Deno.env.get("COPILOT_INGEST_CRON_SECRET");
+  const CRON_SECRET = Deno.env.get("WEAVER_INGEST_CRON_SECRET");
   const providedCronSecret = req.headers.get("x-cron-secret");
   let actor: "cron" | "admin" = "admin";
 
@@ -331,7 +331,7 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     }));
     const { error } = await supabaseService
-      .from("copilot_documents")
+      .from("weaver_documents")
       .upsert(rows, { onConflict: "source,external_id" });
     if (error) {
       console.error("upsert error", error);

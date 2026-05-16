@@ -1,8 +1,8 @@
-// Applies copilot tool intents to the Runtime Builder Zustand store.
+// Applies weaver tool intents to the Runtime Builder Zustand store.
 // All entry points return a human-readable result for the chat UI.
 
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
-import type { CopilotIntent } from "./intents";
+import type { WeaverIntent } from "./intents";
 import type { CatalogV2, InfraKind, Strategy } from "@/lib/runtime-builder/types-v2";
 
 export interface ApplyResult {
@@ -11,7 +11,7 @@ export interface ApplyResult {
 }
 
 export function applyRbIntent(
-  intent: CopilotIntent,
+  intent: WeaverIntent,
   catalog: CatalogV2 | null,
 ): ApplyResult {
   const store = useRuntimeBuilder.getState();

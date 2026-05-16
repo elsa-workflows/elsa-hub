@@ -1,4 +1,4 @@
-// CopilotThread: connects useChat to the copilot-chat edge function with the
+// WeaverThread: connects useChat to the weaver-chat edge function with the
 // user's JWT, renders messages via AI Elements, and exposes tool intents
 // to the inline approval renderer.
 
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCopilot } from "@/contexts/CopilotContext";
+import { useWeaver } from "@/contexts/WeaverContext";
 import {
   Conversation,
   ConversationContent,
@@ -28,12 +28,12 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import { CopilotToolPart } from "./CopilotToolPart";
-import { CopilotEmptyState } from "./CopilotEmptyState";
+import { WeaverToolPart } from "./WeaverToolPart";
+import { WeaverEmptyState } from "./WeaverEmptyState";
 
-const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/copilot-chat";
+const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/weaver-chat";
 
-type CopilotServerError = {
+type WeaverServerError = {
   error: string;
   code?: string;
   retryAfterSeconds?: number;
@@ -41,12 +41,12 @@ type CopilotServerError = {
 
 // The AI SDK's `Error.message` for a non-OK response is the raw response body.
 // Our edge function returns JSON for known failures; fall back to plain text.
-function parseCopilotError(message: string): CopilotServerError | null {
+function parseWeaverError(message: string): WeaverServerError | null {
   if (!message) return null;
   try {
     const parsed = JSON.parse(message);
     if (parsed && typeof parsed === "object" && typeof parsed.error === "string") {
-      return parsed as CopilotServerError;
+      return parsed as WeaverServerError;
     }
   } catch {
     // not JSON
@@ -54,15 +54,15 @@ function parseCopilotError(message: string): CopilotServerError | null {
   return null;
 }
 
-interface CopilotThreadProps {
+interface WeaverThreadProps {
   threadId: string;
   initialMessages?: UIMessage[];
   onFinish?: () => void;
 }
 
-export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotThreadProps) {
+export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThreadProps) {
   const { session, user } = useAuth();
-  const { routeContext } = useCopilot();
+  const { routeContext } = useWeaver();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cancelSavedRef = useRef(false);
 
@@ -85,9 +85,9 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
     transport,
     messages: initialMessages,
     onError: (e) => {
-      const parsed = parseCopilotError(e.message);
+      const parsed = parseWeaverError(e.message);
       if (parsed?.code === "rate_limited") {
-        toast.error("Copilot rate limit reached", {
+        toast.error("Weaver rate limit reached", {
           description: parsed.error,
           duration: 8000,
         });
@@ -116,7 +116,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
         }
         if (parts.length > 0) {
           const { error: insertErr } = await supabase
-            .from("copilot_messages")
+            .from("weaver_messages")
             .insert({
               thread_id: threadId,
               role: "assistant",
@@ -170,7 +170,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
               description=""
               className="border-none"
             >
-              <CopilotEmptyState
+              <WeaverEmptyState
                 onPick={(text) => sendMessage({ text })}
               />
             </ConversationEmptyState>
@@ -195,7 +195,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
                   }
                   if (part.type?.startsWith("tool-") || part.type === "dynamic-tool") {
                     return (
-                      <CopilotToolPart
+                      <WeaverToolPart
                         key={idx}
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         part={part as any}
@@ -230,7 +230,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
           ) : null}
 
           {error ? (() => {
-            const parsed = parseCopilotError(error.message);
+            const parsed = parseWeaverError(error.message);
             const isRateLimited = parsed?.code === "rate_limited";
             return (
               <div
@@ -264,7 +264,7 @@ export function CopilotThread({ threadId, initialMessages, onFinish }: CopilotTh
         >
           <PromptInputTextarea
             ref={textareaRef}
-            placeholder="Ask the Elsa Copilot…"
+            placeholder="Ask the Elsa Weaver…"
             autoFocus
           />
           <PromptInputFooter className="justify-end">

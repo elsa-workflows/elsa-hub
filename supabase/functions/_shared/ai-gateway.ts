@@ -12,7 +12,7 @@ export const createLovableAiGatewayProvider = (lovableApiKey: string) =>
 
 /**
  * Embed an array of strings using Lovable AI Gateway.
- * Returns 768-dimensional vectors to match the copilot_documents.embedding column.
+ * Returns 768-dimensional vectors to match the weaver_documents.embedding column.
  * Uses google/gemini-embedding-001 with explicit dimensions=768.
  */
 export async function embedTexts(

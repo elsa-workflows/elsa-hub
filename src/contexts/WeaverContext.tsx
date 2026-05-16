@@ -2,12 +2,12 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
 import { useLocation, useNavigate } from "react-router-dom";
 import { useOrganization } from "@/contexts/OrganizationContext";
 
-type CopilotState = {
+type WeaverState = {
   open: boolean;
   threadId: string | null;
 };
 
-interface CopilotContextValue {
+interface WeaverContextValue {
   open: boolean;
   threadId: string | null;
   routeContext: {
@@ -22,7 +22,7 @@ interface CopilotContextValue {
   navigate: (path: string) => void;
 }
 
-const CopilotContext = createContext<CopilotContextValue | null>(null);
+const WeaverContext = createContext<WeaverContextValue | null>(null);
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -31,8 +31,8 @@ function newId(): string {
   return `t-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
 }
 
-export function CopilotProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<CopilotState>({ open: false, threadId: null });
+export function WeaverProvider({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<WeaverState>({ open: false, threadId: null });
   const location = useLocation();
   const navigate = useNavigate();
   const { selectedOrganization } = useOrganization();
@@ -68,7 +68,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, threadId: id }));
   }, []);
 
-  const value: CopilotContextValue = {
+  const value: WeaverContextValue = {
     open: state.open,
     threadId: state.threadId,
     routeContext,
@@ -79,11 +79,11 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     navigate: (path: string) => navigate(path),
   };
 
-  return <CopilotContext.Provider value={value}>{children}</CopilotContext.Provider>;
+  return <WeaverContext.Provider value={value}>{children}</WeaverContext.Provider>;
 }
 
-export function useCopilot() {
-  const ctx = useContext(CopilotContext);
-  if (!ctx) throw new Error("useCopilot must be used within CopilotProvider");
+export function useWeaver() {
+  const ctx = useContext(WeaverContext);
+  if (!ctx) throw new Error("useWeaver must be used within WeaverProvider");
   return ctx;
 }
