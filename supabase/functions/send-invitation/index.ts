@@ -171,7 +171,6 @@ const handler = async (req: Request): Promise<Response> => {
         organization_id: organizationId,
         email: email.toLowerCase(),
         role,
-        token: token_value,
         token_hash: token_hash,
         invited_by: userId,
         expires_at: expiresAt.toISOString(),

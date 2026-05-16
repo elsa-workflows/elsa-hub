@@ -77,25 +77,8 @@ export function useUserInvitations() {
 
   const acceptMutation = useMutation({
     mutationFn: async (invitationId: string) => {
-      // We need to get the token for this invitation to use accept_invitation
-      // Since we can't access the token directly, we'll use a workaround
-      // The accept_invitation RPC requires a token, but we have the invitation ID
-      // We need to create a new RPC or use a different approach
-      
-      // For now, let's use direct table update approach via a new RPC
-      // Actually, let's check if we can get the token from the invitation
-      const { data: invitation } = await supabase
-        .from("invitations")
-        .select("token")
-        .eq("id", invitationId)
-        .single();
-
-      if (!invitation?.token) {
-        throw new Error("Could not retrieve invitation token");
-      }
-
-      const { data, error } = await supabase.rpc("accept_invitation", {
-        p_token: invitation.token,
+      const { data, error } = await supabase.rpc("accept_invitation_by_id", {
+        p_invitation_id: invitationId,
       });
 
       if (error) throw error;
