@@ -10,7 +10,7 @@ import { embedTexts } from "../_shared/ai-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -232,40 +232,70 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   }
 
-  // Auth: only platform admins
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+  // Auth: cron secret OR platform admin
+  const CRON_SECRET = Deno.env.get("COPILOT_INGEST_CRON_SECRET");
+  const providedCronSecret = req.headers.get("x-cron-secret");
+  let actor: "cron" | "admin" = "admin";
+
+  if (providedCronSecret) {
+    if (!CRON_SECRET) {
+      return new Response(
+        JSON.stringify({ error: "Cron secret not configured" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    // constant-time compare
+    const a = new TextEncoder().encode(providedCronSecret);
+    const b = new TextEncoder().encode(CRON_SECRET);
+    let ok = a.length === b.length;
+    const len = Math.max(a.length, b.length);
+    for (let i = 0; i < len; i++) ok = ok && (a[i] === b[i]);
+    if (!ok) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    actor = "cron";
+  } else {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseAsUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-  }
-  const supabaseAsUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: userRes } = await supabaseAsUser.auth.getUser();
-  const userId = userRes.user?.id;
-  if (!userId) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const { data: userRes } = await supabaseAsUser.auth.getUser();
+    const userId = userRes.user?.id;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseServiceCheck = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
     });
+    const { data: adminRow } = await supabaseServiceCheck
+      .from("platform_admins")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!adminRow) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
+
   const supabaseService = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: adminRow } = await supabaseService
-    .from("platform_admins")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!adminRow) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
   // Build documents
   const [catalog, dbDocs] = await Promise.all([
@@ -316,8 +346,9 @@ Deno.serve(async (req) => {
     upserted += rows.length;
   }
 
+  console.log(JSON.stringify({ actor, upserted, total: docs.length }));
   return new Response(
-    JSON.stringify({ ok: true, upserted, total: docs.length }),
+    JSON.stringify({ ok: true, actor, upserted, total: docs.length }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
