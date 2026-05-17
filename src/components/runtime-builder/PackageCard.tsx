@@ -39,21 +39,21 @@ export function PackageCard({
       )}
     >
       <div className="flex w-full items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <span
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-lg",
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
               selected ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground",
             )}
           >
             {selected ? <Check className="h-4 w-4" /> : <Package className="h-4 w-4" />}
           </span>
-          <div>
-            <p className="font-display text-base font-semibold">{pkg.displayName}</p>
-            <p className="font-mono text-[10px] text-muted-foreground">{pkg.id}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-base font-semibold" title={pkg.displayName}>{pkg.displayName}</p>
+            <p className="truncate font-mono text-[10px] text-muted-foreground" title={pkg.id}>{pkg.id}</p>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex shrink-0 flex-col items-end gap-1">
           <Badge variant="outline" className="border-primary/40 text-[10px] text-primary">
             {pkg.licenseTier}
           </Badge>
