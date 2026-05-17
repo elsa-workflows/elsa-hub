@@ -14,6 +14,7 @@ import {
 } from "npm:ai@^5.0.0";
 import { z } from "npm:zod@^3.23.8";
 import { createLovableAiGatewayProvider, embedTexts } from "../_shared/ai-gateway.ts";
+import { ask as deepwikiAsk, readPage as deepwikiReadPage, readStructure as deepwikiReadStructure, type Repo as DeepWikiRepo } from "./deepwiki-mcp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
