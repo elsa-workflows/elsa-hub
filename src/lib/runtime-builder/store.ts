@@ -3,6 +3,7 @@ import { persist, type PersistStorage, type StorageValue } from "zustand/middlew
 import { toast } from "sonner";
 import type {
   BuilderStateV2,
+  CatalogV2,
   InfraKind,
   InfrastructureSelection,
   PackageSource,
@@ -11,6 +12,7 @@ import type {
 } from "./types-v2";
 import { EMPTY_BUILDER_STATE_V2 } from "./types-v2";
 import { isLegacyV1Snapshot } from "./migration-map";
+import { applyClosure } from "./dependencies";
 
 const STORAGE_KEY = "elsa-runtime-builder/v1"; // kept for forwards compatibility
 
