@@ -22,6 +22,8 @@ interface Props {
   selectedVersion: string | null;
   onToggle: (version: string) => void;
   onVersionChange: (version: string) => void;
+  /** Hide the category pill (useful when already filtered by category). */
+  hideCategory?: boolean;
 }
 
 export function PackageCard({
@@ -30,6 +32,7 @@ export function PackageCard({
   selectedVersion,
   onToggle,
   onVersionChange,
+  hideCategory = false,
 }: Props) {
   const version = selectedVersion ?? pkg.version;
 
@@ -38,27 +41,29 @@ export function PackageCard({
       type="button"
       onClick={() => onToggle(version)}
       className={cn(
-        "group flex w-full flex-col items-start gap-3 rounded-2xl border bg-card/40 p-5 text-left backdrop-blur-xl transition",
+        "group flex w-full flex-col items-start gap-2 rounded-lg border bg-card/40 p-3 text-left transition",
         selected
-          ? "border-primary/60 shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]"
-          : "border-border/60 hover:border-border",
+          ? "border-primary/60 bg-primary/[0.04] shadow-[0_0_0_1px_hsl(var(--primary)/0.3)]"
+          : "border-border/60 hover:border-border hover:bg-card/60",
       )}
     >
-      <div className="flex w-full items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="flex w-full items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
           <span
             className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md",
               selected ? "bg-primary/15 text-primary" : "bg-muted/40 text-muted-foreground",
             )}
           >
-            {selected ? <Check className="h-4 w-4" /> : <Package className="h-4 w-4" />}
+            {selected ? <Check className="h-3.5 w-3.5" /> : <Package className="h-3.5 w-3.5" />}
           </span>
-          <TooltipProvider delayDuration={200}>
+          <TooltipProvider delayDuration={250}>
             <div className="min-w-0 flex-1">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <p className="truncate font-display text-base font-semibold">{pkg.displayName}</p>
+                  <p className="line-clamp-2 break-words text-sm font-medium leading-snug">
+                    {pkg.displayName}
+                  </p>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-sm break-all">
                   {pkg.displayName}
@@ -66,7 +71,9 @@ export function PackageCard({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <p className="truncate font-mono text-[10px] text-muted-foreground">{pkg.id}</p>
+                  <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
+                    {pkg.id}
+                  </p>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-sm break-all font-mono text-xs">
                   {pkg.id}
@@ -76,13 +83,13 @@ export function PackageCard({
           </TooltipProvider>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
-          <Badge variant="outline" className="border-primary/40 text-[10px] text-primary">
+          <Badge variant="outline" className="border-primary/40 px-1.5 py-0 text-[9px] uppercase text-primary">
             {pkg.licenseTier}
           </Badge>
           {pkg.stability !== "Stable" && (
             <Badge
               variant="outline"
-              className="border-amber-500/40 text-[10px] text-amber-300"
+              className="border-amber-500/40 px-1.5 py-0 text-[9px] uppercase text-amber-300"
             >
               {pkg.stability}
             </Badge>
@@ -91,20 +98,24 @@ export function PackageCard({
       </div>
 
       {pkg.description && (
-        <p className="text-xs text-muted-foreground">{pkg.description}</p>
+        <p className="line-clamp-2 text-xs text-muted-foreground">{pkg.description}</p>
       )}
 
-      <div className="flex w-full items-center justify-between gap-3">
-        <Badge variant="outline" className="border-border/50 text-[10px]">
-          {pkg.category}
-        </Badge>
+      <div className="mt-auto flex w-full items-center justify-between gap-2 pt-1">
+        {!hideCategory ? (
+          <Badge variant="outline" className="border-border/50 text-[10px] font-normal">
+            {pkg.category}
+          </Badge>
+        ) : (
+          <span />
+        )}
         <div onClick={(e) => e.stopPropagation()}>
           <Select
             value={version}
             onValueChange={(v) => onVersionChange(v)}
             disabled={!selected}
           >
-            <SelectTrigger className="h-8 w-[140px] text-xs">
+            <SelectTrigger className="h-7 w-[120px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
