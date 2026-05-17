@@ -135,6 +135,15 @@ export function applyRbIntent(
         message: `Selected ${provider.displayName} for ${intent.kindOf}.`,
       });
     }
+    case "rb.selectImage": {
+      store.setImageSlug(intent.slug);
+      if (intent.tag) store.setImageTag(intent.tag);
+      if (typeof intent.hostPort === "number") store.setImageHostPort(intent.hostPort);
+      return finish({
+        ok: true,
+        message: `Selected image ${intent.slug}${intent.tag ? `:${intent.tag}` : ""}.`,
+      });
+    }
     case "rb.autoFillInfrastructure":
       return finish({ ok: true, message: "Trigger auto-fill from the Infrastructure step." });
     case "rb.validate":
