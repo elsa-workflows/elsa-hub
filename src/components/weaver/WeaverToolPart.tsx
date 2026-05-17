@@ -4,7 +4,8 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check, ExternalLink, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
+import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
 import type { ToolUIPart, DynamicToolUIPart } from "ai";
@@ -319,6 +320,51 @@ function buildChecklist(
         },
       ];
     }
+    case "rb.selectImage": {
+      const next = findBuilderImage(intent.slug);
+      if (!next) {
+        return [{ label: `Unknown image: ${intent.slug}`, tone: "warn" }];
+      }
+      const cur = state.imageSelection;
+      const curImg = findBuilderImage(cur.slug);
+      const nextTag = intent.tag ?? cur.tag;
+      const nextPort = intent.hostPort ?? cur.hostPort;
+      const slugChanged = cur.slug !== next.slug;
+      const tagChanged = cur.tag !== nextTag;
+      const portChanged = cur.hostPort !== nextPort;
+      if (!slugChanged && !tagChanged && !portChanged) {
+        return [
+          {
+            label: `${next.name} @ ${nextTag} is already selected`,
+            noop: true,
+          },
+        ];
+      }
+      const items: ChecklistItem[] = [
+        {
+          label: "Runtime image",
+          from: curImg ? `${curImg.name} @ ${cur.tag}` : `${cur.slug} @ ${cur.tag}`,
+          to: `${next.name} @ ${nextTag}`,
+          tone: "info",
+        },
+      ];
+      if (portChanged) {
+        items.push({
+          label: "Host port",
+          from: String(cur.hostPort),
+          to: String(nextPort),
+          tone: "info",
+        });
+      }
+      if (next.requiresServer) {
+        items.push({
+          label: "Server companion",
+          detail: "A Server service will be emitted alongside Studio in the bundle.",
+          tone: "warn",
+        });
+      }
+      return items;
+    }
     case "rb.autoFillInfrastructure":
       return [
         {
@@ -372,6 +418,14 @@ function describeIntent(i: WeaverIntent): {
         detail: "Updates infrastructure selection.",
         icon: Server,
       };
+    case "rb.selectImage": {
+      const img = findBuilderImage(i.slug);
+      return {
+        title: img ? `Use ${img.name}` : `Use image ${i.slug}`,
+        detail: i.reason ?? img?.tagline ?? "Updates the runtime image selection.",
+        icon: Container,
+      };
+    }
     case "rb.autoFillInfrastructure":
       return {
         title: "Auto-fill infrastructure",
