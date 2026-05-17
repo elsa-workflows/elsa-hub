@@ -97,6 +97,14 @@ export function PackageCard({
               {pkg.stability}
             </Badge>
           )}
+          {autoAdded && (
+            <Badge
+              variant="outline"
+              className="border-muted-foreground/30 px-1.5 py-0 text-[9px] uppercase text-muted-foreground"
+            >
+              Required
+            </Badge>
+          )}
         </div>
       </div>
 
