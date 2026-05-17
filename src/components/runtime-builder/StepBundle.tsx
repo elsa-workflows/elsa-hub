@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import JSZip from "jszip";
 import { Highlight, themes } from "prism-react-renderer";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import {
@@ -9,15 +10,9 @@ import { generateBundleFilesV2 } from "@/lib/runtime-builder/generate";
 import { validateBuildV2 } from "@/lib/runtime-builder/validate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Copy, Download, FileText } from "lucide-react";
+import { Check, Copy, Download, FileText, Loader2 } from "lucide-react";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
 
 const EMPTY_CATALOG: CatalogV2 = { packages: [], infrastructureProviders: [] };
