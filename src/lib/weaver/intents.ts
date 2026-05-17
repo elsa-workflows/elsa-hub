@@ -9,6 +9,7 @@ export type WeaverIntent =
   | RbToggleFeatureIntent
   | RbSetFeatureSettingIntent
   | RbSelectInfrastructureIntent
+  | RbSelectImageIntent
   | RbAutoFillInfrastructureIntent
   | RbValidateIntent
   | RbGenerateBundleIntent;
