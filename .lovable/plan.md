@@ -1,92 +1,132 @@
 ## Goal
 
-Replace the single text-input editor used for feature settings with a small, extensible **editor framework** that dispatches on the API's `jsonType` (and future UI hint fields). First concrete win: render booleans as a checkbox with the setting name as its label.
+When a user selects a package (or a feature inside a package), automatically select any other packages and features it transitively depends on, so the build is always installable without the user having to hunt down required packages.
 
-## Current state
+## What the catalog actually returns
 
-- `runtime-builder-catalog` returns settings with a `jsonType` field. The normalizer in `src/lib/runtime-builder/catalog-client.ts` (`normalizeFeature`, line 67) currently passes the raw `settings` array through as-is, so `jsonType` never reaches the UI.
-- `SettingSchema` (`src/lib/runtime-builder/types-v2.ts`) uses an internal `type: "string" | "number" | "boolean" | "enum" | "object"`.
-- `SchemaField.tsx` switches on `setting.type` with an inline if-chain (boolean → Switch, number → Input, enum → Select, else → string). Because nothing maps `jsonType → type`, every API-sourced setting falls through to the string Input.
-- `StepConfigure.tsx` renders settings in a 2-col grid and already has a small special case for boolean layout. It will use whatever editor `SchemaField` returns.
+Dependencies live on **features**, not packages:
 
-## Approach
-
-### 1. Normalize the API shape
-
-In `catalog-client.ts`, add a `normalizeSetting` (used by `normalizeFeature`) that:
-
-- Maps `jsonType` → internal `type`:
-  - `"boolean"` → `boolean`
-  - `"integer"` / `"number"` → `number`
-  - `"string"` → `string` (default fallback)
-  - `"object"` → `object`
-  - `"array"` → `string` for now (rendered as text; framework lets us swap later)
-- Preserves `jsonType` and any unknown hint fields on the normalized object (passed through into `SettingSchema` as optional fields) so future editors can read them.
-- Promotes existing hints we already know about: if the raw setting has an `enum`/`enumValues` array, set `type: "enum"` and populate `enumValues` (this gives us a forward path to "dropdown lists with available options").
-
-### 2. Extend `SettingSchema`
-
-In `types-v2.ts`:
-
-- Add `jsonType?: string` and an open-ended `ui?: Record<string, unknown>` (or named optional hint fields like `enumValues`, `format`, `multiline`) to `SettingSchema`. The shape stays backward compatible.
-
-### 3. Introduce an editor registry
-
-New file `src/components/runtime-builder/settings/editors.tsx` exporting:
-
-```ts
-type EditorProps = {
-  id: string;
-  setting: SettingSchema;
-  value: unknown;
-  onChange: (v: unknown) => void;
-};
-type SettingEditor = {
-  match: (s: SettingSchema) => boolean;   // priority via array order
-  render: (p: EditorProps) => JSX.Element;
-  layout?: "inline" | "stacked";          // lets the wrapper choose label placement
-};
-const editors: SettingEditor[] = [ booleanEditor, enumEditor, numberEditor, secretEditor, stringEditor ];
-export function resolveEditor(s: SettingSchema): SettingEditor { ... }
+```jsonc
+{
+  "featureId": "Elsa.Elsa",
+  "dependencies": [
+    { "packageId": null, "featureId": "Elsa.WorkflowManagement", "optional": false },
+    { "packageId": null, "featureId": "Elsa.WorkflowRuntime",    "optional": false }
+  ]
+}
 ```
 
-- `booleanEditor` renders a `Checkbox` + label-on-the-right, layout `"inline"` (label suppressed by the wrapper).
-- `enumEditor` renders the existing `Select`.
-- `numberEditor` renders the numeric `Input`.
-- `secretEditor` (`setting.secret === true`) renders the password input + reveal button.
-- `stringEditor` is the fallback.
+Observations from a live catalog dump (37 packages, 69 dependency entries):
+- `packageId` is currently always `null` — the dependency is identified purely by `featureId`.
+- Many dependency `featureId`s belong to **other packages** (e.g. `Elsa` → features that live in `Elsa.Workflows.Management` and `Elsa.Workflows.Runtime`).
+- A few `featureId`s in the dependency list don't match any known feature exactly (whitespace / casing drift). Those will be treated as best-effort and silently skipped — never throw.
 
-Adding new editors later (e.g., async-loaded dropdown driven by a `ui.options` hint) is a single push into the array.
+So "package dependencies" must be **derived** from feature dependencies via a `featureId → packageId` index built over the whole catalog.
 
-### 4. Refactor `SchemaField.tsx`
+## Design
 
-- Keep the outer wrapper (label row, secret/advanced badges, description, env hint).
-- Call `resolveEditor(setting)`; render its component.
-- When the editor's `layout === "inline"` (boolean), render label + checkbox inline (label to the right of the checkbox), skip the top label row. Otherwise keep current stacked layout.
+### 1. Catalog model — surface dependencies
 
-### 5. Adjust `StepConfigure.tsx`
+`src/lib/runtime-builder/types-v2.ts`
+- Add `dependencies?: FeatureDependency[]` to `PackageFeature`.
+- New type: `FeatureDependency { featureId: string; packageId?: string; optional?: boolean; reason?: string }`.
 
-- Remove the `setting.type === "boolean"` styling hack since the inline layout now lives in the editor wrapper. Keep the 2-col grid.
+`src/lib/runtime-builder/catalog-client.ts`
+- In `normalizeFeature`, map `dependencies` from the raw payload (filtering out `optional === true` is **not** done here — keep the data; the resolver decides).
 
-### 6. Verify
+### 2. Dependency resolver (pure)
 
-- Hard-refresh the catalog page (60s edge cache may need to expire) and confirm:
-  - Boolean settings render as a checkbox with the setting name as label.
-  - Existing number/string/secret/enum settings still work.
-  - No layout regressions in `StepConfigure`.
+New file `src/lib/runtime-builder/dependencies.ts`:
 
-## Technical details
+```ts
+export interface FeatureRef { packageId: string; featureId: string }
 
-- **Files touched**
-  - `src/lib/runtime-builder/types-v2.ts` — extend `SettingSchema`.
-  - `src/lib/runtime-builder/catalog-client.ts` — add `normalizeSetting`, call it from `normalizeFeature`.
-  - `src/components/runtime-builder/settings/editors.tsx` — **new**, editor registry.
-  - `src/components/runtime-builder/SchemaField.tsx` — delegate to registry, handle inline layout.
-  - `src/components/runtime-builder/StepConfigure.tsx` — drop boolean-only flex class.
-- **Backward compatibility**: settings that already have a (legacy) `type` field keep working — `normalizeSetting` only fills in `type` when missing, derived from `jsonType`.
-- **Extensibility**: the registry is order-based and matches on the full `SettingSchema`. Future UI hints (e.g., `ui.widget: "async-select"`, `ui.optionsEndpoint: "/x"`, `ui.format: "duration"`) plug in as new editors without touching existing ones.
+export function buildFeatureIndex(catalog: CatalogV2): Map<string, FeatureRef>
+// Map from featureId → { packageId, featureId } using each package's
+// currently chosen `version` (the normalized one already on PackageManifest).
+
+export function resolveRequiredPackages(
+  catalog: CatalogV2,
+  seedPackageIds: string[],
+): { packageIds: Set<string>; features: Map<string, Set<string>> }
+// BFS:
+//   - Start with seed packages.
+//   - For each package, look at *required* features (see §3 below) and
+//     follow each non-optional dependency.
+//   - Resolve dep.featureId via the index → adds the host packageId and
+//     records the depended-on featureId on that package.
+//   - Repeat until fixed point. Ignore optional deps and unknown featureIds.
+
+export function resolveRequiredFeaturesForSelection(
+  catalog: CatalogV2,
+  selected: SelectedPackage[],
+): Map<string, Set<string>>
+// Same BFS but seeded with the user's explicitly-selected features per
+// package (used when the Features step toggles things).
+```
+
+### 3. What counts as "required" inside a freshly added package?
+
+A package may expose many features, only some of which are needed at runtime. To avoid silently enabling everything, the resolver treats as required:
+
+1. Features the user has already ticked in the Features step (`SelectedPackage.selectedFeatures`).
+2. For packages that were **auto-added** as a dependency, only the specific featureIds that pulled them in.
+3. For packages the user **explicitly added**, no features are auto-ticked. The user still picks features in step 3. Dependency resolution re-runs when they tick a feature.
+
+This keeps the package list complete without surprise-enabling features the user never asked for.
+
+### 4. Store wiring
+
+`src/lib/runtime-builder/store.ts`
+- Add an internal helper `applyDependencyClosure(state, catalog)` (catalog passed in — store stays catalog-agnostic by accepting it via the actions that need it).
+- Extend two actions to take the catalog and run the closure after mutating:
+  - `togglePackage(packageId, version, catalog?)` — on **add**, append missing transitively-required packages (picking each package's default `version`). On **remove**, also remove packages that are now orphaned (no longer required by any remaining selection and were not user-pinned — see §5).
+  - `toggleFeature(packageId, featureId, catalog?)` — on **add**, add any newly required packages + auto-tick the specific dependent featureIds on those packages. On **remove**, recompute and prune orphans.
+- New flag on `SelectedPackage`: `autoAdded?: boolean` (and `autoFeatures?: string[]` for features pulled in by dependencies). User-toggled selections clear `autoAdded`. Orphan pruning only removes packages where `autoAdded === true`.
+
+The `catalog?` arg is optional so existing call sites (and persisted state hydration) keep working; when omitted, the actions behave as today (no resolution).
+
+### 5. UI integration
+
+- `StepPackages.tsx` already calls `togglePackage(pkg.id, pkg.version)` — update those two call sites to pass `catalog` from `useCatalogQuery()`.
+- `StepFeatures.tsx` / `FeatureRow.tsx` — pass `catalog` into `toggleFeature`.
+- `PackageCard` / `PackageListRow` — when rendering a selected package that was auto-added, show a subtle muted badge "Required by <pkgId>" (tooltip lists the chain). Non-blocking; purely informational.
+- `RuntimeBuilderComposer.tsx` already pre-selects via `?package=` — same treatment, pass catalog.
+- Toast (sonner) once per user action when ≥1 package is auto-added: *"Added N required package(s)"*. No toast for feature-only auto-ticks (too chatty).
+
+### 6. Edge cases & safety
+
+- **Cycles**: BFS with a visited set; cycles terminate naturally.
+- **Optional deps** (`optional: true`): never auto-added. Surface them later as a hint in the Validate step (out of scope here).
+- **Unknown featureIds**: skipped silently; logged once to `console.warn` in dev for diagnostics.
+- **Version selection for auto-added packages**: use the catalog's normalized `version` (latest). User can change it afterward in the card.
+- **Removing a user-selected package** that other selections depend on: keep the existing behavior (allow removal); the resolver will re-add it because it's still required. This makes the requirement obvious — the package "snaps back". Alternative (block removal with toast) is rejected as it feels punitive.
+
+### 7. Tests
+
+`src/test/runtime-builder.dependencies.test.ts` (vitest):
+- Index build from a synthetic catalog.
+- Single-step package closure.
+- Multi-hop chain (`A → B → C`).
+- Cycle (`A ↔ B`) terminates.
+- Optional dep is not pulled in.
+- Orphan pruning leaves user-pinned packages alone, removes auto-added ones.
+- Feature-triggered closure auto-ticks the right feature on the dep package.
 
 ## Out of scope
 
-- No new UI hint field is wired up yet beyond what the API currently returns. The plumbing is added; concrete editors for new hints land when those hints ship.
-- No changes to validation, store, or generation logic.
+- Server-side `resolve` enhancements (the API already returns findings; we're doing client-side prevention).
+- Version-range checking (`versionRange` on deps is currently always `null`).
+- UI for surfacing optional/recommended dependencies — separate follow-up.
+
+## Files touched
+
+- `src/lib/runtime-builder/types-v2.ts` — new `FeatureDependency`, fields on `PackageFeature` & `SelectedPackage`.
+- `src/lib/runtime-builder/catalog-client.ts` — map `dependencies` in `normalizeFeature`.
+- `src/lib/runtime-builder/dependencies.ts` — **new** resolver.
+- `src/lib/runtime-builder/store.ts` — closure on `togglePackage` / `toggleFeature`, orphan pruning.
+- `src/components/runtime-builder/StepPackages.tsx` — pass `catalog`, toast.
+- `src/components/runtime-builder/StepFeatures.tsx` + `FeatureRow.tsx` — pass `catalog`.
+- `src/components/runtime-builder/PackageCard.tsx` + `PackageListRow.tsx` — "Required by" badge.
+- `src/pages/enterprise/RuntimeBuilderComposer.tsx` — pass `catalog` to the `?package=` preselect.
+- `src/test/runtime-builder.dependencies.test.ts` — **new**.
