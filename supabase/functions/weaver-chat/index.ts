@@ -51,6 +51,8 @@ Strict rules:
 - The user's current page is provided in routeContext. Tailor suggestions to it.
 - For account data (orders, credits, organizations, work history) call the corresponding tool. Do not guess.
 - For Runtime Builder changes (add package, toggle feature, pick infra, validate, generate) call the matching rb_* tool. The client will ask the user to confirm before applying.
+- For questions about Elsa source code, internal implementation, class behavior, activity internals, or contributor-level details, call recommendDeepWiki instead of guessing or apologizing. DeepWiki is the authoritative AI index of the elsa-core, elsa-studio, and elsa-extensions repositories.
+- Do not invent code references, class names, or method signatures. If searchKnowledge returns nothing relevant and the question is code-level, escalate to recommendDeepWiki.
 - Never expose internal IDs, tokens, or service role details.`;
 
 function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
@@ -128,6 +130,26 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
         if (error) return { error: error.message, bundles: [] };
         return { bundles: data ?? [] };
       },
+    }),
+
+    recommendDeepWiki: tool({
+      description:
+        "Escalate a code-level or source-implementation question to DeepWiki, the AI index of the elsa-core, elsa-studio, and elsa-extensions repositories. Returns a DeepWiki intent the UI renders as an external-link card. Use for questions about C# internals, activity implementations, class behavior, persistence stores, runtime internals, or any 'how does X work under the hood' question.",
+      inputSchema: z.object({
+        query: z.string().min(2).describe("The user's question, used as DeepWiki search query"),
+        repo: z
+          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
+          .default("elsa-core")
+          .describe("Which repository to search. Default to elsa-core."),
+        reason: z.string().describe("One-line justification shown on the card"),
+      }),
+      execute: async ({ query, repo, reason }) => ({
+        kind: "deepwiki",
+        repo,
+        url: `https://deepwiki.com/elsa-workflows/${repo}?q=${encodeURIComponent(query)}`,
+        label: `Ask DeepWiki: ${query.length > 60 ? query.slice(0, 57) + "..." : query}`,
+        reason,
+      }),
     }),
 
     bookIntroCall: tool({
