@@ -283,15 +283,12 @@ export const useRuntimeBuilder = create<BuilderStore>()(
             const settings = { ...existing.settings };
             if (has) delete settings[featureId];
 
-            // If this was an auto-added package and we just unticked the last
-            // user-facing feature, drop it — closure will re-add it if still
-            // required.
-            const becomesEmptyAuto =
-              has &&
-              existing.autoAdded === true &&
-              selectedFeatures.length === 0;
+            // If unticking the last feature, drop the package entirely.
+            // Closure will re-add it as auto if still required by another
+            // selected capability.
+            const becomesEmpty = has && selectedFeatures.length === 0;
 
-            working = becomesEmptyAuto
+            working = becomesEmpty
               ? s.state.selectedPackages.filter(
                   (p) => p.packageId !== packageId,
                 )
