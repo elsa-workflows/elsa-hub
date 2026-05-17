@@ -54,10 +54,26 @@ export function PackageCard({
           >
             {selected ? <Check className="h-4 w-4" /> : <Package className="h-4 w-4" />}
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-base font-semibold" title={pkg.displayName}>{pkg.displayName}</p>
-            <p className="truncate font-mono text-[10px] text-muted-foreground" title={pkg.id}>{pkg.id}</p>
-          </div>
+          <TooltipProvider delayDuration={200}>
+            <div className="min-w-0 flex-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="truncate font-display text-base font-semibold">{pkg.displayName}</p>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-sm break-all">
+                  {pkg.displayName}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="truncate font-mono text-[10px] text-muted-foreground">{pkg.id}</p>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-sm break-all font-mono text-xs">
+                  {pkg.id}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <Badge variant="outline" className="border-primary/40 text-[10px] text-primary">
