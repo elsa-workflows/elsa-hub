@@ -28,12 +28,14 @@ import { StepInfrastructure } from "@/components/runtime-builder/StepInfrastruct
 import { StepConfigure } from "@/components/runtime-builder/StepConfigure";
 import { StepValidate } from "@/components/runtime-builder/StepValidate";
 import { StepBundle } from "@/components/runtime-builder/StepBundle";
+import { StepImage } from "@/components/runtime-builder/StepImage";
 import { ImportDialog } from "@/components/runtime-builder/ImportDialog";
 import { ExportDialog } from "@/components/runtime-builder/ExportDialog";
 import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
 import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
 
 type StepKey =
+  | "image"
   | "sources"
   | "packages"
   | "features"
@@ -51,21 +53,23 @@ interface StepDef {
 }
 
 const BASIC_STEPS: StepDef[] = [
-  { id: 1, key: "capabilities", label: "Capabilities", short: "Pick" },
-  { id: 2, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 3, key: "configure", label: "Configure", short: "Configure" },
-  { id: 4, key: "validate", label: "Validate", short: "Validate" },
-  { id: 5, key: "bundle", label: "Bundle", short: "Bundle" },
+  { id: 1, key: "image", label: "Image", short: "Image" },
+  { id: 2, key: "capabilities", label: "Capabilities", short: "Pick" },
+  { id: 3, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 4, key: "configure", label: "Configure", short: "Configure" },
+  { id: 5, key: "validate", label: "Validate", short: "Validate" },
+  { id: 6, key: "bundle", label: "Bundle", short: "Bundle" },
 ];
 
 const ADVANCED_STEPS: StepDef[] = [
-  { id: 1, key: "sources", label: "Sources", short: "Sources" },
-  { id: 2, key: "packages", label: "Packages", short: "Packages" },
-  { id: 3, key: "features", label: "Features", short: "Features" },
-  { id: 4, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 5, key: "configure", label: "Configure", short: "Configure" },
-  { id: 6, key: "validate", label: "Validate", short: "Validate" },
-  { id: 7, key: "bundle", label: "Bundle", short: "Bundle" },
+  { id: 1, key: "image", label: "Image", short: "Image" },
+  { id: 2, key: "sources", label: "Sources", short: "Sources" },
+  { id: 3, key: "packages", label: "Packages", short: "Packages" },
+  { id: 4, key: "features", label: "Features", short: "Features" },
+  { id: 5, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 6, key: "configure", label: "Configure", short: "Configure" },
+  { id: 7, key: "validate", label: "Validate", short: "Validate" },
+  { id: 8, key: "bundle", label: "Bundle", short: "Bundle" },
 ];
 
 export default function RuntimeBuilderComposer() {
