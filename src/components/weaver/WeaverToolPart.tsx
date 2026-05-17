@@ -418,6 +418,14 @@ function describeIntent(i: WeaverIntent): {
         detail: "Updates infrastructure selection.",
         icon: Server,
       };
+    case "rb.selectImage": {
+      const img = findBuilderImage(i.slug);
+      return {
+        title: img ? `Use ${img.name}` : `Use image ${i.slug}`,
+        detail: i.reason ?? img?.tagline ?? "Updates the runtime image selection.",
+        icon: Container,
+      };
+    }
     case "rb.autoFillInfrastructure":
       return {
         title: "Auto-fill infrastructure",
