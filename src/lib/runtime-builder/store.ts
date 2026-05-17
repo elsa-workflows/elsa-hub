@@ -331,6 +331,8 @@ export const useRuntimeBuilder = create<BuilderStore>()(
           }
           return { state: { ...s.state, selectedPackages: nextSelected } };
         }),
+
+      setFeatureSetting: (packageId, featureId, name, value) =>
         set((s) => ({
           state: {
             ...s.state,
