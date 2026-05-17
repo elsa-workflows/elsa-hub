@@ -351,9 +351,6 @@ function buildDockerCompose(ctx: Ctx): {
 
   // Studio needs a Server companion to be runnable.
   if (selected.role === "studio") {
-    const { findBuilderImage } =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("./images") as typeof import("./images");
     const server = findBuilderImage("elsa-pro-server");
     if (server) {
       const companion = {
