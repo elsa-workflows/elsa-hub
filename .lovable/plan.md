@@ -1,84 +1,55 @@
-# Add a Docker image selection step to the Runtime Builder
+# Integrate DeepWiki via MCP into Weaver
 
-The bundle generator currently hardcodes `elsaworkflows/elsa-server:latest` in `generate.ts`. The user-facing catalog of real images already lives in `src/data/dockerImages.ts` (Elsa Pro Server, Elsa Pro Studio, Elsa Pro Combined). We'll add a first-class **Image** step that drives which image, port, env vars, and compose service the generated bundle uses.
+Today `recommendDeepWiki` only produces a link card with a `?q=` querystring that DeepWiki's site doesn't actually consume. We'll replace that with real calls to the public DeepWiki MCP server (`https://mcp.deepwiki.com/mcp`) so Weaver can answer code‑level questions inline, with a link to the underlying wiki page as a citation.
 
-## Data source
+The DeepWiki MCP server is public and unauthenticated, so we don't need the full MCP connection registry / OAuth flow from the AI SDK MCP knowledge — a short‑lived MCP client per chat turn is sufficient.
 
-Reuse `src/data/dockerImages.ts` as-is — no new JSON file. It already has everything we need (`image`, `hostPort`, `defaultPort`, `containerName`, `composeService`, `envVars`, `requiresServer`, `needsSharedNetwork`).
+## Scope
 
-Add a small derived list `RUNTIME_BUILDER_IMAGES` (in `src/lib/runtime-builder/images.ts`) that:
-- Re-exports the three `DockerImage` entries marked as eligible for the builder.
-- Maps each to a builder-friendly shape: `{ slug, name, image, tag, role: "server" | "studio" | "combined", defaultHostPort, envDefaults, requiresServer, needsSharedNetwork }`.
-- Provides `DEFAULT_IMAGE_SLUG = "elsa-pro-combined"` (best out-of-box experience).
+Edge function `supabase/functions/weaver-chat/index.ts` and the Weaver UI intent rendering only. No DB changes, no new secrets, no frontend routing changes (the existing top‑nav / footer DeepWiki links stay as-is — they're fine as a general entry point).
 
-## State
+## Technical plan
 
-Extend `BuilderStateV2` (`src/lib/runtime-builder/types-v2.ts`):
+1. **Add MCP client dependency in the edge function**
+   - Import `experimental_createMCPClient` from `npm:ai@^5` (AI SDK ships an MCP client; no extra package needed).
+   - Add a small helper `withDeepWikiMcp<T>(fn)` that:
+     - Creates a Streamable HTTP MCP client pointing at `https://mcp.deepwiki.com/mcp`.
+     - Calls `await client.tools()` to load the three DeepWiki tools (`read_wiki_structure`, `read_wiki_contents`, `ask_question`).
+     - Runs `fn(tools)` and closes the client in `finally` (so we never leak connections, per the MCP knowledge file).
 
-```ts
-imageSelection: {
-  slug: string;            // dockerImages.ts slug
-  tag: string;             // default "latest"
-  hostPort: number;        // editable
-};
-```
+2. **Expose DeepWiki tools to the model**
+   - In `buildAnonymousTools`, register three new AI SDK tools that wrap the MCP tools so the model sees a stable surface even if the underlying MCP names change:
+     - `deepwikiAsk({ question, repo? })` → calls MCP `ask_question` with `repoName = "elsa-workflows/<repo>"` (default `elsa-core`). Returns `{ answer, citations: [{ title, url }] }`.
+     - `deepwikiReadStructure({ repo? })` → MCP `read_wiki_structure`. Returns the page list so the model can pick a specific page.
+     - `deepwikiReadPage({ repo?, page })` → MCP `read_wiki_contents` for one page. Returns markdown.
+   - Each wrapper opens/closes its own short‑lived MCP client (simple, stateless, matches existing tool style).
+   - Cap response size (truncate to ~6 KB) so we don't blow the context window on big wiki pages.
 
-- Add to `EMPTY_BUILDER_STATE_V2` with `slug: DEFAULT_IMAGE_SLUG`, `tag: "latest"`, `hostPort: 8080`.
-- Add store actions: `setImageSlug`, `setImageTag`, `setImageHostPort`.
-- Reset clears back to defaults.
-- Import/Export round-trips it (already automatic via `...state` spread).
+3. **Replace `recommendDeepWiki` semantics**
+   - Keep the tool name for backward compatibility but change its behavior: instead of returning a `deepwiki` link intent, it now internally calls `deepwikiAsk` and returns the answer + citations, plus a `kind: "deepwiki"` intent pointing at the most relevant citation URL (no `?q=`). The UI card then says "Answered from DeepWiki — open page" rather than "Ask DeepWiki".
+   - Update the system prompt:
+     - "For code‑level questions, call `deepwikiAsk` (preferred) and quote the answer with citations. Use `deepwikiReadStructure` + `deepwikiReadPage` when you need to browse specific pages. The old `recommendDeepWiki` is deprecated — prefer `deepwikiAsk`."
 
-## New step UI
+4. **UI intent rendering** (`src/components/weaver/WeaverToolPart.tsx`, `src/lib/weaver/intents.ts`)
+   - Extend `DeepWikiIntent` with optional `citations?: { title: string; url: string }[]`.
+   - When citations exist, render them as a small list under the answer instead of a single "Ask DeepWiki" button.
+   - Drop the `?q=...` querystring from any URL we render (it was never honored by deepwiki.com).
 
-New component `src/components/runtime-builder/StepImage.tsx`:
-- Three cards (Server / Studio / Combined) with icon, tagline, tags badge ("Requires Server" badge for Studio).
-- Selected card highlighted (matching existing capability-card styling).
-- Editable Tag input (default `latest`) and Host Port input.
-- Inline note when the user picks **Studio** alone, warning that a server image must also be deployed alongside (matches `requiresServer` flag) — informational only, no blocking.
+5. **Error / fallback**
+   - If the MCP call fails (network, 5xx, timeout > 15s), the tool returns `{ error, fallbackUrl: "https://deepwiki.com/elsa-workflows/<repo>" }` and the model is instructed to surface the fallback link.
 
-## Wizard integration
+## Files to change
 
-`src/pages/enterprise/RuntimeBuilderComposer.tsx`:
-- Insert `image` as **step 1** in both `BASIC_STEPS` and `ADVANCED_STEPS`, renumbering the rest.
-  - Basic: Image → Capabilities → Infrastructure → Configure → Validate → Bundle
-  - Advanced: Image → Sources → Packages → Features → Infrastructure → Configure → Validate → Bundle
-- Image is always unlocked (it has a sensible default, so this is just confirmation/refinement).
-- Adjust `furthestUnlocked` so the existing "needs features" gates still apply to subsequent steps.
-- Render `<StepImage />` when `activeKey === "image"`.
+- `supabase/functions/weaver-chat/index.ts` — add MCP helper + three tools, rewrite `recommendDeepWiki`, update system prompt.
+- `src/lib/weaver/intents.ts` — extend `DeepWikiIntent` with `citations`.
+- `src/components/weaver/WeaverToolPart.tsx` — render citations list, drop `?q=`.
 
-## Generator changes
+## Out of scope
 
-`src/lib/runtime-builder/generate.ts` → `buildDockerCompose`:
-- Replace the hardcoded `elsaworkflows/elsa-server:latest` block with a lookup of `state.imageSelection`:
-  - Service name = `dockerImage.composeService` parsed (currently a hand-written YAML block) — refactor to build the service programmatically from `{ image: "${img}:${tag}", containerName, ports: [hostPort:defaultPort], environment, healthcheck }` so the chosen tag/port flow through.
-  - Merge `envForElsa` (existing infrastructure-derived envs) on top of the image's own required `envVars` defaults (only emit keys not already provided by infra mapping).
-- `BuildSummary.tsx` (sidebar): add an "Image" row showing `image:tag` so it's visible across all steps.
-- `packages.lock.json` and `README.md`: include the chosen image.
-- `.env.example`: include placeholder lines for any **required** env vars from `dockerImage.envVars` that don't get a value from infrastructure.
-
-Studio-specific quirk: when the selected image is `elsa-pro-studio`, also emit the Server compose service alongside it (mirroring `studioComposeService` + an implicit server entry), so the bundle is runnable. Document this in the README. If we want to keep scope small, we can instead emit only Studio plus a clear README note — flag below.
-
-## Weaver bridge
-
-`src/lib/weaver/intents.ts` + `runtime-builder-bridge.ts`:
-- Add an `rb.selectImage` intent (`{ slug, tag?, hostPort? }`) so Weaver can propose image changes the same way it proposes packages/capabilities.
-- Add to the checklist renderer in `src/components/weaver/WeaverToolPart.tsx` (`describeIntent` + `buildChecklist`) with the same before/after diff pattern.
-- Update the system prompt in `supabase/functions/weaver-chat/index.ts` to document the new tool.
-
-## Out of scope (for this pass)
-
-- Adding more images than the three already in `dockerImages.ts`.
-- Custom registry / private image pulls (auth secrets).
-- Multi-image stacks beyond the Studio-needs-Server combination.
-
-## Verification
-
-- Default state produces a bundle whose `docker-compose.yml` references `valenceworks/elsa-pro-combined:latest` on host port 8080.
-- Switching to **Server** changes the compose `image:`, container name, and exposes 8080; switching to **Studio** additionally adds the server service and a Studio note in README.
-- Changing the tag (e.g. `3.8.0-preview`) flows through compose + README + packages.lock.json.
-- Round-trip: export → import restores the same selection.
-- Weaver can say "use the Studio image at tag 3.8.0-preview" → approval card lists `image: combined:latest → studio:3.8.0-preview` and confirming applies it.
+- No changes to the static DeepWiki links in `Navigation.tsx`, `Footer.tsx`, `DashboardHeader.tsx`, `Resources.tsx`, `Home.tsx` (those are general entry points, not Weaver answers).
+- No MCP connection registry / OAuth — the DeepWiki MCP server is public.
+- No new secrets.
 
 ## Open question
 
-Should picking **Studio** alone auto-include a Server service in `docker-compose.yml` (recommended for a runnable bundle), or just emit Studio + a README warning? Default plan above: auto-include Server. Confirm if you'd rather keep Studio-only.
+Should `deepwikiAsk` also be available to unauthenticated visitors (current behavior of `recommendDeepWiki`), or gated to signed‑in users to avoid spamming DeepWiki's free public MCP? Default in this plan: keep it anonymous, same as today.

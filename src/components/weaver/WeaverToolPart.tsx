@@ -37,6 +37,17 @@ export function WeaverToolPart({ part }: { part: AnyToolPart }) {
     "output" in part && part.state === "output-available" ? part.output : null;
   const intent = isWeaverIntent(output) ? (output as WeaverIntent) : null;
 
+  // DeepWiki MCP answer (deepwikiAsk tool) — not an "intent", a real result.
+  if (
+    !intent &&
+    output &&
+    typeof output === "object" &&
+    typeof (output as any).answer === "string" &&
+    typeof (output as any).fallbackUrl === "string"
+  ) {
+    return <DeepWikiAnswerCard data={output as DeepWikiAnswerData} />;
+  }
+
   if (intent && intent.kind === "deepwiki") {
     return (
       <div className="my-2 flex items-center justify-between gap-3 rounded-md border bg-muted/40 p-3 text-sm">
@@ -375,3 +386,59 @@ function describeIntent(i: WeaverIntent): {
       return { title: "Apply action", detail: "", icon: Package };
   }
 }
+
+interface DeepWikiAnswerData {
+  answer: string;
+  citations?: { title: string; url: string }[];
+  repo?: string;
+  fallbackUrl: string;
+  error?: string;
+}
+
+function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
+  return (
+    <div className="my-2 rounded-md border bg-muted/40 p-3 text-sm">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          DeepWiki{data.repo ? ` · ${data.repo}` : ""}
+        </div>
+        <Button size="sm" variant="ghost" asChild className="h-6 px-2 text-xs">
+          <a href={data.fallbackUrl} target="_blank" rel="noopener noreferrer">
+            Open <ExternalLink className="size-3" />
+          </a>
+        </Button>
+      </div>
+      {data.error ? (
+        <div className="text-xs text-destructive">
+          DeepWiki lookup failed: {data.error}
+        </div>
+      ) : (
+        <div className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90">
+          {data.answer}
+        </div>
+      )}
+      {data.citations && data.citations.length > 0 ? (
+        <div className="mt-2 border-t border-border/60 pt-2">
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Sources
+          </div>
+          <ul className="space-y-0.5">
+            {data.citations.map((c, i) => (
+              <li key={i} className="truncate text-xs">
+                <a
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {c.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
