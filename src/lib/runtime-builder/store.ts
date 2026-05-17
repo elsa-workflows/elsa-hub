@@ -22,6 +22,10 @@ interface BuilderStore {
   setAdvancedMode: (value: boolean) => void;
   setMeta: (meta: Partial<NonNullable<BuilderStateV2["meta"]>>) => void;
   importState: (incoming: Partial<BuilderStateV2>) => void;
+  // image
+  setImageSlug: (slug: string) => void;
+  setImageTag: (tag: string) => void;
+  setImageHostPort: (port: number) => void;
   // sources
   addPackageSource: (source: Omit<PackageSource, "id">) => void;
   updatePackageSource: (id: string, patch: Partial<PackageSource>) => void;
