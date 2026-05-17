@@ -9,6 +9,7 @@ import type {
 } from "./types-v2";
 import type { GeneratedFile as LegacyGeneratedFile } from "./types";
 import { findFeature, findPackage, findProvider } from "./requirements";
+import { findBuilderImage, DEFAULT_IMAGE_SLUG } from "./images";
 
 // Re-export the generated-file shape from the legacy types module so callers
 // don't need to know which file it's defined in.
