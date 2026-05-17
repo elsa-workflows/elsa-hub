@@ -133,7 +133,7 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
         asChild={validation.isValid && state.selectedPackages.length > 0}
       >
         {validation.isValid && state.selectedPackages.length > 0 ? (
-          <Link to={state.advancedMode ? "?step=7" : "?step=5"}>
+          <Link to={state.advancedMode ? "?step=8" : "?step=6"}>
             <Download className="mr-2 h-4 w-4" /> Preview bundle
           </Link>
         ) : (
@@ -145,8 +145,7 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
 
       <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
         <Info className="mt-0.5 h-3 w-3 shrink-0" />
-        Bundle download lands next. For now you can copy each file from the
-        preview.
+        Download the complete bundle as a zip from the Bundle step.
       </p>
 
       <WeaverIntentLog />
