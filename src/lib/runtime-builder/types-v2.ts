@@ -66,12 +66,20 @@ export interface InfraRequirement {
   optional?: boolean;
 }
 
+export interface FeatureDependency {
+  featureId: string;
+  packageId?: string;
+  optional?: boolean;
+  reason?: string;
+}
+
 export interface PackageFeature {
   id: string;
   displayName: string;
   description?: string;
   requires?: { infrastructure?: InfraRequirement[] };
   settings: SettingSchema[];
+  dependencies?: FeatureDependency[];
 }
 
 export interface PackageManifest {
