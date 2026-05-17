@@ -187,13 +187,14 @@ export default function RuntimeBuilderComposer() {
       <section className="container mx-auto px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
-            {step === 1 && <StepSources />}
-            {step === 2 && <StepPackages />}
-            {step === 3 && <StepFeatures />}
-            {step === 4 && <StepInfrastructure />}
-            {step === 5 && <StepConfigure />}
-            {step === 6 && <StepValidate />}
-            {step === 7 && <StepBundle />}
+            {activeKey === "sources" && <StepSources />}
+            {activeKey === "packages" && <StepPackages />}
+            {activeKey === "features" && <StepFeatures />}
+            {activeKey === "capabilities" && <StepCapabilities />}
+            {activeKey === "infrastructure" && <StepInfrastructure />}
+            {activeKey === "configure" && <StepConfigure />}
+            {activeKey === "validate" && <StepValidate />}
+            {activeKey === "bundle" && <StepBundle />}
 
             <div className="mt-10 flex items-center justify-between border-t border-border/40 pt-5">
               <Button
@@ -204,7 +205,7 @@ export default function RuntimeBuilderComposer() {
                 <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
               </Button>
               <Button
-                disabled={step === MAX_STEP || step >= furthestUnlocked}
+                disabled={step === maxStep || step >= furthestUnlocked}
                 onClick={() => goTo(step + 1)}
               >
                 Continue <ArrowRight className="ml-1.5 h-4 w-4" />
