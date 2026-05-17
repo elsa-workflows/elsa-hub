@@ -2,9 +2,11 @@
 // Tool accordion. For "intent" tools (navigate / rb.*) we show an inline
 // approval card so the user explicitly opts in to write actions.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check, ExternalLink, X } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive } from "lucide-react";
+import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
+import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
 import type { ToolUIPart, DynamicToolUIPart } from "ai";
 import {
   Tool,
