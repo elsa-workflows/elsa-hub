@@ -98,16 +98,17 @@ export default function RuntimeBuilderComposer() {
   const hasFeatures = state.selectedPackages.some(
     (p) => p.selectedFeatures.length > 0,
   );
+  // Image step (1) is always unlocked — it has a sensible default.
   // Capability-first: unlock everything once at least one feature is picked.
-  // Advanced: unlock progressively as before.
+  // Advanced: unlock progressively (image → sources → packages → features → …).
   const furthestUnlocked = state.advancedMode
     ? !hasPackages
-      ? 2
+      ? 3
       : !hasFeatures
-        ? 3
+        ? 4
         : maxStep
     : !hasFeatures
-      ? 1
+      ? 2
       : maxStep;
 
   function goTo(id: number) {
