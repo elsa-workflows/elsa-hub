@@ -27,9 +27,9 @@ interface BuilderStore {
   updatePackageSource: (id: string, patch: Partial<PackageSource>) => void;
   removePackageSource: (id: string) => void;
   // packages
-  togglePackage: (packageId: string, version: string) => void;
+  togglePackage: (packageId: string, version: string, catalog?: CatalogV2 | null) => void;
   setPackageVersion: (packageId: string, version: string) => void;
-  toggleFeature: (packageId: string, featureId: string) => void;
+  toggleFeature: (packageId: string, featureId: string, catalog?: CatalogV2 | null) => void;
   setFeatureSetting: (
     packageId: string,
     featureId: string,
