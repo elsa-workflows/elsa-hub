@@ -30,6 +30,12 @@ interface BuilderStore {
   togglePackage: (packageId: string, version: string, catalog?: CatalogV2 | null) => void;
   setPackageVersion: (packageId: string, version: string) => void;
   toggleFeature: (packageId: string, featureId: string, catalog?: CatalogV2 | null) => void;
+  /**
+   * Feature-first toggle: locates the host package automatically from the
+   * catalog, adds it if missing, ticks the feature, runs dependency closure,
+   * and prunes the host package if no user-selected features remain.
+   */
+  toggleCapability: (packageId: string, featureId: string, catalog: CatalogV2) => void;
   setFeatureSetting: (
     packageId: string,
     featureId: string,
