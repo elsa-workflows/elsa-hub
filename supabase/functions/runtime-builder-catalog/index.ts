@@ -23,7 +23,7 @@ const TIMEOUT_MS = 30_000;
 // instance lifetime (good enough to absorb burst traffic from a single user
 // loading the wizard).
 let catalogCache: { key: string; expiresAt: number; payload: unknown } | null = null;
-const CATALOG_TTL_MS = 5_000;
+const CATALOG_TTL_MS = 60_000;
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
