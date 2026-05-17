@@ -25,6 +25,8 @@ function startMessage(intent: WeaverIntent): string {
       return `Setting ${intent.name} = ${String(intent.value)} on ${intent.featureId}…`;
     case "rb.selectInfrastructure":
       return `Selecting ${intent.providerId} for ${intent.kindOf}…`;
+    case "rb.selectImage":
+      return `Selecting image ${intent.slug}${intent.tag ? `:${intent.tag}` : ""}…`;
     case "rb.autoFillInfrastructure":
       return "Auto-filling infrastructure…";
     case "rb.validate":
