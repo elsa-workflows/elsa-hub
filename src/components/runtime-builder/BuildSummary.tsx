@@ -60,6 +60,12 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
         <h3 className="mt-1 font-display text-lg font-semibold">Your runtime</h3>
       </div>
 
+      <SummaryRow icon={Box} label="Image">
+        <code className="font-mono text-[11px] text-foreground">
+          {state.imageSelection.slug}:{state.imageSelection.tag}
+        </code>
+      </SummaryRow>
+
       <SummaryRow icon={Package} label="Packages">
         {packageNames.length === 0 ? (
           <span className="text-muted-foreground">None selected</span>
