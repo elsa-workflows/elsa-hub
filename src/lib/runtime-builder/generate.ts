@@ -459,10 +459,17 @@ function buildPackagesLock(ctx: Ctx): string {
       licenseTier: pkg?.licenseTier,
     };
   });
+  const selected = getSelectedImage(ctx);
   return JSON.stringify(
     {
       schemaVersion: 2,
       generatedAt: new Date().toISOString(),
+      image: {
+        slug: selected.slug,
+        ref: `${selected.image}:${selected.tag}`,
+        hostPort: selected.hostPort,
+        containerPort: selected.containerPort,
+      },
       packages,
       packageSources: ctx.state.packageSources
         .filter((s) => s.enabled)
