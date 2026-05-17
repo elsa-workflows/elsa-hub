@@ -3,6 +3,7 @@
 
 export type WeaverIntent =
   | NavigateIntent
+  | DeepWikiIntent
   | RbAddPackageIntent
   | RbRemovePackageIntent
   | RbToggleFeatureIntent
@@ -17,6 +18,14 @@ export interface NavigateIntent {
   path: string;
   label: string;
   reason: string;
+}
+
+export interface DeepWikiIntent {
+  kind: "deepwiki";
+  url: string;
+  label: string;
+  reason: string;
+  repo: "elsa-core" | "elsa-studio" | "elsa-extensions";
 }
 
 export interface RbAddPackageIntent {

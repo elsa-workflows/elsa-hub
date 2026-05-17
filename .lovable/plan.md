@@ -1,56 +1,61 @@
-# Wire cron secret + nightly ingest
+# Weaver ↔ DeepWiki escalation (no repo ingestion)
 
-The `COPILOT_INGEST_CRON_SECRET` is now stored. This plan authenticates the nightly job via that secret and schedules it.
+Per your decision, we will **not** ingest `elsa-core`, `elsa-studio`, or `elsa-extensions` into `weaver_documents`. Instead, Weaver will recognize code-level questions and hand them off to DeepWiki, which already indexes those repos with high quality.
 
-## 1. Update `supabase/functions/copilot-ingest/index.ts`
+This keeps embedding costs flat, avoids a job-queue/refresh infrastructure, and reuses an integration you already have.
 
-Add a second auth path **before** the existing user/admin check:
+## Scope
 
-- Read `x-cron-secret` header.
-- If present and equals `Deno.env.get("COPILOT_INGEST_CRON_SECRET")` (constant-time compare), skip the Authorization/admin checks and proceed as a system actor.
-- Otherwise fall back to the current platform-admin flow.
-- Add `x-cron-secret` to `Access-Control-Allow-Headers`.
-- Log `{ actor: "cron" | "admin", upserted }` at the end for observability.
+Three small, surgical changes — all in the Weaver edge function and ingest pipeline. No schema changes, no new tables, no new cron jobs.
 
-If the secret env var is missing at runtime, reject cron requests with 503 (don't silently accept).
+### 1. Add a `recommendDeepWiki` tool to `weaver-chat`
 
-## 2. Schedule nightly ingest (insert-only SQL, not a migration)
+A new tool the model can call when a question is about C# code, internal class behavior, source-level "how does X work under the hood", contributor questions, or anything not covered by the curated knowledge base.
 
-Per Lovable rules, cron setup contains project-specific URL + secrets, so run it via the Supabase insert tool — not `supabase--migration`. Steps:
+The tool returns a structured intent the existing UI tool-rendering layer can display as a clickable card (same pattern as the existing `navigate` tool). It does not navigate automatically.
 
-1. `create extension if not exists pg_cron;`
-2. `create extension if not exists pg_net;`
-3. Unschedule any prior job named `copilot-ingest-nightly` (idempotent).
-4. Schedule:
+Input:
+- `query` — the user's original question, URL-encoded for the DeepWiki search param
+- `repo` — one of `elsa-core` | `elsa-studio` | `elsa-extensions` (model picks based on context; defaults to `elsa-core`)
+- `reason` — one-line justification shown on the card
 
-```sql
-select cron.schedule(
-  'copilot-ingest-nightly',
-  '15 3 * * *',  -- 03:15 UTC nightly
-  $$
-  select net.http_post(
-    url     := 'https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/copilot-ingest',
-    headers := jsonb_build_object(
-      'Content-Type',   'application/json',
-      'apikey',         '<SUPABASE_ANON_KEY>',
-      'x-cron-secret',  '<COPILOT_INGEST_CRON_SECRET literal>'
-    ),
-    body    := '{"trigger":"cron"}'::jsonb
-  );
-  $$
-);
-```
+Output:
+- `kind: "deepwiki"`, `url: "https://deepwiki.com/elsa-workflows/<repo>?q=..."`, `label`, `reason`
 
-The cron secret value must be embedded as a literal in the schedule SQL (pg_cron has no access to Edge Function env vars). It's stored only inside the `cron.job` table, readable to superuser/service role only.
+### 2. Extend the system prompt
 
-## 3. Verify
+Add two short rules to `SYSTEM_PROMPT` in `supabase/functions/weaver-chat/index.ts`:
 
-- Deploy the function.
-- `curl -X POST .../copilot-ingest -H "x-cron-secret: <value>"` → expect 200.
-- `curl -X POST .../copilot-ingest` (no auth) → expect 401.
-- `select * from cron.job where jobname='copilot-ingest-nightly';` → row exists.
-- After first run, `select * from cron.job_run_details order by start_time desc limit 3;` → status `succeeded`.
+- "For questions about Elsa source code, internal implementation, class behavior, or contributor-level details, call `recommendDeepWiki` instead of guessing or apologizing. DeepWiki is the authoritative AI index of the `elsa-core`, `elsa-studio`, and `elsa-extensions` repositories."
+- "Do not invent code references, class names, or method signatures. If `searchKnowledge` does not return relevant content and the question is code-level, escalate to `recommendDeepWiki`."
+
+### 3. Add a curated FAQ doc pointing to DeepWiki
+
+Add one entry to `FAQ_DOCS` in `supabase/functions/weaver-ingest/index.ts` so semantic search itself also surfaces DeepWiki as a destination when users ask things like "is there a code search?" or "where do I read the source?". Title: "Exploring the Elsa source code". Body explains DeepWiki covers the three repos and links to `https://deepwiki.com/elsa-workflows/elsa-core`.
+
+Then run the ingest function once (admin button or curl) to refresh embeddings.
+
+## Why this and not RAG-over-source
+
+- DeepWiki already does the expensive part (LLM-summarized code graph) for free.
+- A full repo ingest would mean: GitHub tree walking, commit-SHA delta tracking, a job queue (edge functions have a ~150s wall-clock limit), hundreds of thousands of embedding calls per refresh, and ~600 MB+ of vectors. All for a feature DeepWiki already does better.
+- This approach keeps Weaver focused on what only it can do: account-aware answers, runtime-builder actions, and product/commerce context.
+
+## Files touched
+
+- `supabase/functions/weaver-chat/index.ts` — add `recommendDeepWiki` tool, register it in both `buildAnonymousTools` and (if relevant) the authenticated tool set, extend `SYSTEM_PROMPT`.
+- `supabase/functions/weaver-ingest/index.ts` — append one FAQ doc.
+- `src/components/weaver/WeaverToolPart.tsx` — add a render branch for `kind: "deepwiki"` (external-link card, opens in new tab). Visual style matches the existing `navigate` card.
 
 ## Out of scope
 
-- Multi-source ingest logic (Firecrawl docs crawl, GitHub markdown). Already covered by the larger plan — this change only wires the cron secret + schedule so when those sources land, the nightly run is already authenticated.
+- Any GitHub API integration.
+- Any change to `weaver_documents` schema or RLS.
+- Any UI surface outside the Weaver chat panel.
+- Adding repo content to the curated `PAGE_DOCS` list.
+
+## Acceptance
+
+- Asking Weaver "how does the bookmark store work in Elsa?" produces a card linking to `https://deepwiki.com/elsa-workflows/elsa-core?q=how%20does%20the%20bookmark%20store%20work` with a one-line reason.
+- Asking "what bundles do you sell?" still uses `searchKnowledge` + `listBundles` and does NOT escalate to DeepWiki.
+- Asking "where can I read the Elsa source?" surfaces the new FAQ entry via semantic search.
