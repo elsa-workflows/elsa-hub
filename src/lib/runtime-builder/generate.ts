@@ -286,10 +286,6 @@ function buildAppService(opts: {
 }
 
 function getSelectedImage(ctx: Ctx) {
-  // Lazy import to keep this module dependency-light at the top.
-  const { findBuilderImage, DEFAULT_IMAGE_SLUG } =
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require("./images") as typeof import("./images");
   const sel = ctx.state.imageSelection ?? {
     slug: DEFAULT_IMAGE_SLUG,
     tag: "latest",
