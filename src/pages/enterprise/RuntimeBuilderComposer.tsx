@@ -23,6 +23,7 @@ import { BuildSummary } from "@/components/runtime-builder/BuildSummary";
 import { StepSources } from "@/components/runtime-builder/StepSources";
 import { StepPackages } from "@/components/runtime-builder/StepPackages";
 import { StepFeatures } from "@/components/runtime-builder/StepFeatures";
+import { StepCapabilities } from "@/components/runtime-builder/StepCapabilities";
 import { StepInfrastructure } from "@/components/runtime-builder/StepInfrastructure";
 import { StepConfigure } from "@/components/runtime-builder/StepConfigure";
 import { StepValidate } from "@/components/runtime-builder/StepValidate";
@@ -32,16 +33,40 @@ import { ExportDialog } from "@/components/runtime-builder/ExportDialog";
 import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
 import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
 
-const STEPS = [
-  { id: 1, label: "Sources", short: "Sources" },
-  { id: 2, label: "Packages", short: "Packages" },
-  { id: 3, label: "Features", short: "Features" },
-  { id: 4, label: "Infrastructure", short: "Infra" },
-  { id: 5, label: "Configure", short: "Configure" },
-  { id: 6, label: "Validate", short: "Validate" },
-  { id: 7, label: "Bundle", short: "Bundle" },
+type StepKey =
+  | "sources"
+  | "packages"
+  | "features"
+  | "capabilities"
+  | "infrastructure"
+  | "configure"
+  | "validate"
+  | "bundle";
+
+interface StepDef {
+  id: number;
+  key: StepKey;
+  label: string;
+  short: string;
+}
+
+const BASIC_STEPS: StepDef[] = [
+  { id: 1, key: "capabilities", label: "Capabilities", short: "Pick" },
+  { id: 2, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 3, key: "configure", label: "Configure", short: "Configure" },
+  { id: 4, key: "validate", label: "Validate", short: "Validate" },
+  { id: 5, key: "bundle", label: "Bundle", short: "Bundle" },
 ];
-const MAX_STEP = STEPS.length;
+
+const ADVANCED_STEPS: StepDef[] = [
+  { id: 1, key: "sources", label: "Sources", short: "Sources" },
+  { id: 2, key: "packages", label: "Packages", short: "Packages" },
+  { id: 3, key: "features", label: "Features", short: "Features" },
+  { id: 4, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 5, key: "configure", label: "Configure", short: "Configure" },
+  { id: 6, key: "validate", label: "Validate", short: "Validate" },
+  { id: 7, key: "bundle", label: "Bundle", short: "Bundle" },
+];
 
 export default function RuntimeBuilderComposer() {
   const [params, setParams] = useSearchParams();
@@ -51,7 +76,10 @@ export default function RuntimeBuilderComposer() {
   const [exportOpen, setExportOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
-  const step = clamp(Number(params.get("step") ?? "1"), 1, MAX_STEP);
+  const steps = state.advancedMode ? ADVANCED_STEPS : BASIC_STEPS;
+  const maxStep = steps.length;
+  const step = clamp(Number(params.get("step") ?? "1"), 1, maxStep);
+  const activeKey = steps[step - 1]?.key ?? steps[0].key;
 
   // Pre-select a package from `?package=<id>` if recognized and none chosen.
   useEffect(() => {
@@ -66,11 +94,17 @@ export default function RuntimeBuilderComposer() {
   const hasFeatures = state.selectedPackages.some(
     (p) => p.selectedFeatures.length > 0,
   );
-  const furthestUnlocked = !hasPackages
-    ? 2
+  // Capability-first: unlock everything once at least one feature is picked.
+  // Advanced: unlock progressively as before.
+  const furthestUnlocked = state.advancedMode
+    ? !hasPackages
+      ? 2
+      : !hasFeatures
+        ? 3
+        : maxStep
     : !hasFeatures
-      ? 3
-      : MAX_STEP;
+      ? 1
+      : maxStep;
 
   function goTo(id: number) {
     setParams({ step: String(id) }, { replace: false });
