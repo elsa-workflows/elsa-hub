@@ -437,7 +437,7 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
             ))}
           </ul>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
