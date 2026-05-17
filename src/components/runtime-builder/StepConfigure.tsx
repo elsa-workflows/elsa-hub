@@ -159,25 +159,19 @@ export function StepConfigure() {
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 {visibleSettings.map((setting) => (
-                  <div
+                  <SchemaField
                     key={setting.name}
-                    className={cn(
-                      setting.type === "boolean" && "flex flex-col gap-2",
-                    )}
-                  >
-                    <SchemaField
-                      setting={setting}
-                      value={activeValues[setting.name]}
-                      onChange={(value) =>
-                        setFeatureSetting(
-                          active.pkg.id,
-                          active.feature.id,
-                          setting.name,
-                          value,
-                        )
-                      }
-                    />
-                  </div>
+                    setting={setting}
+                    value={activeValues[setting.name]}
+                    onChange={(value) =>
+                      setFeatureSetting(
+                        active.pkg.id,
+                        active.feature.id,
+                        setting.name,
+                        value,
+                      )
+                    }
+                  />
                 ))}
               </div>
 
