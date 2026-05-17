@@ -23,6 +23,8 @@ interface Props {
   onToggle: (version: string) => void;
   onVersionChange: (version: string) => void;
   showCategory?: boolean;
+  /** True when this package was added automatically by the dependency resolver. */
+  autoAdded?: boolean;
 }
 
 export function PackageListRow({
@@ -32,6 +34,7 @@ export function PackageListRow({
   onToggle,
   onVersionChange,
   showCategory = true,
+  autoAdded = false,
 }: Props) {
   const version = selectedVersion ?? pkg.version;
 
@@ -94,6 +97,11 @@ export function PackageListRow({
         {pkg.stability !== "Stable" && (
           <Badge variant="outline" className="border-amber-500/40 px-1.5 py-0 text-[9px] uppercase text-amber-300">
             {pkg.stability}
+          </Badge>
+        )}
+        {autoAdded && (
+          <Badge variant="outline" className="border-muted-foreground/30 px-1.5 py-0 text-[9px] uppercase text-muted-foreground">
+            Required
           </Badge>
         )}
       </div>

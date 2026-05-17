@@ -220,7 +220,8 @@ export function StepPackages() {
                     pkg={pkg}
                     selected={Boolean(sel)}
                     selectedVersion={sel?.version ?? null}
-                    onToggle={(v) => togglePackage(pkg.id, v)}
+                    autoAdded={sel?.autoAdded === true}
+                    onToggle={(v) => togglePackage(pkg.id, v, catalog ?? null)}
                     onVersionChange={(v) => setPackageVersion(pkg.id, v)}
                     hideCategory={category !== ALL_CATEGORY}
                   />
@@ -237,7 +238,8 @@ export function StepPackages() {
                     pkg={pkg}
                     selected={Boolean(sel)}
                     selectedVersion={sel?.version ?? null}
-                    onToggle={(v) => togglePackage(pkg.id, v)}
+                    autoAdded={sel?.autoAdded === true}
+                    onToggle={(v) => togglePackage(pkg.id, v, catalog ?? null)}
                     onVersionChange={(v) => setPackageVersion(pkg.id, v)}
                     showCategory={category === ALL_CATEGORY}
                   />

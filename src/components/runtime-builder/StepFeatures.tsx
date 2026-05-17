@@ -64,7 +64,7 @@ export function StepFeatures() {
                       key={feature.id}
                       feature={feature}
                       selected={sp.selectedFeatures.includes(feature.id)}
-                      onToggle={() => toggleFeature(pkg.id, feature.id)}
+                      onToggle={() => toggleFeature(pkg.id, feature.id, catalog)}
                     />
                   ))}
                 </div>

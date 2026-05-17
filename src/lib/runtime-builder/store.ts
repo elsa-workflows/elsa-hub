@@ -3,6 +3,7 @@ import { persist, type PersistStorage, type StorageValue } from "zustand/middlew
 import { toast } from "sonner";
 import type {
   BuilderStateV2,
+  CatalogV2,
   InfraKind,
   InfrastructureSelection,
   PackageSource,
@@ -11,6 +12,7 @@ import type {
 } from "./types-v2";
 import { EMPTY_BUILDER_STATE_V2 } from "./types-v2";
 import { isLegacyV1Snapshot } from "./migration-map";
+import { applyClosure } from "./dependencies";
 
 const STORAGE_KEY = "elsa-runtime-builder/v1"; // kept for forwards compatibility
 
@@ -25,9 +27,9 @@ interface BuilderStore {
   updatePackageSource: (id: string, patch: Partial<PackageSource>) => void;
   removePackageSource: (id: string) => void;
   // packages
-  togglePackage: (packageId: string, version: string) => void;
+  togglePackage: (packageId: string, version: string, catalog?: CatalogV2 | null) => void;
   setPackageVersion: (packageId: string, version: string) => void;
-  toggleFeature: (packageId: string, featureId: string) => void;
+  toggleFeature: (packageId: string, featureId: string, catalog?: CatalogV2 | null) => void;
   setFeatureSetting: (
     packageId: string,
     featureId: string,
@@ -154,33 +156,44 @@ export const useRuntimeBuilder = create<BuilderStore>()(
           },
         })),
 
-      togglePackage: (packageId, version) =>
+      togglePackage: (packageId, version, catalog) =>
         set((s) => {
           const exists = s.state.selectedPackages.find(
             (p) => p.packageId === packageId,
           );
+          let nextSelected: SelectedPackage[];
           if (exists) {
-            return {
-              state: {
-                ...s.state,
-                selectedPackages: s.state.selectedPackages.filter(
-                  (p) => p.packageId !== packageId,
-                ),
-              },
+            nextSelected = s.state.selectedPackages.filter(
+              (p) => p.packageId !== packageId,
+            );
+          } else {
+            const next: SelectedPackage = {
+              packageId,
+              version,
+              selectedFeatures: [],
+              settings: {},
             };
+            nextSelected = [...s.state.selectedPackages, next];
           }
-          const next: SelectedPackage = {
-            packageId,
-            version,
-            selectedFeatures: [],
-            settings: {},
-          };
-          return {
-            state: {
-              ...s.state,
-              selectedPackages: [...s.state.selectedPackages, next],
-            },
-          };
+          const beforeIds = new Set(s.state.selectedPackages.map((p) => p.packageId));
+          if (catalog) {
+            nextSelected = applyClosure(catalog, nextSelected);
+            const added = nextSelected.filter(
+              (p) => p.autoAdded && !beforeIds.has(p.packageId),
+            );
+            if (added.length > 0) {
+              toast.info(
+                `Added ${added.length} required package${added.length === 1 ? "" : "s"}`,
+                {
+                  description: added
+                    .slice(0, 3)
+                    .map((p) => p.packageId)
+                    .join(", ") + (added.length > 3 ? ` +${added.length - 3} more` : ""),
+                },
+              );
+            }
+          }
+          return { state: { ...s.state, selectedPackages: nextSelected } };
         }),
 
       setPackageVersion: (packageId, version) =>
@@ -193,22 +206,45 @@ export const useRuntimeBuilder = create<BuilderStore>()(
           },
         })),
 
-      toggleFeature: (packageId, featureId) =>
-        set((s) => ({
-          state: {
-            ...s.state,
-            selectedPackages: s.state.selectedPackages.map((p) => {
-              if (p.packageId !== packageId) return p;
-              const has = p.selectedFeatures.includes(featureId);
-              const selectedFeatures = has
-                ? p.selectedFeatures.filter((f) => f !== featureId)
-                : [...p.selectedFeatures, featureId];
-              const settings = { ...p.settings };
-              if (has) delete settings[featureId];
-              return { ...p, selectedFeatures, settings };
-            }),
-          },
-        })),
+      toggleFeature: (packageId, featureId, catalog) =>
+        set((s) => {
+          let nextSelected = s.state.selectedPackages.map((p) => {
+            if (p.packageId !== packageId) return p;
+            const has = p.selectedFeatures.includes(featureId);
+            const selectedFeatures = has
+              ? p.selectedFeatures.filter((f) => f !== featureId)
+              : [...p.selectedFeatures, featureId];
+            // Removing a feature also removes its auto-flag entry.
+            const autoFeatures = (p.autoFeatures ?? []).filter((f) => f !== featureId);
+            const settings = { ...p.settings };
+            if (has) delete settings[featureId];
+            return {
+              ...p,
+              selectedFeatures,
+              settings,
+              autoFeatures: autoFeatures.length ? autoFeatures : undefined,
+            };
+          });
+          const beforeIds = new Set(s.state.selectedPackages.map((p) => p.packageId));
+          if (catalog) {
+            nextSelected = applyClosure(catalog, nextSelected);
+            const added = nextSelected.filter(
+              (p) => p.autoAdded && !beforeIds.has(p.packageId),
+            );
+            if (added.length > 0) {
+              toast.info(
+                `Added ${added.length} required package${added.length === 1 ? "" : "s"}`,
+                {
+                  description: added
+                    .slice(0, 3)
+                    .map((p) => p.packageId)
+                    .join(", ") + (added.length > 3 ? ` +${added.length - 3} more` : ""),
+                },
+              );
+            }
+          }
+          return { state: { ...s.state, selectedPackages: nextSelected } };
+        }),
 
       setFeatureSetting: (packageId, featureId, name, value) =>
         set((s) => ({

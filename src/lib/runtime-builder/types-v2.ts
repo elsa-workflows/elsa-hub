@@ -66,12 +66,20 @@ export interface InfraRequirement {
   optional?: boolean;
 }
 
+export interface FeatureDependency {
+  featureId: string;
+  packageId?: string;
+  optional?: boolean;
+  reason?: string;
+}
+
 export interface PackageFeature {
   id: string;
   displayName: string;
   description?: string;
   requires?: { infrastructure?: InfraRequirement[] };
   settings: SettingSchema[];
+  dependencies?: FeatureDependency[];
 }
 
 export interface PackageManifest {
@@ -104,6 +112,10 @@ export interface SelectedPackage {
   version: string;
   selectedFeatures: string[];
   settings: Record<string, Record<string, unknown>>;
+  /** True when this package was auto-added by the dependency resolver. */
+  autoAdded?: boolean;
+  /** Features auto-ticked by the dependency resolver. */
+  autoFeatures?: string[];
 }
 
 export interface InfrastructureSelection {
