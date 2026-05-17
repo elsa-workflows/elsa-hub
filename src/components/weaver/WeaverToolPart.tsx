@@ -37,6 +37,17 @@ export function WeaverToolPart({ part }: { part: AnyToolPart }) {
     "output" in part && part.state === "output-available" ? part.output : null;
   const intent = isWeaverIntent(output) ? (output as WeaverIntent) : null;
 
+  // DeepWiki MCP answer (deepwikiAsk tool) — not an "intent", a real result.
+  if (
+    !intent &&
+    output &&
+    typeof output === "object" &&
+    typeof (output as any).answer === "string" &&
+    typeof (output as any).fallbackUrl === "string"
+  ) {
+    return <DeepWikiAnswerCard data={output as DeepWikiAnswerData} />;
+  }
+
   if (intent && intent.kind === "deepwiki") {
     return (
       <div className="my-2 flex items-center justify-between gap-3 rounded-md border bg-muted/40 p-3 text-sm">
