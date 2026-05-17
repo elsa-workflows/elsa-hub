@@ -9,6 +9,7 @@ export type WeaverIntent =
   | RbToggleFeatureIntent
   | RbSetFeatureSettingIntent
   | RbSelectInfrastructureIntent
+  | RbSelectImageIntent
   | RbAutoFillInfrastructureIntent
   | RbValidateIntent
   | RbGenerateBundleIntent;
@@ -54,6 +55,13 @@ export interface RbSelectInfrastructureIntent {
   kind: "rb.selectInfrastructure";
   kindOf: string;
   providerId: string;
+}
+export interface RbSelectImageIntent {
+  kind: "rb.selectImage";
+  slug: string;
+  tag?: string;
+  hostPort?: number;
+  reason?: string;
 }
 export interface RbAutoFillInfrastructureIntent {
   kind: "rb.autoFillInfrastructure";

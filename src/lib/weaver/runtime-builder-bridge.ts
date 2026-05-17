@@ -25,6 +25,8 @@ function startMessage(intent: WeaverIntent): string {
       return `Setting ${intent.name} = ${String(intent.value)} on ${intent.featureId}…`;
     case "rb.selectInfrastructure":
       return `Selecting ${intent.providerId} for ${intent.kindOf}…`;
+    case "rb.selectImage":
+      return `Selecting image ${intent.slug}${intent.tag ? `:${intent.tag}` : ""}…`;
     case "rb.autoFillInfrastructure":
       return "Auto-filling infrastructure…";
     case "rb.validate":
@@ -131,6 +133,15 @@ export function applyRbIntent(
       return finish({
         ok: true,
         message: `Selected ${provider.displayName} for ${intent.kindOf}.`,
+      });
+    }
+    case "rb.selectImage": {
+      store.setImageSlug(intent.slug);
+      if (intent.tag) store.setImageTag(intent.tag);
+      if (typeof intent.hostPort === "number") store.setImageHostPort(intent.hostPort);
+      return finish({
+        ok: true,
+        message: `Selected image ${intent.slug}${intent.tag ? `:${intent.tag}` : ""}.`,
       });
     }
     case "rb.autoFillInfrastructure":

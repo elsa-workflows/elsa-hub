@@ -125,11 +125,21 @@ export interface InfrastructureSelection {
   settings: Record<string, unknown>;
 }
 
+export interface ImageSelection {
+  /** Slug from src/data/dockerImages.ts (e.g. "elsa-pro-combined"). */
+  slug: string;
+  /** Docker tag (e.g. "latest", "3.8.0-preview"). */
+  tag: string;
+  /** Host port to publish (container port is fixed per image). */
+  hostPort: number;
+}
+
 export interface BuilderStateV2 {
   schemaVersion: 2;
   packageSources: PackageSource[];
   selectedPackages: SelectedPackage[];
   infrastructureSelections: InfrastructureSelection[];
+  imageSelection: ImageSelection;
   shellProfile?: { id: string; settings?: Record<string, unknown> };
   advancedMode: boolean;
   meta?: {
@@ -181,10 +191,17 @@ export const DEFAULT_PACKAGE_SOURCES: PackageSource[] = [
   },
 ];
 
+export const DEFAULT_IMAGE_SELECTION: ImageSelection = {
+  slug: "elsa-pro-combined",
+  tag: "latest",
+  hostPort: 8080,
+};
+
 export const EMPTY_BUILDER_STATE_V2: BuilderStateV2 = {
   schemaVersion: 2,
   packageSources: DEFAULT_PACKAGE_SOURCES,
   selectedPackages: [],
   infrastructureSelections: [],
+  imageSelection: DEFAULT_IMAGE_SELECTION,
   advancedMode: false,
 };

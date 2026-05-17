@@ -9,6 +9,7 @@ import type {
 } from "./types-v2";
 import type { GeneratedFile as LegacyGeneratedFile } from "./types";
 import { findFeature, findPackage, findProvider } from "./requirements";
+import { findBuilderImage, DEFAULT_IMAGE_SLUG } from "./images";
 
 // Re-export the generated-file shape from the legacy types module so callers
 // don't need to know which file it's defined in.
@@ -255,16 +256,74 @@ function buildProgramCs(ctx: Ctx): string {
   return lines.join("\n") + "\n";
 }
 
-function buildDockerCompose(ctx: Ctx): { content: string; envForElsa: Record<string, string> } {
-  const lines: string[] = ["services:", "", "  elsa:"];
-  lines.push("    image: elsaworkflows/elsa-server:latest");
-  lines.push("    container_name: elsa");
+function buildAppService(opts: {
+  image: ReturnType<typeof getSelectedImage>;
+  envForElsa: Record<string, string>;
+  dependsOn: string[];
+  isCompanion?: boolean;
+}): string[] {
+  const { image, envForElsa, dependsOn, isCompanion } = opts;
+  const lines: string[] = [];
+  lines.push(`  ${image.containerName}:`);
+  lines.push(`    image: ${image.image}:${image.tag}`);
+  lines.push(`    container_name: ${image.containerName}`);
   lines.push("    ports:");
-  lines.push('      - "5000:5000"');
+  lines.push(`      - "${image.hostPort}:${image.containerPort}"`);
+  if (Object.keys(envForElsa).length > 0) {
+    lines.push("    environment:");
+    for (const [k, v] of Object.entries(envForElsa)) {
+      lines.push(`      ${k}: ${v}`);
+    }
+  }
+  if (!isCompanion && dependsOn.length > 0) {
+    lines.push("    depends_on:");
+    for (const dep of dependsOn) {
+      lines.push(`      ${dep}:`);
+      lines.push(`        condition: service_healthy`);
+    }
+  }
+  return lines;
+}
+
+function getSelectedImage(ctx: Ctx) {
+  const sel = ctx.state.imageSelection ?? {
+    slug: DEFAULT_IMAGE_SLUG,
+    tag: "latest",
+    hostPort: 8080,
+  };
+  const img = findBuilderImage(sel.slug) ?? findBuilderImage(DEFAULT_IMAGE_SLUG)!;
+  return {
+    slug: img.slug,
+    name: img.name,
+    role: img.role,
+    image: img.image,
+    tag: sel.tag || "latest",
+    hostPort: sel.hostPort || img.defaultHostPort,
+    containerPort: img.containerPort,
+    containerName: img.containerName,
+    requiresServer: img.requiresServer,
+    envDefaults: img.envDefaults,
+  };
+}
+
+function buildDockerCompose(ctx: Ctx): {
+  content: string;
+  envForElsa: Record<string, string>;
+} {
+  const selected = getSelectedImage(ctx);
+  const lines: string[] = ["services:"];
 
   const envForElsa: Record<string, string> = {
     ASPNETCORE_ENVIRONMENT: "Production",
   };
+  // Seed required env vars defined by the chosen image so the compose file is
+  // self-documenting. Infra-derived envs below take precedence.
+  for (const e of selected.envDefaults) {
+    if (e.required && !(e.key in envForElsa)) {
+      envForElsa[e.key] = e.value || "${" + e.key + "}";
+    }
+  }
+
   const dependsOn: string[] = [];
   const sidecarBlocks: string[] = [];
   const volumes = new Set<string>();
@@ -287,16 +346,46 @@ function buildDockerCompose(ctx: Ctx): { content: string; envForElsa: Record<str
     }
   }
 
-  lines.push("    environment:");
-  for (const [k, v] of Object.entries(envForElsa)) {
-    lines.push(`      ${k}: ${v}`);
-  }
+  lines.push("");
+  lines.push(...buildAppService({ image: selected, envForElsa, dependsOn }));
 
-  if (dependsOn.length > 0) {
-    lines.push("    depends_on:");
-    for (const dep of dependsOn) {
-      lines.push(`      ${dep}:`);
-      lines.push(`        condition: service_healthy`);
+  // Studio needs a Server companion to be runnable.
+  if (selected.role === "studio") {
+    const server = findBuilderImage("elsa-pro-server");
+    if (server) {
+      const companion = {
+        slug: server.slug,
+        name: server.name,
+        role: server.role,
+        image: server.image,
+        tag: selected.tag, // mirror the user-chosen tag
+        hostPort: server.defaultHostPort,
+        containerPort: server.containerPort,
+        containerName: server.containerName,
+        requiresServer: false,
+        envDefaults: server.envDefaults,
+      };
+      const companionEnv: Record<string, string> = {
+        ASPNETCORE_ENVIRONMENT: "Production",
+      };
+      for (const e of server.envDefaults) {
+        if (e.required) companionEnv[e.key] = e.value || "${" + e.key + "}";
+      }
+      // Reuse infra-derived envs from the main map (DB, broker, etc.).
+      for (const [k, v] of Object.entries(envForElsa)) {
+        if (k.startsWith("ConnectionStrings__") || k.startsWith("Elsa__")) {
+          companionEnv[k] = v;
+        }
+      }
+      lines.push("");
+      lines.push(
+        ...buildAppService({
+          image: companion,
+          envForElsa: companionEnv,
+          dependsOn,
+          isCompanion: false,
+        }),
+      );
     }
   }
 
@@ -370,10 +459,17 @@ function buildPackagesLock(ctx: Ctx): string {
       licenseTier: pkg?.licenseTier,
     };
   });
+  const selected = getSelectedImage(ctx);
   return JSON.stringify(
     {
       schemaVersion: 2,
       generatedAt: new Date().toISOString(),
+      image: {
+        slug: selected.slug,
+        ref: `${selected.image}:${selected.tag}`,
+        hostPort: selected.hostPort,
+        containerPort: selected.containerPort,
+      },
       packages,
       packageSources: ctx.state.packageSources
         .filter((s) => s.enabled)
@@ -403,11 +499,21 @@ function buildReadme(ctx: Ctx): string {
     return `- **${prettyKind(sel.kind)}** → ${provider?.displayName ?? "(none)"} · _${sel.strategy}_`;
   });
 
+  const selected = getSelectedImage(ctx);
+  const studioNote =
+    selected.role === "studio"
+      ? "\n> **Note:** Studio requires a running Elsa Server. This bundle also includes the `elsa-pro-server` service so it boots out of the box.\n"
+      : "";
+
   return `# Elsa deployment bundle (preview)
 
 Generated by the [Elsa Runtime Builder](https://elsa-workflows.io/elsa-plus/runtime-builder).
 This bundle is a starting point — review and adjust before shipping to production.
 
+## Image
+
+- **${selected.name}** — \`${selected.image}:${selected.tag}\` on host port \`${selected.hostPort}\`
+${studioNote}
 ## Packages
 
 ${pkgs.length ? pkgs.join("\n") : "_No packages selected._"}
@@ -432,7 +538,7 @@ cp .env.example .env
 docker compose up -d
 \`\`\`
 
-The Elsa API is exposed on http://localhost:5000.
+The Elsa endpoint is exposed on http://localhost:${selected.hostPort}.
 `;
 }
 

@@ -22,6 +22,10 @@ interface BuilderStore {
   setAdvancedMode: (value: boolean) => void;
   setMeta: (meta: Partial<NonNullable<BuilderStateV2["meta"]>>) => void;
   importState: (incoming: Partial<BuilderStateV2>) => void;
+  // image
+  setImageSlug: (slug: string) => void;
+  setImageTag: (tag: string) => void;
+  setImageHostPort: (port: number) => void;
   // sources
   addPackageSource: (source: Omit<PackageSource, "id">) => void;
   updatePackageSource: (id: string, patch: Partial<PackageSource>) => void;
@@ -130,7 +134,39 @@ export const useRuntimeBuilder = create<BuilderStore>()(
 
       importState: (incoming) =>
         set(() => ({
-          state: { ...EMPTY_BUILDER_STATE_V2, ...incoming, schemaVersion: 2 },
+          state: {
+            ...EMPTY_BUILDER_STATE_V2,
+            ...incoming,
+            imageSelection: {
+              ...EMPTY_BUILDER_STATE_V2.imageSelection,
+              ...(incoming.imageSelection ?? {}),
+            },
+            schemaVersion: 2,
+          },
+        })),
+
+      setImageSlug: (slug) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            imageSelection: { ...s.state.imageSelection, slug },
+          },
+        })),
+
+      setImageTag: (tag) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            imageSelection: { ...s.state.imageSelection, tag },
+          },
+        })),
+
+      setImageHostPort: (hostPort) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            imageSelection: { ...s.state.imageSelection, hostPort },
+          },
         })),
 
       addPackageSource: (source) =>
