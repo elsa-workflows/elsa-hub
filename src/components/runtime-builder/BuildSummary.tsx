@@ -129,8 +129,8 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
             <Download className="mr-2 h-4 w-4" /> Preview bundle
           </Link>
         ) : (
-          <span>
-            <Download className="mr-2 h-4 w-4" /> Resolve errors first
+          <span className="inline-flex items-center justify-center">
+            <AlertTriangle className="mr-2 h-4 w-4" /> Resolve errors first
           </span>
         )}
       </Button>
