@@ -123,6 +123,19 @@ function normalizeSetting(raw: unknown): import("./types-v2").SettingSchema | nu
   };
 }
 
+function normalizeDependency(raw: unknown): import("./types-v2").FeatureDependency | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const featureId = typeof r.featureId === "string" ? r.featureId : null;
+  if (!featureId) return null;
+  return {
+    featureId,
+    packageId: typeof r.packageId === "string" ? r.packageId : undefined,
+    optional: Boolean(r.optional),
+    reason: typeof r.reason === "string" ? r.reason : undefined,
+  };
+}
+
 function normalizeFeature(raw: unknown): PackageFeature | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -134,12 +147,18 @@ function normalizeFeature(raw: unknown): PackageFeature | null {
   const settings = Array.isArray(r.settings)
     ? (r.settings as unknown[]).map(normalizeSetting).filter((s): s is import("./types-v2").SettingSchema => s !== null)
     : [];
+  const dependencies = Array.isArray(r.dependencies)
+    ? (r.dependencies as unknown[])
+        .map(normalizeDependency)
+        .filter((d): d is import("./types-v2").FeatureDependency => d !== null)
+    : undefined;
   return {
     id,
     displayName: typeof r.displayName === "string" && r.displayName ? r.displayName : humanize(id),
     description: typeof r.description === "string" ? r.description : undefined,
     requires: infra && infra.length ? { infrastructure: infra } : undefined,
     settings,
+    dependencies: dependencies && dependencies.length ? dependencies : undefined,
   };
 }
 
