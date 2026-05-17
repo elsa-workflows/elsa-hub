@@ -114,7 +114,7 @@ export interface SelectedPackage {
   settings: Record<string, Record<string, unknown>>;
   /** True when this package was auto-added by the dependency resolver. */
   autoAdded?: boolean;
-  /** Featurees auto-ticked by the dependency resolver. */
+  /** Features auto-ticked by the dependency resolver. */
   autoFeatures?: string[];
 }
 
