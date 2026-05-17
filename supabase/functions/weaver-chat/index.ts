@@ -72,7 +72,7 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
         try {
           const [embedding] = await embedTexts(LOVABLE_API_KEY, [query]);
           const { data, error } = await supabaseAnon.rpc(
-            "match_weaver_documents",
+            "match_copilot_documents",
             {
               query_embedding: embedding,
               match_count: topK,
