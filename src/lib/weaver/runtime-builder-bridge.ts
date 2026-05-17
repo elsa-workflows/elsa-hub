@@ -18,14 +18,15 @@ export function applyRbIntent(
 
   switch (intent.kind) {
     case "rb.addPackage": {
-      const pkg = catalog?.packages.find((p) => p.id === intent.packageId);
+      if (!catalog) return { ok: false, message: "Catalog not loaded yet." };
+      const pkg = catalog.packages.find((p) => p.id === intent.packageId);
       if (!pkg) return { ok: false, message: `Unknown package: ${intent.packageId}` };
       const already = store.state.selectedPackages.some(
         (p) => p.packageId === intent.packageId,
       );
       if (already) return { ok: true, message: `${pkg.id} already in build.` };
-      const version = pkg.versions[0] ?? "latest";
-      store.togglePackage(intent.packageId, version);
+      const version = pkg.version ?? pkg.versions?.[0] ?? "latest";
+      store.togglePackage(intent.packageId, version, catalog);
       return { ok: true, message: `Added ${pkg.id}@${version}.` };
     }
     case "rb.removePackage": {
@@ -33,28 +34,45 @@ export function applyRbIntent(
         (p) => p.packageId === intent.packageId,
       );
       if (!exists) return { ok: true, message: `${intent.packageId} was not in build.` };
-      store.togglePackage(intent.packageId, exists.version);
+      store.togglePackage(intent.packageId, exists.version, catalog ?? undefined);
       return { ok: true, message: `Removed ${intent.packageId}.` };
     }
     case "rb.toggleFeature": {
+      if (!catalog) return { ok: false, message: "Catalog not loaded yet." };
+      const pkg = catalog.packages.find((p) => p.id === intent.packageId);
+      if (!pkg) return { ok: false, message: `Unknown package: ${intent.packageId}` };
       const sel = store.state.selectedPackages.find(
         (p) => p.packageId === intent.packageId,
       );
-      if (!sel)
-        return { ok: false, message: `Package ${intent.packageId} not selected.` };
-      const isEnabled = sel.selectedFeatures.includes(intent.featureId);
+      const isEnabled = sel?.selectedFeatures.includes(intent.featureId) ?? false;
       if (isEnabled === intent.enabled)
         return {
           ok: true,
           message: `Feature ${intent.featureId} already ${intent.enabled ? "on" : "off"}.`,
         };
-      store.toggleFeature(intent.packageId, intent.featureId);
+      // toggleCapability handles auto-adding the host package when enabling,
+      // and removing the package if its last feature is unticked.
+      store.toggleCapability(intent.packageId, intent.featureId, catalog);
       return {
         ok: true,
         message: `${intent.enabled ? "Enabled" : "Disabled"} ${intent.featureId} on ${intent.packageId}.`,
       };
     }
     case "rb.setFeatureSetting": {
+      // Make sure the host package & feature exist first; otherwise the
+      // setting silently goes nowhere.
+      if (catalog) {
+        const sel = store.state.selectedPackages.find(
+          (p) => p.packageId === intent.packageId,
+        );
+        const hasFeature = sel?.selectedFeatures.includes(intent.featureId);
+        if (!sel || !hasFeature) {
+          const pkg = catalog.packages.find((p) => p.id === intent.packageId);
+          if (!pkg)
+            return { ok: false, message: `Unknown package: ${intent.packageId}` };
+          store.toggleCapability(intent.packageId, intent.featureId, catalog);
+        }
+      }
       store.setFeatureSetting(
         intent.packageId,
         intent.featureId,
