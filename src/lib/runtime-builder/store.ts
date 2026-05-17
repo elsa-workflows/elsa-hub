@@ -252,7 +252,85 @@ export const useRuntimeBuilder = create<BuilderStore>()(
           return { state: { ...s.state, selectedPackages: nextSelected } };
         }),
 
-      setFeatureSetting: (packageId, featureId, name, value) =>
+      toggleCapability: (packageId, featureId, catalog) =>
+        set((s) => {
+          const existing = s.state.selectedPackages.find(
+            (p) => p.packageId === packageId,
+          );
+          const pkg = catalog.packages.find((p) => p.id === packageId);
+          if (!pkg) return s;
+
+          let working: SelectedPackage[];
+          if (!existing) {
+            // Add host package as user-pinned with the feature ticked.
+            working = [
+              ...s.state.selectedPackages,
+              {
+                packageId,
+                version: pkg.version,
+                selectedFeatures: [featureId],
+                settings: {},
+              },
+            ];
+          } else {
+            const has = existing.selectedFeatures.includes(featureId);
+            const selectedFeatures = has
+              ? existing.selectedFeatures.filter((f) => f !== featureId)
+              : [...existing.selectedFeatures, featureId];
+            const autoFeatures = (existing.autoFeatures ?? []).filter(
+              (f) => f !== featureId,
+            );
+            const settings = { ...existing.settings };
+            if (has) delete settings[featureId];
+
+            // If this was an auto-added package and we just unticked the last
+            // user-facing feature, drop it — closure will re-add it if still
+            // required.
+            const becomesEmptyAuto =
+              has &&
+              existing.autoAdded === true &&
+              selectedFeatures.length === 0;
+
+            working = becomesEmptyAuto
+              ? s.state.selectedPackages.filter(
+                  (p) => p.packageId !== packageId,
+                )
+              : s.state.selectedPackages.map((p) =>
+                  p.packageId === packageId
+                    ? {
+                        ...p,
+                        selectedFeatures,
+                        settings,
+                        autoFeatures: autoFeatures.length
+                          ? autoFeatures
+                          : undefined,
+                      }
+                    : p,
+                );
+          }
+
+          const beforeIds = new Set(
+            s.state.selectedPackages.map((p) => p.packageId),
+          );
+          const nextSelected = applyClosure(catalog, working);
+          const added = nextSelected.filter(
+            (p) => p.autoAdded && !beforeIds.has(p.packageId),
+          );
+          if (added.length > 0) {
+            toast.info(
+              `Added ${added.length} required package${added.length === 1 ? "" : "s"}`,
+              {
+                description:
+                  added
+                    .slice(0, 3)
+                    .map((p) => p.packageId)
+                    .join(", ") +
+                  (added.length > 3 ? ` +${added.length - 3} more` : ""),
+              },
+            );
+          }
+          return { state: { ...s.state, selectedPackages: nextSelected } };
+        }),
         set((s) => ({
           state: {
             ...s.state,
