@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import JSZip from "jszip";
 import { Highlight, themes } from "prism-react-renderer";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import {
@@ -9,15 +10,9 @@ import { generateBundleFilesV2 } from "@/lib/runtime-builder/generate";
 import { validateBuildV2 } from "@/lib/runtime-builder/validate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Copy, Download, FileText } from "lucide-react";
+import { Check, Copy, Download, FileText, Loader2 } from "lucide-react";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
 
 const EMPTY_CATALOG: CatalogV2 = { packages: [], infrastructureProviders: [] };
@@ -44,6 +39,7 @@ export function StepBundle() {
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [justCopied, setJustCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const { toast } = useToast();
 
   const active = files[activeIndex];
@@ -64,6 +60,55 @@ export function StepBundle() {
     URL.revokeObjectURL(url);
   }
 
+  function timestamp() {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }
+
+  async function downloadBundle() {
+    if (!validation.isValid || downloading) return;
+    setDownloading(true);
+    try {
+      const zip = new JSZip();
+      for (const f of files) {
+        zip.file(f.path, f.contents);
+      }
+      const buildJson = JSON.stringify(
+        {
+          $schema: "elsa-runtime-builder/v2",
+          exportedAt: new Date().toISOString(),
+          ...state,
+        },
+        null,
+        2,
+      );
+      zip.file("build.json", buildJson);
+
+      const blob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const name = `elsa-deployment-${timestamp()}.zip`;
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: `Downloaded ${name}` });
+    } catch (err) {
+      console.error("[runtime-builder] bundle download failed", err);
+      toast({
+        title: "Bundle download failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -72,26 +117,26 @@ export function StepBundle() {
             Deployment bundle
           </h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Preview the files that will land in <code>deployment.zip</code>.
-            Copy individual files now — packaging into a single zip ships next.
+            Preview the files that will land in <code>deployment.zip</code>,
+            then download them all as a single archive.
           </p>
         </div>
 
         <div className="flex flex-col items-end gap-1.5">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span tabIndex={0}>
-                  <Button disabled className="opacity-70">
-                    <Download className="mr-2 h-4 w-4" /> Download bundle
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                Bundle generation lands next. Use the per-file copy/download for now.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            onClick={downloadBundle}
+            disabled={!validation.isValid || downloading}
+          >
+            {downloading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Packaging…
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" /> Download bundle
+              </>
+            )}
+          </Button>
           {!validation.isValid && (
             <p className="text-[11px] text-destructive">
               Resolve {validation.errors.length} error
