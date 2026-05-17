@@ -12,6 +12,8 @@ export interface SettingSchema {
   name: string;
   displayName: string;
   type: SettingType;
+  /** Raw JSON Schema type from the catalog API (e.g. "boolean", "integer"). */
+  jsonType?: string;
   required?: boolean;
   secret?: boolean;
   defaultValue?: unknown;
@@ -22,6 +24,8 @@ export interface SettingSchema {
   group?: string;
   envHint?: string;
   settings?: SettingSchema[];
+  /** Open-ended UI hints for forward-compatibility (widget, optionsEndpoint, format, multiline, ...). */
+  ui?: Record<string, unknown>;
 }
 
 export function envVarFromHint(hint: string): string {

@@ -1,61 +1,92 @@
-# Weaver ↔ DeepWiki escalation (no repo ingestion)
+## Goal
 
-Per your decision, we will **not** ingest `elsa-core`, `elsa-studio`, or `elsa-extensions` into `weaver_documents`. Instead, Weaver will recognize code-level questions and hand them off to DeepWiki, which already indexes those repos with high quality.
+Replace the single text-input editor used for feature settings with a small, extensible **editor framework** that dispatches on the API's `jsonType` (and future UI hint fields). First concrete win: render booleans as a checkbox with the setting name as its label.
 
-This keeps embedding costs flat, avoids a job-queue/refresh infrastructure, and reuses an integration you already have.
+## Current state
 
-## Scope
+- `runtime-builder-catalog` returns settings with a `jsonType` field. The normalizer in `src/lib/runtime-builder/catalog-client.ts` (`normalizeFeature`, line 67) currently passes the raw `settings` array through as-is, so `jsonType` never reaches the UI.
+- `SettingSchema` (`src/lib/runtime-builder/types-v2.ts`) uses an internal `type: "string" | "number" | "boolean" | "enum" | "object"`.
+- `SchemaField.tsx` switches on `setting.type` with an inline if-chain (boolean → Switch, number → Input, enum → Select, else → string). Because nothing maps `jsonType → type`, every API-sourced setting falls through to the string Input.
+- `StepConfigure.tsx` renders settings in a 2-col grid and already has a small special case for boolean layout. It will use whatever editor `SchemaField` returns.
 
-Three small, surgical changes — all in the Weaver edge function and ingest pipeline. No schema changes, no new tables, no new cron jobs.
+## Approach
 
-### 1. Add a `recommendDeepWiki` tool to `weaver-chat`
+### 1. Normalize the API shape
 
-A new tool the model can call when a question is about C# code, internal class behavior, source-level "how does X work under the hood", contributor questions, or anything not covered by the curated knowledge base.
+In `catalog-client.ts`, add a `normalizeSetting` (used by `normalizeFeature`) that:
 
-The tool returns a structured intent the existing UI tool-rendering layer can display as a clickable card (same pattern as the existing `navigate` tool). It does not navigate automatically.
+- Maps `jsonType` → internal `type`:
+  - `"boolean"` → `boolean`
+  - `"integer"` / `"number"` → `number`
+  - `"string"` → `string` (default fallback)
+  - `"object"` → `object`
+  - `"array"` → `string` for now (rendered as text; framework lets us swap later)
+- Preserves `jsonType` and any unknown hint fields on the normalized object (passed through into `SettingSchema` as optional fields) so future editors can read them.
+- Promotes existing hints we already know about: if the raw setting has an `enum`/`enumValues` array, set `type: "enum"` and populate `enumValues` (this gives us a forward path to "dropdown lists with available options").
 
-Input:
-- `query` — the user's original question, URL-encoded for the DeepWiki search param
-- `repo` — one of `elsa-core` | `elsa-studio` | `elsa-extensions` (model picks based on context; defaults to `elsa-core`)
-- `reason` — one-line justification shown on the card
+### 2. Extend `SettingSchema`
 
-Output:
-- `kind: "deepwiki"`, `url: "https://deepwiki.com/elsa-workflows/<repo>?q=..."`, `label`, `reason`
+In `types-v2.ts`:
 
-### 2. Extend the system prompt
+- Add `jsonType?: string` and an open-ended `ui?: Record<string, unknown>` (or named optional hint fields like `enumValues`, `format`, `multiline`) to `SettingSchema`. The shape stays backward compatible.
 
-Add two short rules to `SYSTEM_PROMPT` in `supabase/functions/weaver-chat/index.ts`:
+### 3. Introduce an editor registry
 
-- "For questions about Elsa source code, internal implementation, class behavior, or contributor-level details, call `recommendDeepWiki` instead of guessing or apologizing. DeepWiki is the authoritative AI index of the `elsa-core`, `elsa-studio`, and `elsa-extensions` repositories."
-- "Do not invent code references, class names, or method signatures. If `searchKnowledge` does not return relevant content and the question is code-level, escalate to `recommendDeepWiki`."
+New file `src/components/runtime-builder/settings/editors.tsx` exporting:
 
-### 3. Add a curated FAQ doc pointing to DeepWiki
+```ts
+type EditorProps = {
+  id: string;
+  setting: SettingSchema;
+  value: unknown;
+  onChange: (v: unknown) => void;
+};
+type SettingEditor = {
+  match: (s: SettingSchema) => boolean;   // priority via array order
+  render: (p: EditorProps) => JSX.Element;
+  layout?: "inline" | "stacked";          // lets the wrapper choose label placement
+};
+const editors: SettingEditor[] = [ booleanEditor, enumEditor, numberEditor, secretEditor, stringEditor ];
+export function resolveEditor(s: SettingSchema): SettingEditor { ... }
+```
 
-Add one entry to `FAQ_DOCS` in `supabase/functions/weaver-ingest/index.ts` so semantic search itself also surfaces DeepWiki as a destination when users ask things like "is there a code search?" or "where do I read the source?". Title: "Exploring the Elsa source code". Body explains DeepWiki covers the three repos and links to `https://deepwiki.com/elsa-workflows/elsa-core`.
+- `booleanEditor` renders a `Checkbox` + label-on-the-right, layout `"inline"` (label suppressed by the wrapper).
+- `enumEditor` renders the existing `Select`.
+- `numberEditor` renders the numeric `Input`.
+- `secretEditor` (`setting.secret === true`) renders the password input + reveal button.
+- `stringEditor` is the fallback.
 
-Then run the ingest function once (admin button or curl) to refresh embeddings.
+Adding new editors later (e.g., async-loaded dropdown driven by a `ui.options` hint) is a single push into the array.
 
-## Why this and not RAG-over-source
+### 4. Refactor `SchemaField.tsx`
 
-- DeepWiki already does the expensive part (LLM-summarized code graph) for free.
-- A full repo ingest would mean: GitHub tree walking, commit-SHA delta tracking, a job queue (edge functions have a ~150s wall-clock limit), hundreds of thousands of embedding calls per refresh, and ~600 MB+ of vectors. All for a feature DeepWiki already does better.
-- This approach keeps Weaver focused on what only it can do: account-aware answers, runtime-builder actions, and product/commerce context.
+- Keep the outer wrapper (label row, secret/advanced badges, description, env hint).
+- Call `resolveEditor(setting)`; render its component.
+- When the editor's `layout === "inline"` (boolean), render label + checkbox inline (label to the right of the checkbox), skip the top label row. Otherwise keep current stacked layout.
 
-## Files touched
+### 5. Adjust `StepConfigure.tsx`
 
-- `supabase/functions/weaver-chat/index.ts` — add `recommendDeepWiki` tool, register it in both `buildAnonymousTools` and (if relevant) the authenticated tool set, extend `SYSTEM_PROMPT`.
-- `supabase/functions/weaver-ingest/index.ts` — append one FAQ doc.
-- `src/components/weaver/WeaverToolPart.tsx` — add a render branch for `kind: "deepwiki"` (external-link card, opens in new tab). Visual style matches the existing `navigate` card.
+- Remove the `setting.type === "boolean"` styling hack since the inline layout now lives in the editor wrapper. Keep the 2-col grid.
+
+### 6. Verify
+
+- Hard-refresh the catalog page (60s edge cache may need to expire) and confirm:
+  - Boolean settings render as a checkbox with the setting name as label.
+  - Existing number/string/secret/enum settings still work.
+  - No layout regressions in `StepConfigure`.
+
+## Technical details
+
+- **Files touched**
+  - `src/lib/runtime-builder/types-v2.ts` — extend `SettingSchema`.
+  - `src/lib/runtime-builder/catalog-client.ts` — add `normalizeSetting`, call it from `normalizeFeature`.
+  - `src/components/runtime-builder/settings/editors.tsx` — **new**, editor registry.
+  - `src/components/runtime-builder/SchemaField.tsx` — delegate to registry, handle inline layout.
+  - `src/components/runtime-builder/StepConfigure.tsx` — drop boolean-only flex class.
+- **Backward compatibility**: settings that already have a (legacy) `type` field keep working — `normalizeSetting` only fills in `type` when missing, derived from `jsonType`.
+- **Extensibility**: the registry is order-based and matches on the full `SettingSchema`. Future UI hints (e.g., `ui.widget: "async-select"`, `ui.optionsEndpoint: "/x"`, `ui.format: "duration"`) plug in as new editors without touching existing ones.
 
 ## Out of scope
 
-- Any GitHub API integration.
-- Any change to `weaver_documents` schema or RLS.
-- Any UI surface outside the Weaver chat panel.
-- Adding repo content to the curated `PAGE_DOCS` list.
-
-## Acceptance
-
-- Asking Weaver "how does the bookmark store work in Elsa?" produces a card linking to `https://deepwiki.com/elsa-workflows/elsa-core?q=how%20does%20the%20bookmark%20store%20work` with a one-line reason.
-- Asking "what bundles do you sell?" still uses `searchKnowledge` + `listBundles` and does NOT escalate to DeepWiki.
-- Asking "where can I read the Elsa source?" surfaces the new FAQ entry via semantic search.
+- No new UI hint field is wired up yet beyond what the API currently returns. The plumbing is added; concrete editors for new hints land when those hints ship.
+- No changes to validation, store, or generation logic.
