@@ -125,7 +125,7 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
         asChild={validation.isValid && state.selectedPackages.length > 0}
       >
         {validation.isValid && state.selectedPackages.length > 0 ? (
-          <Link to="?step=7">
+          <Link to={state.advancedMode ? "?step=7" : "?step=5"}>
             <Download className="mr-2 h-4 w-4" /> Preview bundle
           </Link>
         ) : (
