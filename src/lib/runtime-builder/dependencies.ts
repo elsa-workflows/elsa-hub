@@ -142,19 +142,32 @@ export function applyClosure(
   catalog: CatalogV2,
   selected: SelectedPackage[],
 ): SelectedPackage[] {
-  const { packageIds, autoFeatures } = resolveClosure(catalog, selected);
-  const byId = new Map(selected.map((p) => [p.packageId, p] as const));
+  // 1. Orphan detection: run a closure seeded only from user-pinned packages
+  //    (and their user-selected features). Any auto-added package missing from
+  //    the result is orphaned and should be pruned.
+  const userPinned = selected.filter((p) => p.autoAdded !== true);
+  // Strip autoFeatures from the orphan-detection seed so removed user
+  // selections don't keep packages alive via leftover auto flags.
+  const orphanSeed = userPinned.map((p) => ({
+    ...p,
+    autoFeatures: undefined,
+  }));
+  const orphanClosure = resolveClosure(catalog, orphanSeed);
+  const survivors = selected.filter((p) => {
+    if (p.autoAdded !== true) return true;
+    return orphanClosure.packageIds.has(p.packageId);
+  });
+
+  // 2. Full closure (including auto-added survivors) to compute the final
+  //    set of required packages and per-package auto-features.
+  const { packageIds, autoFeatures } = resolveClosure(catalog, survivors);
+  const byId = new Map(survivors.map((p) => [p.packageId, p] as const));
   const out: SelectedPackage[] = [];
 
-  // 1. Update existing entries that survive (user-selected, or still required).
-  for (const sp of selected) {
-    const stillRequired = packageIds.has(sp.packageId);
-    const isAuto = sp.autoAdded === true;
-    if (!stillRequired && isAuto) continue; // prune orphan
+  for (const sp of survivors) {
     const auto = autoFeatures.get(sp.packageId);
-    const mergedAuto = new Set<string>([...(sp.autoFeatures ?? []), ...(auto ?? [])]);
-    // Drop auto-feature entries that the user has explicitly selected — they
-    // graduate to user-selected status.
+    const mergedAuto = new Set<string>(auto ?? []);
+    // User selections trump auto-flags.
     for (const f of sp.selectedFeatures) mergedAuto.delete(f);
     const mergedSelected = Array.from(
       new Set<string>([...sp.selectedFeatures, ...mergedAuto]),
@@ -166,7 +179,6 @@ export function applyClosure(
     });
   }
 
-  // 2. Append newly-required packages that weren't in `selected` yet.
   for (const id of packageIds) {
     if (byId.has(id)) continue;
     const pkg = findPackage(catalog, id);
