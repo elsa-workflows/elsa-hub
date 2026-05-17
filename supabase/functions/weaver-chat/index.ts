@@ -133,22 +133,81 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
       },
     }),
 
-    recommendDeepWiki: tool({
+    deepwikiAsk: tool({
       description:
-        "Escalate a code-level or source-implementation question to DeepWiki, the AI index of the elsa-core, elsa-studio, and elsa-extensions repositories. Returns a DeepWiki intent the UI renders as an external-link card. Use for questions about C# internals, activity implementations, class behavior, persistence stores, runtime internals, or any 'how does X work under the hood' question.",
+        "Ask the DeepWiki MCP server a code-level question about Elsa. Returns an inline answer and citation URLs. Use for C# internals, activity implementations, persistence stores, runtime internals, or any 'how does X work under the hood' question. Prefer this over linking out.",
       inputSchema: z.object({
-        query: z.string().min(2).describe("The user's question, used as DeepWiki search query"),
+        question: z.string().min(2),
         repo: z
           .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
-          .default("elsa-core")
-          .describe("Which repository to search. Default to elsa-core."),
-        reason: z.string().describe("One-line justification shown on the card"),
+          .default("elsa-core"),
+      }),
+      execute: async ({ question, repo }) => {
+        try {
+          return await deepwikiAsk(question, repo as DeepWikiRepo);
+        } catch (e) {
+          return {
+            error: (e as Error).message,
+            fallbackUrl: `https://deepwiki.com/elsa-workflows/${repo}`,
+            repo,
+          };
+        }
+      },
+    }),
+
+    deepwikiReadStructure: tool({
+      description:
+        "List the pages available in a DeepWiki repo. Use to discover specific pages before calling deepwikiReadPage.",
+      inputSchema: z.object({
+        repo: z
+          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
+          .default("elsa-core"),
+      }),
+      execute: async ({ repo }) => {
+        try {
+          return await deepwikiReadStructure(repo as DeepWikiRepo);
+        } catch (e) {
+          return { error: (e as Error).message, pages: [], repo };
+        }
+      },
+    }),
+
+    deepwikiReadPage: tool({
+      description:
+        "Fetch the contents of a specific DeepWiki page (markdown). Discover page names with deepwikiReadStructure first.",
+      inputSchema: z.object({
+        page: z.string().min(1),
+        repo: z
+          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
+          .default("elsa-core"),
+      }),
+      execute: async ({ page, repo }) => {
+        try {
+          return await deepwikiReadPage(page, repo as DeepWikiRepo);
+        } catch (e) {
+          return { error: (e as Error).message, page, repo };
+        }
+      },
+    }),
+
+    // Deprecated: kept for backward compatibility with old chat history.
+    // Now returns a deepwiki intent pointing at the repo root (no ?q=, which
+    // deepwiki.com does not honor).
+    recommendDeepWiki: tool({
+      description:
+        "Deprecated — prefer deepwikiAsk. Returns a DeepWiki link card.",
+      inputSchema: z.object({
+        query: z.string().min(2),
+        repo: z
+          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
+          .default("elsa-core"),
+        reason: z.string(),
       }),
       execute: async ({ query, repo, reason }) => ({
         kind: "deepwiki",
         repo,
-        url: `https://deepwiki.com/elsa-workflows/${repo}?q=${encodeURIComponent(query)}`,
-        label: `Ask DeepWiki: ${query.length > 60 ? query.slice(0, 57) + "..." : query}`,
+        url: `https://deepwiki.com/elsa-workflows/${repo}`,
+        label: `Open DeepWiki: ${query.length > 60 ? query.slice(0, 57) + "..." : query}`,
         reason,
       }),
     }),
