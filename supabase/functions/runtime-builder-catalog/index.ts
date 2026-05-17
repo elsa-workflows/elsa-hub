@@ -100,7 +100,22 @@ Deno.serve(async (req) => {
     }
 
     if (action === "resolve") {
-      const body = payload.body ?? {};
+      const incoming = (payload.body ?? {}) as {
+        packages?: Array<{ id?: string; packageId?: string; version?: string; features?: string[] }>;
+        infrastructure?: unknown[];
+      };
+      // Upstream expects `packageId` (matching the /catalog shape). Map both
+      // for compatibility.
+      const upstreamBody = {
+        packages: (incoming.packages ?? []).map((p) => ({
+          packageId: p.packageId ?? p.id,
+          id: p.id ?? p.packageId,
+          version: p.version,
+          features: p.features ?? [],
+          selectedFeatures: p.features ?? [],
+        })),
+        infrastructure: incoming.infrastructure ?? [],
+      };
       const { status, body: respBody } = await proxyJson(`${baseUrl}/api/builder/resolve`, {
         method: "POST",
         headers: {
@@ -108,8 +123,24 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(upstreamBody),
       });
+      // Don't let upstream 5xx crash the wizard — degrade to a warning finding.
+      if (status >= 500) {
+        console.error("resolve upstream error", status, JSON.stringify(respBody).slice(0, 500));
+        return jsonResponse(200, {
+          compatible: true,
+          findings: [
+            {
+              level: "warning",
+              code: "upstream_unavailable",
+              message:
+                "The compatibility checker is temporarily unavailable. Your selection has not been validated against the upstream resolver.",
+              scope: { kind: "global" },
+            },
+          ],
+        });
+      }
       return jsonResponse(status, respBody);
     }
 
