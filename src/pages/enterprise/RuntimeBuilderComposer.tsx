@@ -192,6 +192,7 @@ export default function RuntimeBuilderComposer() {
       <section className="container mx-auto px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
+            {activeKey === "image" && <StepImage />}
             {activeKey === "sources" && <StepSources />}
             {activeKey === "packages" && <StepPackages />}
             {activeKey === "features" && <StepFeatures />}
