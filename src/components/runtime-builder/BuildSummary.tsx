@@ -22,6 +22,7 @@ import { validateBuildV2 } from "@/lib/runtime-builder/validate";
 import { findPackage } from "@/lib/runtime-builder/requirements";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
 import { cn } from "@/lib/utils";
+import { WeaverIntentLog } from "./WeaverIntentLog";
 
 interface Props {
   onOpenImport: () => void;
@@ -140,6 +141,8 @@ export function BuildSummary({ onOpenImport, onOpenExport }: Props) {
         Bundle download lands next. For now you can copy each file from the
         preview.
       </p>
+
+      <WeaverIntentLog />
     </aside>
   );
 }
