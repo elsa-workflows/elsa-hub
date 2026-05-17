@@ -112,6 +112,10 @@ export interface SelectedPackage {
   version: string;
   selectedFeatures: string[];
   settings: Record<string, Record<string, unknown>>;
+  /** True when this package was auto-added by the dependency resolver. */
+  autoAdded?: boolean;
+  /** Featurees auto-ticked by the dependency resolver. */
+  autoFeatures?: string[];
 }
 
 export interface InfrastructureSelection {
