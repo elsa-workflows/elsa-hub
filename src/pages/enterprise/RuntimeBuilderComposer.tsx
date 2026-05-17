@@ -59,7 +59,7 @@ export default function RuntimeBuilderComposer() {
     if (!requested || !catalog) return;
     if (state.selectedPackages.some((p) => p.packageId === requested)) return;
     const pkg = catalog.packages.find((p) => p.id === requested);
-    if (pkg) togglePackage(pkg.id, pkg.version);
+    if (pkg) togglePackage(pkg.id, pkg.version, catalog);
   }, [params, catalog, state.selectedPackages, togglePackage]);
 
   const hasPackages = state.selectedPackages.length > 0;
