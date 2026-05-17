@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type {
   BuilderStateV2,
   CatalogV2,
+  InfraRequirement,
   InfrastructureProvider,
+  PackageFeature,
   PackageManifest,
   ResolveResponse,
 } from "./types-v2";
@@ -43,28 +45,89 @@ function normalizeProvider(raw: unknown): InfrastructureProvider | null {
   return provider;
 }
 
+function humanize(id: string): string {
+  // "Elsa.Alterations.WorkflowManagement" -> "Workflow Management"
+  const tail = id.split(".").pop() ?? id;
+  return tail.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ");
+}
+
+function normalizeFeature(raw: unknown): PackageFeature | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const id = typeof r.featureId === "string" ? r.featureId : typeof r.id === "string" ? r.id : null;
+  if (!id) return null;
+  const infra = Array.isArray(r.infrastructure)
+    ? (r.infrastructure as InfraRequirement[])
+    : undefined;
+  return {
+    id,
+    displayName: typeof r.displayName === "string" && r.displayName ? r.displayName : humanize(id),
+    description: typeof r.description === "string" ? r.description : undefined,
+    requires: infra && infra.length ? { infrastructure: infra } : undefined,
+    settings: Array.isArray(r.settings) ? (r.settings as PackageFeature["settings"]) : [],
+  };
+}
+
 function normalizePackage(raw: unknown): PackageManifest | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
-  if (typeof r.id !== "string") return null;
-  const versions = Array.isArray(r.versions) ? (r.versions as string[]) : [];
-  const version =
-    typeof r.version === "string" ? r.version : versions[0] ?? "0.0.0";
+  // Support both legacy shape (id, version, features) and upstream shape
+  // (packageId, latestVersion, versions: [{version, features, ...}])
+  const id =
+    typeof r.id === "string"
+      ? r.id
+      : typeof r.packageId === "string"
+        ? r.packageId
+        : null;
+  if (!id) return null;
+
+  const rawVersions = Array.isArray(r.versions) ? r.versions : [];
+  // Detect upstream shape (array of version objects) vs legacy (array of strings)
+  const isVersionObjects =
+    rawVersions.length > 0 && typeof rawVersions[0] === "object" && rawVersions[0] !== null;
+
+  let versionStrings: string[] = [];
+  let features: PackageFeature[] = [];
+  let chosenVersion: string;
+
+  if (isVersionObjects) {
+    const versionObjs = rawVersions as Array<Record<string, unknown>>;
+    versionStrings = versionObjs
+      .map((v) => (typeof v.version === "string" ? v.version : null))
+      .filter((v): v is string => Boolean(v));
+    const latest =
+      typeof r.latestVersion === "string" ? r.latestVersion : versionStrings[versionStrings.length - 1];
+    chosenVersion = latest ?? versionStrings[0] ?? "0.0.0";
+    const matching =
+      versionObjs.find((v) => v.version === chosenVersion) ??
+      versionObjs[versionObjs.length - 1];
+    const rawFeatures = matching && Array.isArray(matching.features) ? matching.features : [];
+    features = rawFeatures
+      .map(normalizeFeature)
+      .filter((f): f is PackageFeature => f !== null);
+  } else {
+    versionStrings = rawVersions as string[];
+    chosenVersion =
+      typeof r.version === "string" ? r.version : versionStrings[0] ?? "0.0.0";
+    const rawFeatures = Array.isArray(r.features) ? r.features : [];
+    features = rawFeatures
+      .map(normalizeFeature)
+      .filter((f): f is PackageFeature => f !== null);
+  }
+
   return {
-    id: r.id,
-    displayName: typeof r.displayName === "string" ? r.displayName : r.id,
+    id,
+    displayName: typeof r.displayName === "string" && r.displayName ? r.displayName : id,
     description: typeof r.description === "string" ? r.description : undefined,
-    version,
-    versions: versions.length ? versions : [version],
+    version: chosenVersion,
+    versions: versionStrings.length ? versionStrings : [chosenVersion],
     licenseTier: (r.licenseTier as PackageManifest["licenseTier"]) ?? "OSS",
-    stability: (r.stability as PackageManifest["stability"]) ?? "Stable",
-    category: typeof r.category === "string" ? r.category : "General",
-    features: Array.isArray(r.features)
-      ? (r.features as PackageManifest["features"])
-      : [],
-    conflictsWith: Array.isArray(r.conflictsWith)
-      ? (r.conflictsWith as string[])
-      : undefined,
+    stability:
+      (r.stability as PackageManifest["stability"]) ??
+      (/-preview|-alpha|-beta|-rc/i.test(chosenVersion) ? "Preview" : "Stable"),
+    category: typeof r.category === "string" ? r.category : id.split(".")[1] ?? "Core",
+    features,
+    conflictsWith: Array.isArray(r.conflictsWith) ? (r.conflictsWith as string[]) : undefined,
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
   };
 }
