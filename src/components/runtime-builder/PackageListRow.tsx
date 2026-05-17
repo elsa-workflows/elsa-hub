@@ -23,6 +23,8 @@ interface Props {
   onToggle: (version: string) => void;
   onVersionChange: (version: string) => void;
   showCategory?: boolean;
+  /** True when this package was added automatically by the dependency resolver. */
+  autoAdded?: boolean;
 }
 
 export function PackageListRow({
@@ -32,6 +34,7 @@ export function PackageListRow({
   onToggle,
   onVersionChange,
   showCategory = true,
+  autoAdded = false,
 }: Props) {
   const version = selectedVersion ?? pkg.version;
 
