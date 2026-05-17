@@ -56,6 +56,13 @@ export interface RbSelectInfrastructureIntent {
   kindOf: string;
   providerId: string;
 }
+export interface RbSelectImageIntent {
+  kind: "rb.selectImage";
+  slug: string;
+  tag?: string;
+  hostPort?: number;
+  reason?: string;
+}
 export interface RbAutoFillInfrastructureIntent {
   kind: "rb.autoFillInfrastructure";
 }
