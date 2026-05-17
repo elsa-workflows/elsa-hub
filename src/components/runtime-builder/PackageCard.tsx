@@ -103,19 +103,19 @@ export function PackageCard({
 
       <div className="mt-auto flex w-full items-center justify-between gap-2 pt-1">
         {!hideCategory ? (
-          <Badge variant="outline" className="border-border/50 text-[10px] font-normal">
+          <Badge variant="outline" className="min-w-0 max-w-[45%] truncate border-border/50 text-[10px] font-normal">
             {pkg.category}
           </Badge>
         ) : (
           <span />
         )}
-        <div onClick={(e) => e.stopPropagation()}>
+        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
           <Select
             value={version}
             onValueChange={(v) => onVersionChange(v)}
             disabled={!selected}
           >
-            <SelectTrigger className="h-7 w-[120px] text-xs">
+            <SelectTrigger className="h-7 w-[108px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
