@@ -320,6 +320,51 @@ function buildChecklist(
         },
       ];
     }
+    case "rb.selectImage": {
+      const next = findBuilderImage(intent.slug);
+      if (!next) {
+        return [{ label: `Unknown image: ${intent.slug}`, tone: "warn" }];
+      }
+      const cur = state.imageSelection;
+      const curImg = findBuilderImage(cur.slug);
+      const nextTag = intent.tag ?? cur.tag;
+      const nextPort = intent.hostPort ?? cur.hostPort;
+      const slugChanged = cur.slug !== next.slug;
+      const tagChanged = cur.tag !== nextTag;
+      const portChanged = cur.hostPort !== nextPort;
+      if (!slugChanged && !tagChanged && !portChanged) {
+        return [
+          {
+            label: `${next.name} @ ${nextTag} is already selected`,
+            noop: true,
+          },
+        ];
+      }
+      const items: ChecklistItem[] = [
+        {
+          label: "Runtime image",
+          from: curImg ? `${curImg.name} @ ${cur.tag}` : `${cur.slug} @ ${cur.tag}`,
+          to: `${next.name} @ ${nextTag}`,
+          tone: "info",
+        },
+      ];
+      if (portChanged) {
+        items.push({
+          label: "Host port",
+          from: String(cur.hostPort),
+          to: String(nextPort),
+          tone: "info",
+        });
+      }
+      if (next.requiresServer) {
+        items.push({
+          label: "Server companion",
+          detail: "A Server service will be emitted alongside Studio in the bundle.",
+          tone: "warn",
+        });
+      }
+      return items;
+    }
     case "rb.autoFillInfrastructure":
       return [
         {
