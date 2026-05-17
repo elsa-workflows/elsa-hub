@@ -24,6 +24,8 @@ interface Props {
   onVersionChange: (version: string) => void;
   /** Hide the category pill (useful when already filtered by category). */
   hideCategory?: boolean;
+  /** True when this package was added automatically by the dependency resolver. */
+  autoAdded?: boolean;
 }
 
 export function PackageCard({
@@ -33,6 +35,7 @@ export function PackageCard({
   onToggle,
   onVersionChange,
   hideCategory = false,
+  autoAdded = false,
 }: Props) {
   const version = selectedVersion ?? pkg.version;
 
