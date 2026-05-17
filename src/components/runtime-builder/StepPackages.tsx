@@ -211,7 +211,7 @@ export function StepPackages() {
                 : "No packages match your filters."}
             </div>
           ) : view === "grid" ? (
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
               {visible.map((pkg) => {
                 const sel = selectedMap.get(pkg.id);
                 return (
