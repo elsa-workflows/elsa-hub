@@ -51,6 +51,78 @@ function humanize(id: string): string {
   return tail.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/_/g, " ");
 }
 
+function normalizeEnumValues(raw: unknown): { value: string; label: string }[] | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const out: { value: string; label: string }[] = [];
+  for (const entry of raw) {
+    if (entry == null) continue;
+    if (typeof entry === "string" || typeof entry === "number" || typeof entry === "boolean") {
+      const v = String(entry);
+      out.push({ value: v, label: v });
+    } else if (typeof entry === "object") {
+      const o = entry as Record<string, unknown>;
+      const v = o.value ?? o.id ?? o.name;
+      if (v == null) continue;
+      const value = String(v);
+      const label = typeof o.label === "string" ? o.label : typeof o.displayName === "string" ? o.displayName : value;
+      out.push({ value, label });
+    }
+  }
+  return out.length ? out : undefined;
+}
+
+function mapJsonTypeToInternal(jsonType: unknown): import("./types-v2").SettingType | null {
+  if (typeof jsonType !== "string") return null;
+  switch (jsonType.toLowerCase()) {
+    case "boolean":
+      return "boolean";
+    case "integer":
+    case "number":
+      return "number";
+    case "object":
+      return "object";
+    case "string":
+      return "string";
+    case "array":
+      return "string"; // rendered as text for now; replace via editor registry later
+    default:
+      return null;
+  }
+}
+
+function normalizeSetting(raw: unknown): import("./types-v2").SettingSchema | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const name = typeof r.name === "string" ? r.name : null;
+  if (!name) return null;
+
+  const enumValues =
+    normalizeEnumValues(r.enumValues) ?? normalizeEnumValues((r as { enum?: unknown }).enum);
+
+  const explicitType = typeof r.type === "string" ? (r.type as import("./types-v2").SettingType) : null;
+  const fromJson = mapJsonTypeToInternal(r.jsonType);
+  let type: import("./types-v2").SettingType =
+    explicitType ?? (enumValues ? "enum" : fromJson ?? "string");
+  if (enumValues && type !== "enum") type = "enum";
+
+  return {
+    name,
+    displayName: typeof r.displayName === "string" && r.displayName ? r.displayName : name,
+    type,
+    jsonType: typeof r.jsonType === "string" ? r.jsonType : undefined,
+    required: Boolean(r.required),
+    secret: Boolean(r.secret),
+    defaultValue: r.defaultValue,
+    description: typeof r.description === "string" ? r.description : undefined,
+    placeholder: typeof r.placeholder === "string" ? r.placeholder : undefined,
+    enumValues,
+    advanced: Boolean(r.advanced),
+    group: typeof r.group === "string" ? r.group : undefined,
+    envHint: typeof r.envHint === "string" ? r.envHint : undefined,
+    ui: r.ui && typeof r.ui === "object" ? (r.ui as Record<string, unknown>) : undefined,
+  };
+}
+
 function normalizeFeature(raw: unknown): PackageFeature | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -59,12 +131,15 @@ function normalizeFeature(raw: unknown): PackageFeature | null {
   const infra = Array.isArray(r.infrastructure)
     ? (r.infrastructure as InfraRequirement[])
     : undefined;
+  const settings = Array.isArray(r.settings)
+    ? (r.settings as unknown[]).map(normalizeSetting).filter((s): s is import("./types-v2").SettingSchema => s !== null)
+    : [];
   return {
     id,
     displayName: typeof r.displayName === "string" && r.displayName ? r.displayName : humanize(id),
     description: typeof r.description === "string" ? r.description : undefined,
     requires: infra && infra.length ? { infrastructure: infra } : undefined,
-    settings: Array.isArray(r.settings) ? (r.settings as PackageFeature["settings"]) : [],
+    settings,
   };
 }
 
