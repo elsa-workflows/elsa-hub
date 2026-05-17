@@ -149,7 +149,7 @@ export default function RuntimeBuilderComposer() {
 
             <div className="flex flex-wrap items-center gap-3">
               <Stepper
-                steps={STEPS}
+                steps={steps}
                 active={step}
                 furthestUnlocked={furthestUnlocked}
                 onSelect={goTo}
