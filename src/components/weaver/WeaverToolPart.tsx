@@ -4,7 +4,8 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check, ExternalLink, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
+import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
 import type { ToolUIPart, DynamicToolUIPart } from "ai";
