@@ -575,6 +575,26 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             });
           })()}
 
+          {queue.map((q, qIdx) => (
+            <div key={q.id} className="flex flex-col">
+              <Message from="user">
+                <MessageContent className="group-[.is-user]:bg-primary/70 group-[.is-user]:text-primary-foreground">
+                  <MessageResponse>{q.text}</MessageResponse>
+                </MessageContent>
+              </Message>
+              <div
+                className="mt-1 flex items-center justify-end gap-1.5 pr-1 text-[11px] text-muted-foreground"
+                aria-live="polite"
+                role="status"
+              >
+                <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                <span>
+                  Queued · position {qIdx + 1} of {queue.length}
+                </span>
+              </div>
+            </div>
+          ))}
+
           {showThinking ? (
             <Message from="assistant">
               <MessageContent className="bg-muted/60">
