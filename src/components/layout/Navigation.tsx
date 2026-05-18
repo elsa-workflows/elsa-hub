@@ -74,17 +74,6 @@ export function Navigation() {
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <a
-              href="https://deepwiki.com/elsa-workflows/elsa-core"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              DeepWiki
-            </a>
-          </Button>
           <Button variant="ghost" size="sm" className="gap-2" asChild>
             <a
               href="https://github.com/elsa-workflows/elsa-core"
