@@ -4,7 +4,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check, ExternalLink, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
+import { ArrowRight, BookOpen, Check, ExternalLink, Loader2, RotateCw, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
 import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
@@ -38,15 +38,41 @@ export function WeaverToolPart({ part }: { part: AnyToolPart }) {
     "output" in part && part.state === "output-available" ? part.output : null;
   const intent = isWeaverIntent(output) ? (output as WeaverIntent) : null;
 
-  // DeepWiki MCP answer (deepwikiAsk tool) — not an "intent", a real result.
-  if (
-    !intent &&
-    output &&
-    typeof output === "object" &&
-    typeof (output as any).answer === "string" &&
-    typeof (output as any).fallbackUrl === "string"
-  ) {
-    return <DeepWikiAnswerCard data={output as DeepWikiAnswerData} />;
+  // DeepWiki MCP answer (deepwikiAsk tool) — render loading, error and
+  // success states with a retry affordance when the lookup fails.
+  if (toolName === "deepwikiAsk") {
+    const input = ("input" in part ? (part.input as { question?: string; repo?: string } | undefined) : undefined) ?? undefined;
+    const question = input?.question;
+    const repo = input?.repo;
+
+    if (part.state === "input-streaming" || part.state === "input-available") {
+      return <DeepWikiLoadingCard question={question} repo={repo} />;
+    }
+    if (part.state === "output-error") {
+      return (
+        <DeepWikiErrorCard
+          question={question}
+          repo={repo}
+          message={part.errorText ?? "DeepWiki lookup failed."}
+        />
+      );
+    }
+    if (output && typeof output === "object") {
+      const data = output as DeepWikiAnswerData;
+      if (data.error && question) {
+        return (
+          <DeepWikiErrorCard
+            question={question}
+            repo={repo ?? data.repo}
+            message={data.error}
+            fallbackUrl={data.fallbackUrl}
+          />
+        );
+      }
+      if (typeof data.answer === "string" && typeof data.fallbackUrl === "string") {
+        return <DeepWikiAnswerCard data={data} />;
+      }
+    }
   }
 
   // Render an inline confirmation card for action intents
