@@ -1,9 +1,10 @@
 // Sliding side panel that hosts the weaver chat + a thread switcher.
-// Threaded history is loaded on demand from weaver_threads.
+// Signed-in users: threads/messages persist in weaver_threads/weaver_messages.
+// Anonymous users: threads/messages persist in localStorage.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, MessagesSquare } from "lucide-react";
+import { Plus, MessagesSquare, Trash2 } from "lucide-react";
 import type { UIMessage } from "ai";
 import {
   Sheet,
@@ -18,6 +19,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWeaver } from "@/contexts/WeaverContext";
 import { WeaverThread } from "./WeaverThread";
+import {
+  deleteLocalThread,
+  getLocalMessages,
+  listLocalThreads,
+  saveLocalThread,
+  type LocalThreadMeta,
+} from "@/lib/weaverLocalThreads";
 
 export function WeaverPanel() {
   const { open, closePanel, threadId, newThread, setThreadId } = useWeaver();
@@ -25,6 +33,7 @@ export function WeaverPanel() {
   const queryClient = useQueryClient();
   const [showList, setShowList] = useState(false);
 
+  // ---- Signed-in: DB-backed threads ----
   const { data: threads, isLoading } = useQuery({
     queryKey: ["weaver-threads", user?.id],
     enabled: open && !!user?.id,
@@ -60,16 +69,59 @@ export function WeaverPanel() {
     },
   });
 
+  // ---- Anonymous: localStorage threads ----
+  const [localThreads, setLocalThreads] = useState<LocalThreadMeta[]>([]);
+  const refreshLocalThreads = useCallback(() => {
+    setLocalThreads(listLocalThreads());
+  }, []);
+
+  useEffect(() => {
+    if (user || !open) return;
+    refreshLocalThreads();
+    const onChange = () => refreshLocalThreads();
+    window.addEventListener("weaver:anon:threads-changed", onChange);
+    window.addEventListener("storage", onChange);
+    return () => {
+      window.removeEventListener("weaver:anon:threads-changed", onChange);
+      window.removeEventListener("storage", onChange);
+    };
+  }, [user, open, refreshLocalThreads]);
+
+  const localInitialMessages = useMemo<UIMessage[]>(() => {
+    if (user || !threadId) return [];
+    return getLocalMessages(threadId);
+  }, [user, threadId]);
+
   useEffect(() => {
     if (open && !threadId) newThread();
   }, [open, threadId, newThread]);
 
   const handleFinish = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["weaver-threads", user?.id] });
+    if (!user) return;
+    queryClient.invalidateQueries({ queryKey: ["weaver-threads", user.id] });
     if (threadId) {
       queryClient.invalidateQueries({ queryKey: ["weaver-messages", threadId] });
     }
-  }, [queryClient, user?.id, threadId]);
+  }, [queryClient, user, threadId]);
+
+  const handleLocalMessagesChange = useCallback(
+    (msgs: UIMessage[]) => {
+      if (user || !threadId) return;
+      saveLocalThread(threadId, msgs);
+    },
+    [user, threadId],
+  );
+
+  const handleDeleteLocal = useCallback(
+    (id: string) => {
+      deleteLocalThread(id);
+      if (id === threadId) newThread();
+    },
+    [threadId, newThread],
+  );
+
+  const isAnon = !user;
+  const visibleThreads = isAnon ? localThreads : threads ?? [];
 
   return (
     <Sheet open={open} onOpenChange={(o) => (!o ? closePanel() : null)}>
@@ -109,33 +161,55 @@ export function WeaverPanel() {
         {showList ? (
           <ScrollArea className="flex-1">
             <div className="flex flex-col gap-1 p-2">
-              {isLoading ? (
+              {!isAnon && isLoading ? (
                 <>
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
                 </>
-              ) : !user ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  Sign in to keep chat history.
-                </div>
-              ) : threads && threads.length > 0 ? (
-                threads.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      setThreadId(t.id);
-                      setShowList(false);
-                    }}
-                    className={`flex flex-col items-start rounded-md px-3 py-2 text-left text-sm hover:bg-muted ${
-                      t.id === threadId ? "bg-muted" : ""
-                    }`}
-                  >
-                    <span className="truncate font-medium">{t.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(t.last_message_at).toLocaleString()}
-                    </span>
-                  </button>
-                ))
+              ) : visibleThreads.length > 0 ? (
+                <>
+                  {isAnon ? (
+                    <div className="px-2 pb-1 pt-1 text-[11px] text-muted-foreground">
+                      Saved in this browser. Sign in to keep history across devices.
+                    </div>
+                  ) : null}
+                  {visibleThreads.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`group flex items-center gap-1 rounded-md pr-1 hover:bg-muted ${
+                        t.id === threadId ? "bg-muted" : ""
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          setThreadId(t.id);
+                          setShowList(false);
+                        }}
+                        className="flex flex-1 flex-col items-start px-3 py-2 text-left text-sm"
+                      >
+                        <span className="line-clamp-1 font-medium">{t.title}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(t.last_message_at).toLocaleString()}
+                        </span>
+                      </button>
+                      {isAnon ? (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Delete conversation"
+                          title="Delete conversation"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteLocal(t.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))}
+                </>
               ) : (
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   No conversations yet.
@@ -144,7 +218,7 @@ export function WeaverPanel() {
             </div>
           </ScrollArea>
         ) : threadId ? (
-          loadingMessages ? (
+          !isAnon && loadingMessages ? (
             <div className="flex-1 space-y-3 p-4">
               <Skeleton className="h-12 w-3/4" />
               <Skeleton className="h-12 w-2/3" />
@@ -153,8 +227,9 @@ export function WeaverPanel() {
             <WeaverThread
               key={threadId}
               threadId={threadId}
-              initialMessages={initialMessages ?? []}
+              initialMessages={isAnon ? localInitialMessages : initialMessages ?? []}
               onFinish={handleFinish}
+              onMessagesChange={isAnon ? handleLocalMessagesChange : undefined}
             />
           )
         ) : null}

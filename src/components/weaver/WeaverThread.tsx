@@ -58,9 +58,10 @@ interface WeaverThreadProps {
   threadId: string;
   initialMessages?: UIMessage[];
   onFinish?: () => void;
+  onMessagesChange?: (messages: UIMessage[]) => void;
 }
 
-export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThreadProps) {
+export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesChange }: WeaverThreadProps) {
   const { session, user } = useAuth();
   const { routeContext } = useWeaver();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -138,6 +139,11 @@ export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThre
       cancelSavedRef.current = false;
     }
   }, [status]);
+
+  // Persist messages externally on every change (used for anon localStorage).
+  useEffect(() => {
+    onMessagesChange?.(messages);
+  }, [messages, onMessagesChange]);
 
   // Focus management
   useEffect(() => {
