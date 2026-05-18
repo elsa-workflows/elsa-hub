@@ -39,6 +39,10 @@ import { useWeaverPreferences } from "@/lib/weaverPreferences";
 
 const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/weaver-chat";
 
+// Cap on pending prompts behind the active turn. Keeps the thread readable
+// and prevents runaway queueing while a long turn is in flight.
+const MAX_QUEUE_SIZE = 5;
+
 type WeaverServerError = {
   error: string;
   code?: string;
@@ -689,9 +693,17 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               status === "submitted" ||
               status === "streaming" ||
               queue.length > 0;
-            if (draftKey) localStorage.removeItem(draftKey);
-            setHasText(false);
             if (isBusyNow) {
+              if (queue.length >= MAX_QUEUE_SIZE) {
+                // Refuse the enqueue but keep the draft so the user doesn't
+                // lose what they typed — they can resend once the queue drains.
+                toast.error(
+                  `Queue is full (${MAX_QUEUE_SIZE} prompts max). Wait for one to send, then try again.`,
+                );
+                return;
+              }
+              if (draftKey) localStorage.removeItem(draftKey);
+              setHasText(false);
               // Enqueue — the drain effect picks it up the moment the
               // current turn finishes. Each queued bubble renders its own
               // "Queued · position N of M" indicator.
@@ -707,6 +719,8 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               ]);
               return;
             }
+            if (draftKey) localStorage.removeItem(draftKey);
+            setHasText(false);
             // Double-submit guard: a second rapid Enter (or Enter + click)
             // can race the React state flip to "submitted". The ref is
             // synchronous, so the second call sees it set and bails.
@@ -717,11 +731,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           <PromptInputTextarea
             ref={textareaRef}
             placeholder={
-              status === "submitted"
-                ? "Sending… (type more to queue)"
-                : status === "streaming" || queue.length > 0
-                  ? "Streaming… (type more to queue)"
-                  : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
+              queue.length >= MAX_QUEUE_SIZE
+                ? `Queue full (${MAX_QUEUE_SIZE} max) — wait for one to send`
+                : status === "submitted"
+                  ? "Sending… (type more to queue)"
+                  : status === "streaming" || queue.length > 0
+                    ? "Streaming… (type more to queue)"
+                    : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             }
             onInput={(e) => {
               const val = e.currentTarget.value;
