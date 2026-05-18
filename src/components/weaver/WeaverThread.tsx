@@ -395,7 +395,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           ) : null}
 
           {messages.map((m) => {
-            const assistantText =
+            const rawAssistantText =
               m.role === "assistant"
                 ? (m.parts ?? [])
                     .filter((p) => p.type === "text")
@@ -403,10 +403,22 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                     .join("\n\n")
                     .trim()
                 : "";
+            const { clean: assistantText, followups } =
+              m.role === "assistant"
+                ? extractFollowups(rawAssistantText)
+                : { clean: "", followups: [] as string[] };
+            const isLast = m === lastMessage;
+            const isStreamingThis =
+              isLast && (status === "submitted" || status === "streaming");
             const showCopy =
               m.role === "assistant" &&
               assistantText.length > 0 &&
-              !(m === lastMessage && (status === "submitted" || status === "streaming"));
+              !isStreamingThis;
+            const showFollowups =
+              m.role === "assistant" &&
+              isLast &&
+              !isStreamingThis &&
+              followups.length > 0;
             return (
               <Message key={m.id} from={m.role === "user" ? "user" : "assistant"}>
                 <MessageContent
@@ -418,10 +430,14 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 >
                   {m.parts.map((part, idx) => {
                     if (part.type === "text") {
+                      // Strip the followups marker from rendered text so it
+                      // never flashes on-screen during streaming.
+                      const text = m.role === "assistant"
+                        ? extractFollowups((part as { text: string }).text).clean
+                        : (part as { text: string }).text;
+                      if (!text) return null;
                       return (
-                        <MessageResponse key={idx}>
-                          {(part as { text: string }).text}
-                        </MessageResponse>
+                        <MessageResponse key={idx}>{text}</MessageResponse>
                       );
                     }
                     if (part.type?.startsWith("tool-") || part.type === "dynamic-tool") {
@@ -439,6 +455,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                     <div className="mt-1 flex justify-start">
                       <CopyResponseButton text={assistantText} />
                     </div>
+                  ) : null}
+                  {showFollowups ? (
+                    <FollowupChips
+                      followups={followups}
+                      disabled={status === "submitted" || status === "streaming"}
+                      onPick={(text) => sendMessage({ text })}
+                    />
                   ) : null}
                 </MessageContent>
               </Message>
