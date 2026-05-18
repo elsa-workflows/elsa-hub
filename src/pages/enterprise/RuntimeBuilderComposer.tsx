@@ -37,6 +37,7 @@ import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
 
 type StepKey =
   | "image"
+  | "image-config"
   | "sources"
   | "packages"
   | "features"
@@ -55,22 +56,24 @@ interface StepDef {
 
 const BASIC_STEPS: StepDef[] = [
   { id: 1, key: "image", label: "Image", short: "Image" },
-  { id: 2, key: "capabilities", label: "Capabilities", short: "Pick" },
-  { id: 3, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 4, key: "configure", label: "Configure", short: "Configure" },
-  { id: 5, key: "validate", label: "Validate", short: "Validate" },
-  { id: 6, key: "bundle", label: "Bundle", short: "Bundle" },
+  { id: 2, key: "image-config", label: "Image config", short: "Config" },
+  { id: 3, key: "capabilities", label: "Capabilities", short: "Pick" },
+  { id: 4, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 5, key: "configure", label: "Configure", short: "Configure" },
+  { id: 6, key: "validate", label: "Validate", short: "Validate" },
+  { id: 7, key: "bundle", label: "Bundle", short: "Bundle" },
 ];
 
 const ADVANCED_STEPS: StepDef[] = [
   { id: 1, key: "image", label: "Image", short: "Image" },
-  { id: 2, key: "sources", label: "Sources", short: "Sources" },
-  { id: 3, key: "packages", label: "Packages", short: "Packages" },
-  { id: 4, key: "features", label: "Features", short: "Features" },
-  { id: 5, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 6, key: "configure", label: "Configure", short: "Configure" },
-  { id: 7, key: "validate", label: "Validate", short: "Validate" },
-  { id: 8, key: "bundle", label: "Bundle", short: "Bundle" },
+  { id: 2, key: "image-config", label: "Image config", short: "Config" },
+  { id: 3, key: "sources", label: "Sources", short: "Sources" },
+  { id: 4, key: "packages", label: "Packages", short: "Packages" },
+  { id: 5, key: "features", label: "Features", short: "Features" },
+  { id: 6, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 7, key: "configure", label: "Configure", short: "Configure" },
+  { id: 8, key: "validate", label: "Validate", short: "Validate" },
+  { id: 9, key: "bundle", label: "Bundle", short: "Bundle" },
 ];
 
 export default function RuntimeBuilderComposer() {
