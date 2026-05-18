@@ -548,6 +548,29 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
   }, []);
 
+  // Screen-reader announcement for weaving state transitions. We mirror
+  // status into a debounced string so assistive tech hears clear, discrete
+  // updates ("Weaving response…", "Streaming reply…", "Reply ready.")
+  // rather than the raw progress numbers.
+  const [srStatus, setSrStatus] = useState("");
+  const prevStatusRef = useRef<typeof status | null>(null);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (status === "submitted") {
+      setSrStatus("Weaving response. Please wait.");
+    } else if (status === "streaming") {
+      setSrStatus("Streaming reply.");
+    } else if (status === "error") {
+      setSrStatus("Generation failed.");
+    } else if (
+      (prev === "streaming" || prev === "submitted") &&
+      (status === "ready" || status === "idle")
+    ) {
+      setSrStatus("Reply ready.");
+    }
+  }, [status]);
+
 
   return (
     <div className="flex h-full flex-col">
@@ -807,6 +830,18 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           </div>
         </div>
       ) : null}
+
+      {/* Polite live region announces weaving/streaming state changes for
+          screen-reader users. Visually hidden; the visible progress bar +
+          inline statuses cover sighted users. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {srStatus}
+      </div>
 
       <div className="border-t bg-background p-3">
         <PromptInput
