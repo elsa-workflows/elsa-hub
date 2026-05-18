@@ -29,6 +29,7 @@ import { StepConfigure } from "@/components/runtime-builder/StepConfigure";
 import { StepValidate } from "@/components/runtime-builder/StepValidate";
 import { StepBundle } from "@/components/runtime-builder/StepBundle";
 import { StepImage } from "@/components/runtime-builder/StepImage";
+import { StepImageConfig } from "@/components/runtime-builder/StepImageConfig";
 import { ImportDialog } from "@/components/runtime-builder/ImportDialog";
 import { ExportDialog } from "@/components/runtime-builder/ExportDialog";
 import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
