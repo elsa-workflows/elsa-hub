@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, MessagesSquare, Trash2, Maximize2, Minimize2 } from "lucide-react";
+import { Plus, MessagesSquare, Trash2, Maximize2, Minimize2, Settings2 } from "lucide-react";
 import type { UIMessage } from "ai";
 import {
   Sheet,
