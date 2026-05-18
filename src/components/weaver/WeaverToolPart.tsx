@@ -751,3 +751,40 @@ function DeepWikiErrorCard({
   );
 }
 
+function parseUrl(url: string): { host: string; path: string } {
+  try {
+    const u = new URL(url);
+    const host = u.host.replace(/^www\./, "");
+    const path = `${u.pathname}${u.search}${u.hash}`.replace(/\/$/, "");
+    return { host, path };
+  } catch {
+    return { host: "", path: url };
+  }
+}
+
+function CopyUrlButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("URL copied");
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      toast.error("Could not copy URL");
+    }
+  };
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      onClick={onCopy}
+      className="size-6"
+      title={copied ? "Copied" : "Copy URL"}
+      aria-label="Copy URL"
+    >
+      {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+    </Button>
+  );
+}
+
