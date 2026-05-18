@@ -280,14 +280,20 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
 
           {showThinking ? (
             <Message from="assistant">
-              <MessageContent className="bg-transparent p-0">
-                <WeaverThinking variant="thinking" progress={progress} />
+              <MessageContent className="bg-muted/60">
+                <div className="flex flex-col gap-2">
+                  <TypingDots aria-label="Assistant is typing" />
+                  <WeaverThinking variant="thinking" progress={progress} />
+                </div>
               </MessageContent>
             </Message>
           ) : null}
 
           {showStreamingPill ? (
-            <WeaverThinking variant="streaming" progress={progress} className="text-xs" />
+            <div className="flex items-center gap-2 px-1">
+              <TypingDots aria-label="Assistant is typing" />
+              <WeaverThinking variant="streaming" progress={progress} className="text-xs" />
+            </div>
           ) : null}
 
           {error ? (() => {
