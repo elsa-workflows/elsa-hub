@@ -1,11 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Sparkles, MessageCircleQuestion, Wrench, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface Props {
   onPick: (text: string) => void;
 }
+
+type Category = "general" | "dashboard" | "rb";
+const CATEGORY_STORAGE_KEY = "weaver:suggestions-category";
 
 type Suggestion = { icon: React.ComponentType<{ className?: string }>; text: string };
 
