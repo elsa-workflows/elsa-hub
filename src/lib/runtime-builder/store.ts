@@ -26,6 +26,8 @@ interface BuilderStore {
   setImageSlug: (slug: string) => void;
   setImageTag: (tag: string) => void;
   setImageHostPort: (port: number) => void;
+  setImageEnv: (key: string, value: string) => void;
+  resetImageEnv: (key?: string) => void;
   // sources
   addPackageSource: (source: Omit<PackageSource, "id">) => void;
   updatePackageSource: (id: string, patch: Partial<PackageSource>) => void;
