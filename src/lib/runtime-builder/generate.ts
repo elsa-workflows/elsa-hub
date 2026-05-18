@@ -556,7 +556,7 @@ export function generateBundleFilesV2(
   const compose = buildDockerCompose(ctx);
   return [
     {
-      path: "appsettings.Generated.json",
+      path: "config.json",
       language: "json",
       contents: buildAppSettings(ctx),
     },
