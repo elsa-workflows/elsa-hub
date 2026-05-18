@@ -319,11 +319,20 @@ function buildDockerCompose(ctx: Ctx): {
   const envForElsa: Record<string, string> = {
     ASPNETCORE_ENVIRONMENT: "Production",
   };
-  // Seed required env vars defined by the chosen image so the compose file is
-  // self-documenting. Infra-derived envs below take precedence.
+  // Seed image env vars so the compose file is self-documenting. User
+  // overrides take precedence; required vars without a value fall back to
+  // `${VAR}` placeholders. Infra-derived envs below override these.
   for (const e of selected.envDefaults) {
-    if (e.required && !(e.key in envForElsa)) {
-      envForElsa[e.key] = e.value || "${" + e.key + "}";
+    const override = selected.envOverrides[e.key];
+    if (typeof override === "string" && override !== "") {
+      envForElsa[e.key] = override;
+      continue;
+    }
+    const resolved = resolveEnvDefault(e.value, selected.hostPort);
+    if (resolved) {
+      envForElsa[e.key] = resolved;
+    } else if (e.required) {
+      envForElsa[e.key] = "${" + e.key + "}";
     }
   }
 
