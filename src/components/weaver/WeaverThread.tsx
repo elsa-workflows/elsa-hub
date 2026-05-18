@@ -396,6 +396,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       createdAt?: number;
     }[] = [];
     let droppedExpired = 0;
+    let droppedDupes = 0;
     try {
       const raw = localStorage.getItem(queueKey);
       if (raw) {
@@ -433,7 +434,19 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             (it) => now - (it.createdAt ?? now) < QUEUE_TTL_MS,
           );
           droppedExpired = validated.length - fresh.length;
-          restored = fresh.slice(0, MAX_QUEUE_SIZE);
+          // Dedupe by normalized text so a queue that's been restored across
+          // multiple refreshes doesn't accumulate identical entries. We keep
+          // the earliest occurrence (preserves original position + createdAt).
+          const seen = new Set<string>();
+          const deduped: typeof fresh = [];
+          for (const it of fresh) {
+            const key = it.text.trim().replace(/\s+/g, " ").toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            deduped.push(it);
+          }
+          droppedDupes = fresh.length - deduped.length;
+          restored = deduped.slice(0, MAX_QUEUE_SIZE);
         }
       }
     } catch {
@@ -446,6 +459,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         `Removed ${droppedExpired} expired queued prompt${
           droppedExpired === 1 ? "" : "s"
         } (older than 24h).`,
+      );
+    }
+    if (droppedDupes > 0) {
+      toast.info(
+        `Removed ${droppedDupes} duplicate queued prompt${
+          droppedDupes === 1 ? "" : "s"
+        }.`,
       );
     }
   }, [queueKey]);
