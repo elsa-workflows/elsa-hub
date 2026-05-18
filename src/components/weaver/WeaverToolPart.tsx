@@ -799,6 +799,7 @@ function DeepWikiErrorCard({
           </Button>
         ) : null}
       </div>
+      <DeepWikiExamples defaultRepo={repo} />
     </div>
   );
 }
