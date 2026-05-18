@@ -154,27 +154,89 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
 
   // Focus management — defer past Radix Sheet's focus trap and re-try a few
   // frames in case the textarea is mounted late after a thread switch.
+  // Extra care for iOS/Safari: programmatic focus is blocked outside a user
+  // gesture (the on-screen keyboard won't open), but the caret can still be
+  // placed reliably if we (a) wait until the element is laid out and visible,
+  // (b) skip when another field is intentionally focused, and (c) avoid the
+  // `preventScroll` option (unsupported on older Safari and a no-op on iOS).
   useEffect(() => {
     let cancelled = false;
-    const tries = [0, 60, 180, 360];
-    const timers = tries.map((delay) =>
-      window.setTimeout(() => {
-        if (cancelled) return;
-        const el = textareaRef.current;
-        if (!el) return;
-        // Place caret at end so the draft stays put.
-        const len = el.value.length;
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+      // iPadOS 13+ reports as Mac; sniff touch support to detect.
+      (/Macintosh/.test(ua) && typeof document !== "undefined" &&
+        "ontouchend" in document);
+
+    const tryFocus = () => {
+      if (cancelled) return false;
+      const el = textareaRef.current;
+      if (!el) return false;
+      // Bail if the element isn't in the DOM or has zero size yet (Sheet
+      // animating in). The next retry will catch it.
+      if (!el.isConnected) return false;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return false;
+
+      // Don't steal focus if the user has already tapped into another input
+      // (common on iOS where the keyboard is up for a different field).
+      const active = document.activeElement as HTMLElement | null;
+      if (
+        active &&
+        active !== el &&
+        active !== document.body &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable)
+      ) {
+        return true;
+      }
+
+      const len = el.value.length;
+      try {
+        // Older iOS Safari throws on the options arg; fall back to plain focus.
         el.focus({ preventScroll: true });
+      } catch {
+        el.focus();
+      }
+      // iOS needs the element to be focused before setSelectionRange will
+      // actually move the caret; do it on the next microtask to be safe.
+      const placeCaret = () => {
         try {
           el.setSelectionRange(len, len);
         } catch {
           /* ignore non-text inputs */
         }
-      }, delay),
-    );
+      };
+      if (isIOS) {
+        // queueMicrotask + rAF gives Safari time to attach the caret.
+        queueMicrotask(placeCaret);
+        requestAnimationFrame(placeCaret);
+      } else {
+        placeCaret();
+      }
+      return document.activeElement === el;
+    };
+
+    // Schedule retries via rAF (paints) plus a couple of timeouts to cover
+    // the Sheet open animation. Stop early once focus actually lands.
+    const rafIds: number[] = [];
+    const timeouts: number[] = [];
+    const schedule = (fn: () => void, delay: number) => {
+      if (delay === 0) {
+        rafIds.push(requestAnimationFrame(fn));
+      } else {
+        timeouts.push(window.setTimeout(fn, delay));
+      }
+    };
+    const attempt = () => {
+      if (tryFocus()) return;
+    };
+    [0, 60, 180, 360, 600].forEach((d) => schedule(attempt, d));
+
     return () => {
       cancelled = true;
-      timers.forEach((t) => window.clearTimeout(t));
+      rafIds.forEach((id) => cancelAnimationFrame(id));
+      timeouts.forEach((t) => window.clearTimeout(t));
     };
   }, [threadId]);
 
