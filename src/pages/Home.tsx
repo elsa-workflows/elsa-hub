@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Sparkles } from "lucide-react";
+import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
@@ -52,11 +52,6 @@ const ecosystemLinks = [{
   title: "Documentation",
   description: "Learn how to get started and build workflows",
   href: "https://docs.elsaworkflows.io/"
-}, {
-  icon: Sparkles,
-  title: "DeepWiki AI",
-  description: "Ask questions about the codebase using AI",
-  href: "https://deepwiki.com/elsa-workflows/elsa-core"
 }, {
   icon: MessageCircle,
   title: "Community",
