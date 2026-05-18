@@ -413,7 +413,24 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             }}
           />
           <PromptInputFooter className="justify-end">
-            <PromptInputSubmit status={status} onStop={stop} />
+            <PromptInputSubmit
+              status={status}
+              onStop={stop}
+              size="sm"
+              aria-label="Send message"
+            >
+              {status === "submitted" || status === "streaming" ? (
+                <>
+                  <SquareIcon className="size-4" />
+                  <span>Stop</span>
+                </>
+              ) : (
+                <>
+                  <span>Send</span>
+                  <CornerDownLeftIcon className="size-4" />
+                </>
+              )}
+            </PromptInputSubmit>
           </PromptInputFooter>
         </PromptInput>
       </div>
