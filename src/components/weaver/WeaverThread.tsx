@@ -113,6 +113,11 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   const { routeContext } = useWeaver();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cancelSavedRef = useRef(false);
+  // Set the instant a submit is initiated and cleared once useChat's `status`
+  // transitions to a non-ready state. Prevents two rapid Enter presses (or
+  // Enter + button click) from firing two requests before React/useChat has
+  // had a chance to flip `status` to "submitted".
+  const submitLockRef = useRef(false);
   const [hasText, setHasText] = useState(false);
 
   const transport = useMemo(
@@ -301,6 +306,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
 
   useEffect(() => {
     if (status === "ready" && textareaRef.current) focusNoScroll(textareaRef.current);
+    // Once useChat has taken ownership of the request (any non-ready state),
+    // it's safe to release the lock — subsequent submits will be gated by
+    // `status` itself.
+    if (status !== "ready") submitLockRef.current = false;
   }, [status]);
 
   // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
@@ -583,6 +592,12 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           onSubmit={(message) => {
             const text = message.text?.trim();
             if (!text) return;
+            // Double-submit guard: a second rapid Enter (or Enter + click)
+            // can race the React state flip to "submitted". The ref is
+            // synchronous, so the second call sees it set and bails.
+            if (submitLockRef.current) return;
+            if (status === "submitted" || status === "streaming") return;
+            submitLockRef.current = true;
             if (draftKey) localStorage.removeItem(draftKey);
             sendMessage({ text });
             setHasText(false);
@@ -610,7 +625,8 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 !e.nativeEvent.isComposing
               ) {
                 e.preventDefault();
-                if (status === "submitted") return;
+                if (submitLockRef.current) return;
+                if (status === "submitted" || status === "streaming") return;
                 if (e.currentTarget.value.trim().length === 0) return;
                 e.currentTarget.form?.requestSubmit();
               }
