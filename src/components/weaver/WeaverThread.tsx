@@ -327,6 +327,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           onSubmit={(message) => {
             const text = message.text?.trim();
             if (!text) return;
+            if (draftKey) localStorage.removeItem(draftKey);
             sendMessage({ text });
           }}
         >
@@ -334,6 +335,12 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             ref={textareaRef}
             placeholder="Ask the Elsa Weaver… (Enter to send, Shift+Enter for newline)"
             autoFocus
+            onInput={(e) => {
+              if (!draftKey) return;
+              const val = e.currentTarget.value;
+              if (val) localStorage.setItem(draftKey, val);
+              else localStorage.removeItem(draftKey);
+            }}
             onKeyDown={(e) => {
               if (
                 e.key === "Enter" &&
