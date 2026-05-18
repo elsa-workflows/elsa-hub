@@ -29,6 +29,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { WeaverThinking, estimateWeaverProgress } from "./WeaverThinking";
 import { TypingDots } from "./TypingDots";
+import { CopyResponseButton } from "./CopyResponseButton";
 import { WeaverToolPart } from "./WeaverToolPart";
 import { WeaverEmptyState } from "./WeaverEmptyState";
 
