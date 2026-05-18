@@ -366,11 +366,56 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     sendMessage({ text: next.text });
   }, [status, queue, sendMessage]);
 
-  // Drop the queue when switching threads — queued prompts belong to the
-  // thread they were typed against.
+  // Per-thread queue persistence. Queued prompts belong to the thread they
+  // were typed against, so we key the localStorage entry by `threadId` and
+  // restore on mount / thread switch. The drain effect picks up restored
+  // items as soon as the assistant is idle.
+  const queueKey = threadId ? `weaver:queue:${threadId}` : null;
+  const queueHydratedRef = useRef<string | null>(null);
+
   useEffect(() => {
-    setQueue([]);
-  }, [threadId]);
+    if (!queueKey) {
+      setQueue([]);
+      queueHydratedRef.current = null;
+      return;
+    }
+    let restored: { id: string; text: string }[] = [];
+    try {
+      const raw = localStorage.getItem(queueKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          restored = parsed
+            .filter(
+              (it): it is { id: string; text: string } =>
+                !!it &&
+                typeof it === "object" &&
+                typeof (it as { id?: unknown }).id === "string" &&
+                typeof (it as { text?: unknown }).text === "string",
+            )
+            .slice(0, MAX_QUEUE_SIZE);
+        }
+      }
+    } catch {
+      /* corrupt entry — ignore and start fresh */
+    }
+    setQueue(restored);
+    queueHydratedRef.current = queueKey;
+  }, [queueKey]);
+
+  // Mirror queue → localStorage. Guarded by `queueHydratedRef` so we don't
+  // overwrite a saved queue with the transient `[]` of the previous thread
+  // before the hydration effect above has run for the new thread.
+  useEffect(() => {
+    if (!queueKey) return;
+    if (queueHydratedRef.current !== queueKey) return;
+    try {
+      if (queue.length === 0) localStorage.removeItem(queueKey);
+      else localStorage.setItem(queueKey, JSON.stringify(queue));
+    } catch {
+      /* quota / privacy mode — non-fatal */
+    }
+  }, [queue, queueKey]);
 
   // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
   useEffect(() => {
