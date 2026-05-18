@@ -371,6 +371,17 @@ function buildRuntimeBuilderTools() {
       }),
       execute: async (i) => ({ kind: "rb.selectInfrastructure", ...i }),
     }),
+    rb_selectImage: tool({
+      description:
+        "Select the Docker image used at the top of the generated bundle. Slugs come from the curated image catalog: 'elsa-pro-server', 'elsa-pro-studio', 'elsa-pro-combined'. Optionally override the tag and host port. Picking Studio alone will auto-emit a Server companion service in the bundle.",
+      inputSchema: z.object({
+        slug: z.enum(["elsa-pro-server", "elsa-pro-studio", "elsa-pro-combined"]),
+        tag: z.string().min(1).optional(),
+        hostPort: z.number().int().min(1).max(65535).optional(),
+        reason: z.string().optional(),
+      }),
+      execute: async (i) => ({ kind: "rb.selectImage", ...i }),
+    }),
     rb_autoFillInfrastructure: tool({
       description:
         "Ask the builder to auto-pick infrastructure for any unmet requirement.",
