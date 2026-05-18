@@ -148,6 +148,19 @@ export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThre
     if (status === "ready") textareaRef.current?.focus();
   }, [status]);
 
+  // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ text?: string }>).detail;
+      const text = detail?.text?.trim();
+      if (!text) return;
+      if (status === "submitted" || status === "streaming") return;
+      sendMessage({ text });
+    };
+    window.addEventListener("weaver:retry", handler);
+    return () => window.removeEventListener("weaver:retry", handler);
+  }, [sendMessage, status]);
+
   // Show shimmer while submitted, or while streaming but the assistant
   // message has not produced any text/tool parts yet.
   const lastMessage = messages[messages.length - 1];
