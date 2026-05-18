@@ -1029,6 +1029,7 @@ function DeepWikiEmptyCard({
         </details>
       ) : null}
       <DeepWikiSuggestions question={question} repo={repo} />
+      <DeepWikiExamples defaultRepo={repo} />
       <div className="mt-3 flex justify-end gap-2">
         <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
           <a href={fallbackUrl} target="_blank" rel="noopener noreferrer">
