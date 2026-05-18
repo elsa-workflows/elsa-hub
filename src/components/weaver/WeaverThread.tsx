@@ -34,6 +34,8 @@ import { WeaverToolPart } from "./WeaverToolPart";
 import { WeaverEmptyState } from "./WeaverEmptyState";
 import { extractFollowups } from "./followups";
 import { FollowupChips } from "./FollowupChips";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useWeaverPreferences } from "@/lib/weaverPreferences";
 
 const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/weaver-chat";
 
