@@ -208,27 +208,6 @@ export const dockerImages: DockerImage[] = [
     healthUrl: "http://localhost:8080/health",
     envVars: [
       {
-        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername",
-        description: "Default shell admin username.",
-        required: true,
-        example: "admin",
-      },
-      {
-        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword",
-        description: "Default shell admin password.",
-        required: true,
-        example: "YourSecurePassword123!",
-      },
-      {
-        key: "CShells__Shells__Default__Features__Identity__SigningKey",
-        description: "Identity signing key for the default shell. Use a secure 256-bit value in production.",
-        required: true,
-      },
-      {
-        key: "Elsa__Cors__AllowedOrigins__0",
-        description: "First allowed CORS origin. Set to the Studio origin (e.g. http://localhost:8081) when Studio runs separately.",
-      },
-      {
         key: "ASPNETCORE_ENVIRONMENT",
         description: "ASP.NET Core environment. Defaults to Production.",
       },
@@ -267,8 +246,7 @@ export const dockerImages: DockerImage[] = [
       },
       {
         key: "Studio__Client__Backend__Url",
-        description:
-          "Browser-visible Elsa API URL for WebAssembly Studio. Must be reachable from the user's browser.",
+        description: "Browser-visible Elsa API URL for WebAssembly Studio. Must be reachable from the user's browser.",
         required: true,
         example: "http://localhost:8080/elsa/api",
       },
@@ -310,23 +288,6 @@ export const dockerImages: DockerImage[] = [
     accessUrl: "http://localhost:8080",
     healthUrl: "http://localhost:8080/health",
     envVars: [
-      {
-        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername",
-        description: "Default shell admin username.",
-        required: true,
-        example: "admin",
-      },
-      {
-        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword",
-        description: "Default shell admin password.",
-        required: true,
-        example: "YourSecurePassword123!",
-      },
-      {
-        key: "CShells__Shells__Default__Features__Identity__SigningKey",
-        description: "Identity signing key for the default shell. Use a secure 256-bit value in production.",
-        required: true,
-      },
       {
         key: "Studio__HostingModel",
         description: "Studio hosting model: WebAssembly (default) or BlazorServer.",
