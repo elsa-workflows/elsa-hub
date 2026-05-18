@@ -870,12 +870,36 @@ function isEmptyDeepWikiAnswer(data: DeepWikiAnswerData): boolean {
   return noMatchPatterns.some((p) => lower.includes(p));
 }
 
-const DEEPWIKI_TIPS = [
-  "Name a specific class, activity, or namespace (e.g. `WorkflowRuntime`, `SendHttpRequest`).",
-  "Mention the area — runtime, persistence, scheduling, Studio, identity.",
-  "Ask how something works rather than yes/no — \"How does X register Y?\"",
-  "If the topic spans repos, try elsa-studio or elsa-extensions instead of elsa-core.",
-];
+function DeepWikiSuggestions({
+  question,
+  repo,
+}: {
+  question?: string;
+  repo?: string;
+}) {
+  const suggestions = buildDeepWikiSuggestions(question, repo);
+  return (
+    <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
+      <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <Lightbulb className="size-3" />
+        Try one of these
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((s, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => dispatchDeepWikiAsk(s, repo)}
+            className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] text-foreground/80 transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
+          >
+            <span className="truncate text-left">{s}</span>
+            <ArrowRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function DeepWikiEmptyCard({
   question,
