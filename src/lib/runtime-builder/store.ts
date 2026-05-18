@@ -26,6 +26,8 @@ interface BuilderStore {
   setImageSlug: (slug: string) => void;
   setImageTag: (tag: string) => void;
   setImageHostPort: (port: number) => void;
+  setImageEnv: (key: string, value: string) => void;
+  resetImageEnv: (key?: string) => void;
   // sources
   addPackageSource: (source: Omit<PackageSource, "id">) => void;
   updatePackageSource: (id: string, patch: Partial<PackageSource>) => void;
@@ -168,6 +170,44 @@ export const useRuntimeBuilder = create<BuilderStore>()(
             imageSelection: { ...s.state.imageSelection, hostPort },
           },
         })),
+
+      setImageEnv: (key, value) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            imageSelection: {
+              ...s.state.imageSelection,
+              envOverrides: {
+                ...(s.state.imageSelection.envOverrides ?? {}),
+                [key]: value,
+              },
+            },
+          },
+        })),
+
+      resetImageEnv: (key) =>
+        set((s) => {
+          const current = s.state.imageSelection.envOverrides ?? {};
+          if (!key) {
+            return {
+              state: {
+                ...s.state,
+                imageSelection: {
+                  ...s.state.imageSelection,
+                  envOverrides: {},
+                },
+              },
+            };
+          }
+          const next = { ...current };
+          delete next[key];
+          return {
+            state: {
+              ...s.state,
+              imageSelection: { ...s.state.imageSelection, envOverrides: next },
+            },
+          };
+        }),
 
       addPackageSource: (source) =>
         set((s) => ({

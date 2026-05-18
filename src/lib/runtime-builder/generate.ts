@@ -9,7 +9,7 @@ import type {
 } from "./types-v2";
 import type { GeneratedFile as LegacyGeneratedFile } from "./types";
 import { findFeature, findPackage, findProvider } from "./requirements";
-import { findBuilderImage, DEFAULT_IMAGE_SLUG } from "./images";
+import { findBuilderImage, DEFAULT_IMAGE_SLUG, resolveEnvDefault } from "./images";
 
 // Re-export the generated-file shape from the legacy types module so callers
 // don't need to know which file it's defined in.
@@ -305,6 +305,7 @@ function getSelectedImage(ctx: Ctx) {
     containerName: img.containerName,
     requiresServer: img.requiresServer,
     envDefaults: img.envDefaults,
+    envOverrides: sel.envOverrides ?? {},
   };
 }
 
@@ -318,11 +319,20 @@ function buildDockerCompose(ctx: Ctx): {
   const envForElsa: Record<string, string> = {
     ASPNETCORE_ENVIRONMENT: "Production",
   };
-  // Seed required env vars defined by the chosen image so the compose file is
-  // self-documenting. Infra-derived envs below take precedence.
+  // Seed image env vars so the compose file is self-documenting. User
+  // overrides take precedence; required vars without a value fall back to
+  // `${VAR}` placeholders. Infra-derived envs below override these.
   for (const e of selected.envDefaults) {
-    if (e.required && !(e.key in envForElsa)) {
-      envForElsa[e.key] = e.value || "${" + e.key + "}";
+    const override = selected.envOverrides[e.key];
+    if (typeof override === "string" && override !== "") {
+      envForElsa[e.key] = override;
+      continue;
+    }
+    const resolved = resolveEnvDefault(e.value, selected.hostPort);
+    if (resolved) {
+      envForElsa[e.key] = resolved;
+    } else if (e.required) {
+      envForElsa[e.key] = "${" + e.key + "}";
     }
   }
 
@@ -366,12 +376,18 @@ function buildDockerCompose(ctx: Ctx): {
         containerName: server.containerName,
         requiresServer: false,
         envDefaults: server.envDefaults,
+        envOverrides: {} as Record<string, string>,
       };
       const companionEnv: Record<string, string> = {
         ASPNETCORE_ENVIRONMENT: "Production",
       };
       for (const e of server.envDefaults) {
-        if (e.required) companionEnv[e.key] = e.value || "${" + e.key + "}";
+        const resolved = resolveEnvDefault(e.value, companion.hostPort);
+        if (e.required) {
+          companionEnv[e.key] = resolved || "${" + e.key + "}";
+        } else if (resolved) {
+          companionEnv[e.key] = resolved;
+        }
       }
       // Reuse infra-derived envs from the main map (DB, broker, etc.).
       for (const [k, v] of Object.entries(envForElsa)) {

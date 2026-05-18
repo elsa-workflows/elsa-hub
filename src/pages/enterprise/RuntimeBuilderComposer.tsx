@@ -29,6 +29,7 @@ import { StepConfigure } from "@/components/runtime-builder/StepConfigure";
 import { StepValidate } from "@/components/runtime-builder/StepValidate";
 import { StepBundle } from "@/components/runtime-builder/StepBundle";
 import { StepImage } from "@/components/runtime-builder/StepImage";
+import { StepImageConfig } from "@/components/runtime-builder/StepImageConfig";
 import { ImportDialog } from "@/components/runtime-builder/ImportDialog";
 import { ExportDialog } from "@/components/runtime-builder/ExportDialog";
 import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
@@ -36,6 +37,7 @@ import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
 
 type StepKey =
   | "image"
+  | "image-config"
   | "sources"
   | "packages"
   | "features"
@@ -54,22 +56,24 @@ interface StepDef {
 
 const BASIC_STEPS: StepDef[] = [
   { id: 1, key: "image", label: "Image", short: "Image" },
-  { id: 2, key: "capabilities", label: "Capabilities", short: "Pick" },
-  { id: 3, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 4, key: "configure", label: "Configure", short: "Configure" },
-  { id: 5, key: "validate", label: "Validate", short: "Validate" },
-  { id: 6, key: "bundle", label: "Bundle", short: "Bundle" },
+  { id: 2, key: "image-config", label: "Image config", short: "Config" },
+  { id: 3, key: "capabilities", label: "Capabilities", short: "Pick" },
+  { id: 4, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 5, key: "configure", label: "Configure", short: "Configure" },
+  { id: 6, key: "validate", label: "Validate", short: "Validate" },
+  { id: 7, key: "bundle", label: "Bundle", short: "Bundle" },
 ];
 
 const ADVANCED_STEPS: StepDef[] = [
   { id: 1, key: "image", label: "Image", short: "Image" },
-  { id: 2, key: "sources", label: "Sources", short: "Sources" },
-  { id: 3, key: "packages", label: "Packages", short: "Packages" },
-  { id: 4, key: "features", label: "Features", short: "Features" },
-  { id: 5, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 6, key: "configure", label: "Configure", short: "Configure" },
-  { id: 7, key: "validate", label: "Validate", short: "Validate" },
-  { id: 8, key: "bundle", label: "Bundle", short: "Bundle" },
+  { id: 2, key: "image-config", label: "Image config", short: "Config" },
+  { id: 3, key: "sources", label: "Sources", short: "Sources" },
+  { id: 4, key: "packages", label: "Packages", short: "Packages" },
+  { id: 5, key: "features", label: "Features", short: "Features" },
+  { id: 6, key: "infrastructure", label: "Infrastructure", short: "Infra" },
+  { id: 7, key: "configure", label: "Configure", short: "Configure" },
+  { id: 8, key: "validate", label: "Validate", short: "Validate" },
+  { id: 9, key: "bundle", label: "Bundle", short: "Bundle" },
 ];
 
 export default function RuntimeBuilderComposer() {
@@ -98,17 +102,16 @@ export default function RuntimeBuilderComposer() {
   const hasFeatures = state.selectedPackages.some(
     (p) => p.selectedFeatures.length > 0,
   );
-  // Image step (1) is always unlocked — it has a sensible default.
-  // Capability-first: unlock everything once at least one feature is picked.
-  // Advanced: unlock progressively (image → sources → packages → features → …).
+  // Image (1) and Image config (2) are always unlocked — they have sensible
+  // defaults. Capability/package gating starts after that.
   const furthestUnlocked = state.advancedMode
     ? !hasPackages
-      ? 3
+      ? 4
       : !hasFeatures
-        ? 4
+        ? 5
         : maxStep
     : !hasFeatures
-      ? 2
+      ? 3
       : maxStep;
 
   function goTo(id: number) {
@@ -193,6 +196,7 @@ export default function RuntimeBuilderComposer() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             {activeKey === "image" && <StepImage />}
+            {activeKey === "image-config" && <StepImageConfig />}
             {activeKey === "sources" && <StepSources />}
             {activeKey === "packages" && <StepPackages />}
             {activeKey === "features" && <StepFeatures />}

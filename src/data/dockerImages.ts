@@ -295,8 +295,27 @@ export const dockerImages: DockerImage[] = [
       },
       {
         key: "Backend__Url",
-        description: "Required when running Studio in Blazor Server mode. Set to http://localhost:8080/elsa/api.",
+        description:
+          "Public URL of the Elsa API as seen by the running container. Must match the host port you publish (defaults to http://localhost:{hostPort}/elsa/api).",
+        required: true,
         example: "http://localhost:8080/elsa/api",
+      },
+      {
+        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminUsername",
+        description: "Default admin username seeded on first boot.",
+        example: "admin",
+      },
+      {
+        key: "CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword",
+        description: "Default admin password seeded on first boot. Change before exposing the container.",
+        required: true,
+        example: "YourSecurePassword123!",
+      },
+      {
+        key: "CShells__Shells__Default__Features__Identity__SigningKey",
+        description: "256-bit signing key used to sign auth tokens.",
+        required: true,
+        example: "replace-with-256-bit-key",
       },
       {
         key: "ASPNETCORE_ENVIRONMENT",
