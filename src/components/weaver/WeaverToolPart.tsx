@@ -49,24 +49,6 @@ export function WeaverToolPart({ part }: { part: AnyToolPart }) {
     return <DeepWikiAnswerCard data={output as DeepWikiAnswerData} />;
   }
 
-  if (intent && intent.kind === "deepwiki") {
-    return (
-      <div className="my-2 flex items-center justify-between gap-3 rounded-md border bg-muted/40 p-3 text-sm">
-        <div className="min-w-0">
-          <div className="font-medium">{intent.label}</div>
-          <div className="truncate text-xs text-muted-foreground">{intent.reason}</div>
-          <div className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-            DeepWiki · {intent.repo}
-          </div>
-        </div>
-        <Button size="sm" variant="secondary" asChild>
-          <a href={intent.url} target="_blank" rel="noopener noreferrer">
-            Open <ExternalLink className="size-3" />
-          </a>
-        </Button>
-      </div>
-    );
-  }
   // Render an inline confirmation card for action intents
   if (intent && intent.kind !== "navigate") {
     return <RbApprovalCard intent={intent} toolName={toolName} />;
