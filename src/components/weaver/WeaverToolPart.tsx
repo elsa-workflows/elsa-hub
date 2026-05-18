@@ -640,3 +640,109 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
   );
 }
 
+function DeepWikiHeader({ repo, right }: { repo?: string; right?: React.ReactNode }) {
+  return (
+    <div className="mb-1.5 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <BookOpen className="size-3" />
+        DeepWiki{repo ? ` · ${repo}` : ""}
+      </div>
+      {right}
+    </div>
+  );
+}
+
+function DeepWikiLoadingCard({ question, repo }: { question?: string; repo?: string }) {
+  return (
+    <div
+      className="my-2 rounded-md border bg-muted/40 p-3 text-sm"
+      role="status"
+      aria-live="polite"
+    >
+      <DeepWikiHeader
+        repo={repo}
+        right={
+          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Loader2 className="size-3 animate-spin" />
+            Asking…
+          </span>
+        }
+      />
+      {question ? (
+        <div className="mb-2 text-xs italic text-muted-foreground">
+          “{question}”
+        </div>
+      ) : null}
+      <div className="space-y-1.5">
+        <div className="h-2 w-11/12 animate-pulse rounded bg-muted-foreground/20" />
+        <div className="h-2 w-10/12 animate-pulse rounded bg-muted-foreground/15" />
+        <div className="h-2 w-9/12 animate-pulse rounded bg-muted-foreground/10" />
+      </div>
+    </div>
+  );
+}
+
+function dispatchDeepWikiRetry(question: string, repo?: string) {
+  const text = repo
+    ? `Re-run DeepWiki for ${repo}: ${question}`
+    : `Re-run DeepWiki: ${question}`;
+  window.dispatchEvent(
+    new CustomEvent("weaver:retry", { detail: { text } }),
+  );
+}
+
+function DeepWikiErrorCard({
+  question,
+  repo,
+  message,
+  fallbackUrl,
+}: {
+  question?: string;
+  repo?: string;
+  message: string;
+  fallbackUrl?: string;
+}) {
+  const canRetry = Boolean(question);
+  return (
+    <div
+      className="my-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm"
+      role="alert"
+    >
+      <DeepWikiHeader
+        repo={repo}
+        right={
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-destructive">
+            Failed
+          </span>
+        }
+      />
+      {question ? (
+        <div className="mb-2 text-xs italic text-muted-foreground">
+          “{question}”
+        </div>
+      ) : null}
+      <div className="text-xs text-destructive">{message}</div>
+      <div className="mt-3 flex justify-end gap-2">
+        {fallbackUrl ? (
+          <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
+            <a href={fallbackUrl} target="_blank" rel="noopener noreferrer">
+              Open DeepWiki <ExternalLink className="size-3" />
+            </a>
+          </Button>
+        ) : null}
+        {canRetry ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            onClick={() => dispatchDeepWikiRetry(question!, repo)}
+          >
+            <RotateCw className="size-3" />
+            Retry
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
