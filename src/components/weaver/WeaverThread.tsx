@@ -326,6 +326,23 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     (status === "streaming" && !lastIsAssistantWithContent);
   const showStreamingPill = status === "streaming" && lastIsAssistantWithContent;
 
+  // Live token-ish count from the streaming assistant message. Word count is
+  // a stable, model-agnostic proxy that updates as new chunks arrive.
+  const streamedWords = useMemo(() => {
+    if (status !== "streaming" && status !== "submitted") return 0;
+    if (lastMessage?.role !== "assistant") return 0;
+    const text = (lastMessage.parts ?? [])
+      .filter((p) => p.type === "text")
+      .map((p) => (p as { text?: string }).text ?? "")
+      .join(" ")
+      .trim();
+    if (!text) return 0;
+    // Strip the followups marker so its JSON doesn't inflate the count.
+    const clean = text.replace(/<!--\s*followups[\s\S]*?-->/i, "");
+    const words = clean.match(/\S+/g);
+    return words ? words.length : 0;
+  }, [lastMessage, status]);
+
   // Heuristic progress: track turn start time, derive a monotonic estimate
   // from elapsed time + tool completion + streamed text length.
   const turnStartRef = useRef<number | null>(null);
@@ -539,6 +556,28 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         <ConversationScrollButton />
       </Conversation>
 
+      {/* Live streaming progress bar — slim, animated, and only visible while
+          a turn is in flight. Gives continuous feedback beyond a static label. */}
+      {(status === "submitted" || status === "streaming") ? (
+        <div
+          className="h-0.5 w-full overflow-hidden bg-muted"
+          role="progressbar"
+          aria-label="Assistant response progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={
+            typeof progress === "number" ? Math.round(progress * 100) : undefined
+          }
+        >
+          <div
+            className="h-full bg-primary transition-[width] duration-300 ease-out"
+            style={{
+              width: `${Math.max(4, Math.min(98, Math.round((progress ?? 0.04) * 100)))}%`,
+            }}
+          />
+        </div>
+      ) : null}
+
       <div className="border-t bg-background p-3">
         <PromptInput
           onSubmit={(message) => {
@@ -579,11 +618,36 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           />
           <PromptInputFooter className="justify-between gap-2">
             <span
-              className="text-xs text-muted-foreground"
+              className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground"
               aria-live="polite"
               role="status"
             >
-              {status === "submitted" ? "Sending…" : ""}
+              {status === "submitted" ? (
+                <>
+                  <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                  <span>
+                    Sending…
+                    {typeof progress === "number"
+                      ? ` ${Math.round(progress * 100)}%`
+                      : ""}
+                  </span>
+                </>
+              ) : status === "streaming" ? (
+                <>
+                  <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                  <span>
+                    Streaming
+                    {typeof progress === "number"
+                      ? ` · ${Math.round(progress * 100)}%`
+                      : ""}
+                    {streamedWords > 0
+                      ? ` · ${streamedWords} word${streamedWords === 1 ? "" : "s"}`
+                      : ""}
+                  </span>
+                </>
+              ) : (
+                ""
+              )}
             </span>
             <PromptInputSubmit
               status={status}
