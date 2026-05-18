@@ -48,6 +48,53 @@ export function StepSources() {
         </p>
       </div>
 
+      <div className="rounded-2xl border border-border/60 bg-card/40 p-5 backdrop-blur-xl">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+              <FolderOpen className="h-4 w-4" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium">Enable package drop folder</p>
+              <p className="max-w-xl text-xs text-muted-foreground">
+                Mounts a host folder into the running container as a local
+                NuGet feed. Drop additional <code className="font-mono">.nupkg</code> files
+                into it after deployment and they become available to the
+                running Elsa container without rebuilding the image.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="local-packages-enabled"
+              checked={local.enabled}
+              onCheckedChange={setLocalPackagesEnabled}
+            />
+            <Label
+              htmlFor="local-packages-enabled"
+              className="cursor-pointer text-xs text-muted-foreground"
+            >
+              Enabled
+            </Label>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2">
+          <Label htmlFor="local-packages-dir" className="text-xs text-muted-foreground">
+            Directory (relative to <code className="font-mono">docker-compose.yml</code>)
+          </Label>
+          <Input
+            id="local-packages-dir"
+            value={local.directoryPath}
+            disabled={!local.enabled}
+            onChange={(e) => setLocalPackagesDirectory(e.target.value)}
+            placeholder="packages"
+            className="max-w-sm font-mono text-xs"
+          />
+        </div>
+      </div>
+
+
+
       <div className="space-y-3">
         {state.packageSources.map((src) => (
           <div
