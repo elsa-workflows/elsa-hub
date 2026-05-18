@@ -709,7 +709,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       {/* Live streaming progress bar — themed, slim, and only visible while
           a turn is in flight. Sits flush above the composer's top border. */}
       {(status === "submitted" || status === "streaming") ? (
-        <div className="px-3 pt-2 pb-1.5 border-t bg-background">
+        <div className="px-3 pt-2 pb-1.5 bg-background">
           <div
             className="relative h-1 w-full overflow-hidden rounded-full bg-primary/10"
             role="progressbar"
