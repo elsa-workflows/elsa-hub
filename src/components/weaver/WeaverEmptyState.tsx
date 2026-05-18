@@ -205,7 +205,7 @@ export function WeaverEmptyState({ onPick }: Props) {
       <div
         role="tablist"
         aria-label="Suggestion category"
-        className="inline-flex rounded-md border bg-muted/30 p-0.5"
+        className="inline-flex flex-wrap justify-center gap-0.5 rounded-md border bg-muted/30 p-0.5"
       >
         {CATEGORIES.map((c) => {
           const active = category === c.id;
