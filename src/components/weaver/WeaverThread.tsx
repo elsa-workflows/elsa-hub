@@ -441,6 +441,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     }
     setQueue(restored);
     queueHydratedRef.current = queueKey;
+    if (droppedExpired > 0) {
+      toast.info(
+        `Removed ${droppedExpired} expired queued prompt${
+          droppedExpired === 1 ? "" : "s"
+        } (older than 24h).`,
+      );
+    }
   }, [queueKey]);
 
   // Mirror queue → localStorage. Guarded by `queueHydratedRef` so we don't
