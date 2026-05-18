@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
-import { CornerDownLeftIcon, Loader2Icon, SquareIcon, XIcon } from "lucide-react";
+import { CornerDownLeftIcon, Loader2Icon, PauseIcon, PlayIcon, SquareIcon, XIcon } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -137,7 +137,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // Pending prompts entered while a turn is still in flight. They render as
   // user-style bubbles with a "Queued" indicator and drain one-at-a-time as
   // soon as the assistant returns to `ready`.
-  const [queue, setQueue] = useState<{ id: string; text: string }[]>([]);
+  const [queue, setQueue] = useState<{ id: string; text: string; paused?: boolean }[]>([]);
 
   const transport = useMemo(
     () =>
@@ -358,11 +358,15 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   }, [status]);
 
   // Drain the queued prompts one at a time whenever the assistant is idle.
+  // Paused items stay in place — we send the first *unpaused* item and leave
+  // any paused entries ahead of it untouched so their position is preserved.
   useEffect(() => {
     if (status !== "ready") return;
     if (queue.length === 0) return;
-    const [next, ...rest] = queue;
-    setQueue(rest);
+    const nextIdx = queue.findIndex((item) => !item.paused);
+    if (nextIdx === -1) return;
+    const next = queue[nextIdx];
+    setQueue((cur) => cur.filter((_, i) => i !== nextIdx));
     submitLockRef.current = true;
     sendMessage({ text: next.text });
   }, [status, queue, sendMessage]);
@@ -380,7 +384,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       queueHydratedRef.current = null;
       return;
     }
-    let restored: { id: string; text: string }[] = [];
+    let restored: { id: string; text: string; paused?: boolean }[] = [];
     try {
       const raw = localStorage.getItem(queueKey);
       if (raw) {
@@ -388,12 +392,17 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         if (Array.isArray(parsed)) {
           restored = parsed
             .filter(
-              (it): it is { id: string; text: string } =>
+              (it): it is { id: string; text: string; paused?: boolean } =>
                 !!it &&
                 typeof it === "object" &&
                 typeof (it as { id?: unknown }).id === "string" &&
                 typeof (it as { text?: unknown }).text === "string",
             )
+            .map((it) => ({
+              id: it.id,
+              text: it.text,
+              paused: (it as { paused?: unknown }).paused === true,
+            }))
             .slice(0, MAX_QUEUE_SIZE);
         }
       }
@@ -741,41 +750,86 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             );
           })()}
 
-          {queue.map((q, qIdx) => (
-            <div key={q.id} className="flex flex-col">
-              <Message from="user">
-                <MessageContent className="group-[.is-user]:bg-primary/70 group-[.is-user]:text-primary-foreground">
-                  <MessageResponse>{q.text}</MessageResponse>
-                </MessageContent>
-              </Message>
-              <div
-                className="mt-1 flex items-center justify-end gap-1.5 pr-1 text-[11px] text-muted-foreground"
-                aria-live="polite"
-                role="status"
-              >
-                <Loader2Icon className="size-3 animate-spin" aria-hidden />
-                <span>
-                  {qIdx === 0
-                    ? `Next up · sends after the current reply${
-                        queue.length > 1 ? ` · ${queue.length - 1} more queued` : ""
-                      }`
-                    : `Queued · #${qIdx + 1} of ${queue.length} remaining`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setQueue((cur) => cur.filter((item) => item.id !== q.id))
-                  }
-                  className="ml-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  aria-label={`Remove queued prompt ${qIdx + 1} of ${queue.length}`}
-                  title="Remove from queue"
-                >
-                  <XIcon className="size-3" aria-hidden />
-                  <span>Cancel</span>
-                </button>
-              </div>
-            </div>
-          ))}
+          {(() => {
+            const nextUnpausedIdx = queue.findIndex((it) => !it.paused);
+            return queue.map((q, qIdx) => {
+              const isPaused = q.paused === true;
+              const isNextUp = qIdx === nextUnpausedIdx;
+              const remaining = queue.length;
+              const statusLabel = isPaused
+                ? `Paused · #${qIdx + 1} of ${remaining} · won't send until resumed`
+                : isNextUp
+                  ? `Next up · sends after the current reply${
+                      remaining > 1 ? ` · ${remaining - 1} more queued` : ""
+                    }`
+                  : `Queued · #${qIdx + 1} of ${remaining} remaining`;
+              return (
+                <div key={q.id} className="flex flex-col">
+                  <Message from="user">
+                    <MessageContent
+                      className={
+                        isPaused
+                          ? "group-[.is-user]:bg-primary/40 group-[.is-user]:text-primary-foreground group-[.is-user]:opacity-80"
+                          : "group-[.is-user]:bg-primary/70 group-[.is-user]:text-primary-foreground"
+                      }
+                    >
+                      <MessageResponse>{q.text}</MessageResponse>
+                    </MessageContent>
+                  </Message>
+                  <div
+                    className="mt-1 flex items-center justify-end gap-1.5 pr-1 text-[11px] text-muted-foreground"
+                    aria-live="polite"
+                    role="status"
+                  >
+                    {isPaused ? (
+                      <PauseIcon className="size-3" aria-hidden />
+                    ) : (
+                      <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                    )}
+                    <span>{statusLabel}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQueue((cur) =>
+                          cur.map((item) =>
+                            item.id === q.id
+                              ? { ...item, paused: !item.paused }
+                              : item,
+                          ),
+                        )
+                      }
+                      className="ml-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-label={
+                        isPaused
+                          ? `Resume queued prompt ${qIdx + 1} of ${remaining}`
+                          : `Pause queued prompt ${qIdx + 1} of ${remaining}`
+                      }
+                      title={isPaused ? "Resume" : "Pause"}
+                    >
+                      {isPaused ? (
+                        <PlayIcon className="size-3" aria-hidden />
+                      ) : (
+                        <PauseIcon className="size-3" aria-hidden />
+                      )}
+                      <span>{isPaused ? "Resume" : "Pause"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setQueue((cur) => cur.filter((item) => item.id !== q.id))
+                      }
+                      className="ml-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      aria-label={`Remove queued prompt ${qIdx + 1} of ${remaining}`}
+                      title="Remove from queue"
+                    >
+                      <XIcon className="size-3" aria-hidden />
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            });
+          })()}
 
           {/* The bottom streaming progress bar + footer status already convey
               "thinking" and "streaming" state, so we don't render an extra
