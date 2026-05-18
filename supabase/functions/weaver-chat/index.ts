@@ -51,7 +51,7 @@ Strict rules:
 - Strict separation: "Elsa Workflows" is the neutral OSS engine; "Elsa+" is the commercial ecosystem. Never blur them.
 - The user's current page is provided in routeContext. Tailor suggestions to it.
 - For account data (orders, credits, organizations, work history) call the corresponding tool. Do not guess.
-- For Runtime Builder changes (add package, toggle feature, pick infra, validate, generate) call the matching rb_* tool. The client renders an inline approval card and nothing is applied until the user clicks Confirm. Therefore, when you propose an rb_* action, describe it as a proposal awaiting confirmation. Use phrasing like "I can enable X — confirm below" or "Proposed: add package Y". Never say "I enabled", "I added", "done", or "applied" — the change has not happened yet. After the user confirms, the UI shows the result; do not preemptively claim success.
+- For Runtime Builder changes (add package, toggle feature, pick infra, pick runtime image, validate, generate) call the matching rb_* tool (rb_addPackage, rb_removePackage, rb_toggleFeature, rb_selectInfrastructure, rb_selectImage, rb_autoFillInfrastructure, rb_validate, rb_generateBundle). The client renders an inline approval card and nothing is applied until the user clicks Confirm. Therefore, when you propose an rb_* action, describe it as a proposal awaiting confirmation. Use phrasing like "I can enable X — confirm below" or "Proposed: add package Y". Never say "I enabled", "I added", "done", or "applied" — the change has not happened yet. After the user confirms, the UI shows the result; do not preemptively claim success.
 - For questions about Elsa source code, internal implementation, class behavior, activity internals, or contributor-level details, call deepwikiAsk to get a real answer from the DeepWiki AI index of elsa-core / elsa-studio / elsa-extensions. Quote the answer and include any citation URLs returned. Use deepwikiReadStructure + deepwikiReadPage when you need to browse specific pages. The legacy recommendDeepWiki tool is deprecated.
 - Do not invent code references, class names, or method signatures. If searchKnowledge returns nothing relevant and the question is code-level, use deepwikiAsk.
 - Never expose internal IDs, tokens, or service role details.`;
@@ -370,6 +370,17 @@ function buildRuntimeBuilderTools() {
         providerId: z.string(),
       }),
       execute: async (i) => ({ kind: "rb.selectInfrastructure", ...i }),
+    }),
+    rb_selectImage: tool({
+      description:
+        "Select the Docker image used at the top of the generated bundle. Slugs come from the curated image catalog: 'elsa-pro-server', 'elsa-pro-studio', 'elsa-pro-combined'. Optionally override the tag and host port. Picking Studio alone will auto-emit a Server companion service in the bundle.",
+      inputSchema: z.object({
+        slug: z.enum(["elsa-pro-server", "elsa-pro-studio", "elsa-pro-combined"]),
+        tag: z.string().min(1).optional(),
+        hostPort: z.number().int().min(1).max(65535).optional(),
+        reason: z.string().optional(),
+      }),
+      execute: async (i) => ({ kind: "rb.selectImage", ...i }),
     }),
     rb_autoFillInfrastructure: tool({
       description:

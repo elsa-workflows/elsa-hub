@@ -1,22 +1,23 @@
-Wire `rb.selectImage` into the Weaver approval card so the existing intent (already emitted by the edge function and applied by `runtime-builder-bridge`) renders a proper review checklist and summary instead of falling through to the default "Apply action" label.
+Add the missing `rb_selectImage` tool to `buildRuntimeBuilderTools()` in `supabase/functions/weaver-chat/index.ts` so the model can propose image selections that the existing client-side bridge + checklist already know how to handle.
 
-## Changes — `src/components/weaver/WeaverToolPart.tsx`
+## Change — `supabase/functions/weaver-chat/index.ts`
 
-1. **`buildChecklist` switch** — add a `case "rb.selectImage"` that:
-   - Looks up the target image via `findBuilderImage(intent.slug)` (new import from `@/lib/runtime-builder/images`).
-   - Reads the current `state.imageSelection` to detect no-ops and show `from → to` diffs.
-   - Emits items for:
-     - Image: `from = currentImage.name @ currentTag`, `to = nextImage.name @ nextTag` (tone `info`; `noop` if slug+tag+port all unchanged).
-     - Tag: only when it changed (`from → to`, tone `info`).
-     - Host port: only when it changed (`from → to`, tone `info`).
-     - Studio companion warning: when the new image's `requiresServer` is true, add a `warn` item noting that a Server companion service will be emitted in the bundle.
-   - If the image slug is unknown, return a single `warn` item.
+Inside `buildRuntimeBuilderTools()`, alongside the other `rb_*` tools, add:
 
-2. **`describeIntent` switch** — add a `case "rb.selectImage"` returning:
-   - `title`: `Use ${image.name}` (fallback to slug)
-   - `detail`: `${intent.reason ?? image.tagline}`
-   - `icon`: `Container` from `lucide-react` (add to the existing import list).
+```ts
+rb_selectImage: tool({
+  description:
+    "Select the Docker image used at the top of the generated bundle. Slugs come from the curated image catalog: 'elsa-pro-server', 'elsa-pro-studio', 'elsa-pro-combined'. Optionally override tag and host port.",
+  inputSchema: z.object({
+    slug: z.enum(["elsa-pro-server", "elsa-pro-studio", "elsa-pro-combined"]),
+    tag: z.string().min(1).optional(),
+    hostPort: z.number().int().min(1).max(65535).optional(),
+    reason: z.string().optional(),
+  }),
+  execute: async (i) => ({ kind: "rb.selectImage", ...i }),
+}),
+```
 
-3. **Imports** — add `Container` to the `lucide-react` import and `findBuilderImage` from `@/lib/runtime-builder/images`.
+Update the system prompt's Runtime Builder paragraph to mention `rb_selectImage` alongside the other `rb_*` actions.
 
-No other files change. The intent type, store action, bridge handler, and edge-function tool are already in place.
+Deploy `weaver-chat` after the edit. No other files change; the intent type, store action, bridge handler, and approval-card checklist are already in place.
