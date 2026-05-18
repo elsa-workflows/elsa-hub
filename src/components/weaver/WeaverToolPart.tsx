@@ -871,6 +871,50 @@ function isEmptyDeepWikiAnswer(data: DeepWikiAnswerData): boolean {
   return noMatchPatterns.some((p) => lower.includes(p));
 }
 
+// Confirm bar shown once a user has staged a question via a chip. They must
+// explicitly press "Use this question" before we dispatch the ask — this
+// prevents an accidental click from re-running DeepWiki.
+function DeepWikiConfirmBar({
+  staged,
+  repo,
+  onClear,
+  onConfirm,
+}: {
+  staged: string | null;
+  repo?: string;
+  onClear: () => void;
+  onConfirm: () => void;
+}) {
+  if (!staged) return null;
+  return (
+    <div className="mt-2 flex items-center gap-2 rounded border border-primary/40 bg-primary/5 p-2">
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+          Selected{repo ? ` · ${repo}` : ""}
+        </div>
+        <div className="truncate text-[11px] text-foreground/90">{staged}</div>
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 px-2 text-xs"
+        onClick={onClear}
+      >
+        <X className="size-3" />
+        Clear
+      </Button>
+      <Button
+        size="sm"
+        className="h-7 px-2 text-xs"
+        onClick={onConfirm}
+      >
+        <ArrowRight className="size-3" />
+        Use this question
+      </Button>
+    </div>
+  );
+}
+
 function DeepWikiSuggestions({
   question,
   repo,
@@ -879,6 +923,7 @@ function DeepWikiSuggestions({
   repo?: string;
 }) {
   const suggestions = buildDeepWikiSuggestions(question, repo);
+  const [staged, setStaged] = useState<string | null>(null);
   return (
     <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
       <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -886,18 +931,41 @@ function DeepWikiSuggestions({
         Try one of these
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {suggestions.map((s, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => dispatchDeepWikiAsk(s, repo)}
-            className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] text-foreground/80 transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
-          >
-            <span className="truncate text-left">{s}</span>
-            <ArrowRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
-          </button>
-        ))}
+        {suggestions.map((s, i) => {
+          const isStaged = staged === s;
+          return (
+            <button
+              key={i}
+              type="button"
+              aria-pressed={isStaged}
+              onClick={() => setStaged(isStaged ? null : s)}
+              className={
+                isStaged
+                  ? "group inline-flex max-w-full items-center gap-1 rounded-full border border-primary bg-primary/10 px-2.5 py-1 text-[11px] text-foreground"
+                  : "group inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] text-foreground/80 transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
+              }
+            >
+              <span className="truncate text-left">{s}</span>
+              {isStaged ? (
+                <Check className="size-3 shrink-0 text-primary" />
+              ) : (
+                <ArrowRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
+              )}
+            </button>
+          );
+        })}
       </div>
+      <DeepWikiConfirmBar
+        staged={staged}
+        repo={repo}
+        onClear={() => setStaged(null)}
+        onConfirm={() => {
+          if (staged) {
+            dispatchDeepWikiAsk(staged, repo);
+            setStaged(null);
+          }
+        }}
+      />
     </div>
   );
 }
@@ -946,6 +1014,7 @@ const DEEPWIKI_EXAMPLES: { repo: "elsa-core" | "elsa-studio" | "elsa-extensions"
 function DeepWikiExamples({ defaultRepo }: { defaultRepo?: string }) {
   const initial = DEEPWIKI_EXAMPLES.findIndex((g) => g.repo === defaultRepo);
   const [activeIdx, setActiveIdx] = useState(initial >= 0 ? initial : 0);
+  const [staged, setStaged] = useState<string | null>(null);
   const active = DEEPWIKI_EXAMPLES[activeIdx];
   return (
     <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
@@ -958,7 +1027,10 @@ function DeepWikiExamples({ defaultRepo }: { defaultRepo?: string }) {
           <button
             key={g.repo}
             type="button"
-            onClick={() => setActiveIdx(i)}
+            onClick={() => {
+              setActiveIdx(i);
+              setStaged(null);
+            }}
             className={
               i === activeIdx
                 ? "rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground"
@@ -971,18 +1043,41 @@ function DeepWikiExamples({ defaultRepo }: { defaultRepo?: string }) {
       </div>
       <div className="mb-1.5 text-[10px] text-muted-foreground">{active.blurb}</div>
       <div className="flex flex-wrap gap-1.5">
-        {active.questions.map((q, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => dispatchDeepWikiAsk(q, active.repo)}
-            className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] text-foreground/80 transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
-          >
-            <span className="truncate text-left">{q}</span>
-            <ArrowRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
-          </button>
-        ))}
+        {active.questions.map((q, i) => {
+          const isStaged = staged === q;
+          return (
+            <button
+              key={i}
+              type="button"
+              aria-pressed={isStaged}
+              onClick={() => setStaged(isStaged ? null : q)}
+              className={
+                isStaged
+                  ? "group inline-flex max-w-full items-center gap-1 rounded-full border border-primary bg-primary/10 px-2.5 py-1 text-[11px] text-foreground"
+                  : "group inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] text-foreground/80 transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
+              }
+            >
+              <span className="truncate text-left">{q}</span>
+              {isStaged ? (
+                <Check className="size-3 shrink-0 text-primary" />
+              ) : (
+                <ArrowRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
+              )}
+            </button>
+          );
+        })}
       </div>
+      <DeepWikiConfirmBar
+        staged={staged}
+        repo={active.repo}
+        onClear={() => setStaged(null)}
+        onConfirm={() => {
+          if (staged) {
+            dispatchDeepWikiAsk(staged, active.repo);
+            setStaged(null);
+          }
+        }}
+      />
     </div>
   );
 }
