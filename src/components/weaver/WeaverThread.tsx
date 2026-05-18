@@ -831,6 +831,18 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         </div>
       ) : null}
 
+      {/* Polite live region announces weaving/streaming state changes for
+          screen-reader users. Visually hidden; the visible progress bar +
+          inline statuses cover sighted users. */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {srStatus}
+      </div>
+
       <div className="border-t bg-background p-3">
         <PromptInput
           onSubmit={(message) => {
