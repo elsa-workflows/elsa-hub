@@ -191,6 +191,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       }
     })();
     el.value = saved;
+    setHasText(saved.trim().length > 0);
     // Trigger field-sizing recompute on the auto-growing textarea.
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }, [draftKey]);
