@@ -325,8 +325,18 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         >
           <PromptInputTextarea
             ref={textareaRef}
-            placeholder="Ask the Elsa Weaver…"
+            placeholder="Ask the Elsa Weaver… (Enter to send, Shift+Enter for newline)"
             autoFocus
+            onKeyDown={(e) => {
+              if (
+                e.key === "Enter" &&
+                !e.shiftKey &&
+                !e.nativeEvent.isComposing
+              ) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
           />
           <PromptInputFooter className="justify-end">
             <PromptInputSubmit status={status} onStop={stop} />
