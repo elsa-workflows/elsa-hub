@@ -595,23 +595,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             </div>
           ))}
 
-          {showThinking ? (
-            <Message from="assistant">
-              <MessageContent className="bg-muted/60">
-                <div className="flex flex-col gap-2">
-                  <TypingDots aria-label="Assistant is typing" />
-                  <WeaverThinking variant="thinking" progress={progress} />
-                </div>
-              </MessageContent>
-            </Message>
-          ) : null}
-
-          {showStreamingPill ? (
-            <div className="flex items-center gap-2 px-1">
-              <TypingDots aria-label="Assistant is typing" />
-              <WeaverThinking variant="streaming" progress={progress} className="text-xs" />
-            </div>
-          ) : null}
+          {/* The bottom streaming progress bar + footer status already convey
+              "thinking" and "streaming" state, so we don't render an extra
+              in-conversation typing/progress row here — it would duplicate
+              the indicator and clutter the thread. */}
 
           {error ? (() => {
             const parsed = parseWeaverError(error.message);
