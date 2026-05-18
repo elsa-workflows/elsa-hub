@@ -396,6 +396,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       createdAt?: number;
     }[] = [];
     let droppedExpired = 0;
+    let droppedDupes = 0;
     try {
       const raw = localStorage.getItem(queueKey);
       if (raw) {
