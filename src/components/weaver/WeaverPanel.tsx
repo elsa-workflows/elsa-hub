@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, MessagesSquare, Trash2 } from "lucide-react";
+import { Plus, MessagesSquare, Trash2, Maximize2, Minimize2 } from "lucide-react";
 import type { UIMessage } from "ai";
 import {
   Sheet,
@@ -32,6 +32,7 @@ export function WeaverPanel() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showList, setShowList] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // ---- Signed-in: DB-backed threads ----
   const { data: threads, isLoading } = useQuery({
@@ -162,11 +163,24 @@ export function WeaverPanel() {
     <Sheet open={open} onOpenChange={(o) => (!o ? closePanel() : null)}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 p-0 sm:max-w-[480px] lg:max-w-[560px]"
+        className={
+          expanded
+            ? "flex w-screen max-w-none flex-col gap-0 p-0 sm:max-w-none"
+            : "flex w-full flex-col gap-0 p-0 sm:max-w-[480px] lg:max-w-[560px]"
+        }
       >
         <SheetHeader className="flex flex-row items-center justify-between space-y-0 border-b p-3 pr-12">
           <SheetTitle className="text-base">Elsa Weaver</SheetTitle>
           <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setExpanded((v) => !v)}
+              aria-label={expanded ? "Exit full screen" : "Expand to full screen"}
+              title={expanded ? "Exit full screen" : "Expand to full screen"}
+            >
+              {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </Button>
             <Button
               variant="ghost"
               size="icon-sm"
