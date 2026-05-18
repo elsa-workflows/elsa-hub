@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Sparkles, MessageCircleQuestion, Wrench, BarChart3 } from "lucide-react";
+import { Sparkles, MessageCircleQuestion, Wrench, BarChart3, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +8,7 @@ interface Props {
   onPick: (text: string) => void;
 }
 
-type Category = "general" | "dashboard" | "rb";
+type Category = "general" | "dashboard" | "rb" | "elsa";
 const CATEGORY_STORAGE_KEY = "weaver:suggestions-category";
 
 type Suggestion = { icon: React.ComponentType<{ className?: string }>; text: string };
@@ -72,6 +72,32 @@ const GENERAL_POOL: Suggestion[] = [
   { icon: MessageCircleQuestion, text: "How do organizations and service providers differ on the platform?" },
 ];
 
+// Questions about Elsa Workflows itself — internals, features, code, and
+// architecture. Answers are sourced from the DeepWiki integration so the
+// model can cite the real codebase rather than guessing from training data.
+const ELSA_POOL: Suggestion[] = [
+  { icon: BookOpen, text: "How does WorkflowRuntime dispatch a workflow under the hood?" },
+  { icon: BookOpen, text: "Walk me through the activity execution pipeline." },
+  { icon: BookOpen, text: "How are bookmarks created, stored, and resumed?" },
+  { icon: BookOpen, text: "How does the workflow scheduler decide what runs next?" },
+  { icon: BookOpen, text: "How is persistence implemented in Elsa.Persistence.EntityFrameworkCore?" },
+  { icon: BookOpen, text: "How do composite activities (Sequence, Flowchart) execute their children?" },
+  { icon: BookOpen, text: "How does Elsa serialize and deserialize workflow definitions?" },
+  { icon: BookOpen, text: "How is dependency injection wired across the Elsa modules?" },
+  { icon: BookOpen, text: "How does the HTTP activities package register endpoints?" },
+  { icon: BookOpen, text: "How is OpenIddict integrated into the Identity package?" },
+  { icon: BookOpen, text: "How does the JavaScript expression evaluator work internally?" },
+  { icon: BookOpen, text: "How are workflow variables scoped and resolved?" },
+  { icon: BookOpen, text: "How does Elsa handle workflow versioning and publishing?" },
+  { icon: BookOpen, text: "How are triggers indexed and matched to incoming events?" },
+  { icon: BookOpen, text: "How does the Hangfire integration dispatch background tasks?" },
+  { icon: BookOpen, text: "How are activities discovered and registered at startup?" },
+  { icon: BookOpen, text: "What's the architecture of the Elsa Studio designer?" },
+  { icon: BookOpen, text: "How does MassTransit integration distribute workflow execution?" },
+  { icon: BookOpen, text: "How are workflow instances rehydrated after a process restart?" },
+  { icon: BookOpen, text: "How does the Quartz scheduler integrate with timer activities?" },
+];
+
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -122,7 +148,14 @@ export function WeaverEmptyState({ onPick }: Props) {
   const [category, setCategory] = useState<Category>(() => {
     try {
       const saved = localStorage.getItem(CATEGORY_STORAGE_KEY) as Category | null;
-      if (saved === "general" || saved === "dashboard" || saved === "rb") return saved;
+      if (
+        saved === "general" ||
+        saved === "dashboard" ||
+        saved === "rb" ||
+        saved === "elsa"
+      ) {
+        return saved;
+      }
     } catch {
       /* ignore */
     }
@@ -144,12 +177,15 @@ export function WeaverEmptyState({ onPick }: Props) {
         ? { pool: RB_POOL, key: "rb" }
         : category === "dashboard"
           ? { pool: DASHBOARD_POOL, key: "dashboard" }
-          : { pool: GENERAL_POOL, key: "general" };
+          : category === "elsa"
+            ? { pool: ELSA_POOL, key: "elsa" }
+            : { pool: GENERAL_POOL, key: "general" };
     return pickFreshThree(pool, key);
   }, [category]);
 
   const CATEGORIES: { id: Category; label: string }[] = [
     { id: "general", label: "General" },
+    { id: "elsa", label: "Elsa internals" },
     { id: "dashboard", label: "Dashboard" },
     { id: "rb", label: "Runtime Builder" },
   ];
@@ -169,7 +205,7 @@ export function WeaverEmptyState({ onPick }: Props) {
       <div
         role="tablist"
         aria-label="Suggestion category"
-        className="inline-flex rounded-md border bg-muted/30 p-0.5"
+        className="inline-flex flex-wrap justify-center gap-0.5 rounded-md border bg-muted/30 p-0.5"
       >
         {CATEGORIES.map((c) => {
           const active = category === c.id;
