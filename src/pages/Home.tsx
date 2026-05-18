@@ -53,11 +53,6 @@ const ecosystemLinks = [{
   description: "Learn how to get started and build workflows",
   href: "https://docs.elsaworkflows.io/"
 }, {
-  icon: Sparkles,
-  title: "DeepWiki AI",
-  description: "Ask questions about the codebase using AI",
-  href: "https://deepwiki.com/elsa-workflows/elsa-core"
-}, {
   icon: MessageCircle,
   title: "Community",
   description: "Join our Discord and connect with developers",
