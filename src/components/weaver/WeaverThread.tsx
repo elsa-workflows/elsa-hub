@@ -625,7 +625,8 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 !e.nativeEvent.isComposing
               ) {
                 e.preventDefault();
-                if (status === "submitted") return;
+                if (submitLockRef.current) return;
+                if (status === "submitted" || status === "streaming") return;
                 if (e.currentTarget.value.trim().length === 0) return;
                 e.currentTarget.form?.requestSubmit();
               }
