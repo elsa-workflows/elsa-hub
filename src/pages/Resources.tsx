@@ -28,14 +28,6 @@ const primaryResources = [
     cta: "Read the Docs",
   },
   {
-    icon: Sparkles,
-    title: "DeepWiki AI",
-    description:
-      "Ask questions about the Elsa codebase using AI. Explore architecture, patterns, and implementation details.",
-    href: "https://deepwiki.com/elsa-workflows/elsa-core",
-    cta: "Explore DeepWiki",
-  },
-  {
     icon: Github,
     title: "GitHub Repository",
     description:
