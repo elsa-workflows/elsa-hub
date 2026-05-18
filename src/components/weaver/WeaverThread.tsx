@@ -113,6 +113,11 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   const { routeContext } = useWeaver();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cancelSavedRef = useRef(false);
+  // Set the instant a submit is initiated and cleared once useChat's `status`
+  // transitions to a non-ready state. Prevents two rapid Enter presses (or
+  // Enter + button click) from firing two requests before React/useChat has
+  // had a chance to flip `status` to "submitted".
+  const submitLockRef = useRef(false);
   const [hasText, setHasText] = useState(false);
 
   const transport = useMemo(
