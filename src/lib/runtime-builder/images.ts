@@ -29,6 +29,20 @@ function roleFromSlug(slug: string): BuilderImageRole {
   return "server";
 }
 
+/**
+ * Catalog-level default for an image env var. Returns a value that may contain
+ * `{hostPort}` placeholders; resolve with `resolveEnvDefault`.
+ */
+function defaultValueFor(key: string, example: string | undefined): string {
+  // Backend__Url must reflect the actual host port the container publishes.
+  if (key === "Backend__Url") return "http://localhost:{hostPort}/elsa/api";
+  return example ?? "";
+}
+
+export function resolveEnvDefault(template: string, hostPort: number): string {
+  return template.replace(/\{hostPort\}/g, String(hostPort));
+}
+
 function toBuilderImage(src: DockerImage): BuilderImage {
   return {
     slug: src.slug,
@@ -43,8 +57,9 @@ function toBuilderImage(src: DockerImage): BuilderImage {
     requiresServer: Boolean(src.requiresServer),
     envDefaults: src.envVars.map((e) => ({
       key: e.key,
-      value: e.example ?? "",
+      value: defaultValueFor(e.key, e.example),
       required: Boolean(e.required),
+      description: e.description,
     })),
     dockerHubUrl: src.dockerHubUrl,
   };
