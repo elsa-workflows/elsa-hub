@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Sparkles, MessageCircleQuestion, Wrench, BarChart3 } from "lucide-react";
+import { Sparkles, MessageCircleQuestion, Wrench, BarChart3, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
