@@ -437,8 +437,15 @@ function buildDockerCompose(ctx: Ctx): {
     }
   }
 
+  const localPackagesDir =
+    ctx.state.localPackages?.enabled
+      ? ctx.state.localPackages.directoryPath?.trim() || "packages"
+      : null;
+
   lines.push("");
-  lines.push(...buildAppService({ image: selected, envForElsa, dependsOn }));
+  lines.push(
+    ...buildAppService({ image: selected, envForElsa, dependsOn, localPackagesDir }),
+  );
 
   // Studio needs a Server companion to be runnable.
   if (selected.role === "studio") {
