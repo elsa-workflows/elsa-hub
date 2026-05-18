@@ -119,6 +119,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // had a chance to flip `status` to "submitted".
   const submitLockRef = useRef(false);
   const [hasText, setHasText] = useState(false);
+  // Pending prompts entered while a turn is still in flight. They render as
+  // user-style bubbles with a "Queued" indicator and drain one-at-a-time as
+  // soon as the assistant returns to `ready`.
+  const [queue, setQueue] = useState<{ id: string; text: string }[]>([]);
 
   const transport = useMemo(
     () =>
@@ -338,6 +342,22 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     if (status !== "ready") submitLockRef.current = false;
   }, [status]);
 
+  // Drain the queued prompts one at a time whenever the assistant is idle.
+  useEffect(() => {
+    if (status !== "ready") return;
+    if (queue.length === 0) return;
+    const [next, ...rest] = queue;
+    setQueue(rest);
+    submitLockRef.current = true;
+    sendMessage({ text: next.text });
+  }, [status, queue, sendMessage]);
+
+  // Drop the queue when switching threads — queued prompts belong to the
+  // thread they were typed against.
+  useEffect(() => {
+    setQueue([]);
+  }, [threadId]);
+
   // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
   useEffect(() => {
     const handler = (e: Event) => {
@@ -486,8 +506,15 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               // delivery state.
               const showSentStatus =
                 m.role === "user" && mIdx === lastUserIdx && isBusy && lastIsUser;
-              const sentLabel =
-                status === "submitted" ? "Sent · waiting for reply…" : "Sent · streaming reply…";
+              const sentLabel = (() => {
+                const base =
+                  status === "submitted"
+                    ? "Sent · waiting for reply…"
+                    : "Sent · streaming reply…";
+                return queue.length > 0
+                  ? `${base} · ${queue.length} queued after this`
+                  : base;
+              })();
               return (
                 <div key={m.id} className="flex flex-col">
                   <Message from={m.role === "user" ? "user" : "assistant"}>
@@ -547,6 +574,26 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               );
             });
           })()}
+
+          {queue.map((q, qIdx) => (
+            <div key={q.id} className="flex flex-col">
+              <Message from="user">
+                <MessageContent className="group-[.is-user]:bg-primary/70 group-[.is-user]:text-primary-foreground">
+                  <MessageResponse>{q.text}</MessageResponse>
+                </MessageContent>
+              </Message>
+              <div
+                className="mt-1 flex items-center justify-end gap-1.5 pr-1 text-[11px] text-muted-foreground"
+                aria-live="polite"
+                role="status"
+              >
+                <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                <span>
+                  Queued · position {qIdx + 1} of {queue.length}
+                </span>
+              </div>
+            </div>
+          ))}
 
           {showThinking ? (
             <Message from="assistant">
@@ -618,25 +665,45 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           onSubmit={(message) => {
             const text = message.text?.trim();
             if (!text) return;
+            const isBusyNow =
+              submitLockRef.current ||
+              status === "submitted" ||
+              status === "streaming" ||
+              queue.length > 0;
+            if (draftKey) localStorage.removeItem(draftKey);
+            setHasText(false);
+            if (isBusyNow) {
+              // Enqueue — the drain effect picks it up the moment the
+              // current turn finishes. Each queued bubble renders its own
+              // "Queued · position N of M" indicator.
+              setQueue((q) => [
+                ...q,
+                {
+                  id:
+                    typeof crypto !== "undefined" && "randomUUID" in crypto
+                      ? crypto.randomUUID()
+                      : `${Date.now()}-${Math.random()}`,
+                  text,
+                },
+              ]);
+              return;
+            }
             // Double-submit guard: a second rapid Enter (or Enter + click)
             // can race the React state flip to "submitted". The ref is
             // synchronous, so the second call sees it set and bails.
-            if (submitLockRef.current) return;
-            if (status === "submitted" || status === "streaming") return;
             submitLockRef.current = true;
-            if (draftKey) localStorage.removeItem(draftKey);
             sendMessage({ text });
-            setHasText(false);
           }}
         >
           <PromptInputTextarea
             ref={textareaRef}
             placeholder={
               status === "submitted"
-                ? "Sending…"
-                : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
+                ? "Sending… (type more to queue)"
+                : status === "streaming" || queue.length > 0
+                  ? "Streaming… (type more to queue)"
+                  : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             }
-            disabled={status === "submitted"}
             onInput={(e) => {
               const val = e.currentTarget.value;
               setHasText(val.trim().length > 0);
@@ -651,8 +718,6 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 !e.nativeEvent.isComposing
               ) {
                 e.preventDefault();
-                if (submitLockRef.current) return;
-                if (status === "submitted" || status === "streaming") return;
                 if (e.currentTarget.value.trim().length === 0) return;
                 e.currentTarget.form?.requestSubmit();
               }
@@ -685,6 +750,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                     {streamedWords > 0
                       ? ` · ${streamedWords} word${streamedWords === 1 ? "" : "s"}`
                       : ""}
+                  </span>
+                </>
+              ) : queue.length > 0 ? (
+                <>
+                  <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                  <span>
+                    {queue.length} prompt{queue.length === 1 ? "" : "s"} queued
                   </span>
                 </>
               ) : (
