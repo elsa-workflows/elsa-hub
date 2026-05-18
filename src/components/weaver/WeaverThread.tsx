@@ -752,6 +752,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                       : ""}
                   </span>
                 </>
+              ) : queue.length > 0 ? (
+                <>
+                  <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                  <span>
+                    {queue.length} prompt{queue.length === 1 ? "" : "s"} queued
+                  </span>
+                </>
               ) : (
                 ""
               )}
