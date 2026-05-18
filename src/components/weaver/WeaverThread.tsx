@@ -665,25 +665,45 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           onSubmit={(message) => {
             const text = message.text?.trim();
             if (!text) return;
+            const isBusyNow =
+              submitLockRef.current ||
+              status === "submitted" ||
+              status === "streaming" ||
+              queue.length > 0;
+            if (draftKey) localStorage.removeItem(draftKey);
+            setHasText(false);
+            if (isBusyNow) {
+              // Enqueue — the drain effect picks it up the moment the
+              // current turn finishes. Each queued bubble renders its own
+              // "Queued · position N of M" indicator.
+              setQueue((q) => [
+                ...q,
+                {
+                  id:
+                    typeof crypto !== "undefined" && "randomUUID" in crypto
+                      ? crypto.randomUUID()
+                      : `${Date.now()}-${Math.random()}`,
+                  text,
+                },
+              ]);
+              return;
+            }
             // Double-submit guard: a second rapid Enter (or Enter + click)
             // can race the React state flip to "submitted". The ref is
             // synchronous, so the second call sees it set and bails.
-            if (submitLockRef.current) return;
-            if (status === "submitted" || status === "streaming") return;
             submitLockRef.current = true;
-            if (draftKey) localStorage.removeItem(draftKey);
             sendMessage({ text });
-            setHasText(false);
           }}
         >
           <PromptInputTextarea
             ref={textareaRef}
             placeholder={
               status === "submitted"
-                ? "Sending…"
-                : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
+                ? "Sending… (type more to queue)"
+                : status === "streaming" || queue.length > 0
+                  ? "Streaming… (type more to queue)"
+                  : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             }
-            disabled={status === "submitted"}
             onInput={(e) => {
               const val = e.currentTarget.value;
               setHasText(val.trim().length > 0);
@@ -698,8 +718,6 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 !e.nativeEvent.isComposing
               ) {
                 e.preventDefault();
-                if (submitLockRef.current) return;
-                if (status === "submitted" || status === "streaming") return;
                 if (e.currentTarget.value.trim().length === 0) return;
                 e.currentTarget.form?.requestSubmit();
               }
