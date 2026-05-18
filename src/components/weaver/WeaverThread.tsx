@@ -43,6 +43,9 @@ const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/we
 // Cap on pending prompts behind the active turn. Keeps the thread readable
 // and prevents runaway queueing while a long turn is in flight.
 const MAX_QUEUE_SIZE = 5;
+// Persisted queued prompts expire after this window so stale items from a
+// session days ago don't surprise-send on reload.
+const QUEUE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type WeaverServerError = {
   error: string;
