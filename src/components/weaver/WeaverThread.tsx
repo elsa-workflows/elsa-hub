@@ -548,6 +548,29 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
   }, []);
 
+  // Screen-reader announcement for weaving state transitions. We mirror
+  // status into a debounced string so assistive tech hears clear, discrete
+  // updates ("Weaving response…", "Streaming reply…", "Reply ready.")
+  // rather than the raw progress numbers.
+  const [srStatus, setSrStatus] = useState("");
+  const prevStatusRef = useRef<typeof status | null>(null);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+    if (status === "submitted") {
+      setSrStatus("Weaving response. Please wait.");
+    } else if (status === "streaming") {
+      setSrStatus("Streaming reply.");
+    } else if (status === "error") {
+      setSrStatus("Generation failed.");
+    } else if (
+      (prev === "streaming" || prev === "submitted") &&
+      (status === "ready" || status === "idle")
+    ) {
+      setSrStatus("Reply ready.");
+    }
+  }, [status]);
+
 
   return (
     <div className="flex h-full flex-col">
