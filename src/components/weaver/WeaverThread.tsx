@@ -618,11 +618,36 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           />
           <PromptInputFooter className="justify-between gap-2">
             <span
-              className="text-xs text-muted-foreground"
+              className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground"
               aria-live="polite"
               role="status"
             >
-              {status === "submitted" ? "Sending…" : ""}
+              {status === "submitted" ? (
+                <>
+                  <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                  <span>
+                    Sending…
+                    {typeof progress === "number"
+                      ? ` ${Math.round(progress * 100)}%`
+                      : ""}
+                  </span>
+                </>
+              ) : status === "streaming" ? (
+                <>
+                  <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                  <span>
+                    Streaming
+                    {typeof progress === "number"
+                      ? ` · ${Math.round(progress * 100)}%`
+                      : ""}
+                    {streamedWords > 0
+                      ? ` · ${streamedWords} word${streamedWords === 1 ? "" : "s"}`
+                      : ""}
+                  </span>
+                </>
+              ) : (
+                ""
+              )}
             </span>
             <PromptInputSubmit
               status={status}
