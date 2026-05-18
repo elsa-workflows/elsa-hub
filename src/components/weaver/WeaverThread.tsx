@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
-import { CornerDownLeftIcon, SquareIcon } from "lucide-react";
+import { CornerDownLeftIcon, Loader2Icon, SquareIcon } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -397,8 +397,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         >
           <PromptInputTextarea
             ref={textareaRef}
-            placeholder="Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
+            placeholder={
+              status === "submitted"
+                ? "Sending…"
+                : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
+            }
             autoFocus
+            disabled={status === "submitted"}
             onInput={(e) => {
               const val = e.currentTarget.value;
               setHasText(val.trim().length > 0);
@@ -413,12 +418,20 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 !e.nativeEvent.isComposing
               ) {
                 e.preventDefault();
+                if (status === "submitted") return;
                 if (e.currentTarget.value.trim().length === 0) return;
                 e.currentTarget.form?.requestSubmit();
               }
             }}
           />
-          <PromptInputFooter className="justify-end">
+          <PromptInputFooter className="justify-between gap-2">
+            <span
+              className="text-xs text-muted-foreground"
+              aria-live="polite"
+              role="status"
+            >
+              {status === "submitted" ? "Sending…" : ""}
+            </span>
             <PromptInputSubmit
               status={status}
               onStop={stop}
@@ -428,7 +441,12 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 !hasText && status !== "submitted" && status !== "streaming"
               }
             >
-              {status === "submitted" || status === "streaming" ? (
+              {status === "submitted" ? (
+                <>
+                  <Loader2Icon className="size-4 animate-spin" />
+                  <span>Sending…</span>
+                </>
+              ) : status === "streaming" ? (
                 <>
                   <SquareIcon className="size-4" />
                   <span>Stop</span>
