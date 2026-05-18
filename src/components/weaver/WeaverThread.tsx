@@ -69,6 +69,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   const { routeContext } = useWeaver();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cancelSavedRef = useRef(false);
+  const [hasText, setHasText] = useState(false);
 
   const transport = useMemo(
     () =>
