@@ -1031,6 +1031,19 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                   <span>
                     {queue.length} prompt{queue.length === 1 ? "" : "s"} queued
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQueue([]);
+                      toast.success("Queue cleared");
+                    }}
+                    className="ml-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    aria-label={`Clear all ${queue.length} queued prompts`}
+                    title="Clear queued prompts"
+                  >
+                    <XIcon className="size-3" aria-hidden />
+                    <span>Clear queued</span>
+                  </button>
                 </>
               ) : (
                 ""
