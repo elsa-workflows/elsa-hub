@@ -376,12 +376,18 @@ function buildDockerCompose(ctx: Ctx): {
         containerName: server.containerName,
         requiresServer: false,
         envDefaults: server.envDefaults,
+        envOverrides: {} as Record<string, string>,
       };
       const companionEnv: Record<string, string> = {
         ASPNETCORE_ENVIRONMENT: "Production",
       };
       for (const e of server.envDefaults) {
-        if (e.required) companionEnv[e.key] = e.value || "${" + e.key + "}";
+        const resolved = resolveEnvDefault(e.value, companion.hostPort);
+        if (e.required) {
+          companionEnv[e.key] = resolved || "${" + e.key + "}";
+        } else if (resolved) {
+          companionEnv[e.key] = resolved;
+        }
       }
       // Reuse infra-derived envs from the main map (DB, broker, etc.).
       for (const [k, v] of Object.entries(envForElsa)) {
