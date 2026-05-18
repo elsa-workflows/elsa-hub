@@ -79,7 +79,7 @@ export function WeaverPanel() {
       >
         <SheetHeader className="flex flex-row items-center justify-between space-y-0 border-b p-3">
           <SheetTitle className="text-base">Elsa Weaver</SheetTitle>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="ghost"
               size="icon-sm"
@@ -90,16 +90,18 @@ export function WeaverPanel() {
               <MessagesSquare className="size-4" />
             </Button>
             <Button
-              variant="ghost"
-              size="icon-sm"
+              variant="outline"
+              size="sm"
               onClick={() => {
                 newThread();
                 setShowList(false);
               }}
-              aria-label="New conversation"
-              title="New conversation"
+              aria-label="Start a new chat"
+              title="Start a new chat"
+              className="h-8 gap-1.5 px-2.5 text-xs"
             >
-              <Plus className="size-4" />
+              <Plus className="size-3.5" />
+              New chat
             </Button>
           </div>
         </SheetHeader>
