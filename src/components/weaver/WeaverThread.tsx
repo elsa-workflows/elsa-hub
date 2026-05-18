@@ -384,7 +384,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       queueHydratedRef.current = null;
       return;
     }
-    let restored: { id: string; text: string }[] = [];
+    let restored: { id: string; text: string; paused?: boolean }[] = [];
     try {
       const raw = localStorage.getItem(queueKey);
       if (raw) {
@@ -392,12 +392,17 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         if (Array.isArray(parsed)) {
           restored = parsed
             .filter(
-              (it): it is { id: string; text: string } =>
+              (it): it is { id: string; text: string; paused?: boolean } =>
                 !!it &&
                 typeof it === "object" &&
                 typeof (it as { id?: unknown }).id === "string" &&
                 typeof (it as { text?: unknown }).text === "string",
             )
+            .map((it) => ({
+              id: it.id,
+              text: it.text,
+              paused: (it as { paused?: unknown }).paused === true,
+            }))
             .slice(0, MAX_QUEUE_SIZE);
         }
       }
