@@ -33,6 +33,8 @@ import { TypingDots } from "./TypingDots";
 import { CopyResponseButton } from "./CopyResponseButton";
 import { WeaverToolPart } from "./WeaverToolPart";
 import { WeaverEmptyState } from "./WeaverEmptyState";
+import { extractFollowups } from "./followups";
+import { FollowupChips } from "./FollowupChips";
 
 const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/weaver-chat";
 
