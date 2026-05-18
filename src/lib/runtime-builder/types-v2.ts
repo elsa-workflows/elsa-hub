@@ -211,11 +211,17 @@ export const DEFAULT_IMAGE_SELECTION: ImageSelection = {
   hostPort: 8080,
 };
 
+export const DEFAULT_LOCAL_PACKAGES: LocalPackagesConfig = {
+  enabled: false,
+  directoryPath: "packages",
+};
+
 export const EMPTY_BUILDER_STATE_V2: BuilderStateV2 = {
   schemaVersion: 2,
   packageSources: DEFAULT_PACKAGE_SOURCES,
   selectedPackages: [],
   infrastructureSelections: [],
   imageSelection: DEFAULT_IMAGE_SELECTION,
+  localPackages: DEFAULT_LOCAL_PACKAGES,
   advancedMode: false,
 };
