@@ -592,6 +592,12 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           onSubmit={(message) => {
             const text = message.text?.trim();
             if (!text) return;
+            // Double-submit guard: a second rapid Enter (or Enter + click)
+            // can race the React state flip to "submitted". The ref is
+            // synchronous, so the second call sees it set and bails.
+            if (submitLockRef.current) return;
+            if (status === "submitted" || status === "streaming") return;
+            submitLockRef.current = true;
             if (draftKey) localStorage.removeItem(draftKey);
             sendMessage({ text });
             setHasText(false);
