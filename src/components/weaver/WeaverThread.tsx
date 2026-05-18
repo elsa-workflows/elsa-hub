@@ -516,7 +516,20 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                           : "bg-transparent p-0"
                       }
                     >
-                      {m.parts.map((part, idx) => {
+                      {(() => {
+                        // Move navigate-intent tool parts to the bottom of
+                        // the message so the explanatory text always appears
+                        // above the call-to-action button. Other tool parts
+                        // (searchKnowledge, rb_*, etc.) keep their streamed
+                        // order so reasoning and confirmations stay in place.
+                        const parts = m.role === "assistant"
+                          ? [...m.parts].sort((a, b) => {
+                              const aNav = a.type === "tool-navigate" ? 1 : 0;
+                              const bNav = b.type === "tool-navigate" ? 1 : 0;
+                              return aNav - bNav;
+                            })
+                          : m.parts;
+                        return parts.map((part, idx) => {
                         if (part.type === "text") {
                           const text = m.role === "assistant"
                             ? extractFollowups((part as { text: string }).text).clean
