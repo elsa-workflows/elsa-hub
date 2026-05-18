@@ -503,7 +503,6 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 ? "Sending…"
                 : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             }
-            autoFocus
             disabled={status === "submitted"}
             onInput={(e) => {
               const val = e.currentTarget.value;
