@@ -764,7 +764,12 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                     }`
                   : `Queued · #${qIdx + 1} of ${remaining} remaining`;
               return (
-                <div key={q.id} className="flex flex-col">
+                <div
+                  key={q.id}
+                  ref={isNextUp ? nextUpRef : undefined}
+                  data-next-up={isNextUp || undefined}
+                  className="flex flex-col scroll-mt-4"
+                >
                   <Message from="user">
                     <MessageContent
                       className={
