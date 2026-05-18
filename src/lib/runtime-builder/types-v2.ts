@@ -132,6 +132,12 @@ export interface ImageSelection {
   tag: string;
   /** Host port to publish (container port is fixed per image). */
   hostPort: number;
+  /**
+   * User overrides for image environment variables. Keys map to entries in the
+   * image's `envDefaults` catalog (e.g. `Backend__Url`). Missing keys fall back
+   * to the templated default value from the catalog.
+   */
+  envOverrides?: Record<string, string>;
 }
 
 export interface BuilderStateV2 {
