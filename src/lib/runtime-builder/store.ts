@@ -212,6 +212,22 @@ export const useRuntimeBuilder = create<BuilderStore>()(
           };
         }),
 
+      setLocalPackagesEnabled: (enabled) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            localPackages: { ...s.state.localPackages, enabled },
+          },
+        })),
+
+      setLocalPackagesDirectory: (directoryPath) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            localPackages: { ...s.state.localPackages, directoryPath },
+          },
+        })),
+
       addPackageSource: (source) =>
         set((s) => ({
           state: {
