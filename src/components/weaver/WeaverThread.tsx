@@ -145,9 +145,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     onMessagesChange?.(messages);
   }, [messages, onMessagesChange]);
 
-  // Focus management
+  // Focus management — defer past Radix Sheet's focus trap on mount/thread switch.
   useEffect(() => {
-    textareaRef.current?.focus();
+    const id = window.setTimeout(() => textareaRef.current?.focus(), 50);
+    return () => window.clearTimeout(id);
   }, [threadId]);
 
   useEffect(() => {
