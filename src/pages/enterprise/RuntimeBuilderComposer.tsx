@@ -196,6 +196,7 @@ export default function RuntimeBuilderComposer() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
             {activeKey === "image" && <StepImage />}
+            {activeKey === "image-config" && <StepImageConfig />}
             {activeKey === "sources" && <StepSources />}
             {activeKey === "packages" && <StepPackages />}
             {activeKey === "features" && <StepFeatures />}
