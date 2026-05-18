@@ -2,7 +2,7 @@
 // Tool accordion. For "intent" tools (navigate / rb.*) we show an inline
 // approval card so the user explicitly opts in to write actions.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Check, ExternalLink, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
 import { findBuilderImage } from "@/lib/runtime-builder/images";
@@ -431,7 +431,98 @@ interface DeepWikiAnswerData {
   error?: string;
 }
 
+type AnswerSegment =
+  | { kind: "text"; value: string }
+  | { kind: "cite"; index: number; label: string; url: string };
+
+// Walk the answer in one pass, replacing markdown links and bare URLs with
+// numbered citation chips. Indices match the order URLs first appear, which
+// is the same order extractCitations on the server uses, so chip [n] aligns
+// with data.citations[n-1] whenever possible.
+function segmentAnswer(
+  answer: string,
+  citations: { title: string; url: string }[],
+): AnswerSegment[] {
+  const urlToIndex = new Map<string, number>();
+  citations.forEach((c, i) => urlToIndex.set(c.url, i));
+
+  const pattern =
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(?<![\[(])\bhttps?:\/\/[^\s)]+/g;
+  const segments: AnswerSegment[] = [];
+  let cursor = 0;
+  let nextLocalIndex = citations.length;
+  let m: RegExpExecArray | null;
+  while ((m = pattern.exec(answer))) {
+    if (m.index > cursor) {
+      segments.push({ kind: "text", value: answer.slice(cursor, m.index) });
+    }
+    const isMd = Boolean(m[2]);
+    const url = isMd ? m[2] : m[0];
+    const label = isMd ? m[1] : url.replace(/^https?:\/\//, "");
+    let idx = urlToIndex.get(url);
+    if (idx === undefined) {
+      idx = nextLocalIndex++;
+      urlToIndex.set(url, idx);
+    }
+    segments.push({ kind: "cite", index: idx, label, url });
+    cursor = m.index + m[0].length;
+  }
+  if (cursor < answer.length) {
+    segments.push({ kind: "text", value: answer.slice(cursor) });
+  }
+  return segments;
+}
+
 function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
+  const citations = data.citations ?? [];
+  const segments = useMemo(
+    () => (data.error ? [] : segmentAnswer(data.answer, citations)),
+    [data.answer, data.error, citations],
+  );
+
+  // Merge any citations only discovered while segmenting (rare — beyond the
+  // server's first 6) so chip indices always resolve to a source entry.
+  const allCitations = useMemo(() => {
+    const extra: { title: string; url: string }[] = [];
+    const seen = new Set(citations.map((c) => c.url));
+    for (const s of segments) {
+      if (s.kind === "cite" && !seen.has(s.url)) {
+        seen.add(s.url);
+        extra.push({ title: s.label.slice(0, 120), url: s.url });
+      }
+    }
+    return [...citations, ...extra];
+  }, [citations, segments]);
+
+  const sourceRefs = useRef<Array<HTMLLIElement | null>>([]);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [highlighted, setHighlighted] = useState<number | null>(null);
+
+  const focusCitation = (index: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+    setHighlighted(index);
+    const el = sourceRefs.current[index];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    window.setTimeout(() => {
+      setHighlighted((cur) => (cur === index ? null : cur));
+    }, 1400);
+  };
+
+  const toggleExpanded = (index: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
   return (
     <div className="my-2 rounded-md border bg-muted/40 p-3 text-sm">
       <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -450,27 +541,72 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
         </div>
       ) : (
         <div className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90">
-          {data.answer}
+          {segments.map((seg, i) =>
+            seg.kind === "text" ? (
+              <span key={i}>{seg.value}</span>
+            ) : (
+              <button
+                key={i}
+                type="button"
+                onClick={() => focusCitation(seg.index)}
+                title={seg.url}
+                className="mx-0.5 inline-flex items-baseline gap-0.5 rounded bg-primary/10 px-1 align-baseline text-[10px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+              >
+                <span className="max-w-[18ch] truncate">{seg.label}</span>
+                <sup className="text-[9px]">[{seg.index + 1}]</sup>
+              </button>
+            ),
+          )}
         </div>
       )}
-      {data.citations && data.citations.length > 0 ? (
+      {allCitations.length > 0 ? (
         <div className="mt-2 border-t border-border/60 pt-2">
           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Sources
           </div>
           <ul className="space-y-0.5">
-            {data.citations.map((c, i) => (
-              <li key={i} className="truncate text-xs">
-                <a
-                  href={c.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
+            {allCitations.map((c, i) => {
+              const isOpen = expanded.has(i);
+              const isHi = highlighted === i;
+              return (
+                <li
+                  key={i}
+                  ref={(el) => {
+                    sourceRefs.current[i] = el;
+                  }}
+                  className={`rounded px-1 py-0.5 text-xs transition-colors ${
+                    isHi ? "bg-primary/15 ring-1 ring-primary/40" : ""
+                  }`}
                 >
-                  {c.title}
-                </a>
-              </li>
-            ))}
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
+                      [{i + 1}]
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(i)}
+                      className="min-w-0 flex-1 truncate text-left text-primary hover:underline"
+                    >
+                      {c.title}
+                    </button>
+                    <a
+                      href={c.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-muted-foreground hover:text-foreground"
+                      aria-label="Open source in new tab"
+                    >
+                      <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                  {isOpen ? (
+                    <div className="mt-0.5 pl-6 text-[10px] break-all text-muted-foreground">
+                      {c.url}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
