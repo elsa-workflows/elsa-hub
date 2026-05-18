@@ -919,17 +919,7 @@ function DeepWikiEmptyCard({
           </div>
         </details>
       ) : null}
-      <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
-        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          <Lightbulb className="size-3" />
-          Tips for a better answer
-        </div>
-        <ul className="space-y-0.5 pl-3 text-[11px] text-muted-foreground">
-          {DEEPWIKI_TIPS.map((t, i) => (
-            <li key={i} className="list-disc">{t}</li>
-          ))}
-        </ul>
-      </div>
+      <DeepWikiSuggestions question={question} repo={repo} />
       <div className="mt-3 flex justify-end gap-2">
         <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
           <a href={fallbackUrl} target="_blank" rel="noopener noreferrer">
