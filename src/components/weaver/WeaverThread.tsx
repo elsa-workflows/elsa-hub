@@ -69,6 +69,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   const { routeContext } = useWeaver();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cancelSavedRef = useRef(false);
+  const [hasText, setHasText] = useState(false);
 
   const transport = useMemo(
     () =>
@@ -190,6 +191,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       }
     })();
     el.value = saved;
+    setHasText(saved.trim().length > 0);
     // Trigger field-sizing recompute on the auto-growing textarea.
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }, [draftKey]);
@@ -390,6 +392,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             if (!text) return;
             if (draftKey) localStorage.removeItem(draftKey);
             sendMessage({ text });
+            setHasText(false);
           }}
         >
           <PromptInputTextarea
@@ -397,8 +400,9 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             placeholder="Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             autoFocus
             onInput={(e) => {
-              if (!draftKey) return;
               const val = e.currentTarget.value;
+              setHasText(val.trim().length > 0);
+              if (!draftKey) return;
               if (val) localStorage.setItem(draftKey, val);
               else localStorage.removeItem(draftKey);
             }}
@@ -409,6 +413,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 !e.nativeEvent.isComposing
               ) {
                 e.preventDefault();
+                if (e.currentTarget.value.trim().length === 0) return;
                 e.currentTarget.form?.requestSubmit();
               }
             }}
@@ -419,6 +424,9 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               onStop={stop}
               size="sm"
               aria-label="Send message"
+              disabled={
+                !hasText && status !== "submitted" && status !== "streaming"
+              }
             >
               {status === "submitted" || status === "streaming" ? (
                 <>
