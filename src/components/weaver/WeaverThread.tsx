@@ -218,6 +218,16 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       (/Macintosh/.test(ua) && typeof document !== "undefined" &&
         "ontouchend" in document);
 
+    const isElementInViewport = (el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const vw = window.innerWidth || document.documentElement.clientWidth;
+      // Require the element to be fully within the viewport before we touch
+      // focus on iOS — otherwise Safari will scroll it into view even with
+      // `preventScroll`, jumping the page under the user.
+      return rect.top >= 0 && rect.left >= 0 && rect.bottom <= vh && rect.right <= vw;
+    };
+
     const tryFocus = () => {
       if (cancelled) return false;
       const el = textareaRef.current;
@@ -231,9 +241,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       // Don't steal focus if the user has already tapped into another input
       // (common on iOS where the keyboard is up for a different field).
       const active = document.activeElement as HTMLElement | null;
+      const alreadyFocused = active === el;
       if (
         active &&
-        active !== el &&
+        !alreadyFocused &&
         active !== document.body &&
         (active.tagName === "INPUT" ||
           active.tagName === "TEXTAREA" ||
@@ -243,9 +254,6 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       }
 
       const len = el.value.length;
-      focusNoScroll(el);
-      // iOS needs the element to be focused before setSelectionRange will
-      // actually move the caret; do it on the next microtask to be safe.
       const placeCaret = () => {
         try {
           el.setSelectionRange(len, len);
@@ -253,13 +261,31 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           /* ignore non-text inputs */
         }
       };
+
       if (isIOS) {
-        // queueMicrotask + rAF gives Safari time to attach the caret.
+        // On iOS the soft keyboard only opens from a real user gesture, so
+        // programmatic focus offers no UX win — but it *can* scroll the
+        // document or any ancestor scroll container to bring the textarea
+        // into view (Safari ignores `preventScroll` in many versions). To
+        // avoid that jump on thread switch:
+        //   - if the textarea is already focused, just move the caret;
+        //   - if it's fully on-screen, focus with scroll-snapshot fallback;
+        //   - otherwise, leave focus alone and let the next user tap handle it.
+        if (alreadyFocused) {
+          placeCaret();
+          return true;
+        }
+        if (!isElementInViewport(el)) {
+          return true; // treat as "handled" — don't keep retrying
+        }
+        focusNoScroll(el);
         queueMicrotask(placeCaret);
         requestAnimationFrame(placeCaret);
-      } else {
-        placeCaret();
+        return document.activeElement === el;
       }
+
+      focusNoScroll(el);
+      placeCaret();
       return document.activeElement === el;
     };
 
