@@ -30,6 +30,55 @@ export interface SettingEditor {
   render: (props: EditorProps) => JSX.Element;
 }
 
+// ---------- Required boolean (explicit Yes / No) ----------
+// Required booleans need an explicit choice — a checkbox can't distinguish
+// "unset" from "false", so we force the user to pick.
+const requiredBooleanEditor: SettingEditor = {
+  id: "boolean-required",
+  match: (s) =>
+    (s.type === "boolean" || s.jsonType === "boolean") &&
+    s.required === true &&
+    s.ui?.widget !== "switch",
+  layout: "stacked",
+  render: ({ id, value, onChange }) => {
+    const v = value as boolean | undefined;
+    const isYes = v === true;
+    const isNo = v === false;
+    const unset = v === undefined || v === null;
+    return (
+      <div className="space-y-1.5">
+        <div className="inline-flex rounded-md border border-input" role="radiogroup" id={id}>
+          <Button
+            type="button"
+            role="radio"
+            aria-checked={isYes}
+            variant={isYes ? "default" : "ghost"}
+            size="sm"
+            className="rounded-r-none"
+            onClick={() => onChange(true)}
+          >
+            Yes
+          </Button>
+          <Button
+            type="button"
+            role="radio"
+            aria-checked={isNo}
+            variant={isNo ? "default" : "ghost"}
+            size="sm"
+            className="rounded-l-none border-l border-input"
+            onClick={() => onChange(false)}
+          >
+            No
+          </Button>
+        </div>
+        {unset && (
+          <p className="text-xs text-muted-foreground">Choose Yes or No.</p>
+        )}
+      </div>
+    );
+  },
+};
+
 // ---------- Boolean (checkbox + inline label) ----------
 const booleanEditor: SettingEditor = {
   id: "boolean",
@@ -46,7 +95,6 @@ const booleanEditor: SettingEditor = {
         />
         <Label htmlFor={id} className="cursor-pointer text-xs font-medium">
           {setting.displayName}
-          {setting.required && <span className="ml-1 text-destructive">*</span>}
         </Label>
       </div>
     );
@@ -161,6 +209,7 @@ const stringEditor: SettingEditor = {
  */
 const editors: SettingEditor[] = [
   booleanSwitchEditor,
+  requiredBooleanEditor,
   booleanEditor,
   enumEditor,
   numberEditor,
