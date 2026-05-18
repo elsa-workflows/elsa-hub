@@ -157,8 +157,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // Extra care for iOS/Safari: programmatic focus is blocked outside a user
   // gesture (the on-screen keyboard won't open), but the caret can still be
   // placed reliably if we (a) wait until the element is laid out and visible,
-  // (b) skip when another field is intentionally focused, and (c) avoid the
-  // `preventScroll` option (unsupported on older Safari and a no-op on iOS).
+  // (b) skip when another field is intentionally focused, and (c) snapshot &
+  // restore scroll positions to prevent the page/chat container from jumping
+  // (older Safari ignores `preventScroll`, and iOS scrolls the document into
+  // view for the soft keyboard).
   useEffect(() => {
     let cancelled = false;
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
@@ -192,12 +194,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       }
 
       const len = el.value.length;
-      try {
-        // Older iOS Safari throws on the options arg; fall back to plain focus.
-        el.focus({ preventScroll: true });
-      } catch {
-        el.focus();
-      }
+      focusNoScroll(el);
       // iOS needs the element to be focused before setSelectionRange will
       // actually move the caret; do it on the next microtask to be safe.
       const placeCaret = () => {
