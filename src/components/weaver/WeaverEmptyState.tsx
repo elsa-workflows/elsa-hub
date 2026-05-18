@@ -148,7 +148,14 @@ export function WeaverEmptyState({ onPick }: Props) {
   const [category, setCategory] = useState<Category>(() => {
     try {
       const saved = localStorage.getItem(CATEGORY_STORAGE_KEY) as Category | null;
-      if (saved === "general" || saved === "dashboard" || saved === "rb") return saved;
+      if (
+        saved === "general" ||
+        saved === "dashboard" ||
+        saved === "rb" ||
+        saved === "elsa"
+      ) {
+        return saved;
+      }
     } catch {
       /* ignore */
     }
@@ -170,12 +177,15 @@ export function WeaverEmptyState({ onPick }: Props) {
         ? { pool: RB_POOL, key: "rb" }
         : category === "dashboard"
           ? { pool: DASHBOARD_POOL, key: "dashboard" }
-          : { pool: GENERAL_POOL, key: "general" };
+          : category === "elsa"
+            ? { pool: ELSA_POOL, key: "elsa" }
+            : { pool: GENERAL_POOL, key: "general" };
     return pickFreshThree(pool, key);
   }, [category]);
 
   const CATEGORIES: { id: Category; label: string }[] = [
     { id: "general", label: "General" },
+    { id: "elsa", label: "Elsa internals" },
     { id: "dashboard", label: "Dashboard" },
     { id: "rb", label: "Runtime Builder" },
   ];
