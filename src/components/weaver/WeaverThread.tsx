@@ -389,15 +389,29 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       queueHydratedRef.current = null;
       return;
     }
-    let restored: { id: string; text: string; paused?: boolean }[] = [];
+    let restored: {
+      id: string;
+      text: string;
+      paused?: boolean;
+      createdAt?: number;
+    }[] = [];
+    let droppedExpired = 0;
     try {
       const raw = localStorage.getItem(queueKey);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          restored = parsed
+          const now = Date.now();
+          const validated = parsed
             .filter(
-              (it): it is { id: string; text: string; paused?: boolean } =>
+              (
+                it,
+              ): it is {
+                id: string;
+                text: string;
+                paused?: boolean;
+                createdAt?: number;
+              } =>
                 !!it &&
                 typeof it === "object" &&
                 typeof (it as { id?: unknown }).id === "string" &&
@@ -407,8 +421,19 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               id: it.id,
               text: it.text,
               paused: (it as { paused?: unknown }).paused === true,
-            }))
-            .slice(0, MAX_QUEUE_SIZE);
+              // Missing createdAt (older entries from before TTL existed):
+              // treat as "just restored" so the TTL clock starts now rather
+              // than nuking pre-existing items on first load.
+              createdAt:
+                typeof (it as { createdAt?: unknown }).createdAt === "number"
+                  ? (it as { createdAt: number }).createdAt
+                  : now,
+            }));
+          const fresh = validated.filter(
+            (it) => now - (it.createdAt ?? now) < QUEUE_TTL_MS,
+          );
+          droppedExpired = validated.length - fresh.length;
+          restored = fresh.slice(0, MAX_QUEUE_SIZE);
         }
       }
     } catch {
