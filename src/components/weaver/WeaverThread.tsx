@@ -605,7 +605,11 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               >
                 <Loader2Icon className="size-3 animate-spin" aria-hidden />
                 <span>
-                  Queued · position {qIdx + 1} of {queue.length}
+                  {qIdx === 0
+                    ? `Next up · sends after the current reply${
+                        queue.length > 1 ? ` · ${queue.length - 1} more queued` : ""
+                      }`
+                    : `Queued · #${qIdx + 1} of ${queue.length} remaining`}
                 </span>
                 <button
                   type="button"
@@ -613,7 +617,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                     setQueue((cur) => cur.filter((item) => item.id !== q.id))
                   }
                   className="ml-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  aria-label={`Remove queued prompt ${qIdx + 1}`}
+                  aria-label={`Remove queued prompt ${qIdx + 1} of ${queue.length}`}
                   title="Remove from queue"
                 >
                   <XIcon className="size-3" aria-hidden />
