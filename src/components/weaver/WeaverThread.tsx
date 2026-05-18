@@ -883,6 +883,14 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                       <Loader2Icon className="size-3 animate-spin" aria-hidden />
                     )}
                     <span>{statusLabel}</span>
+                    {q.restored ? (
+                      <span
+                        className="ml-1 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                        title="Restored from your previous session"
+                      >
+                        Restored
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>
