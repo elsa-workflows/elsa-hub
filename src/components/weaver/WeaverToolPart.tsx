@@ -521,15 +521,9 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
   }, [citations, segments]);
 
   const sourceRefs = useRef<Array<HTMLLIElement | null>>([]);
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [highlighted, setHighlighted] = useState<number | null>(null);
 
   const focusCitation = (index: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      next.add(index);
-      return next;
-    });
     setHighlighted(index);
     const el = sourceRefs.current[index];
     if (el) {
@@ -538,15 +532,6 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
     window.setTimeout(() => {
       setHighlighted((cur) => (cur === index ? null : cur));
     }, 1400);
-  };
-
-  const toggleExpanded = (index: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
   };
 
   return (
