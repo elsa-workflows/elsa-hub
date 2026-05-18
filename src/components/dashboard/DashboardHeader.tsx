@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LogOut, User, ExternalLink, Sparkles } from "lucide-react";
+import { LogOut, User, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
