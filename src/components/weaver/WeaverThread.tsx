@@ -454,7 +454,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
 
   return (
     <div className="flex h-full flex-col">
-      <Conversation className="flex-1">
+      <Conversation className="flex-1" initial={conversationInitial}>
         <ConversationContent>
           {messages.length === 0 ? (
             <ConversationEmptyState
