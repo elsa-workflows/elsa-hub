@@ -394,79 +394,107 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             </ConversationEmptyState>
           ) : null}
 
-          {messages.map((m) => {
-            const rawAssistantText =
-              m.role === "assistant"
-                ? (m.parts ?? [])
-                    .filter((p) => p.type === "text")
-                    .map((p) => (p as { text?: string }).text ?? "")
-                    .join("\n\n")
-                    .trim()
-                : "";
-            const { clean: assistantText, followups } =
-              m.role === "assistant"
-                ? extractFollowups(rawAssistantText)
-                : { clean: "", followups: [] as string[] };
-            const isLast = m === lastMessage;
-            const isStreamingThis =
-              isLast && (status === "submitted" || status === "streaming");
-            const showCopy =
-              m.role === "assistant" &&
-              assistantText.length > 0 &&
-              !isStreamingThis;
-            const showFollowups =
-              m.role === "assistant" &&
-              isLast &&
-              !isStreamingThis &&
-              followups.length > 0;
-            return (
-              <Message key={m.id} from={m.role === "user" ? "user" : "assistant"}>
-                <MessageContent
-                  className={
-                    m.role === "user"
-                      ? "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground"
-                      : "bg-transparent p-0"
-                  }
-                >
-                  {m.parts.map((part, idx) => {
-                    if (part.type === "text") {
-                      // Strip the followups marker from rendered text so it
-                      // never flashes on-screen during streaming.
-                      const text = m.role === "assistant"
-                        ? extractFollowups((part as { text: string }).text).clean
-                        : (part as { text: string }).text;
-                      if (!text) return null;
-                      return (
-                        <MessageResponse key={idx}>{text}</MessageResponse>
-                      );
-                    }
-                    if (part.type?.startsWith("tool-") || part.type === "dynamic-tool") {
-                      return (
-                        <WeaverToolPart
-                          key={idx}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          part={part as any}
+          {(() => {
+            let lastUserIdx = -1;
+            for (let i = messages.length - 1; i >= 0; i--) {
+              if (messages[i].role === "user") { lastUserIdx = i; break; }
+            }
+            const isBusy = status === "submitted" || status === "streaming";
+            const lastIsUser =
+              messages.length > 0 &&
+              messages[messages.length - 1].role === "user";
+            return messages.map((m, mIdx) => {
+              const rawAssistantText =
+                m.role === "assistant"
+                  ? (m.parts ?? [])
+                      .filter((p) => p.type === "text")
+                      .map((p) => (p as { text?: string }).text ?? "")
+                      .join("\n\n")
+                      .trim()
+                  : "";
+              const { clean: assistantText, followups } =
+                m.role === "assistant"
+                  ? extractFollowups(rawAssistantText)
+                  : { clean: "", followups: [] as string[] };
+              const isLast = m === lastMessage;
+              const isStreamingThis =
+                isLast && (status === "submitted" || status === "streaming");
+              const showCopy =
+                m.role === "assistant" &&
+                assistantText.length > 0 &&
+                !isStreamingThis;
+              const showFollowups =
+                m.role === "assistant" &&
+                isLast &&
+                !isStreamingThis &&
+                followups.length > 0;
+              // Show a "Sent" status under the most recent user message while
+              // we're waiting for / receiving the assistant's response, so the
+              // user always sees the prompt they just submitted alongside its
+              // delivery state.
+              const showSentStatus =
+                m.role === "user" && mIdx === lastUserIdx && isBusy && lastIsUser;
+              const sentLabel =
+                status === "submitted" ? "Sent · waiting for reply…" : "Sent · streaming reply…";
+              return (
+                <div key={m.id} className="flex flex-col">
+                  <Message from={m.role === "user" ? "user" : "assistant"}>
+                    <MessageContent
+                      className={
+                        m.role === "user"
+                          ? "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground"
+                          : "bg-transparent p-0"
+                      }
+                    >
+                      {m.parts.map((part, idx) => {
+                        if (part.type === "text") {
+                          const text = m.role === "assistant"
+                            ? extractFollowups((part as { text: string }).text).clean
+                            : (part as { text: string }).text;
+                          if (!text) return null;
+                          return (
+                            <MessageResponse key={idx}>{text}</MessageResponse>
+                          );
+                        }
+                        if (part.type?.startsWith("tool-") || part.type === "dynamic-tool") {
+                          return (
+                            <WeaverToolPart
+                              key={idx}
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              part={part as any}
+                            />
+                          );
+                        }
+                        return null;
+                      })}
+                      {showCopy ? (
+                        <div className="mt-1 flex justify-start">
+                          <CopyResponseButton text={assistantText} />
+                        </div>
+                      ) : null}
+                      {showFollowups ? (
+                        <FollowupChips
+                          followups={followups}
+                          disabled={isBusy}
+                          onPick={(text) => sendMessage({ text })}
                         />
-                      );
-                    }
-                    return null;
-                  })}
-                  {showCopy ? (
-                    <div className="mt-1 flex justify-start">
-                      <CopyResponseButton text={assistantText} />
+                      ) : null}
+                    </MessageContent>
+                  </Message>
+                  {showSentStatus ? (
+                    <div
+                      className="mt-1 flex items-center justify-end gap-1.5 pr-1 text-[11px] text-muted-foreground"
+                      aria-live="polite"
+                      role="status"
+                    >
+                      <Loader2Icon className="size-3 animate-spin" aria-hidden />
+                      <span>{sentLabel}</span>
                     </div>
                   ) : null}
-                  {showFollowups ? (
-                    <FollowupChips
-                      followups={followups}
-                      disabled={status === "submitted" || status === "streaming"}
-                      onPick={(text) => sendMessage({ text })}
-                    />
-                  ) : null}
-                </MessageContent>
-              </Message>
-            );
-          })}
+                </div>
+              );
+            });
+          })()}
 
           {showThinking ? (
             <Message from="assistant">
