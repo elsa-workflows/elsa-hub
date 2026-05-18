@@ -28,6 +28,9 @@ interface BuilderStore {
   setImageHostPort: (port: number) => void;
   setImageEnv: (key: string, value: string) => void;
   resetImageEnv: (key?: string) => void;
+  // local packages drop folder
+  setLocalPackagesEnabled: (enabled: boolean) => void;
+  setLocalPackagesDirectory: (directoryPath: string) => void;
   // sources
   addPackageSource: (source: Omit<PackageSource, "id">) => void;
   updatePackageSource: (id: string, patch: Partial<PackageSource>) => void;
@@ -208,6 +211,22 @@ export const useRuntimeBuilder = create<BuilderStore>()(
             },
           };
         }),
+
+      setLocalPackagesEnabled: (enabled) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            localPackages: { ...s.state.localPackages, enabled },
+          },
+        })),
+
+      setLocalPackagesDirectory: (directoryPath) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            localPackages: { ...s.state.localPackages, directoryPath },
+          },
+        })),
 
       addPackageSource: (source) =>
         set((s) => ({

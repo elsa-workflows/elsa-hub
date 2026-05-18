@@ -188,6 +188,65 @@ function externalEnvVars(
   return env;
 }
 
+const NUPLANE_SHARED_ASSEMBLIES = [
+  { Name: "CShells.Abstractions" },
+  { Name: "CShells.AspNetCore.Abstractions" },
+  { Name: "Elsa" },
+  { Name: "Elsa.Common" },
+];
+
+function isNugetOrgUrl(url: string): boolean {
+  try {
+    const host = new URL(url).host.toLowerCase();
+    return host === "api.nuget.org" || host.endsWith(".nuget.org");
+  } catch {
+    return /(^|\/\/)api\.nuget\.org\b/i.test(url);
+  }
+}
+
+interface NuplaneFeed {
+  Name: string;
+  DirectoryPath?: string;
+  ServiceIndex?: string;
+  IncludePatterns?: string[];
+  Directory?: { Watch: boolean; DebounceWindow: string };
+}
+
+export function buildNuplaneFeeds(ctx: Ctx): NuplaneFeed[] {
+  const feeds: NuplaneFeed[] = [];
+
+  if (ctx.state.localPackages?.enabled) {
+    const dir = ctx.state.localPackages.directoryPath?.trim() || "packages";
+    feeds.push({
+      Name: "local-packages",
+      DirectoryPath: dir,
+      IncludePatterns: ["*"],
+      Directory: { Watch: true, DebounceWindow: "00:00:01" },
+    });
+  }
+
+  const selectedPatterns = ctx.state.selectedPackages.map(
+    (sp) => `${sp.packageId} [${sp.version},)`,
+  );
+
+  for (const src of ctx.state.packageSources) {
+    if (!src.enabled) continue;
+    const feed: NuplaneFeed = {
+      Name: src.name,
+      ServiceIndex: src.url,
+    };
+    // nuget.org acts as a general fallback; do not constrain it. Custom
+    // feeds get pinned IncludePatterns for every selected package so the
+    // resolver looks for those exact versions there.
+    if (!isNugetOrgUrl(src.url) && selectedPatterns.length > 0) {
+      feed.IncludePatterns = selectedPatterns;
+    }
+    feeds.push(feed);
+  }
+
+  return feeds;
+}
+
 function buildAppSettings(ctx: Ctx): string {
   const config: Record<string, unknown> = {
     Elsa: { Server: { Url: "http://+:5000" } },
@@ -212,6 +271,20 @@ function buildAppSettings(ctx: Ctx): string {
     }
     elsa[pkgKey] = node;
   }
+
+  config.Nuplane = {
+    Setup: {
+      AutomaticReconciliation: true,
+      PollInterval: "00:01:00",
+      Feeds: buildNuplaneFeeds(ctx),
+    },
+    Loading: {
+      Enabled: true,
+      DefaultLoadMode: "HostIntegrated",
+      SharedAssemblies: NUPLANE_SHARED_ASSEMBLIES,
+    },
+  };
+
   return JSON.stringify(config, null, 2);
 }
 
@@ -261,8 +334,9 @@ function buildAppService(opts: {
   envForElsa: Record<string, string>;
   dependsOn: string[];
   isCompanion?: boolean;
+  localPackagesDir?: string | null;
 }): string[] {
-  const { image, envForElsa, dependsOn, isCompanion } = opts;
+  const { image, envForElsa, dependsOn, isCompanion, localPackagesDir } = opts;
   const lines: string[] = [];
   lines.push(`  ${image.containerName}:`);
   lines.push(`    image: ${image.image}:${image.tag}`);
@@ -271,6 +345,11 @@ function buildAppService(opts: {
   lines.push(`      - "${image.hostPort}:${image.containerPort}"`);
   lines.push("    volumes:");
   lines.push(`      - ./config.json:/config/config.json:ro`);
+  if (localPackagesDir) {
+    // Mount the host folder into the container's working directory so the
+    // Nuplane `DirectoryPath` (relative) resolves to the same place.
+    lines.push(`      - ./${localPackagesDir}:/app/${localPackagesDir}`);
+  }
   if (Object.keys(envForElsa).length > 0) {
     lines.push("    environment:");
     for (const [k, v] of Object.entries(envForElsa)) {
@@ -358,8 +437,15 @@ function buildDockerCompose(ctx: Ctx): {
     }
   }
 
+  const localPackagesDir =
+    ctx.state.localPackages?.enabled
+      ? ctx.state.localPackages.directoryPath?.trim() || "packages"
+      : null;
+
   lines.push("");
-  lines.push(...buildAppService({ image: selected, envForElsa, dependsOn }));
+  lines.push(
+    ...buildAppService({ image: selected, envForElsa, dependsOn, localPackagesDir }),
+  );
 
   // Studio needs a Server companion to be runnable.
   if (selected.role === "studio") {
@@ -402,6 +488,7 @@ function buildDockerCompose(ctx: Ctx): {
           envForElsa: companionEnv,
           dependsOn,
           isCompanion: false,
+          localPackagesDir,
         }),
       );
     }
