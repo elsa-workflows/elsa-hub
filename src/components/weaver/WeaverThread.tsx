@@ -298,7 +298,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   }, [draftKey]);
 
   useEffect(() => {
-    if (status === "ready") textareaRef.current?.focus();
+    if (status === "ready" && textareaRef.current) focusNoScroll(textareaRef.current);
   }, [status]);
 
   // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
