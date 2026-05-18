@@ -799,9 +799,9 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             }
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.45)] transition-[width] duration-500 ease-out"
+              className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.45)] will-change-[width]"
               style={{
-                width: `${Math.max(4, Math.min(98, Math.round((progress ?? 0.04) * 100)))}%`,
+                width: `${Math.max(4, Math.min(98, (displayedProgress ?? 0.04) * 100))}%`,
               }}
             />
           </div>
