@@ -209,6 +209,7 @@ const stringEditor: SettingEditor = {
  */
 const editors: SettingEditor[] = [
   booleanSwitchEditor,
+  requiredBooleanEditor,
   booleanEditor,
   enumEditor,
   numberEditor,
