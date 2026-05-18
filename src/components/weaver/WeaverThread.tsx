@@ -137,7 +137,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // Pending prompts entered while a turn is still in flight. They render as
   // user-style bubbles with a "Queued" indicator and drain one-at-a-time as
   // soon as the assistant returns to `ready`.
-  const [queue, setQueue] = useState<{ id: string; text: string }[]>([]);
+  const [queue, setQueue] = useState<{ id: string; text: string; paused?: boolean }[]>([]);
 
   const transport = useMemo(
     () =>
