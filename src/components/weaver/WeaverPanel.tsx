@@ -32,6 +32,7 @@ export function WeaverPanel() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showList, setShowList] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // ---- Signed-in: DB-backed threads ----
   const { data: threads, isLoading } = useQuery({
