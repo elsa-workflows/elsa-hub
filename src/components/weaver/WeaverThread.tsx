@@ -358,11 +358,15 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   }, [status]);
 
   // Drain the queued prompts one at a time whenever the assistant is idle.
+  // Paused items stay in place — we send the first *unpaused* item and leave
+  // any paused entries ahead of it untouched so their position is preserved.
   useEffect(() => {
     if (status !== "ready") return;
     if (queue.length === 0) return;
-    const [next, ...rest] = queue;
-    setQueue(rest);
+    const nextIdx = queue.findIndex((item) => !item.paused);
+    if (nextIdx === -1) return;
+    const next = queue[nextIdx];
+    setQueue((cur) => cur.filter((_, i) => i !== nextIdx));
     submitLockRef.current = true;
     sendMessage({ text: next.text });
   }, [status, queue, sendMessage]);
