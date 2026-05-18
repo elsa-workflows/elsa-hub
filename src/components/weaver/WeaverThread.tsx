@@ -28,8 +28,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
-import { WeaverThinking, estimateWeaverProgress } from "./WeaverThinking";
-import { TypingDots } from "./TypingDots";
+import { estimateWeaverProgress } from "./WeaverThinking";
 import { CopyResponseButton } from "./CopyResponseButton";
 import { WeaverToolPart } from "./WeaverToolPart";
 import { WeaverEmptyState } from "./WeaverEmptyState";
@@ -371,15 +370,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     return () => window.removeEventListener("weaver:retry", handler);
   }, [sendMessage, status]);
 
-  // Show shimmer while submitted, or while streaming but the assistant
-  // message has not produced any text/tool parts yet.
   const lastMessage = messages[messages.length - 1];
-  const lastIsAssistantWithContent =
-    lastMessage?.role === "assistant" && (lastMessage.parts?.length ?? 0) > 0;
-  const showThinking =
-    status === "submitted" ||
-    (status === "streaming" && !lastIsAssistantWithContent);
-  const showStreamingPill = status === "streaming" && lastIsAssistantWithContent;
 
   // Live token-ish count from the streaming assistant message. Word count is
   // a stable, model-agnostic proxy that updates as new chunks arrive.
@@ -595,23 +586,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             </div>
           ))}
 
-          {showThinking ? (
-            <Message from="assistant">
-              <MessageContent className="bg-muted/60">
-                <div className="flex flex-col gap-2">
-                  <TypingDots aria-label="Assistant is typing" />
-                  <WeaverThinking variant="thinking" progress={progress} />
-                </div>
-              </MessageContent>
-            </Message>
-          ) : null}
-
-          {showStreamingPill ? (
-            <div className="flex items-center gap-2 px-1">
-              <TypingDots aria-label="Assistant is typing" />
-              <WeaverThinking variant="streaming" progress={progress} className="text-xs" />
-            </div>
-          ) : null}
+          {/* The bottom streaming progress bar + footer status already convey
+              "thinking" and "streaming" state, so we don't render an extra
+              in-conversation typing/progress row here — it would duplicate
+              the indicator and clutter the thread. */}
 
           {error ? (() => {
             const parsed = parseWeaverError(error.message);
