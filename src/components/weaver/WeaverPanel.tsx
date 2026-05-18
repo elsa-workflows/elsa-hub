@@ -77,7 +77,7 @@ export function WeaverPanel() {
         side="right"
         className="flex w-full flex-col gap-0 p-0 sm:max-w-[480px] lg:max-w-[560px]"
       >
-        <SheetHeader className="flex flex-row items-center justify-between space-y-0 border-b p-3">
+        <SheetHeader className="flex flex-row items-center justify-between space-y-0 border-b p-3 pr-12">
           <SheetTitle className="text-base">Elsa Weaver</SheetTitle>
           <div className="flex items-center gap-1.5">
             <Button
