@@ -371,15 +371,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     return () => window.removeEventListener("weaver:retry", handler);
   }, [sendMessage, status]);
 
-  // Show shimmer while submitted, or while streaming but the assistant
-  // message has not produced any text/tool parts yet.
   const lastMessage = messages[messages.length - 1];
-  const lastIsAssistantWithContent =
-    lastMessage?.role === "assistant" && (lastMessage.parts?.length ?? 0) > 0;
-  const showThinking =
-    status === "submitted" ||
-    (status === "streaming" && !lastIsAssistantWithContent);
-  const showStreamingPill = status === "streaming" && lastIsAssistantWithContent;
 
   // Live token-ish count from the streaming assistant message. Word count is
   // a stable, model-agnostic proxy that updates as new chunks arrive.
