@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Trash2, ExternalLink, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,8 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 
 export function StepSources() {
-  const { state, addPackageSource, updatePackageSource, removePackageSource } =
-    useRuntimeBuilder();
+  const {
+    state,
+    addPackageSource,
+    updatePackageSource,
+    removePackageSource,
+    setLocalPackagesEnabled,
+    setLocalPackagesDirectory,
+  } = useRuntimeBuilder();
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const local = state.localPackages ?? { enabled: false, directoryPath: "packages" };
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
 
