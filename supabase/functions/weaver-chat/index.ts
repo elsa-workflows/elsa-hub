@@ -190,28 +190,6 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
       },
     }),
 
-    // Deprecated: kept for backward compatibility with old chat history.
-    // Now returns a deepwiki intent pointing at the repo root (no ?q=, which
-    // deepwiki.com does not honor).
-    recommendDeepWiki: tool({
-      description:
-        "Deprecated — prefer deepwikiAsk. Returns a DeepWiki link card.",
-      inputSchema: z.object({
-        query: z.string().min(2),
-        repo: z
-          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
-          .default("elsa-core"),
-        reason: z.string(),
-      }),
-      execute: async ({ query, repo, reason }) => ({
-        kind: "deepwiki",
-        repo,
-        url: `https://deepwiki.com/elsa-workflows/${repo}`,
-        label: `Open DeepWiki: ${query.length > 60 ? query.slice(0, 57) + "..." : query}`,
-        reason,
-      }),
-    }),
-
     bookIntroCall: tool({
       description: "Return the URL to book a free 30-minute introductory call.",
       inputSchema: z.object({}),
