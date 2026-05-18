@@ -57,6 +57,48 @@ function parseWeaverError(message: string): WeaverServerError | null {
   return null;
 }
 
+// Focus an element without letting the browser scroll any ancestor (or the
+// document) into view. Uses `preventScroll` when supported and snapshots/
+// restores scroll positions of all scrollable ancestors as a fallback for
+// older Safari/iOS where the option is ignored.
+function focusNoScroll(el: HTMLElement) {
+  if (typeof document === "undefined") return;
+  const scrollables: { node: Element | Window; x: number; y: number }[] = [];
+  let parent: Element | null = el.parentElement;
+  while (parent) {
+    const style = window.getComputedStyle(parent);
+    const overflow = `${style.overflow}${style.overflowX}${style.overflowY}`;
+    if (/auto|scroll|overlay/.test(overflow)) {
+      scrollables.push({ node: parent, x: parent.scrollLeft, y: parent.scrollTop });
+    }
+    parent = parent.parentElement;
+  }
+  scrollables.push({ node: window, x: window.scrollX, y: window.scrollY });
+
+  try {
+    el.focus({ preventScroll: true });
+  } catch {
+    el.focus();
+  }
+
+  // Restore on next frame too, since Safari/iOS may scroll after focus settles.
+  const restore = () => {
+    for (const s of scrollables) {
+      if (s.node === window) {
+        if (window.scrollX !== s.x || window.scrollY !== s.y) {
+          window.scrollTo(s.x, s.y);
+        }
+      } else {
+        const n = s.node as Element;
+        if (n.scrollLeft !== s.x) n.scrollLeft = s.x;
+        if (n.scrollTop !== s.y) n.scrollTop = s.y;
+      }
+    }
+  };
+  restore();
+  requestAnimationFrame(restore);
+}
+
 interface WeaverThreadProps {
   threadId: string;
   initialMessages?: UIMessage[];
@@ -157,8 +199,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // Extra care for iOS/Safari: programmatic focus is blocked outside a user
   // gesture (the on-screen keyboard won't open), but the caret can still be
   // placed reliably if we (a) wait until the element is laid out and visible,
-  // (b) skip when another field is intentionally focused, and (c) avoid the
-  // `preventScroll` option (unsupported on older Safari and a no-op on iOS).
+  // (b) skip when another field is intentionally focused, and (c) snapshot &
+  // restore scroll positions to prevent the page/chat container from jumping
+  // (older Safari ignores `preventScroll`, and iOS scrolls the document into
+  // view for the soft keyboard).
   useEffect(() => {
     let cancelled = false;
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
@@ -192,12 +236,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       }
 
       const len = el.value.length;
-      try {
-        // Older iOS Safari throws on the options arg; fall back to plain focus.
-        el.focus({ preventScroll: true });
-      } catch {
-        el.focus();
-      }
+      focusNoScroll(el);
       // iOS needs the element to be focused before setSelectionRange will
       // actually move the caret; do it on the next microtask to be safe.
       const placeCaret = () => {
@@ -259,7 +298,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   }, [draftKey]);
 
   useEffect(() => {
-    if (status === "ready") textareaRef.current?.focus();
+    if (status === "ready" && textareaRef.current) focusNoScroll(textareaRef.current);
   }, [status]);
 
   // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
@@ -464,7 +503,6 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 ? "Sending…"
                 : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             }
-            autoFocus
             disabled={status === "submitted"}
             onInput={(e) => {
               const val = e.currentTarget.value;
