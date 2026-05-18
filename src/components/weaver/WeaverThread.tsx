@@ -706,25 +706,27 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         <ConversationScrollButton />
       </Conversation>
 
-      {/* Live streaming progress bar — slim, animated, and only visible while
-          a turn is in flight. Gives continuous feedback beyond a static label. */}
+      {/* Live streaming progress bar — themed, slim, and only visible while
+          a turn is in flight. Sits flush above the composer's top border. */}
       {(status === "submitted" || status === "streaming") ? (
-        <div
-          className="h-0.5 w-full overflow-hidden bg-muted"
-          role="progressbar"
-          aria-label="Assistant response progress"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={
-            typeof progress === "number" ? Math.round(progress * 100) : undefined
-          }
-        >
+        <div className="px-3 pt-2 pb-1.5 border-t bg-background">
           <div
-            className="h-full bg-primary transition-[width] duration-300 ease-out"
-            style={{
-              width: `${Math.max(4, Math.min(98, Math.round((progress ?? 0.04) * 100)))}%`,
-            }}
-          />
+            className="relative h-1 w-full overflow-hidden rounded-full bg-primary/10"
+            role="progressbar"
+            aria-label="Assistant response progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={
+              typeof progress === "number" ? Math.round(progress * 100) : undefined
+            }
+          >
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.45)] transition-[width] duration-500 ease-out"
+              style={{
+                width: `${Math.max(4, Math.min(98, Math.round((progress ?? 0.04) * 100)))}%`,
+              }}
+            />
+          </div>
         </div>
       ) : null}
 
