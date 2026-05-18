@@ -171,6 +171,44 @@ export const useRuntimeBuilder = create<BuilderStore>()(
           },
         })),
 
+      setImageEnv: (key, value) =>
+        set((s) => ({
+          state: {
+            ...s.state,
+            imageSelection: {
+              ...s.state.imageSelection,
+              envOverrides: {
+                ...(s.state.imageSelection.envOverrides ?? {}),
+                [key]: value,
+              },
+            },
+          },
+        })),
+
+      resetImageEnv: (key) =>
+        set((s) => {
+          const current = s.state.imageSelection.envOverrides ?? {};
+          if (!key) {
+            return {
+              state: {
+                ...s.state,
+                imageSelection: {
+                  ...s.state.imageSelection,
+                  envOverrides: {},
+                },
+              },
+            };
+          }
+          const next = { ...current };
+          delete next[key];
+          return {
+            state: {
+              ...s.state,
+              imageSelection: { ...s.state.imageSelection, envOverrides: next },
+            },
+          };
+        }),
+
       addPackageSource: (source) =>
         set((s) => ({
           state: {
