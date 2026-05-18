@@ -287,37 +287,56 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             </ConversationEmptyState>
           ) : null}
 
-          {messages.map((m) => (
-            <Message key={m.id} from={m.role === "user" ? "user" : "assistant"}>
-              <MessageContent
-                className={
-                  m.role === "user"
-                    ? "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground"
-                    : "bg-transparent p-0"
-                }
-              >
-                {m.parts.map((part, idx) => {
-                  if (part.type === "text") {
-                    return (
-                      <MessageResponse key={idx}>
-                        {(part as { text: string }).text}
-                      </MessageResponse>
-                    );
+          {messages.map((m) => {
+            const assistantText =
+              m.role === "assistant"
+                ? (m.parts ?? [])
+                    .filter((p) => p.type === "text")
+                    .map((p) => (p as { text?: string }).text ?? "")
+                    .join("\n\n")
+                    .trim()
+                : "";
+            const showCopy =
+              m.role === "assistant" &&
+              assistantText.length > 0 &&
+              !(m === lastMessage && (status === "submitted" || status === "streaming"));
+            return (
+              <Message key={m.id} from={m.role === "user" ? "user" : "assistant"}>
+                <MessageContent
+                  className={
+                    m.role === "user"
+                      ? "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground"
+                      : "bg-transparent p-0"
                   }
-                  if (part.type?.startsWith("tool-") || part.type === "dynamic-tool") {
-                    return (
-                      <WeaverToolPart
-                        key={idx}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        part={part as any}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </MessageContent>
-            </Message>
-          ))}
+                >
+                  {m.parts.map((part, idx) => {
+                    if (part.type === "text") {
+                      return (
+                        <MessageResponse key={idx}>
+                          {(part as { text: string }).text}
+                        </MessageResponse>
+                      );
+                    }
+                    if (part.type?.startsWith("tool-") || part.type === "dynamic-tool") {
+                      return (
+                        <WeaverToolPart
+                          key={idx}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          part={part as any}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                  {showCopy ? (
+                    <div className="mt-1 flex justify-start">
+                      <CopyResponseButton text={assistantText} />
+                    </div>
+                  ) : null}
+                </MessageContent>
+              </Message>
+            );
+          })}
 
           {showThinking ? (
             <Message from="assistant">
