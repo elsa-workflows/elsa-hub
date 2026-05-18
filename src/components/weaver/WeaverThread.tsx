@@ -342,6 +342,22 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     if (status !== "ready") submitLockRef.current = false;
   }, [status]);
 
+  // Drain the queued prompts one at a time whenever the assistant is idle.
+  useEffect(() => {
+    if (status !== "ready") return;
+    if (queue.length === 0) return;
+    const [next, ...rest] = queue;
+    setQueue(rest);
+    submitLockRef.current = true;
+    sendMessage({ text: next.text });
+  }, [status, queue, sendMessage]);
+
+  // Drop the queue when switching threads — queued prompts belong to the
+  // thread they were typed against.
+  useEffect(() => {
+    setQueue([]);
+  }, [threadId]);
+
   // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
   useEffect(() => {
     const handler = (e: Event) => {
