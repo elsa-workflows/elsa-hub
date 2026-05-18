@@ -70,6 +70,16 @@ export function WeaverToolPart({ part }: { part: AnyToolPart }) {
         );
       }
       if (typeof data.answer === "string" && typeof data.fallbackUrl === "string") {
+        if (isEmptyDeepWikiAnswer(data)) {
+          return (
+            <DeepWikiEmptyCard
+              question={question}
+              repo={repo ?? data.repo}
+              fallbackUrl={data.fallbackUrl}
+              answer={data.answer}
+            />
+          );
+        }
         return <DeepWikiAnswerCard data={data} />;
       }
     }
