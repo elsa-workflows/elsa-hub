@@ -526,7 +526,7 @@ ${infra.length ? infra.join("\n") : "_No infrastructure selected._"}
 
 ## Files in this bundle
 
-- \`appsettings.Generated.json\` — application settings consumed by Elsa.
+- \`config.json\` — application settings mounted into the container at \`/config/config.json\`.
 - \`Program.Generated.cs\` — illustrative wire-up for the runtime.
 - \`packages.lock.json\` — resolved package selection and infrastructure choices.
 - \`docker-compose.yml\` — local-friendly Compose stack.
