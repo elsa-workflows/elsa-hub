@@ -549,7 +549,8 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                           );
                         }
                         return null;
-                      })}
+                        });
+                      })()}
                       {showCopy ? (
                         <div className="mt-1 flex justify-start">
                           <CopyResponseButton text={assistantText} />
