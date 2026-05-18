@@ -146,11 +146,31 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     onMessagesChange?.(messages);
   }, [messages, onMessagesChange]);
 
+  // Per-thread unsent draft persistence (local-only, both anon and signed-in).
+  const draftKey = threadId ? `weaver:draft:${threadId}` : null;
+
   // Focus management — defer past Radix Sheet's focus trap on mount/thread switch.
   useEffect(() => {
     const id = window.setTimeout(() => textareaRef.current?.focus(), 50);
     return () => window.clearTimeout(id);
   }, [threadId]);
+
+  // Restore the saved draft (if any) when the active thread changes.
+  useEffect(() => {
+    if (!draftKey) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    const saved = (() => {
+      try {
+        return localStorage.getItem(draftKey) ?? "";
+      } catch {
+        return "";
+      }
+    })();
+    el.value = saved;
+    // Trigger field-sizing recompute on the auto-growing textarea.
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, [draftKey]);
 
   useEffect(() => {
     if (status === "ready") textareaRef.current?.focus();
@@ -327,6 +347,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           onSubmit={(message) => {
             const text = message.text?.trim();
             if (!text) return;
+            if (draftKey) localStorage.removeItem(draftKey);
             sendMessage({ text });
           }}
         >
@@ -334,6 +355,12 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             ref={textareaRef}
             placeholder="Ask the Elsa Weaver… (Enter to send, Shift+Enter for newline)"
             autoFocus
+            onInput={(e) => {
+              if (!draftKey) return;
+              const val = e.currentTarget.value;
+              if (val) localStorage.setItem(draftKey, val);
+              else localStorage.removeItem(draftKey);
+            }}
             onKeyDown={(e) => {
               if (
                 e.key === "Enter" &&
