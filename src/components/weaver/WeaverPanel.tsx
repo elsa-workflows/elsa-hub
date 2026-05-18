@@ -38,6 +38,8 @@ export function WeaverPanel() {
   const queryClient = useQueryClient();
   const [showList, setShowList] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const isMobile = useIsMobile();
+  const { prefs, setPreference } = useWeaverPreferences();
 
   // ---- Signed-in: DB-backed threads ----
   const { data: threads, isLoading } = useQuery({
