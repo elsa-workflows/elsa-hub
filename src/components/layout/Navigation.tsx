@@ -146,16 +146,6 @@ export function Navigation() {
                 Documentation
                 <ExternalLink className="h-4 w-4" />
               </a>
-              <a
-                href="https://deepwiki.com/elsa-workflows/elsa-core"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-3 text-lg font-medium rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
-              >
-                <Sparkles className="h-4 w-4" />
-                DeepWiki AI
-                <ExternalLink className="h-4 w-4" />
-              </a>
               <div className="px-4 py-3 flex items-center justify-between">
                 <span className="text-lg font-medium">Theme</span>
                 <ThemeToggle />
