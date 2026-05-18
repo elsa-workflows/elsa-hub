@@ -488,6 +488,7 @@ function buildDockerCompose(ctx: Ctx): {
           envForElsa: companionEnv,
           dependsOn,
           isCompanion: false,
+          localPackagesDir,
         }),
       );
     }
