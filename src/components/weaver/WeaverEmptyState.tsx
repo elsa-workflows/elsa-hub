@@ -8,7 +8,7 @@ interface Props {
   onPick: (text: string) => void;
 }
 
-type Category = "general" | "dashboard" | "rb";
+type Category = "general" | "dashboard" | "rb" | "elsa";
 const CATEGORY_STORAGE_KEY = "weaver:suggestions-category";
 
 type Suggestion = { icon: React.ComponentType<{ className?: string }>; text: string };
