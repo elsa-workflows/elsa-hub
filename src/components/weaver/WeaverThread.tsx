@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
-import { CornerDownLeftIcon, Loader2Icon, SquareIcon } from "lucide-react";
+import { CornerDownLeftIcon, Loader2Icon, SquareIcon, XIcon } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -607,6 +607,18 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 <span>
                   Queued · position {qIdx + 1} of {queue.length}
                 </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setQueue((cur) => cur.filter((item) => item.id !== q.id))
+                  }
+                  className="ml-1 inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  aria-label={`Remove queued prompt ${qIdx + 1}`}
+                  title="Remove from queue"
+                >
+                  <XIcon className="size-3" aria-hidden />
+                  <span>Cancel</span>
+                </button>
               </div>
             </div>
           ))}
