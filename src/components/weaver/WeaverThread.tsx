@@ -35,6 +35,7 @@ import { WeaverEmptyState } from "./WeaverEmptyState";
 import { extractFollowups } from "./followups";
 import { FollowupChips } from "./FollowupChips";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useWeaverPreferences } from "@/lib/weaverPreferences";
 
 const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/weaver-chat";
@@ -638,6 +639,36 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                 </div>
               );
             });
+          })()}
+
+          {(() => {
+            const isBusy = status === "submitted" || status === "streaming";
+            if (!isBusy) return null;
+            const last = messages[messages.length - 1];
+            const lastHasContent =
+              last?.role === "assistant" &&
+              (last.parts ?? []).some((p) => {
+                if (p.type === "text") {
+                  return ((p as { text?: string }).text ?? "").trim().length > 0;
+                }
+                return p.type?.startsWith("tool-") || p.type === "dynamic-tool";
+              });
+            if (lastHasContent) return null;
+            return (
+              <Message from="assistant" aria-hidden>
+                <MessageContent className="bg-transparent p-0">
+                  <div
+                    className="flex flex-col gap-2 py-1"
+                    role="status"
+                    aria-label="Assistant is weaving a response"
+                  >
+                    <Skeleton className="h-3 w-[72%] rounded-full" />
+                    <Skeleton className="h-3 w-[88%] rounded-full" />
+                    <Skeleton className="h-3 w-[54%] rounded-full" />
+                  </div>
+                </MessageContent>
+              </Message>
+            );
           })()}
 
           {queue.map((q, qIdx) => (
