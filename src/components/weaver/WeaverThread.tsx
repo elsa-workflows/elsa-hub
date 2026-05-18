@@ -28,8 +28,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
-import { WeaverThinking, estimateWeaverProgress } from "./WeaverThinking";
-import { TypingDots } from "./TypingDots";
+import { estimateWeaverProgress } from "./WeaverThinking";
 import { CopyResponseButton } from "./CopyResponseButton";
 import { WeaverToolPart } from "./WeaverToolPart";
 import { WeaverEmptyState } from "./WeaverEmptyState";
