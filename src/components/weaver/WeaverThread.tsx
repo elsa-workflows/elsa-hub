@@ -149,10 +149,30 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // Per-thread unsent draft persistence (local-only, both anon and signed-in).
   const draftKey = threadId ? `weaver:draft:${threadId}` : null;
 
-  // Focus management — defer past Radix Sheet's focus trap on mount/thread switch.
+  // Focus management — defer past Radix Sheet's focus trap and re-try a few
+  // frames in case the textarea is mounted late after a thread switch.
   useEffect(() => {
-    const id = window.setTimeout(() => textareaRef.current?.focus(), 50);
-    return () => window.clearTimeout(id);
+    let cancelled = false;
+    const tries = [0, 60, 180, 360];
+    const timers = tries.map((delay) =>
+      window.setTimeout(() => {
+        if (cancelled) return;
+        const el = textareaRef.current;
+        if (!el) return;
+        // Place caret at end so the draft stays put.
+        const len = el.value.length;
+        el.focus({ preventScroll: true });
+        try {
+          el.setSelectionRange(len, len);
+        } catch {
+          /* ignore non-text inputs */
+        }
+      }, delay),
+    );
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => window.clearTimeout(t));
+    };
   }, [threadId]);
 
   // Restore the saved draft (if any) when the active thread changes.
