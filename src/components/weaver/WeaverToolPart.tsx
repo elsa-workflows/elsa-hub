@@ -799,6 +799,7 @@ function DeepWikiErrorCard({
           </Button>
         ) : null}
       </div>
+      <DeepWikiExamples defaultRepo={repo} />
     </div>
   );
 }
@@ -901,6 +902,91 @@ function DeepWikiSuggestions({
   );
 }
 
+// Curated gallery of high-signal DeepWiki questions, grouped by repo. These
+// are written to match the structure of each Elsa repo so users see what
+// kinds of questions DeepWiki can actually answer well.
+const DEEPWIKI_EXAMPLES: { repo: "elsa-core" | "elsa-studio" | "elsa-extensions"; label: string; blurb: string; questions: string[] }[] = [
+  {
+    repo: "elsa-core",
+    label: "elsa-core",
+    blurb: "Runtime, activities, persistence, scheduling",
+    questions: [
+      "How does WorkflowRuntime dispatch a workflow?",
+      "How are activities discovered and registered at startup?",
+      "Where is the bookmark resumption logic implemented?",
+      "Explain the SendHttpRequest activity end-to-end.",
+      "How does the EF Core persistence store handle workflow state?",
+      "What does the default scheduling pipeline look like?",
+    ],
+  },
+  {
+    repo: "elsa-studio",
+    label: "elsa-studio",
+    blurb: "Designer, Blazor UI, modules",
+    questions: [
+      "How is the workflow designer canvas rendered in Studio?",
+      "Where are Studio modules registered?",
+      "How does the Studio client talk to the Elsa Server API?",
+      "How are custom activity descriptors loaded into the toolbox?",
+    ],
+  },
+  {
+    repo: "elsa-extensions",
+    label: "elsa-extensions",
+    blurb: "Identity, integrations, optional packages",
+    questions: [
+      "How is OpenIddict wired into the Identity package?",
+      "What does the MassTransit integration register?",
+      "How are AzureServiceBus activities implemented?",
+      "Show the structure of the Email package.",
+    ],
+  },
+];
+
+function DeepWikiExamples({ defaultRepo }: { defaultRepo?: string }) {
+  const initial = DEEPWIKI_EXAMPLES.findIndex((g) => g.repo === defaultRepo);
+  const [activeIdx, setActiveIdx] = useState(initial >= 0 ? initial : 0);
+  const active = DEEPWIKI_EXAMPLES[activeIdx];
+  return (
+    <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
+      <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <BookOpen className="size-3" />
+        Example questions by repo
+      </div>
+      <div className="mb-2 flex flex-wrap gap-1">
+        {DEEPWIKI_EXAMPLES.map((g, i) => (
+          <button
+            key={g.repo}
+            type="button"
+            onClick={() => setActiveIdx(i)}
+            className={
+              i === activeIdx
+                ? "rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground"
+                : "rounded-full border border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            }
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+      <div className="mb-1.5 text-[10px] text-muted-foreground">{active.blurb}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {active.questions.map((q, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => dispatchDeepWikiAsk(q, active.repo)}
+            className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] text-foreground/80 transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
+          >
+            <span className="truncate text-left">{q}</span>
+            <ArrowRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DeepWikiEmptyCard({
   question,
   repo,
@@ -944,6 +1030,7 @@ function DeepWikiEmptyCard({
         </details>
       ) : null}
       <DeepWikiSuggestions question={question} repo={repo} />
+      <DeepWikiExamples defaultRepo={repo} />
       <div className="mt-3 flex justify-end gap-2">
         <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
           <a href={fallbackUrl} target="_blank" rel="noopener noreferrer">
