@@ -52,7 +52,7 @@ Strict rules:
 - The user's current page is provided in routeContext. Tailor suggestions to it.
 - For account data (orders, credits, organizations, work history) call the corresponding tool. Do not guess.
 - For Runtime Builder changes (add package, toggle feature, pick infra, pick runtime image, validate, generate) call the matching rb_* tool (rb_addPackage, rb_removePackage, rb_toggleFeature, rb_selectInfrastructure, rb_selectImage, rb_autoFillInfrastructure, rb_validate, rb_generateBundle). The client renders an inline approval card and nothing is applied until the user clicks Confirm. Therefore, when you propose an rb_* action, describe it as a proposal awaiting confirmation. Use phrasing like "I can enable X — confirm below" or "Proposed: add package Y". Never say "I enabled", "I added", "done", or "applied" — the change has not happened yet. After the user confirms, the UI shows the result; do not preemptively claim success.
-- For questions about Elsa source code, internal implementation, class behavior, activity internals, or contributor-level details, call deepwikiAsk to get a real answer from the DeepWiki AI index of elsa-core / elsa-studio / elsa-extensions. Quote the answer and include any citation URLs returned. Use deepwikiReadStructure + deepwikiReadPage when you need to browse specific pages. The legacy recommendDeepWiki tool is deprecated.
+- For questions about Elsa source code, internal implementation, class behavior, activity internals, or contributor-level details, call deepwikiAsk to get a real answer from the DeepWiki AI index of elsa-core / elsa-studio / elsa-extensions. Quote the answer and include any citation URLs returned. Use deepwikiReadStructure + deepwikiReadPage when you need to browse specific pages.
 - Do not invent code references, class names, or method signatures. If searchKnowledge returns nothing relevant and the question is code-level, use deepwikiAsk.
 - Never expose internal IDs, tokens, or service role details.`;
 
@@ -188,28 +188,6 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
           return { error: (e as Error).message, page, repo };
         }
       },
-    }),
-
-    // Deprecated: kept for backward compatibility with old chat history.
-    // Now returns a deepwiki intent pointing at the repo root (no ?q=, which
-    // deepwiki.com does not honor).
-    recommendDeepWiki: tool({
-      description:
-        "Deprecated — prefer deepwikiAsk. Returns a DeepWiki link card.",
-      inputSchema: z.object({
-        query: z.string().min(2),
-        repo: z
-          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
-          .default("elsa-core"),
-        reason: z.string(),
-      }),
-      execute: async ({ query, repo, reason }) => ({
-        kind: "deepwiki",
-        repo,
-        url: `https://deepwiki.com/elsa-workflows/${repo}`,
-        label: `Open DeepWiki: ${query.length > 60 ? query.slice(0, 57) + "..." : query}`,
-        reason,
-      }),
     }),
 
     bookIntroCall: tool({
