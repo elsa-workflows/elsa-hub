@@ -13,7 +13,6 @@ import {
   Newspaper,
   ExternalLink,
   ArrowRight,
-  Sparkles,
 } from "lucide-react";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Seo } from "@/components/Seo";
