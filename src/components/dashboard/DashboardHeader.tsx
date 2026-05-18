@@ -53,18 +53,6 @@ export function DashboardHeader() {
           </a>
         </Button>
 
-        <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-          <a
-            href="https://deepwiki.com/elsa-workflows/elsa-core"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="gap-2"
-          >
-            <Sparkles className="h-4 w-4" />
-            DeepWiki
-          </a>
-        </Button>
-
         <ThemeToggle />
         
         <NotificationBell />
