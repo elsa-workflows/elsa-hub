@@ -280,7 +280,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThre
           ) : null}
 
           {showStreamingPill ? (
-            <WeaverThinking variant="streaming" className="text-xs" />
+            <WeaverThinking variant="streaming" progress={progress} className="text-xs" />
           ) : null}
 
           {error ? (() => {
