@@ -689,9 +689,17 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               status === "submitted" ||
               status === "streaming" ||
               queue.length > 0;
-            if (draftKey) localStorage.removeItem(draftKey);
-            setHasText(false);
             if (isBusyNow) {
+              if (queue.length >= MAX_QUEUE_SIZE) {
+                // Refuse the enqueue but keep the draft so the user doesn't
+                // lose what they typed — they can resend once the queue drains.
+                toast.error(
+                  `Queue is full (${MAX_QUEUE_SIZE} prompts max). Wait for one to send, then try again.`,
+                );
+                return;
+              }
+              if (draftKey) localStorage.removeItem(draftKey);
+              setHasText(false);
               // Enqueue — the drain effect picks it up the moment the
               // current turn finishes. Each queued bubble renders its own
               // "Queued · position N of M" indicator.
@@ -707,6 +715,8 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               ]);
               return;
             }
+            if (draftKey) localStorage.removeItem(draftKey);
+            setHasText(false);
             // Double-submit guard: a second rapid Enter (or Enter + click)
             // can race the React state flip to "submitted". The ref is
             // synchronous, so the second call sees it set and bails.
