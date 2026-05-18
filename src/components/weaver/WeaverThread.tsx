@@ -141,7 +141,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // user-style bubbles with a "Queued" indicator and drain one-at-a-time as
   // soon as the assistant returns to `ready`.
   const [queue, setQueue] = useState<
-    { id: string; text: string; paused?: boolean; createdAt?: number }[]
+    {
+      id: string;
+      text: string;
+      paused?: boolean;
+      createdAt?: number;
+      restored?: boolean;
+    }[]
   >([]);
 
   const transport = useMemo(
@@ -446,7 +452,9 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             deduped.push(it);
           }
           droppedDupes = fresh.length - deduped.length;
-          restored = deduped.slice(0, MAX_QUEUE_SIZE);
+          restored = deduped
+            .slice(0, MAX_QUEUE_SIZE)
+            .map((it) => ({ ...it, restored: true }));
         }
       }
     } catch {
@@ -454,6 +462,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     }
     setQueue(restored);
     queueHydratedRef.current = queueKey;
+    if (restored.length > 0) {
+      toast.success(
+        `Restored ${restored.length} queued prompt${
+          restored.length === 1 ? "" : "s"
+        } from your previous session.`,
+      );
+    }
     if (droppedExpired > 0) {
       toast.info(
         `Removed ${droppedExpired} expired queued prompt${
@@ -868,6 +883,14 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                       <Loader2Icon className="size-3 animate-spin" aria-hidden />
                     )}
                     <span>{statusLabel}</span>
+                    {q.restored ? (
+                      <span
+                        className="ml-1 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                        title="Restored from your previous session"
+                      >
+                        Restored
+                      </span>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() =>
