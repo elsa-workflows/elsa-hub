@@ -39,6 +39,10 @@ import { useWeaverPreferences } from "@/lib/weaverPreferences";
 
 const FUNCTIONS_BASE = "https://tehhrjepyfnhmsgtwzkf.supabase.co/functions/v1/weaver-chat";
 
+// Cap on pending prompts behind the active turn. Keeps the thread readable
+// and prevents runaway queueing while a long turn is in flight.
+const MAX_QUEUE_SIZE = 5;
+
 type WeaverServerError = {
   error: string;
   code?: string;
