@@ -110,6 +110,15 @@ interface WeaverThreadProps {
 export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesChange }: WeaverThreadProps) {
   const { session, user } = useAuth();
   const { routeContext } = useWeaver();
+  const isMobile = useIsMobile();
+  const { prefs: weaverPrefs } = useWeaverPreferences();
+  // On mobile, respect the user's "auto-scroll on thread switch" preference.
+  // When disabled, mount the Conversation with `initial={false}` so the
+  // StickToBottom container does not jump to the latest message on the first
+  // render after a thread change — the user keeps the scroll at the top and
+  // can read the conversation from the beginning.
+  const conversationInitial: false | "smooth" =
+    isMobile && !weaverPrefs.mobileAutoScrollOnThreadSwitch ? false : "smooth";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cancelSavedRef = useRef(false);
   // Set the instant a submit is initiated and cleared once useChat's `status`
