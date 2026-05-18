@@ -18,8 +18,13 @@ export interface BuilderImage {
   containerName: string;
   needsSharedNetwork: boolean;
   requiresServer: boolean;
-  /** Default env vars (key + example value). */
-  envDefaults: { key: string; value: string; required: boolean }[];
+  /** Default env vars (key + example value, may contain `{hostPort}`). */
+  envDefaults: {
+    key: string;
+    value: string;
+    required: boolean;
+    description?: string;
+  }[];
   dockerHubUrl: string;
 }
 
