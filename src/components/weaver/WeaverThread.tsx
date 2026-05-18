@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
-import { CornerDownLeftIcon, Loader2Icon, SquareIcon, XIcon } from "lucide-react";
+import { CornerDownLeftIcon, Loader2Icon, PauseIcon, PlayIcon, SquareIcon, XIcon } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
