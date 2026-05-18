@@ -27,7 +27,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
-import { Shimmer } from "@/components/ai-elements/shimmer";
+import { WeaverThinking } from "./WeaverThinking";
 import { WeaverToolPart } from "./WeaverToolPart";
 import { WeaverEmptyState } from "./WeaverEmptyState";
 
@@ -211,22 +211,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThre
           {showThinking ? (
             <Message from="assistant">
               <MessageContent className="bg-transparent p-0">
-                <Shimmer>Thinking…</Shimmer>
+                <WeaverThinking variant="thinking" />
               </MessageContent>
             </Message>
           ) : null}
 
           {showStreamingPill ? (
-            <div
-              className="flex items-center gap-2 px-1 text-xs text-muted-foreground"
-              aria-live="polite"
-            >
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-primary" />
-              </span>
-              <Shimmer>Streaming…</Shimmer>
-            </div>
+            <WeaverThinking variant="streaming" className="text-xs" />
           ) : null}
 
           {error ? (() => {
