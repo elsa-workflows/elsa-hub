@@ -57,6 +57,48 @@ function parseWeaverError(message: string): WeaverServerError | null {
   return null;
 }
 
+// Focus an element without letting the browser scroll any ancestor (or the
+// document) into view. Uses `preventScroll` when supported and snapshots/
+// restores scroll positions of all scrollable ancestors as a fallback for
+// older Safari/iOS where the option is ignored.
+function focusNoScroll(el: HTMLElement) {
+  if (typeof document === "undefined") return;
+  const scrollables: { node: Element | Window; x: number; y: number }[] = [];
+  let parent: Element | null = el.parentElement;
+  while (parent) {
+    const style = window.getComputedStyle(parent);
+    const overflow = `${style.overflow}${style.overflowX}${style.overflowY}`;
+    if (/auto|scroll|overlay/.test(overflow)) {
+      scrollables.push({ node: parent, x: parent.scrollLeft, y: parent.scrollTop });
+    }
+    parent = parent.parentElement;
+  }
+  scrollables.push({ node: window, x: window.scrollX, y: window.scrollY });
+
+  try {
+    el.focus({ preventScroll: true });
+  } catch {
+    el.focus();
+  }
+
+  // Restore on next frame too, since Safari/iOS may scroll after focus settles.
+  const restore = () => {
+    for (const s of scrollables) {
+      if (s.node === window) {
+        if (window.scrollX !== s.x || window.scrollY !== s.y) {
+          window.scrollTo(s.x, s.y);
+        }
+      } else {
+        const n = s.node as Element;
+        if (n.scrollLeft !== s.x) n.scrollLeft = s.x;
+        if (n.scrollTop !== s.y) n.scrollTop = s.y;
+      }
+    }
+  };
+  restore();
+  requestAnimationFrame(restore);
+}
+
 interface WeaverThreadProps {
   threadId: string;
   initialMessages?: UIMessage[];
