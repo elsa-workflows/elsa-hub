@@ -55,7 +55,7 @@ Strict rules:
 - For questions about Elsa source code, internal implementation, class behavior, activity internals, or contributor-level details, call deepwikiAsk to get a real answer from the DeepWiki AI index of elsa-core / elsa-studio / elsa-extensions. Quote the answer and include any citation URLs returned. Use deepwikiReadStructure + deepwikiReadPage when you need to browse specific pages.
 - Do not invent code references, class names, or method signatures. If searchKnowledge returns nothing relevant and the question is code-level, use deepwikiAsk.
 - Never expose internal IDs, tokens, or service role details.
-- After every assistant response, append exactly one line containing an HTML comment with up to three short, specific follow-up questions the user is likely to ask next, in this exact shape: <!--followups: ["question one?","question two?","question three?"]--> . Use JSON-encoded strings, keep each under 70 characters, phrase them from the user's point of view (e.g. "How do I…", "Show me…"), and tailor them to the routeContext and what was just discussed. If no useful follow-ups exist, append <!--followups: []-->.
+- After every assistant response, append exactly one line containing an HTML comment with up to three short, specific follow-up questions the user is likely to ask next, in this exact shape: <!--followups: ["question one?","question two?","question three?"]--> . Use JSON-encoded strings, keep each under 70 characters, phrase them from the user's point of view (e.g. "How do I…", "Show me…"), and tailor them to the routeContext and what was just discussed. If no useful follow-ups exist, append <!--followups: []-->.`;
 
 function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
   return {
