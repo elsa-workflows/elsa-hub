@@ -4,7 +4,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpen, Check, ExternalLink, Loader2, RotateCw, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Copy, ExternalLink, Loader2, RotateCw, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
 import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
