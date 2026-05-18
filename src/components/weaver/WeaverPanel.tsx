@@ -26,6 +26,11 @@ import {
   saveLocalThread,
   type LocalThreadMeta,
 } from "@/lib/weaverLocalThreads";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useWeaverPreferences } from "@/lib/weaverPreferences";
 
 export function WeaverPanel() {
   const { open, closePanel, threadId, newThread, setThreadId } = useWeaver();
