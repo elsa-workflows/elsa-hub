@@ -586,50 +586,70 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
         </div>
       )}
       {allCitations.length > 0 ? (
-        <div className="mt-2 border-t border-border/60 pt-2">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Sources
+        <div className="mt-3 border-t border-border/60 pt-2">
+          <div className="mb-1.5 flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Sources ({allCitations.length})
+            </div>
           </div>
-          <ul className="space-y-0.5">
+          <ul className="space-y-1.5">
             {allCitations.map((c, i) => {
-              const isOpen = expanded.has(i);
               const isHi = highlighted === i;
+              const parts = parseUrl(c.url);
               return (
                 <li
                   key={i}
                   ref={(el) => {
                     sourceRefs.current[i] = el;
                   }}
-                  className={`rounded px-1 py-0.5 text-xs transition-colors ${
-                    isHi ? "bg-primary/15 ring-1 ring-primary/40" : ""
+                  className={`group rounded-md border border-border/60 bg-background/60 px-2 py-1.5 text-xs transition-colors ${
+                    isHi ? "ring-1 ring-primary/50 bg-primary/5" : "hover:bg-background"
                   }`}
                 >
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
-                      [{i + 1}]
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 shrink-0 rounded bg-muted px-1 text-[10px] font-semibold text-muted-foreground">
+                      {i + 1}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => toggleExpanded(i)}
-                      className="min-w-0 flex-1 truncate text-left text-primary hover:underline"
-                    >
-                      {c.title}
-                    </button>
-                    <a
-                      href={c.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-muted-foreground hover:text-foreground"
-                      aria-label="Open source in new tab"
-                    >
-                      <ExternalLink className="size-3" />
-                    </a>
-                  </div>
-                  {isOpen ? (
-                    <div className="mt-0.5 pl-6 text-[10px] break-all text-muted-foreground">
-                      {c.url}
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block truncate font-medium text-primary hover:underline"
+                        title={c.title}
+                      >
+                        {c.title}
+                      </a>
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-0.5 flex items-baseline gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                        title={c.url}
+                      >
+                        {parts.host ? (
+                          <span className="shrink-0 font-semibold text-foreground/70">
+                            {parts.host}
+                          </span>
+                        ) : null}
+                        <span className="truncate">{parts.path || c.url}</span>
+                      </a>
                     </div>
-                  ) : null}
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+                      <CopyUrlButton url={c.url} />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        asChild
+                        className="size-6"
+                        title="Open in new tab"
+                      >
+                        <a href={c.url} target="_blank" rel="noopener noreferrer" aria-label="Open source in new tab">
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
                 </li>
               );
             })}
