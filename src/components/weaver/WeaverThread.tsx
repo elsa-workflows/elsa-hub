@@ -140,6 +140,11 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     }
   }, [status]);
 
+  // Persist messages externally on every change (used for anon localStorage).
+  useEffect(() => {
+    onMessagesChange?.(messages);
+  }, [messages, onMessagesChange]);
+
   // Focus management
   useEffect(() => {
     textareaRef.current?.focus();
