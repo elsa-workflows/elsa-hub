@@ -1044,6 +1044,13 @@ function DeepWikiExamples({ defaultRepo }: { defaultRepo?: string }) {
             onClick={() => {
               setActiveIdx(i);
               setStaged(null);
+              if (typeof window !== "undefined") {
+                try {
+                  window.localStorage.setItem(DEEPWIKI_REPO_STORAGE_KEY, g.repo);
+                } catch {
+                  // ignore storage errors
+                }
+              }
             }}
             className={
               i === activeIdx
