@@ -306,6 +306,10 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
 
   useEffect(() => {
     if (status === "ready" && textareaRef.current) focusNoScroll(textareaRef.current);
+    // Once useChat has taken ownership of the request (any non-ready state),
+    // it's safe to release the lock — subsequent submits will be gated by
+    // `status` itself.
+    if (status !== "ready") submitLockRef.current = false;
   }, [status]);
 
   // Listen for retry requests dispatched from tool cards (e.g. DeepWiki).
