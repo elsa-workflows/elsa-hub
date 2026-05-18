@@ -561,6 +561,25 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   // status into a debounced string so assistive tech hears clear, discrete
   // updates ("Weaving response…", "Streaming reply…", "Reply ready.")
   // rather than the raw progress numbers.
+  // Auto-scroll the "Next up" queued indicator into view whenever the queue
+  // advances (the head of the unpaused queue changes id). Keeps the user
+  // anchored on what's about to send next without yanking the scroll on
+  // unrelated re-renders.
+  const nextUpRef = useRef<HTMLDivElement | null>(null);
+  const lastNextUpIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const nextId = queue.find((it) => !it.paused)?.id ?? null;
+    if (nextId !== lastNextUpIdRef.current) {
+      lastNextUpIdRef.current = nextId;
+      if (nextId && nextUpRef.current) {
+        nextUpRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+    }
+  }, [queue]);
+
   const [srStatus, setSrStatus] = useState("");
   const prevStatusRef = useRef<typeof status | null>(null);
   useEffect(() => {
