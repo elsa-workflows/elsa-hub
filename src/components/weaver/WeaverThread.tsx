@@ -990,6 +990,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
                       ? crypto.randomUUID()
                       : `${Date.now()}-${Math.random()}`,
                   text,
+                  createdAt: Date.now(),
                 },
               ]);
               return;
