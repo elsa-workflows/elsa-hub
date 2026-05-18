@@ -452,7 +452,9 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             deduped.push(it);
           }
           droppedDupes = fresh.length - deduped.length;
-          restored = deduped.slice(0, MAX_QUEUE_SIZE);
+          restored = deduped
+            .slice(0, MAX_QUEUE_SIZE)
+            .map((it) => ({ ...it, restored: true }));
         }
       }
     } catch {
@@ -460,6 +462,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     }
     setQueue(restored);
     queueHydratedRef.current = queueKey;
+    if (restored.length > 0) {
+      toast.success(
+        `Restored ${restored.length} queued prompt${
+          restored.length === 1 ? "" : "s"
+        } from your previous session.`,
+      );
+    }
     if (droppedExpired > 0) {
       toast.info(
         `Removed ${droppedExpired} expired queued prompt${
