@@ -706,6 +706,48 @@ function dispatchDeepWikiRetry(question: string, repo?: string) {
   );
 }
 
+function dispatchDeepWikiAsk(question: string, repo?: string) {
+  const text = repo
+    ? `Ask DeepWiki about ${repo}: ${question}`
+    : `Ask DeepWiki: ${question}`;
+  window.dispatchEvent(
+    new CustomEvent("weaver:retry", { detail: { text } }),
+  );
+}
+
+// Build 4 concrete, clickable re-asks from the user's original question.
+// We extract a rough "topic" (strip leading question words) and template
+// different intents around it (how it works, where it lives, examples,
+// architecture). If we can't extract a topic, fall back to generic prompts.
+function buildDeepWikiSuggestions(question?: string, repo?: string): string[] {
+  const repoLabel = repo ?? "the repo";
+  const raw = (question ?? "").trim();
+  const topic = raw
+    .replace(/[?.!]+$/g, "")
+    .replace(
+      /^(how|what|where|when|why|who|which|can|could|does|do|is|are|please|tell me about|explain|show me|describe)\b[^a-z0-9]*/i,
+      "",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!topic) {
+    return [
+      `Give an overview of ${repoLabel}.`,
+      `What are the main components of ${repoLabel}?`,
+      `Show a minimal "hello world" example for ${repoLabel}.`,
+      `What design decisions are unique to ${repoLabel}?`,
+    ];
+  }
+
+  return [
+    `How does ${topic} work in ${repoLabel}?`,
+    `Where in ${repoLabel} is ${topic} implemented?`,
+    `Show a code example using ${topic} in ${repoLabel}.`,
+    `What are common pitfalls or limitations of ${topic}?`,
+  ];
+}
+
 function DeepWikiErrorCard({
   question,
   repo,
@@ -828,12 +870,36 @@ function isEmptyDeepWikiAnswer(data: DeepWikiAnswerData): boolean {
   return noMatchPatterns.some((p) => lower.includes(p));
 }
 
-const DEEPWIKI_TIPS = [
-  "Name a specific class, activity, or namespace (e.g. `WorkflowRuntime`, `SendHttpRequest`).",
-  "Mention the area — runtime, persistence, scheduling, Studio, identity.",
-  "Ask how something works rather than yes/no — \"How does X register Y?\"",
-  "If the topic spans repos, try elsa-studio or elsa-extensions instead of elsa-core.",
-];
+function DeepWikiSuggestions({
+  question,
+  repo,
+}: {
+  question?: string;
+  repo?: string;
+}) {
+  const suggestions = buildDeepWikiSuggestions(question, repo);
+  return (
+    <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
+      <div className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <Lightbulb className="size-3" />
+        Try one of these
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((s, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => dispatchDeepWikiAsk(s, repo)}
+            className="group inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] text-foreground/80 transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
+          >
+            <span className="truncate text-left">{s}</span>
+            <ArrowRight className="size-3 shrink-0 opacity-60 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function DeepWikiEmptyCard({
   question,
@@ -877,17 +943,7 @@ function DeepWikiEmptyCard({
           </div>
         </details>
       ) : null}
-      <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
-        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          <Lightbulb className="size-3" />
-          Tips for a better answer
-        </div>
-        <ul className="space-y-0.5 pl-3 text-[11px] text-muted-foreground">
-          {DEEPWIKI_TIPS.map((t, i) => (
-            <li key={i} className="list-disc">{t}</li>
-          ))}
-        </ul>
-      </div>
+      <DeepWikiSuggestions question={question} repo={repo} />
       <div className="mt-3 flex justify-end gap-2">
         <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
           <a href={fallbackUrl} target="_blank" rel="noopener noreferrer">
