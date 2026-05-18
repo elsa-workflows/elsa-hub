@@ -2,7 +2,7 @@
 // user's JWT, renders messages via AI Elements, and exposes tool intents
 // to the inline approval renderer.
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
