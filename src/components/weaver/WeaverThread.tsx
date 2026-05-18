@@ -731,11 +731,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
           <PromptInputTextarea
             ref={textareaRef}
             placeholder={
-              status === "submitted"
-                ? "Sending… (type more to queue)"
-                : status === "streaming" || queue.length > 0
-                  ? "Streaming… (type more to queue)"
-                  : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
+              queue.length >= MAX_QUEUE_SIZE
+                ? `Queue full (${MAX_QUEUE_SIZE} max) — wait for one to send`
+                : status === "submitted"
+                  ? "Sending… (type more to queue)"
+                  : status === "streaming" || queue.length > 0
+                    ? "Streaming… (type more to queue)"
+                    : "Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             }
             onInput={(e) => {
               const val = e.currentTarget.value;
