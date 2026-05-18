@@ -183,8 +183,8 @@ export function WeaverPanel() {
                 newThread();
                 setShowList(false);
               }}
-              aria-label="Start a new chat"
-              title="Start a new chat"
+              aria-label="Start a new chat (⌘/Ctrl+Shift+O)"
+              title="Start a new chat — ⌘/Ctrl+Shift+O"
               className="h-8 gap-1.5 px-2.5 text-xs"
             >
               <Plus className="size-3.5" />
