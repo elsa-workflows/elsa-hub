@@ -706,6 +706,48 @@ function dispatchDeepWikiRetry(question: string, repo?: string) {
   );
 }
 
+function dispatchDeepWikiAsk(question: string, repo?: string) {
+  const text = repo
+    ? `Ask DeepWiki about ${repo}: ${question}`
+    : `Ask DeepWiki: ${question}`;
+  window.dispatchEvent(
+    new CustomEvent("weaver:retry", { detail: { text } }),
+  );
+}
+
+// Build 4 concrete, clickable re-asks from the user's original question.
+// We extract a rough "topic" (strip leading question words) and template
+// different intents around it (how it works, where it lives, examples,
+// architecture). If we can't extract a topic, fall back to generic prompts.
+function buildDeepWikiSuggestions(question?: string, repo?: string): string[] {
+  const repoLabel = repo ?? "the repo";
+  const raw = (question ?? "").trim();
+  const topic = raw
+    .replace(/[?.!]+$/g, "")
+    .replace(
+      /^(how|what|where|when|why|who|which|can|could|does|do|is|are|please|tell me about|explain|show me|describe)\b[^a-z0-9]*/i,
+      "",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!topic) {
+    return [
+      `Give an overview of ${repoLabel}.`,
+      `What are the main components of ${repoLabel}?`,
+      `Show a minimal "hello world" example for ${repoLabel}.`,
+      `What design decisions are unique to ${repoLabel}?`,
+    ];
+  }
+
+  return [
+    `How does ${topic} work in ${repoLabel}?`,
+    `Where in ${repoLabel} is ${topic} implemented?`,
+    `Show a code example using ${topic} in ${repoLabel}.`,
+    `What are common pitfalls or limitations of ${topic}?`,
+  ];
+}
+
 function DeepWikiErrorCard({
   question,
   repo,
