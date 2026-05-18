@@ -2,7 +2,7 @@
 // user's JWT, renders messages via AI Elements, and exposes tool intents
 // to the inline approval renderer.
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { toast } from "sonner";
@@ -27,7 +27,7 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
-import { WeaverThinking } from "./WeaverThinking";
+import { WeaverThinking, estimateWeaverProgress } from "./WeaverThinking";
 import { WeaverToolPart } from "./WeaverToolPart";
 import { WeaverEmptyState } from "./WeaverEmptyState";
 
@@ -171,7 +171,57 @@ export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThre
     (status === "streaming" && !lastIsAssistantWithContent);
   const showStreamingPill = status === "streaming" && lastIsAssistantWithContent;
 
-  
+  // Heuristic progress: track turn start time, derive a monotonic estimate
+  // from elapsed time + tool completion + streamed text length.
+  const turnStartRef = useRef<number | null>(null);
+  const lastProgressRef = useRef(0);
+  const [progressTick, setProgressTick] = useState(0);
+
+  useEffect(() => {
+    const active = status === "submitted" || status === "streaming";
+    if (active && turnStartRef.current === null) {
+      turnStartRef.current = Date.now();
+      lastProgressRef.current = 0;
+    }
+    if (!active) {
+      turnStartRef.current = null;
+      lastProgressRef.current = 0;
+      return;
+    }
+    const id = window.setInterval(() => setProgressTick((t) => t + 1), 250);
+    return () => window.clearInterval(id);
+  }, [status]);
+
+  const progress = useMemo(() => {
+    if (turnStartRef.current === null) return undefined;
+    const assistantParts =
+      lastMessage?.role === "assistant" ? lastMessage.parts ?? [] : [];
+    const toolParts = assistantParts.filter(
+      (p) => p.type?.startsWith("tool-") || p.type === "dynamic-tool",
+    );
+    const toolPartsTotal = toolParts.length;
+    const toolPartsDone = toolParts.filter((p) => {
+      const state = (p as { state?: string }).state;
+      return state === "output-available" || state === "output-error";
+    }).length;
+    const textLength = assistantParts
+      .filter((p) => p.type === "text")
+      .reduce((acc, p) => acc + ((p as { text?: string }).text?.length ?? 0), 0);
+    const next = estimateWeaverProgress({
+      elapsedMs: Date.now() - turnStartRef.current,
+      toolPartsTotal,
+      toolPartsDone,
+      textLength,
+      streaming: status === "streaming",
+    });
+    // Keep it monotonic.
+    const clamped = Math.max(lastProgressRef.current, next);
+    lastProgressRef.current = clamped;
+    return clamped;
+    // progressTick drives recomputation on the ticker; lastMessage drives
+    // recomputation on every streamed part.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progressTick, lastMessage, status]);
 
   return (
     <div className="flex h-full flex-col">
@@ -224,13 +274,13 @@ export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThre
           {showThinking ? (
             <Message from="assistant">
               <MessageContent className="bg-transparent p-0">
-                <WeaverThinking variant="thinking" />
+                <WeaverThinking variant="thinking" progress={progress} />
               </MessageContent>
             </Message>
           ) : null}
 
           {showStreamingPill ? (
-            <WeaverThinking variant="streaming" className="text-xs" />
+            <WeaverThinking variant="streaming" progress={progress} className="text-xs" />
           ) : null}
 
           {error ? (() => {
