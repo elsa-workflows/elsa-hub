@@ -179,6 +179,50 @@ export function WeaverPanel() {
         <SheetHeader className="flex flex-row items-center justify-between space-y-0 border-b p-3 pr-12">
           <SheetTitle className="text-base">Elsa Weaver</SheetTitle>
           <div className="flex items-center gap-1.5">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Chat settings"
+                  title="Chat settings"
+                >
+                  <Settings2 className="size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72">
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="text-sm font-medium">Chat preferences</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Settings are saved in this browser.
+                    </p>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Label
+                        htmlFor="weaver-mobile-autoscroll"
+                        className="text-sm font-medium"
+                      >
+                        Auto-scroll on thread switch (mobile)
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {isMobile
+                          ? "When off, opening a conversation keeps the scroll at the top instead of jumping to the latest message."
+                          : "Only applies on narrow viewports. Desktop always behaves the same."}
+                      </p>
+                    </div>
+                    <Switch
+                      id="weaver-mobile-autoscroll"
+                      checked={prefs.mobileAutoScrollOnThreadSwitch}
+                      onCheckedChange={(v) =>
+                        setPreference("mobileAutoScrollOnThreadSwitch", v)
+                      }
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
               variant="ghost"
               size="icon-sm"
