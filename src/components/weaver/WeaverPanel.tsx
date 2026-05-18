@@ -171,8 +171,8 @@ export function WeaverPanel() {
               variant="ghost"
               size="icon-sm"
               onClick={() => setShowList((s) => !s)}
-              aria-label="Conversation history"
-              title="Conversation history"
+              aria-label="Conversation history (⌘/Ctrl+Shift+L)"
+              title="Conversation history — ⌘/Ctrl+Shift+L · Alt+↑/↓ to switch"
             >
               <MessagesSquare className="size-4" />
             </Button>
