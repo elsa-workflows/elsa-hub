@@ -1011,9 +1011,23 @@ const DEEPWIKI_EXAMPLES: { repo: "elsa-core" | "elsa-studio" | "elsa-extensions"
   },
 ];
 
+const DEEPWIKI_REPO_STORAGE_KEY = "weaver:deepwiki:lastRepo";
+
 function DeepWikiExamples({ defaultRepo }: { defaultRepo?: string }) {
-  const initial = DEEPWIKI_EXAMPLES.findIndex((g) => g.repo === defaultRepo);
-  const [activeIdx, setActiveIdx] = useState(initial >= 0 ? initial : 0);
+  const resolveInitial = () => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem(DEEPWIKI_REPO_STORAGE_KEY);
+        const savedIdx = DEEPWIKI_EXAMPLES.findIndex((g) => g.repo === saved);
+        if (savedIdx >= 0) return savedIdx;
+      } catch {
+        // ignore storage errors
+      }
+    }
+    const idx = DEEPWIKI_EXAMPLES.findIndex((g) => g.repo === defaultRepo);
+    return idx >= 0 ? idx : 0;
+  };
+  const [activeIdx, setActiveIdx] = useState(resolveInitial);
   const [staged, setStaged] = useState<string | null>(null);
   const active = DEEPWIKI_EXAMPLES[activeIdx];
   return (
