@@ -68,13 +68,45 @@ const GENERAL_POOL: Suggestion[] = [
   { icon: MessageCircleQuestion, text: "How do organizations and service providers differ on the platform?" },
 ];
 
-function pickThree<T>(pool: T[]): T[] {
-  const copy = [...pool];
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-  return copy.slice(0, 3);
+  return copy;
+}
+
+/**
+ * Pick 3 suggestions from `pool`, avoiding any text the user has already
+ * been shown for `poolKey`. The "seen" set is persisted to localStorage and
+ * only resets once the pool is exhausted, so users won't see repeats until
+ * they've cycled through all 50.
+ */
+function pickFreshThree(pool: Suggestion[], poolKey: string): Suggestion[] {
+  const storageKey = `weaver:suggestions-seen:${poolKey}`;
+  let seen: string[] = [];
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) seen = JSON.parse(raw);
+  } catch {
+    seen = [];
+  }
+  const seenSet = new Set(seen);
+  let remaining = pool.filter((s) => !seenSet.has(s.text));
+  // Pool exhausted (or too few left to fill 3): start a fresh cycle.
+  if (remaining.length < 3) {
+    seen = [];
+    remaining = pool;
+  }
+  const picks = shuffle(remaining).slice(0, 3);
+  const updated = [...seen, ...picks.map((p) => p.text)];
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(updated));
+  } catch {
+    /* storage full or disabled — repeats are acceptable */
+  }
+  return picks;
 }
 
 export function WeaverEmptyState({ onPick }: Props) {
@@ -82,10 +114,14 @@ export function WeaverEmptyState({ onPick }: Props) {
   const inRb = pathname.startsWith("/elsa-plus/runtime-builder");
   const inDashboard = pathname.startsWith("/dashboard");
 
-  const suggestions = useMemo(
-    () => pickThree(inRb ? RB_POOL : inDashboard ? DASHBOARD_POOL : GENERAL_POOL),
-    [inRb, inDashboard],
-  );
+  const suggestions = useMemo(() => {
+    const { pool, key } = inRb
+      ? { pool: RB_POOL, key: "rb" }
+      : inDashboard
+        ? { pool: DASHBOARD_POOL, key: "dashboard" }
+        : { pool: GENERAL_POOL, key: "general" };
+    return pickFreshThree(pool, key);
+  }, [inRb, inDashboard]);
 
   return (
     <div className="flex flex-col items-center gap-4 py-8 text-center">
