@@ -117,15 +117,42 @@ export function WeaverEmptyState({ onPick }: Props) {
   const { pathname } = useLocation();
   const inRb = pathname.startsWith("/elsa-plus/runtime-builder");
   const inDashboard = pathname.startsWith("/dashboard");
+  const defaultCategory: Category = inRb ? "rb" : inDashboard ? "dashboard" : "general";
+
+  const [category, setCategory] = useState<Category>(() => {
+    try {
+      const saved = localStorage.getItem(CATEGORY_STORAGE_KEY) as Category | null;
+      if (saved === "general" || saved === "dashboard" || saved === "rb") return saved;
+    } catch {
+      /* ignore */
+    }
+    return defaultCategory;
+  });
+
+  const setAndPersist = (next: Category) => {
+    setCategory(next);
+    try {
+      localStorage.setItem(CATEGORY_STORAGE_KEY, next);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const suggestions = useMemo(() => {
-    const { pool, key } = inRb
-      ? { pool: RB_POOL, key: "rb" }
-      : inDashboard
-        ? { pool: DASHBOARD_POOL, key: "dashboard" }
-        : { pool: GENERAL_POOL, key: "general" };
+    const { pool, key } =
+      category === "rb"
+        ? { pool: RB_POOL, key: "rb" }
+        : category === "dashboard"
+          ? { pool: DASHBOARD_POOL, key: "dashboard" }
+          : { pool: GENERAL_POOL, key: "general" };
     return pickFreshThree(pool, key);
-  }, [inRb, inDashboard]);
+  }, [category]);
+
+  const CATEGORIES: { id: Category; label: string }[] = [
+    { id: "general", label: "General" },
+    { id: "dashboard", label: "Dashboard" },
+    { id: "rb", label: "Runtime Builder" },
+  ];
 
   return (
     <div className="flex flex-col items-center gap-4 py-8 text-center">
@@ -138,6 +165,33 @@ export function WeaverEmptyState({ onPick }: Props) {
           Ask about Elsa, the dashboard, or the Runtime Builder. I'll act on what I can and confirm before changing anything.
         </p>
       </div>
+
+      <div
+        role="tablist"
+        aria-label="Suggestion category"
+        className="inline-flex rounded-md border bg-muted/30 p-0.5"
+      >
+        {CATEGORIES.map((c) => {
+          const active = category === c.id;
+          return (
+            <button
+              key={c.id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setAndPersist(c.id)}
+              className={cn(
+                "rounded-sm px-2.5 py-1 text-xs transition-colors",
+                active
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex w-full flex-col gap-2">
         {suggestions.map((s) => (
           <Button
