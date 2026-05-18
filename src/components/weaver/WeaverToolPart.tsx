@@ -4,7 +4,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpen, Check, Copy, ExternalLink, Loader2, RotateCw, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Copy, ExternalLink, Lightbulb, Loader2, RotateCw, SearchX, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
 import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
@@ -70,6 +70,16 @@ export function WeaverToolPart({ part }: { part: AnyToolPart }) {
         );
       }
       if (typeof data.answer === "string" && typeof data.fallbackUrl === "string") {
+        if (isEmptyDeepWikiAnswer(data)) {
+          return (
+            <DeepWikiEmptyCard
+              question={question}
+              repo={repo ?? data.repo}
+              fallbackUrl={data.fallbackUrl}
+              answer={data.answer}
+            />
+          );
+        }
         return <DeepWikiAnswerCard data={data} />;
       }
     }
@@ -785,6 +795,118 @@ function CopyUrlButton({ url }: { url: string }) {
     >
       {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
     </Button>
+  );
+}
+
+// Heuristic: detect DeepWiki responses that didn't actually answer the
+// question (empty body, very short, or known "I don't know" patterns).
+function isEmptyDeepWikiAnswer(data: DeepWikiAnswerData): boolean {
+  const raw = (data.answer ?? "").trim();
+  if (raw.length === 0) return true;
+  // Strip markdown links so URL noise doesn't inflate length.
+  const stripped = raw
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1")
+    .trim();
+  if (stripped.length < 40 && (data.citations?.length ?? 0) === 0) return true;
+  const lower = stripped.toLowerCase();
+  const noMatchPatterns = [
+    "i don't have",
+    "i do not have",
+    "i couldn't find",
+    "i could not find",
+    "no information",
+    "no relevant",
+    "not found in",
+    "does not contain",
+    "doesn't contain",
+    "unable to find",
+    "no matches",
+    "no results",
+    "i'm not able to",
+    "i am not able to",
+  ];
+  return noMatchPatterns.some((p) => lower.includes(p));
+}
+
+const DEEPWIKI_TIPS = [
+  "Name a specific class, activity, or namespace (e.g. `WorkflowRuntime`, `SendHttpRequest`).",
+  "Mention the area — runtime, persistence, scheduling, Studio, identity.",
+  "Ask how something works rather than yes/no — \"How does X register Y?\"",
+  "If the topic spans repos, try elsa-studio or elsa-extensions instead of elsa-core.",
+];
+
+function DeepWikiEmptyCard({
+  question,
+  repo,
+  fallbackUrl,
+  answer,
+}: {
+  question?: string;
+  repo?: string;
+  fallbackUrl: string;
+  answer: string;
+}) {
+  return (
+    <div className="my-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+      <DeepWikiHeader
+        repo={repo}
+        right={
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+            <SearchX className="size-3" />
+            No relevant matches
+          </span>
+        }
+      />
+      {question ? (
+        <div className="mb-2 text-xs italic text-muted-foreground">
+          “{question}”
+        </div>
+      ) : null}
+      <p className="text-xs text-foreground/90">
+        DeepWiki didn't find a confident answer for this in
+        {repo ? ` ${repo}` : " the repo"}. Try rephrasing with more specifics,
+        or browse the wiki directly.
+      </p>
+      {answer.trim().length > 0 ? (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground">
+            What DeepWiki returned
+          </summary>
+          <div className="mt-1 whitespace-pre-wrap rounded bg-background/60 p-2 text-[11px] text-muted-foreground">
+            {answer}
+          </div>
+        </details>
+      ) : null}
+      <div className="mt-3 rounded border border-border/60 bg-background/60 p-2">
+        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <Lightbulb className="size-3" />
+          Tips for a better answer
+        </div>
+        <ul className="space-y-0.5 pl-3 text-[11px] text-muted-foreground">
+          {DEEPWIKI_TIPS.map((t, i) => (
+            <li key={i} className="list-disc">{t}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="mt-3 flex justify-end gap-2">
+        <Button size="sm" variant="ghost" asChild className="h-7 px-2 text-xs">
+          <a href={fallbackUrl} target="_blank" rel="noopener noreferrer">
+            Browse DeepWiki <ExternalLink className="size-3" />
+          </a>
+        </Button>
+        {question ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            onClick={() => dispatchDeepWikiRetry(question, repo)}
+          >
+            <RotateCw className="size-3" />
+            Retry
+          </Button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
