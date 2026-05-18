@@ -305,6 +305,7 @@ function getSelectedImage(ctx: Ctx) {
     containerName: img.containerName,
     requiresServer: img.requiresServer,
     envDefaults: img.envDefaults,
+    envOverrides: sel.envOverrides ?? {},
   };
 }
 
