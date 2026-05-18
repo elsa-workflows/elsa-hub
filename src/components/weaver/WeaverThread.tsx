@@ -506,8 +506,15 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
               // delivery state.
               const showSentStatus =
                 m.role === "user" && mIdx === lastUserIdx && isBusy && lastIsUser;
-              const sentLabel =
-                status === "submitted" ? "Sent · waiting for reply…" : "Sent · streaming reply…";
+              const sentLabel = (() => {
+                const base =
+                  status === "submitted"
+                    ? "Sent · waiting for reply…"
+                    : "Sent · streaming reply…";
+                return queue.length > 0
+                  ? `${base} · ${queue.length} queued after this`
+                  : base;
+              })();
               return (
                 <div key={m.id} className="flex flex-col">
                   <Message from={m.role === "user" ? "user" : "assistant"}>
