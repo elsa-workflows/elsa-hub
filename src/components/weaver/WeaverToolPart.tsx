@@ -4,7 +4,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpen, Check, ExternalLink, Loader2, RotateCw, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
+import { ArrowRight, BookOpen, Check, Copy, ExternalLink, Loader2, RotateCw, X, Package, Puzzle, Settings2, Server, PlayCircle, Wand2, FileArchive, Container } from "lucide-react";
 import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import type { CatalogV2 } from "@/lib/runtime-builder/types-v2";
@@ -521,15 +521,9 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
   }, [citations, segments]);
 
   const sourceRefs = useRef<Array<HTMLLIElement | null>>([]);
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [highlighted, setHighlighted] = useState<number | null>(null);
 
   const focusCitation = (index: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      next.add(index);
-      return next;
-    });
     setHighlighted(index);
     const el = sourceRefs.current[index];
     if (el) {
@@ -538,15 +532,6 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
     window.setTimeout(() => {
       setHighlighted((cur) => (cur === index ? null : cur));
     }, 1400);
-  };
-
-  const toggleExpanded = (index: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
   };
 
   return (
@@ -586,50 +571,70 @@ function DeepWikiAnswerCard({ data }: { data: DeepWikiAnswerData }) {
         </div>
       )}
       {allCitations.length > 0 ? (
-        <div className="mt-2 border-t border-border/60 pt-2">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Sources
+        <div className="mt-3 border-t border-border/60 pt-2">
+          <div className="mb-1.5 flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Sources ({allCitations.length})
+            </div>
           </div>
-          <ul className="space-y-0.5">
+          <ul className="space-y-1.5">
             {allCitations.map((c, i) => {
-              const isOpen = expanded.has(i);
               const isHi = highlighted === i;
+              const parts = parseUrl(c.url);
               return (
                 <li
                   key={i}
                   ref={(el) => {
                     sourceRefs.current[i] = el;
                   }}
-                  className={`rounded px-1 py-0.5 text-xs transition-colors ${
-                    isHi ? "bg-primary/15 ring-1 ring-primary/40" : ""
+                  className={`group rounded-md border border-border/60 bg-background/60 px-2 py-1.5 text-xs transition-colors ${
+                    isHi ? "ring-1 ring-primary/50 bg-primary/5" : "hover:bg-background"
                   }`}
                 >
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
-                      [{i + 1}]
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 shrink-0 rounded bg-muted px-1 text-[10px] font-semibold text-muted-foreground">
+                      {i + 1}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => toggleExpanded(i)}
-                      className="min-w-0 flex-1 truncate text-left text-primary hover:underline"
-                    >
-                      {c.title}
-                    </button>
-                    <a
-                      href={c.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-muted-foreground hover:text-foreground"
-                      aria-label="Open source in new tab"
-                    >
-                      <ExternalLink className="size-3" />
-                    </a>
-                  </div>
-                  {isOpen ? (
-                    <div className="mt-0.5 pl-6 text-[10px] break-all text-muted-foreground">
-                      {c.url}
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block truncate font-medium text-primary hover:underline"
+                        title={c.title}
+                      >
+                        {c.title}
+                      </a>
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-0.5 flex items-baseline gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                        title={c.url}
+                      >
+                        {parts.host ? (
+                          <span className="shrink-0 font-semibold text-foreground/70">
+                            {parts.host}
+                          </span>
+                        ) : null}
+                        <span className="truncate">{parts.path || c.url}</span>
+                      </a>
                     </div>
-                  ) : null}
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
+                      <CopyUrlButton url={c.url} />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        asChild
+                        className="size-6"
+                        title="Open in new tab"
+                      >
+                        <a href={c.url} target="_blank" rel="noopener noreferrer" aria-label="Open source in new tab">
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
                 </li>
               );
             })}
@@ -743,6 +748,43 @@ function DeepWikiErrorCard({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function parseUrl(url: string): { host: string; path: string } {
+  try {
+    const u = new URL(url);
+    const host = u.host.replace(/^www\./, "");
+    const path = `${u.pathname}${u.search}${u.hash}`.replace(/\/$/, "");
+    return { host, path };
+  } catch {
+    return { host: "", path: url };
+  }
+}
+
+function CopyUrlButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("URL copied");
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      toast.error("Could not copy URL");
+    }
+  };
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      onClick={onCopy}
+      className="size-6"
+      title={copied ? "Copied" : "Copy URL"}
+      aria-label="Copy URL"
+    >
+      {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+    </Button>
   );
 }
 
