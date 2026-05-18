@@ -451,20 +451,37 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
   }, [lastMessage, status]);
 
   // Heuristic progress: track turn start time, derive a monotonic estimate
-  // from elapsed time + tool completion + streamed text length.
+  // from elapsed time + tool completion + streamed text length. The
+  // *displayed* value is then eased toward the target via rAF so the bar
+  // never jumps backward and animates smoothly between samples.
   const turnStartRef = useRef<number | null>(null);
+  const turnIdRef = useRef(0);
   const lastProgressRef = useRef(0);
   const [progressTick, setProgressTick] = useState(0);
+  const [displayedProgress, setDisplayedProgress] = useState<number | undefined>(
+    undefined,
+  );
+  const displayedRef = useRef(0);
+  const targetRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     const active = status === "submitted" || status === "streaming";
     if (active && turnStartRef.current === null) {
       turnStartRef.current = Date.now();
+      turnIdRef.current += 1;
       lastProgressRef.current = 0;
+      displayedRef.current = 0;
+      targetRef.current = 0;
+      setDisplayedProgress(0);
     }
     if (!active) {
       turnStartRef.current = null;
       lastProgressRef.current = 0;
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+      // Leave the last displayed value in place — the bar unmounts on its
+      // own when the turn ends; this avoids a visible snap-to-zero flash.
       return;
     }
     const id = window.setInterval(() => setProgressTick((t) => t + 1), 250);
@@ -493,7 +510,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
       textLength,
       streaming: status === "streaming",
     });
-    // Keep it monotonic.
+    // Keep the target monotonic per turn.
     const clamped = Math.max(lastProgressRef.current, next);
     lastProgressRef.current = clamped;
     return clamped;
@@ -501,6 +518,36 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     // recomputation on every streamed part.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progressTick, lastMessage, status]);
+
+  // Smooth the displayed value toward the latest target using a fixed
+  // exponential ease. Monotonic: we only ever increase displayedRef.
+  useEffect(() => {
+    if (typeof progress !== "number") return;
+    targetRef.current = Math.max(targetRef.current, progress);
+    if (rafRef.current !== null) return;
+    const step = () => {
+      const target = targetRef.current;
+      const current = displayedRef.current;
+      const delta = target - current;
+      if (delta < 0.0015) {
+        displayedRef.current = target;
+        setDisplayedProgress(target);
+        rafRef.current = null;
+        return;
+      }
+      // Ease ~12% of remaining distance per frame → smooth but responsive.
+      const nextVal = current + delta * 0.12;
+      displayedRef.current = nextVal;
+      setDisplayedProgress(nextVal);
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+  }, [progress]);
+
+  useEffect(() => () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+  }, []);
+
 
   return (
     <div className="flex h-full flex-col">
@@ -752,9 +799,9 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             }
           >
             <div
-              className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.45)] transition-[width] duration-500 ease-out"
+              className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.45)] will-change-[width]"
               style={{
-                width: `${Math.max(4, Math.min(98, Math.round((progress ?? 0.04) * 100)))}%`,
+                width: `${Math.max(4, Math.min(98, (displayedProgress ?? 0.04) * 100))}%`,
               }}
             />
           </div>
