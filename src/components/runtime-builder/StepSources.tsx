@@ -19,8 +19,8 @@ export function StepSources() {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const local = state.localPackages ?? { enabled: false, directoryPath: "packages" };
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
+
+
 
   function add() {
     if (!name.trim() || !url.trim()) return;
