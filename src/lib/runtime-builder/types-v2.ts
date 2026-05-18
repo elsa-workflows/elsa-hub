@@ -140,12 +140,20 @@ export interface ImageSelection {
   envOverrides?: Record<string, string>;
 }
 
+export interface LocalPackagesConfig {
+  /** When true, a `local-packages` Nuplane feed is emitted and the directory is mounted into the container. */
+  enabled: boolean;
+  /** Host-relative directory containing NuGet packages to drop in at runtime. */
+  directoryPath: string;
+}
+
 export interface BuilderStateV2 {
   schemaVersion: 2;
   packageSources: PackageSource[];
   selectedPackages: SelectedPackage[];
   infrastructureSelections: InfrastructureSelection[];
   imageSelection: ImageSelection;
+  localPackages: LocalPackagesConfig;
   shellProfile?: { id: string; settings?: Record<string, unknown> };
   advancedMode: boolean;
   meta?: {
