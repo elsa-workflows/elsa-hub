@@ -326,6 +326,23 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
     (status === "streaming" && !lastIsAssistantWithContent);
   const showStreamingPill = status === "streaming" && lastIsAssistantWithContent;
 
+  // Live token-ish count from the streaming assistant message. Word count is
+  // a stable, model-agnostic proxy that updates as new chunks arrive.
+  const streamedWords = useMemo(() => {
+    if (status !== "streaming" && status !== "submitted") return 0;
+    if (lastMessage?.role !== "assistant") return 0;
+    const text = (lastMessage.parts ?? [])
+      .filter((p) => p.type === "text")
+      .map((p) => (p as { text?: string }).text ?? "")
+      .join(" ")
+      .trim();
+    if (!text) return 0;
+    // Strip the followups marker so its JSON doesn't inflate the count.
+    const clean = text.replace(/<!--\s*followups[\s\S]*?-->/i, "");
+    const words = clean.match(/\S+/g);
+    return words ? words.length : 0;
+  }, [lastMessage, status]);
+
   // Heuristic progress: track turn start time, derive a monotonic estimate
   // from elapsed time + tool completion + streamed text length.
   const turnStartRef = useRef<number | null>(null);
