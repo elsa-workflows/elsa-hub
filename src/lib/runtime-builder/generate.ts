@@ -334,8 +334,9 @@ function buildAppService(opts: {
   envForElsa: Record<string, string>;
   dependsOn: string[];
   isCompanion?: boolean;
+  localPackagesDir?: string | null;
 }): string[] {
-  const { image, envForElsa, dependsOn, isCompanion } = opts;
+  const { image, envForElsa, dependsOn, isCompanion, localPackagesDir } = opts;
   const lines: string[] = [];
   lines.push(`  ${image.containerName}:`);
   lines.push(`    image: ${image.image}:${image.tag}`);
@@ -344,6 +345,11 @@ function buildAppService(opts: {
   lines.push(`      - "${image.hostPort}:${image.containerPort}"`);
   lines.push("    volumes:");
   lines.push(`      - ./config.json:/config/config.json:ro`);
+  if (localPackagesDir) {
+    // Mount the host folder into the container's working directory so the
+    // Nuplane `DirectoryPath` (relative) resolves to the same place.
+    lines.push(`      - ./${localPackagesDir}:/app/${localPackagesDir}`);
+  }
   if (Object.keys(envForElsa).length > 0) {
     lines.push("    environment:");
     for (const [k, v] of Object.entries(envForElsa)) {
