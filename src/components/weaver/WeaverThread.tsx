@@ -274,7 +274,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish }: WeaverThre
           {showThinking ? (
             <Message from="assistant">
               <MessageContent className="bg-transparent p-0">
-                <WeaverThinking variant="thinking" />
+                <WeaverThinking variant="thinking" progress={progress} />
               </MessageContent>
             </Message>
           ) : null}
