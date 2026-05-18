@@ -123,6 +123,41 @@ export function WeaverPanel() {
   const isAnon = !user;
   const visibleThreads = isAnon ? localThreads : threads ?? [];
 
+  // Keyboard shortcuts:
+  //   Cmd/Ctrl+Shift+O          → start a new chat
+  //   Cmd/Ctrl+Shift+L          → toggle the conversation list
+  //   Alt+ArrowUp / Alt+ArrowDown → switch to the prev/next thread
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+
+      if (mod && e.shiftKey && (e.key === "o" || e.key === "O")) {
+        e.preventDefault();
+        newThread();
+        setShowList(false);
+        return;
+      }
+
+      if (mod && e.shiftKey && (e.key === "l" || e.key === "L")) {
+        e.preventDefault();
+        setShowList((s) => !s);
+        return;
+      }
+
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        if (visibleThreads.length === 0) return;
+        e.preventDefault();
+        const idx = visibleThreads.findIndex((t) => t.id === threadId);
+        const delta = e.key === "ArrowUp" ? -1 : 1;
+        const next = visibleThreads[(idx + delta + visibleThreads.length) % visibleThreads.length];
+        if (next?.id) setThreadId(next.id);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, visibleThreads, threadId, newThread, setThreadId]);
+
   return (
     <Sheet open={open} onOpenChange={(o) => (!o ? closePanel() : null)}>
       <SheetContent
@@ -136,8 +171,8 @@ export function WeaverPanel() {
               variant="ghost"
               size="icon-sm"
               onClick={() => setShowList((s) => !s)}
-              aria-label="Conversation history"
-              title="Conversation history"
+              aria-label="Conversation history (⌘/Ctrl+Shift+L)"
+              title="Conversation history — ⌘/Ctrl+Shift+L · Alt+↑/↓ to switch"
             >
               <MessagesSquare className="size-4" />
             </Button>
@@ -148,8 +183,8 @@ export function WeaverPanel() {
                 newThread();
                 setShowList(false);
               }}
-              aria-label="Start a new chat"
-              title="Start a new chat"
+              aria-label="Start a new chat (⌘/Ctrl+Shift+O)"
+              title="Start a new chat — ⌘/Ctrl+Shift+O"
               className="h-8 gap-1.5 px-2.5 text-xs"
             >
               <Plus className="size-3.5" />
