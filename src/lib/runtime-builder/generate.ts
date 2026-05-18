@@ -269,6 +269,8 @@ function buildAppService(opts: {
   lines.push(`    container_name: ${image.containerName}`);
   lines.push("    ports:");
   lines.push(`      - "${image.hostPort}:${image.containerPort}"`);
+  lines.push("    volumes:");
+  lines.push(`      - ./config.json:/config/config.json:ro`);
   if (Object.keys(envForElsa).length > 0) {
     lines.push("    environment:");
     for (const [k, v] of Object.entries(envForElsa)) {
@@ -524,7 +526,7 @@ ${infra.length ? infra.join("\n") : "_No infrastructure selected._"}
 
 ## Files in this bundle
 
-- \`appsettings.Generated.json\` — application settings consumed by Elsa.
+- \`config.json\` — application settings mounted into the container at \`/config/config.json\`.
 - \`Program.Generated.cs\` — illustrative wire-up for the runtime.
 - \`packages.lock.json\` — resolved package selection and infrastructure choices.
 - \`docker-compose.yml\` — local-friendly Compose stack.
@@ -554,7 +556,7 @@ export function generateBundleFilesV2(
   const compose = buildDockerCompose(ctx);
   return [
     {
-      path: "appsettings.Generated.json",
+      path: "config.json",
       language: "json",
       contents: buildAppSettings(ctx),
     },
