@@ -393,7 +393,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
         >
           <PromptInputTextarea
             ref={textareaRef}
-            placeholder="Ask the Elsa Weaver… (Enter to send, Shift+Enter for newline)"
+            placeholder="Ask the Elsa Weaver… (⌘/Ctrl+Enter to send, Shift+Enter for newline)"
             autoFocus
             onInput={(e) => {
               if (!draftKey) return;
@@ -404,7 +404,7 @@ export function WeaverThread({ threadId, initialMessages, onFinish, onMessagesCh
             onKeyDown={(e) => {
               if (
                 e.key === "Enter" &&
-                !e.shiftKey &&
+                (e.metaKey || e.ctrlKey) &&
                 !e.nativeEvent.isComposing
               ) {
                 e.preventDefault();
