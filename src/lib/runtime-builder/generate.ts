@@ -269,6 +269,8 @@ function buildAppService(opts: {
   lines.push(`    container_name: ${image.containerName}`);
   lines.push("    ports:");
   lines.push(`      - "${image.hostPort}:${image.containerPort}"`);
+  lines.push("    volumes:");
+  lines.push(`      - ./config.json:/config/config.json:ro`);
   if (Object.keys(envForElsa).length > 0) {
     lines.push("    environment:");
     for (const [k, v] of Object.entries(envForElsa)) {
