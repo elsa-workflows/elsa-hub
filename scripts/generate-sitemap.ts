@@ -30,6 +30,7 @@ const entries: SitemapEntry[] = [
   { path: "/elsa-plus/runtime-builder", changefreq: "weekly", priority: "0.8" },
   { path: "/resources", changefreq: "weekly", priority: "0.8" },
   { path: "/resources/community-content", changefreq: "weekly", priority: "0.7" },
+  { path: "/roadmap", changefreq: "weekly", priority: "0.8" },
   { path: "/login", changefreq: "yearly", priority: "0.3" },
   { path: "/signup", changefreq: "yearly", priority: "0.4" },
 ];
