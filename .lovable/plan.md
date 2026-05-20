@@ -1,155 +1,59 @@
+# Elsa Roadmap page
 
-# Runtime Builder — data ownership & migration plan
+Add a polished, public `/roadmap` page that surfaces the high-value items from the upstream roadmap issue [`elsa-workflows/elsa-core#3232`](https://github.com/elsa-workflows/elsa-core/issues/3232) (last refreshed 2026-05-19). Content is curated and rewritten for readability — not a verbatim copy — and grouped by the six themes the maintainers use.
 
-## 1. What comes from the Catalog API today
+## Goals
 
-All upstream HTTP goes through the `runtime-builder-catalog` Supabase edge function (so the `X-Api-Key` stays server-side). The browser never calls the upstream `api-k35qdj734hds2.azurewebsites.net` directly.
+- Make the project direction visible and skimmable at a glance.
+- Distinguish what is shipped vs in-progress vs roadmap candidate.
+- Link back to the canonical GitHub issue as the source of truth.
+- Match the rest of the site visually (Layout, glass cards, gradient hero, ScrollReveal, semantic tokens).
 
-Two upstream endpoints are proxied:
+## Page structure
 
-| Action | Upstream | Used by |
-|---|---|---|
-| `catalog` | `GET /api/builder/catalog` | `useCatalogQuery()` → wizard population |
-| `resolve` | `POST /api/builder/resolve` | `useResolveQuery()` → Step "Validate" |
-| `health` | `GET /health` | unused in UI |
+1. **Hero**
+   - H1 "Roadmap", subtitle explaining this is a product direction document, not a release calendar.
+   - Small meta row: "Last refreshed May 19, 2026 · Source: GitHub #3232" with external link icon.
+   - Two CTAs: "View source on GitHub" (external) and "Join the community" (Discord).
 
-The catalog payload, normalized in `src/lib/runtime-builder/catalog-client.ts`, gives us **`CatalogV2`** = `{ packages, infrastructureProviders }`:
+2. **North Star** — short 4-bullet card summarising the maintainer's North Star (productive, dependable, open, powerful).
 
-- **Packages** (`PackageManifest`): id, displayName, description, versions[], `latestVersion`, licenseTier, stability, category, conflictsWith, tags
-- **Features per package** (`PackageFeature`): id, displayName, description, `requires.infrastructure[]` (kind + capability constraints), `settings[]` (JSON-Schema-ish: name, jsonType, required, secret, defaultValue, enumValues, advanced, group, envHint, nested settings, free-form `ui` hints), `dependencies[]` (featureId + optional packageId)
-- **Infrastructure providers** (`InfrastructureProvider`): id, displayName, kind, strategy (`compose-sidecar` | `external-service` | `managed` | `none`), provider, capabilities[], outputs[] (e.g. `connectionString`, `host`, `port`), optional settings[]
+3. **Status legend** — inline chips explaining the three states:
+   - `Shipped` — green
+   - `In progress` — amber
+   - `Planned` — neutral/primary outline
 
-`resolve` returns `{ compatible, findings: [{level, code, message, scope}] }` based on the user's `{packages, infrastructure}` selection. Upstream 5xx is degraded to a `warning` finding so the wizard never blocks.
+4. **Themes** — six sections rendered as cards in a 1/2-column responsive grid. Each theme has:
+   - Icon + title + one-line goal
+   - 4–6 curated high-value items (not the full upstream list), each with a status chip
+   - "Why it matters" footer line
 
-## 2. What we manage locally (in this repo)
+   Themes and example items:
+   - **Production confidence** (Shield) — graceful shutdown completion, full recovery UX for interrupted/crashed instances, distributed runtime hardening, scheduler/messaging correctness, native workflow-aware background execution, persistence & migration reliability.
+   - **Authoring productivity** (Workflow) — workflow organization (labels/folders/search), designer reliability harness, workflow progress/timeline API, state-machine Studio surface, first-class debugging & test runners, user-preference & layout persistence, ElsaScript productization.
+   - **Integrations & ecosystem** (Puzzle) — OpenAPI activity provider, connector SDK, marketplace/plugin installation on Nuplane, Agents provider matrix & MCP lifecycle, Azure DevOps / Teams / Google Workspace connectors, data pipeline/ETL primitives, BPMN interoperability.
+   - **Observability & operations** (Eye) — OpenTelemetry module + default semantic metrics, Studio diagnostics (live console, structured logs, incident timelines), correlated traces ↔ workflow navigation, clearer execution-history states.
+   - **Security, identity & enterprise readiness** (Lock) — canonical OIDC recipes, production security guide, tenant/role-based activity visibility, multi-tenant ergonomics, enterprise deployment checklist, localization & white-label readiness.
+   - **AI-assisted workflow engineering** (Sparkles) — AI generation that produces visible activities (not hidden scripts), Elsa MCP/tooling surface, Studio copilot on top of stable authoring contracts, "explain / find risks / suggest tests" assistants, generation paired with validation.
 
-### 2a. Static data — `src/data/dockerImages.ts`
+5. **Recommended sequencing** — three small cards (Near term / Mid term / Longer term) with 3–5 bullets each, drawn from the upstream "Recommended Sequencing" section.
 
-The **entire Docker image catalog is local**, not from the API. For each image (`elsa-pro-server`, `elsa-pro-studio`, `elsa-pro-combined`):
+6. **Disclaimer + source footer**
+   - "Sequencing changes when real-world demand changes. Customer-funded work can accelerate items."
+   - Link: "Read the full roadmap on GitHub →"
 
-- slug, marketing name/tagline/description, Lucide icon, tags, highlights
-- `image` (Docker repo), `defaultPort` / `hostPort`, `containerName`, `needsSharedNetwork`, `requiresServer`
-- `envVars[]` — the entries the wizard shows on Step 2 "Image config" (e.g. `Backend__Url`, the three `CShells__Shells__Default__Features__…` keys on the Combined image, etc.)
-- `fullStackComposeFile` (long inline Compose snippet shown in the docs section)
-- Doc-page fields: `dockerHubUrl`, `showPerShellAdmin`, `showNuplane`, `containerPaths`, etc.
+## Technical notes
 
-`src/lib/runtime-builder/images.ts` re-projects this into `BuilderImage` (with `envDefaults`) for the wizard. The Catalog API has no knowledge of which Docker images exist or what their env vars are.
+- New file `src/pages/Roadmap.tsx` using `Layout`, `Seo`, `ScrollReveal`, `Card variant="glass"`, `Badge`, and lucide icons. No new dependencies.
+- New route in `src/App.tsx`: `<Route path="/roadmap" element={<Roadmap />} />`.
+- Data lives inline in the page as a typed `themes` array (status: `"shipped" | "in-progress" | "planned"`); easy to update when #3232 is refreshed. No backend, no Catalog API call.
+- Add `/roadmap` to `public/sitemap.xml` via the existing `scripts/generate-sitemap.ts` route list.
+- Add a "Roadmap" link in `src/components/layout/Footer.tsx` under the existing resources column (and Navigation if there's a Resources menu — to confirm during implementation).
+- SEO: title "Roadmap — Elsa Workflows", description summarising the six themes; include `Organization` + `WebPage` JSON-LD.
+- Respect dark-mode Noir tokens and glassmorphism rules from project memory. Status chips use `bg-green-500/15 text-green-600 dark:text-green-300`, amber, and `border-border text-muted-foreground` respectively — wrapped in a small local `<StatusBadge>` component.
 
-### 2b. Runtime state — Zustand store
+## Out of scope
 
-`src/lib/runtime-builder/store.ts` persists `BuilderStateV2` to `localStorage` (key `elsa-runtime-builder/v1`): selected image+tag+port+env overrides, package sources, selected packages/features/settings, infra selections, local-packages folder, advanced mode, meta. Includes a v1→reset migration path.
-
-### 2c. Pure client logic
-
-- `requirements.ts` — derives `InfraRequirement[]` from selected features; `autoFillInfrastructure` and `pickDefaultProvider` (prefers `compose-sidecar` satisfying all capabilities).
-- `dependencies.ts` — `applyClosure` for feature→feature and feature→package auto-add with `autoAdded` / `autoFeatures` flags.
-- `validate.ts` — local readiness/finding computation (separate from upstream `resolve`).
-- `catalog-utils.ts` / `feature-catalog.ts` / `migration-map.ts` — lookup helpers and legacy migration.
-
-### 2d. Bundle generation — `src/lib/runtime-builder/generate.ts`
-
-`generateBundleFilesV2(state, catalog)` produces six files **entirely in the browser**:
-
-1. **`config.json`** — `buildAppSettings`: walks `selectedPackages → features → settings`, capitalizes setting names, drops in `Elsa.<pkgKey>.<FeatureName>` nodes, plus a hard-coded `Nuplane.Setup` block with `Feeds` derived from `packageSources` (`buildNuplaneFeeds`, including pinned `IncludePatterns` for non-nuget.org feeds) and `Nuplane.Loading.SharedAssemblies` (hard-coded `CShells.Abstractions`, `Elsa`, …).
-2. **`Program.Generated.cs`** — illustrative `builder.Services.AddElsa(...)` with `elsa.Use<Feature>()` lines.
-3. **`packages.lock.json`** — image ref + selected packages + sources + infra.
-4. **`docker-compose.yml`** — `buildDockerCompose`: app service with env seeded from image `envDefaults` + overrides, infra-derived env from `composeFragment` (hard-coded YAML snippets for postgres/sqlserver/rabbitmq/redis/azurite/mailpit), studio→server companion logic, `depends_on` with `service_healthy`, volumes.
-5. **`.env.example`** — `buildEnvExample`: external-service env vars + per-setting `envHint` lines.
-6. **`README.md`** — `buildReadme`: human summary.
-
-Everything that should be coming from `package.feature.settings` is fine; everything in the **hard-coded blocks** (`composeFragment`, `NUPLANE_SHARED_ASSEMBLIES`, image env-var seeding, studio companion behavior, file list/layout) is duplicated knowledge that the backend will need.
-
-## 3. Current technical architecture
-
-```text
-        ┌─────────────────────────────────────────────────────────────┐
-        │ Browser (React + Vite)                                      │
-        │                                                             │
-        │  RuntimeBuilderComposer (URL ?step=N)                       │
-        │   ├─ Step 1  Image          ─┐                              │
-        │   ├─ Step 2  Image config   ─┤── reads src/data/            │
-        │   ├─ Step 3+ Capabilities/   │   dockerImages.ts            │
-        │   │          Pkgs/Features  ─┤                              │
-        │   ├─ Step    Infrastructure ─┤                              │
-        │   ├─ Step    Configure       │                              │
-        │   ├─ Step    Validate       ─┤── useResolveQuery            │
-        │   └─ Step    Bundle         ─┘── generateBundleFilesV2()    │
-        │                                                             │
-        │  Zustand store ─── persist ──► localStorage                 │
-        │  React Query  ─── useCatalogQuery / useResolveQuery         │
-        │       │                                                     │
-        └───────┼─────────────────────────────────────────────────────┘
-                │ supabase.functions.invoke('runtime-builder-catalog',│
-                │   { action: 'catalog' | 'resolve', body })          │
-                ▼
-        ┌─────────────────────────────────────────────────────────────┐
-        │ Supabase Edge Function: runtime-builder-catalog             │
-        │  - holds ELSA_PACKAGE_CATALOG_API_KEY                       │
-        │  - 60s in-memory catalog cache                              │
-        │  - degrades resolve 5xx to a warning finding                │
-        └───────┬─────────────────────────────────────────────────────┘
-                │ X-Api-Key
-                ▼
-        ┌─────────────────────────────────────────────────────────────┐
-        │ Upstream Catalog API (Azure)                                │
-        │  GET  /api/builder/catalog   POST /api/builder/resolve      │
-        └─────────────────────────────────────────────────────────────┘
-```
-
-Bundle generation, image catalog, Compose templates, Nuplane wiring, and config-file shape all live **client-side** today. The Catalog API only knows about packages, features, infra providers, and resolve verdicts.
-
-## 4. What to move to the backend, and why
-
-Goals: single source of truth for the deployable shape; faster iteration without shipping a frontend; consistent output between the wizard, the Weaver agent, and any future CLI; smaller bundle generation surface in the browser.
-
-### Phase 1 — Move bundle generation behind a new upstream endpoint
-
-Add upstream `POST /api/builder/bundle` returning `{ files: [{ path, language, contents }] }`. The request mirrors what `generate.ts` consumes today:
-
-```json
-{
-  "image":   { "slug": "elsa-pro-combined", "tag": "latest", "hostPort": 8080, "envOverrides": { ... } },
-  "packages":[ { "id": "...", "version": "...", "features": ["..."], "settings": {...} } ],
-  "packageSources":[ ... ],
-  "infrastructure":[ { "kind":"database", "providerId":"postgres-compose", "strategy":"compose-sidecar", "settings":{} } ],
-  "localPackages": { "enabled": false, "directoryPath": "packages" }
-}
-```
-
-In this repo:
-- Add `action: 'bundle'` to `supabase/functions/runtime-builder-catalog/index.ts`.
-- Add `fetchBundle(req)` to `catalog-client.ts` and a `useBundleQuery` (debounced).
-- Switch `StepBundle.tsx` to that hook; keep `generateBundleFilesV2` as a thin client fallback for offline preview only (or remove once the endpoint is stable).
-- Delete `composeFragment`, `NUPLANE_SHARED_ASSEMBLIES`, `buildAppSettings`, `buildProgramCs`, `buildPackagesLock`, `buildEnvExample`, `buildReadme` from `generate.ts` once parity is verified.
-
-### Phase 2 — Move the Docker image catalog upstream
-
-Today `src/data/dockerImages.ts` is the only source for image metadata + env defaults — that is exactly the mismatch you ran into with the `CShells__…` entries. Two options:
-
-- **2a (recommended for the builder)**: extend the catalog response with `images: RuntimeImage[]` (slug, image, defaultPort, hostPort, containerName, requiresServer, envDefaults, fullStackComposeFile, dockerHubUrl). The marketing/doc page can keep reading the same shape via a thin server fetch + local fallback.
-- **2b**: split — keep marketing copy local (icon, tagline, highlights, container path docs), pull only deployment-affecting fields from the API. This is the cleaner separation if the docs site must stay statically rendered.
-
-Once `envDefaults` come from upstream, `buildDockerCompose`'s seeding loop becomes a pass-through and the Studio→Server companion rule moves into the bundle endpoint.
-
-### Phase 3 — Move local-only logic upstream too (optional, after Phase 1/2)
-
-- `applyClosure` (dependency/feature auto-add) and `autoFillInfrastructure` could be exposed as `POST /api/builder/plan` so the client only stores user intent and renders the server's resolved state. This kills the divergence risk between client closure and server `resolve`.
-- Local `validate.ts` becomes redundant once `resolve` covers readiness + findings.
-
-### What stays in the browser
-
-- Zustand store of **user intent** (selections, overrides, advanced toggle) + `localStorage` persistence.
-- Step routing, form rendering (`SchemaField`, `InfrastructurePicker`), toasts, import/export of the intent JSON.
-- React Query caching of catalog/resolve/bundle responses.
-
-## 5. Sequencing & risk
-
-1. **Phase 1 first** — biggest win, lowest blast radius. Build endpoint, hash-compare its output against `generateBundleFilesV2` over a corpus of saved states (`packages.lock.json` snapshots are convenient fixtures), flip the switch, then delete client code.
-2. **Phase 2** — coordinate with the marketing/docs page that also reads `dockerImages.ts`. Ship a shim that prefers upstream and falls back to the local file so the docs page never breaks during rollout.
-3. **Phase 3** — only after the wizard has been on Phase 1+2 for a release cycle, to avoid churning the API.
-
-## Open questions before Phase 1
-
-- Should the bundle endpoint return raw files or also a packaged `.zip`? Today the UI streams individual files into JSZip; a server-side `.zip` would simplify the client further.
-- Are there bundle outputs you want **only on the server** (signed `packages.lock.json`, license-tier gating, per-customer Nuplane feed credentials)? That would tilt the decision strongly toward Phase 1.
-- Who owns the Compose templates long-term — the Catalog API repo or a separate "deploy templates" service? That affects whether Phase 2a or 2b is cleaner.
+- No CMS / DB-driven roadmap (curated inline content for now).
+- No voting or upvote UI.
+- No deep links to every individual GitHub issue — only the top-level #3232 plus a couple of high-signal ones the maintainer highlighted (e.g. #4833 recovery, #7367 AI generation).
