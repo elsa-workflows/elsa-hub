@@ -20,6 +20,9 @@ const footerLinks = {
   }, {
     label: "Resources",
     to: "/resources"
+  }, {
+    label: "Roadmap",
+    to: "/roadmap"
   }],
   resources: [{
     label: "Documentation",

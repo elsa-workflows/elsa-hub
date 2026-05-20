@@ -28,6 +28,7 @@ import RuntimeBuilderLanding from "./pages/enterprise/RuntimeBuilderLanding";
 import RuntimeBuilderComposer from "./pages/enterprise/RuntimeBuilderComposer";
 
 import Resources from "./pages/Resources";
+import Roadmap from "./pages/Roadmap";
 import CommunityContent from "./pages/resources/CommunityContent";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -109,6 +110,7 @@ const App = () => (
               <Route path="/marketplace" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/community-content" element={<CommunityContent />} />
+              <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
