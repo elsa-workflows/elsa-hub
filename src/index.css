@@ -1,146 +1,136 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Elsa Workflows Design System - Modern, Minimalist, Developer-Friendly */
+/* Elsa Workflows — crisp neutral design system.
+   Magenta is the only accent. Hairline borders, restrained shadows, tight radii.
+   All colors MUST be HSL. */
 
 @layer base {
   :root {
-    --background: 240 4% 95%;
-    --foreground: 240 5% 10%;
+    --background: 0 0% 100%;
+    --foreground: 240 6% 10%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 240 5% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 10%;
 
-    --popover: 240 5% 90%;
-    --popover-foreground: 240 5% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 6% 10%;
 
-    /* Primary: Elsa Cyan */
-    --primary: 333 71% 50%;
-    --primary-foreground: 327 73% 97%;
-
-    /* Secondary: Soft gray */
-    --secondary: 240 5% 33%;
-    --secondary-foreground: 0 0% 98%;
-
-    /* Muted: Light gray for subtle elements */
-    --muted: 240 4% 83%;
-    --muted-foreground: 240 5% 10%;
-
-    /* Accent: Slightly darker cyan */
-    --accent: 355 100% 97%;
-    --accent-foreground: 349 89% 60%;
-
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --border: 240 4% 83%;
-    --input: 240 4% 83%;
-    --ring: 333 71% 50%;
-
-    --radius: 1.5rem;
-
-    /* Custom Elsa tokens */
-    --gradient-start: 195 100% 45%;
-    --gradient-end: 200 85% 55%;
-    --surface-elevated: 0 0% 100%;
-    --surface-subtle: 210 25% 98%;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5% 10%;
-    --sidebar-primary: 333 71% 50%;
-    --sidebar-primary-foreground: 327 73% 97%;
-    --sidebar-accent: 240 5% 33%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 240 4% 83%;
-    --sidebar-ring: 333 71% 50%;
-    --chart-1: 328 85% 70%;
-    --chart-2: 351 94% 71%;
-    --chart-3: 327 87% 81%;
-    --chart-4: 352 95% 81%;
-    --chart-5: 240 3% 46%;
-    --sidebar: 0 0% 98%;
-    --font-sans: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-    --font-serif: 'Merriweather', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-    --tracking-normal: 0em;
-    --spacing: 0.25rem;
-  }
-
-  .dark {
-    /* Deep noir palette with forbidden passion accents */
-    --background: 240 10% 4%;
-    --foreground: 0 0% 95%;
-
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 240 10% 8%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 340 90% 70%;
+    /* Primary: deepened rose-magenta for AA on white */
+    --primary: 336 78% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 10% 12%;
-    --secondary-foreground: 0 0% 90%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
 
-    --muted: 240 10% 15%;
-    --muted-foreground: 240 5% 55%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 335 70% 12%;
-    --accent-foreground: 335 85% 70%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 240 10% 14%;
-    --input: 240 10% 14%;
-    --ring: 340 90% 70%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 336 78% 48%;
 
-    --gradient-start: 335 85% 60%;
-    --gradient-end: 350 90% 55%;
-    --surface-elevated: 240 10% 8%;
-    --surface-subtle: 240 10% 3%;
+    --radius: 0.5rem;
 
-    --sidebar-background: 240 10% 3%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 340 90% 70%;
+    --surface-elevated: 0 0% 100%;
+    --surface-subtle: 240 5% 98%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 6% 10%;
+    --sidebar-primary: 336 78% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 335 85% 70%;
-    --sidebar-accent-foreground: 335 70% 12%;
-    --sidebar-border: 240 10% 12%;
-    --sidebar-ring: 340 90% 70%;
-    --chart-1: 335 85% 75%;
-    --chart-2: 350 90% 70%;
-    --chart-3: 335 85% 65%;
-    --chart-4: 320 80% 60%;
-    --chart-5: 240 10% 25%;
-    --sidebar: 240 10% 5%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.4);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.4);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.5), 0 1px 2px -1px hsl(0 0% 0% / 0.4);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.5), 0 1px 2px -1px hsl(0 0% 0% / 0.4);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.5), 0 2px 4px -1px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.5), 0 4px 6px -1px hsl(0 0% 0% / 0.4);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.5), 0 8px 10px -1px hsl(0 0% 0% / 0.4);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.6);
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 336 78% 48%;
+
+    --chart-1: 336 78% 55%;
+    --chart-2: 200 80% 50%;
+    --chart-3: 160 60% 45%;
+    --chart-4: 38 92% 55%;
+    --chart-5: 240 4% 46%;
+    --sidebar: 0 0% 100%;
+
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+    --shadow-2xs: 0 1px 0 0 hsl(var(--border));
+    --shadow-xs: 0 1px 0 0 hsl(var(--border));
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
+    --shadow: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 12px -4px hsl(0 0% 0% / 0.08);
+    --shadow-lg: 0 8px 24px -12px hsl(0 0% 0% / 0.12);
+    --shadow-xl: 0 16px 40px -16px hsl(0 0% 0% / 0.16);
+    --shadow-2xl: 0 24px 56px -20px hsl(0 0% 0% / 0.2);
+
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    --background: 240 6% 7%;
+    --foreground: 0 0% 96%;
+
+    --card: 240 6% 9%;
+    --card-foreground: 0 0% 96%;
+
+    --popover: 240 6% 11%;
+    --popover-foreground: 0 0% 96%;
+
+    --primary: 340 90% 68%;
+    --primary-foreground: 240 10% 6%;
+
+    --secondary: 240 5% 14%;
+    --secondary-foreground: 0 0% 96%;
+
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 4% 64%;
+
+    --accent: 240 5% 14%;
+    --accent-foreground: 0 0% 96%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 240 5% 16%;
+    --input: 240 5% 16%;
+    --ring: 340 90% 68%;
+
+    --surface-elevated: 240 6% 10%;
+    --surface-subtle: 240 6% 5%;
+
+    --sidebar-background: 240 6% 7%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 340 90% 68%;
+    --sidebar-primary-foreground: 240 10% 6%;
+    --sidebar-accent: 240 5% 14%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 240 5% 16%;
+    --sidebar-ring: 340 90% 68%;
+
+    --chart-1: 340 90% 68%;
+    --chart-2: 200 80% 60%;
+    --chart-3: 160 60% 55%;
+    --chart-4: 38 92% 60%;
+    --chart-5: 240 4% 64%;
+    --sidebar: 240 6% 7%;
   }
 }
 
@@ -151,494 +141,64 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'ss01', 'cv11';
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
   }
 }
 
 @layer utilities {
-  .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  .glass-effect {
-    backdrop-filter: blur(12px);
-    background: hsl(var(--background) / 0.8);
-  }
+  /* Hairline helpers */
+  .hairline { border: 1px solid hsl(var(--border)); }
+  .divide-hairline > * + * { border-top: 1px solid hsl(var(--border)); }
 
-  /* Glass card effect for space background */
+  /* Legacy aliases — kept neutral so any stray references don't break. */
   .glass-card {
-    /* Light mode: solid with slight transparency */
-    background: hsl(var(--card) / 0.95);
-    border-color: hsl(var(--border));
-  }
-
-  .dark .glass-card {
-    /* Dark mode: translucent glass over space */
-    background: hsl(240 10% 6% / 0.65);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-color: hsl(var(--border) / 0.6);
-    box-shadow: 
-      0 4px 24px hsl(0 0% 0% / 0.4),
-      inset 0 1px 0 hsl(0 0% 100% / 0.03);
-  }
-
-  /* Hover state - slightly more opaque */
-  .dark .glass-card:hover {
-    background: hsl(240 10% 6% / 0.75);
-    border-color: hsl(var(--primary) / 0.4);
-  }
-
-  /* Dark mode glow effects for primary elements */
-  .dark .btn-primary-glow {
-    box-shadow: 0 0 20px hsl(340 90% 70% / 0.3),
-                0 0 40px hsl(340 90% 70% / 0.1);
-    transition: box-shadow 0.2s ease-in-out;
-  }
-
-  .dark .btn-primary-glow:hover {
-    box-shadow: 0 0 25px hsl(340 90% 70% / 0.4),
-                0 0 50px hsl(340 90% 70% / 0.2);
-  }
-
-  .dark .link-primary-glow {
-    text-shadow: 0 0 10px hsl(340 90% 70% / 0.5);
-    transition: text-shadow 0.2s ease-in-out;
-  }
-
-  .dark .link-primary-glow:hover {
-    text-shadow: 0 0 15px hsl(340 90% 70% / 0.6);
-  }
-
-  /* Hero screenshot glass frame */
-  .screenshot-frame {
-    background: hsl(var(--card) / 0.8);
+    background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-xl);
   }
 
-  .dark .screenshot-frame {
-    background: hsl(240 10% 8% / 0.6);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-color: hsl(var(--primary) / 0.3);
-    box-shadow: 
-      0 25px 50px -12px hsl(0 0% 0% / 0.5),
-      0 0 40px hsl(340 90% 70% / 0.15);
+  .glass-effect {
+    background: hsl(var(--background) / 0.92);
+    backdrop-filter: saturate(140%);
   }
 
-  .dark .screenshot-frame:hover {
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 
-      0 25px 50px -12px hsl(0 0% 0% / 0.6),
-      0 0 60px hsl(340 90% 70% / 0.2);
+  .screenshot-frame {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
   }
 
-  /* Hero screenshot perspective wrapper */
   .hero-screenshot-wrapper {
-    perspective: 1000px;
     max-width: 1100px;
     margin: 0 auto;
   }
+  .hero-screenshot-frame { transition: border-color 0.2s ease; }
 
-  .hero-screenshot-frame {
-    transform: rotateX(2deg) rotateY(-1deg);
-    transition: transform 0.4s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out;
-  }
-
-  .hero-screenshot-frame:hover {
-    transform: rotateX(0deg) rotateY(0deg);
-  }
-
-  /* Reduce perspective on mobile for usability */
-  @media (max-width: 768px) {
-    .hero-screenshot-frame {
-      transform: rotateX(1deg) rotateY(0deg);
-    }
-    
-    .hero-screenshot-frame:hover {
-      transform: rotateX(0deg) rotateY(0deg);
-    }
-  }
-}
-
-/* ===== Space Background Animations ===== */
-
-/* Nebula drift animations */
-@keyframes nebula-drift-1 {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(5%, 3%) scale(1.05);
-  }
-}
-
-@keyframes nebula-drift-2 {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(-4%, 2%) scale(0.95);
-  }
-}
-
-@keyframes nebula-drift-3 {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(2%, -4%) scale(1.03);
-  }
-}
-
-/* Star field slow parallax - subtle continuous drift simulating travel through space */
-@keyframes star-parallax-1 {
-  0% {
-    transform: translate(0, 0);
-  }
-  100% {
-    transform: translate(-1.5%, 1%);
-  }
-}
-
-@keyframes star-parallax-2 {
-  0% {
-    transform: translate(0, 0);
-  }
-  100% {
-    transform: translate(-0.8%, 0.5%);
-  }
-}
-
-@keyframes star-parallax-3 {
-  0% {
-    transform: translate(0, 0);
-  }
-  100% {
-    transform: translate(-0.4%, 0.2%);
-  }
-}
-
-/* Star twinkling */
-@keyframes twinkle {
-  0%, 100% {
-    opacity: var(--tw-opacity, 0.5);
-  }
-  50% {
-    opacity: calc(var(--tw-opacity, 0.5) * 0.3);
-  }
-}
-
-/* Meteor fly animation - rotates first, then translates along the rotated axis */
-@keyframes meteor-fly {
-  0% {
-    transform: rotate(var(--angle, 45deg)) translateX(0);
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  95% {
-    opacity: 1;
-  }
-  100% {
-    transform: rotate(var(--angle, 45deg)) translateX(250vw);
-    opacity: 0;
-  }
-}
-
-/* Supernova burst animation */
-@keyframes supernova-burst {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  30% {
-    transform: translate(-50%, -50%) scale(0.5);
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0;
-  }
-}
-
-/* Pulsar beam rotation */
-@keyframes pulsar-sweep {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.8;
-  }
-  90% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg);
-    opacity: 0;
-  }
-}
-
-/* Nebula flash - soft glow */
-@keyframes nebula-flash {
-  0%, 100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  40%, 60% {
-    opacity: 0.6;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-/* Binary star synchronized pulse */
-@keyframes binary-pulse {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  30%, 70% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Neutron star ripple rings */
-@keyframes neutron-ripple {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.6;
-  }
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
-}
-
-/* Black hole appearance - container fade in/out */
-@keyframes black-hole-appear {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.3);
-  }
-  15% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  85% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
-  }
-}
-
-/* Accretion disk spinning */
-@keyframes black-hole-spin {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.8;
-  }
-  85% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(180deg);
-    opacity: 0;
-  }
-}
-
-/* Gravitational lensing ring expansion */
-@keyframes black-hole-lensing {
-  0% {
-    transform: scale(0.5);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale(2.5);
-  opacity: 0;
-  }
-}
-
-/* Space distortion container - fade in/out */
-@keyframes space-distortion-container {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
-  }
-  15% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  85% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-}
-
-/* Space distortion ring - expanding ripple */
-@keyframes space-distortion-ring {
-  0% {
-    transform: scale(0.3);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.35;
-  }
-  70% {
-    opacity: 0.15;
-  }
-  100% {
-    transform: scale(2.5);
-    opacity: 0;
-  }
-}
-
-/* Space distortion center - pulsing core glow */
-@keyframes space-distortion-center {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0;
-  }
-  15% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.2);
-    opacity: 0.35;
-  }
-  85% {
-    transform: translate(-50%, -50%) scale(1.1);
-    opacity: 0.25;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(0.5);
-    opacity: 0;
-  }
-}
-
-/* Animation utility classes */
-@layer utilities {
-  .animate-nebula-drift-1 {
-    animation: nebula-drift-1 90s ease-in-out infinite;
-  }
-  
-  .animate-nebula-drift-2 {
-    animation: nebula-drift-2 120s ease-in-out infinite;
-  }
-  
-  .animate-nebula-drift-3 {
-    animation: nebula-drift-3 100s ease-in-out infinite;
-  }
-  
-  .animate-star-parallax-1 {
-    animation: star-parallax-1 200s linear infinite;
-  }
-  
-  .animate-star-parallax-2 {
-    animation: star-parallax-2 280s linear infinite;
-  }
-  
-  .animate-star-parallax-3 {
-    animation: star-parallax-3 360s linear infinite;
-  }
-  
-  .animate-twinkle {
-    animation: twinkle 4s ease-in-out infinite;
-  }
-  
-  .animate-supernova-burst {
-    animation: supernova-burst 3s ease-out forwards;
-  }
-  
-  .animate-pulsar-sweep {
-    animation: pulsar-sweep 5s linear forwards;
-  }
-  
-  .animate-nebula-flash {
-    animation: nebula-flash 8s ease-in-out forwards;
-  }
-  
-  .animate-binary-pulse {
-    animation: binary-pulse 3s ease-in-out forwards;
-  }
-  
-  .animate-neutron-ripple {
-    animation: neutron-ripple 2s ease-out forwards;
-  }
-  
-  .animate-black-hole-appear {
-    animation: black-hole-appear 5s ease-out forwards;
-  }
-  
-  .animate-black-hole-spin {
-    animation: black-hole-spin 5s linear forwards;
-  }
-  
-  .animate-black-hole-lensing {
-    animation: black-hole-lensing 3s ease-out forwards;
-  }
-  
-  .animate-space-distortion-container {
-    animation: space-distortion-container 7s ease-out forwards;
-  }
-  
-  .animate-space-distortion-ring {
-    animation: space-distortion-ring 5.6s ease-out forwards;
-  }
-  
-  .animate-space-distortion-center {
-    animation: space-distortion-center 7s ease-in-out forwards;
-  }
-}
-
-/* Respect reduced motion preferences */
-@media (prefers-reduced-motion: reduce) {
-  .animate-nebula-drift-1,
-  .animate-nebula-drift-2,
-  .animate-nebula-drift-3,
-  .animate-star-drift-1,
-  .animate-star-drift-2,
-  .animate-star-drift-3,
-  .animate-twinkle,
-  .animate-supernova-burst,
-  .animate-black-hole-appear,
-  .animate-black-hole-spin,
-  .animate-black-hole-lensing,
-  .animate-space-distortion-container,
-  .animate-space-distortion-ring,
-  .animate-space-distortion-center {
-    animation: none;
-  }
+  /* Quiet fade-up for scroll reveal */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up { animation: fade-up 0.6s ease-out both; }
 }
