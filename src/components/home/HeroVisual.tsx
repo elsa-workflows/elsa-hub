@@ -87,7 +87,7 @@ export function HeroVisual() {
                 <div
                   key={n.id}
                   className="absolute -translate-x-1/2 -translate-y-1/2 animate-fade-in-up"
-                  style={{ left: `${n.x}%`, top: `${(n.y / 60) * 100}%`, animationDelay: `${i * 80}ms` }}
+                  style={{ left: `${n.x}%`, top: `${(n.y / 28) * 100}%`, animationDelay: `${i * 80}ms` }}
                 >
                   <div
                     className={[
