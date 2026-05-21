@@ -23,7 +23,7 @@ export function DashboardHeader() {
     : "U";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-border bg-background px-4">
       <SidebarTrigger className="-ml-1" />
 
       {/* Logo */}
