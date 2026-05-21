@@ -32,10 +32,10 @@ export function Navigation() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-200 ${
         scrolled
-          ? "glass-effect border-b shadow-sm"
-          : "bg-transparent"
+          ? "bg-background/95 backdrop-blur-sm border-b border-border"
+          : "bg-background border-b border-transparent"
       }`}
     >
       <div className="container flex h-16 items-center justify-between">
