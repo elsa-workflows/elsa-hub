@@ -91,8 +91,9 @@ export function HeroVisual() {
 
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
-          className="relative w-full h-auto block"
-          preserveAspectRatio="xMidYMid meet"
+          className="relative w-full block"
+          style={{ aspectRatio: `${VB_W} / ${VB_H}` }}
+          preserveAspectRatio="none"
           role="img"
           aria-label="Animated diagram of an Elsa workflow flowing from trigger to completion"
         >
