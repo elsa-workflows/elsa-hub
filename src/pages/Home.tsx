@@ -3,7 +3,7 @@ import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, G
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
-import { HeroVideo } from "@/components/home";
+import { HeroVisual } from "@/components/home";
 import { Seo } from "@/components/Seo";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
@@ -126,9 +126,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Hero Video - outside max-w-3xl for wider display */}
+          {/* Hero Visual — animated workflow graph */}
           <div className="mt-12 md:mt-16 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-            <HeroVideo />
+            <HeroVisual />
           </div>
         </div>
       </section>
