@@ -112,10 +112,10 @@ export function HeroVisual() {
           {builtEdges.map((e, i) => (
             <g key={`${e.from}-${e.to}`}>
               {/* underlay for slight glow */}
-              <path d={e.d} fill="none" stroke="hsl(var(--primary) / 0.18)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-              <path d={e.d} fill="none" stroke="url(#edgeGrad)" strokeWidth="0.4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={e.d} fill="none" stroke="hsl(var(--primary) / 0.12)" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={e.d} fill="none" stroke="url(#edgeGrad)" strokeWidth="0.18" strokeLinecap="round" strokeLinejoin="round" />
               {/* Traveling pulse */}
-              <circle r="0.75" fill="hsl(var(--primary))">
+              <circle r="0.55" fill="hsl(var(--primary))">
                 <animateMotion dur="3s" repeatCount="indefinite" begin={`${i * 0.35}s`} path={e.d} rotate="auto" />
                 <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="3s" begin={`${i * 0.35}s`} repeatCount="indefinite" />
               </circle>
