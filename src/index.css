@@ -1,6 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -253,3 +255,75 @@
   }
   .animate-fade-up { animation: fade-up 0.6s ease-out both; }
 }
+
+/* ─── User theme preferences ──────────────────────────────────────────────
+   Opt-in overrides applied via data attributes on <html>. Default state
+   (no attribute or magenta/inter-sora/anthracite) preserves canonical brand. */
+
+@layer base {
+  /* Accent presets — override --primary and --ring */
+  [data-accent="indigo"]  { --primary: 243 75% 58%; --ring: 243 75% 58%; --sidebar-primary: 243 75% 58%; --sidebar-ring: 243 75% 58%; --chart-1: 243 75% 60%; }
+  [data-accent="indigo"].dark { --primary: 243 80% 67%; --ring: 243 80% 67%; --sidebar-primary: 243 80% 67%; --sidebar-ring: 243 80% 67%; }
+
+  [data-accent="emerald"] { --primary: 160 70% 38%; --ring: 160 70% 38%; --sidebar-primary: 160 70% 38%; --sidebar-ring: 160 70% 38%; --chart-1: 160 70% 40%; }
+  [data-accent="emerald"].dark { --primary: 160 65% 48%; --ring: 160 65% 48%; --sidebar-primary: 160 65% 48%; --sidebar-ring: 160 65% 48%; }
+
+  [data-accent="amber"]   { --primary: 32 95% 50%;  --ring: 32 95% 50%;  --sidebar-primary: 32 95% 50%;  --sidebar-ring: 32 95% 50%; --chart-1: 32 95% 55%; --primary-foreground: 30 6% 10%; }
+  [data-accent="amber"].dark { --primary: 35 92% 58%; --ring: 35 92% 58%; --sidebar-primary: 35 92% 58%; --sidebar-ring: 35 92% 58%; --primary-foreground: 30 6% 10%; }
+
+  [data-accent="slate"]   { --primary: 215 25% 35%; --ring: 215 25% 35%; --sidebar-primary: 215 25% 35%; --sidebar-ring: 215 25% 35%; --chart-1: 215 25% 45%; }
+  [data-accent="slate"].dark { --primary: 215 20% 65%; --ring: 215 20% 65%; --sidebar-primary: 215 20% 65%; --sidebar-ring: 215 20% 65%; --primary-foreground: 215 25% 12%; }
+
+  /* Font presets — override --font-sans and --font-display */
+  [data-font="geist"] {
+    --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  }
+  [data-font="manrope-sora"] {
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Sora', ui-sans-serif, system-ui, sans-serif;
+  }
+  [data-font="jetbrains-inter"] {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* Dark flavor presets — override dark-mode surface hues */
+  [data-dark-flavor="noir"].dark {
+    --background: 0 0% 5%;
+    --card: 0 0% 8%;
+    --popover: 0 0% 10%;
+    --secondary: 0 0% 12%;
+    --muted: 0 0% 12%;
+    --accent: 0 0% 12%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --surface-elevated: 0 0% 10%;
+    --surface-subtle: 0 0% 3%;
+    --sidebar-background: 0 0% 4%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar: 0 0% 4%;
+  }
+  [data-dark-flavor="slate"].dark {
+    --background: 215 18% 11%;
+    --foreground: 215 15% 92%;
+    --card: 215 18% 14%;
+    --card-foreground: 215 15% 92%;
+    --popover: 215 18% 16%;
+    --secondary: 215 16% 19%;
+    --muted: 215 16% 19%;
+    --muted-foreground: 215 12% 65%;
+    --accent: 215 16% 19%;
+    --border: 215 16% 24%;
+    --input: 215 16% 24%;
+    --surface-elevated: 215 18% 16%;
+    --surface-subtle: 215 18% 8%;
+    --sidebar-background: 215 18% 10%;
+    --sidebar-foreground: 215 15% 92%;
+    --sidebar-accent: 215 16% 19%;
+    --sidebar-border: 215 16% 24%;
+    --sidebar: 215 18% 10%;
+  }
+}
+

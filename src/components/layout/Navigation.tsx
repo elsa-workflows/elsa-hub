@@ -8,6 +8,7 @@ import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationBell } from "@/components/notifications";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemePreferences } from "@/components/ui/theme-preferences";
 import elsaLogo from "@/assets/elsa-logo.png";
 
 const navItems = [
@@ -84,6 +85,7 @@ export function Navigation() {
               GitHub
             </a>
           </Button>
+          <ThemePreferences />
           <ThemeToggle />
           {!loading && (
             <>
@@ -148,7 +150,10 @@ export function Navigation() {
               </a>
               <div className="px-4 py-3 flex items-center justify-between">
                 <span className="text-lg font-medium">Theme</span>
-                <ThemeToggle />
+                <div className="flex items-center gap-1">
+                  <ThemePreferences />
+                  <ThemeToggle />
+                </div>
               </div>
               {!loading && (
                 <>

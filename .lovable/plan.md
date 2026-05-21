@@ -1,64 +1,50 @@
-## Dark mode refresh — deeper, warmer, more substantial
+# Personal theme picker
 
-The current dark palette is a cool near-black (`240 6% 7%`) with a hot pink primary on top. That combination reads as "space/neon" — thin surfaces floating on a void. To get a strong, deep, robust feel, shift the foundation from cool void to a warm anthracite base with clearly layered surfaces, a slightly more grounded accent, and weightier borders/shadows.
+Lets each user pick from a small curated set of accent colors, font pairings, and dark-mode flavors. Choices persist per user and apply across the whole app (marketing + dashboard). Canonical brand stays the default — so first-time visitors and signed-out users still see the real Elsa Workflows identity.
 
-### Direction
+## What the user gets
 
-Think: matte graphite, brushed steel, oxblood accent. Less "midnight nebula", more "leather-bound notebook on a slate desk". Surfaces step up clearly so cards feel like physical objects, not glowing panels.
+A small palette icon button next to the existing dark-mode toggle in the nav. Clicking it opens a popover with three sections:
 
-### Token changes (`src/index.css`, `.dark` block only)
+1. **Accent** — 5 swatches (Magenta default, Indigo, Emerald, Amber, Slate). Click to apply instantly.
+2. **Typography** — 4 font pair cards (Inter + Space Grotesk default, Geist, Manrope + Sora, JetBrains Mono + Inter). Renders a tiny preview using the actual fonts.
+3. **Dark flavor** — 3 chips (Anthracite default, True Noir, Cool Slate). Only affects the dark palette.
 
-Foundation — warm anthracite instead of cool black, with visible elevation steps:
+A "Reset to default" link at the bottom restores the canonical brand.
 
-```text
---background        240 6%  7%  →  30 6%  9%      (warm charcoal, not void)
---surface-subtle    240 6%  5%  →  30 6%  6%      (recessed wells)
---card              240 6%  9%  →  30 5% 12%      (clearly raised)
---surface-elevated  240 6% 10%  →  30 5% 14%
---popover           240 6% 11%  →  30 5% 15%
---secondary/muted/accent  240 5% 14%  →  30 5% 17%
---border / --input  240 5% 16%  →  30 5% 22%      (heavier, more present hairlines)
-```
+## How it works
 
-Foreground softened off pure white so it sits on the surface instead of buzzing:
+- A new `ThemePreferencesProvider` wraps the app inside the existing `next-themes` ThemeProvider. It holds `{ accent, fontPair, darkFlavor }`, reads/writes `localStorage` under `elsa.theme.prefs`, and exposes a setter.
+- On mount and on every change, it sets a `data-accent`, `data-font`, and `data-dark-flavor` attribute on `<html>`. Token overrides are written as CSS-only rules — no runtime style injection.
+- A pre-hydration script in `index.html` (same pattern as the FOUC-prevention script already in the project) reads localStorage and applies these attributes before paint, so no flash on reload.
+- `src/index.css` gains scoped overrides:
+  - `[data-accent="indigo"] { --primary: 240 80% 55%; --ring: 240 80% 55%; }` etc.
+  - `[data-font="geist"] { --font-sans: 'Geist', …; --font-display: 'Geist', …; }` etc.
+  - `[data-dark-flavor="noir"].dark { --background: 0 0% 4%; --card: 0 0% 7%; … }` etc.
+- Fonts are loaded via Google Fonts `@import` (matching the existing pattern at the top of `index.css`). Only the curated set — no dynamic font loading.
+- New component `src/components/ui/theme-preferences.tsx` renders the popover. Uses existing shadcn `Popover`, `Button`, `Tabs` primitives. Hairline borders, no new visual language.
+- Mounted next to `<ThemeToggle />` in `src/components/layout/Navigation.tsx` (desktop + mobile).
 
-```text
---foreground        0 0% 96%  →  30 10% 92%
---muted-foreground  240 4% 64%  →  30 6% 62%
-```
+## Brand guardrails
 
-Accent — pull magenta slightly toward rose/oxblood so it reads confident rather than neon, while keeping the brand recognizable:
+- Default state for everyone (logged in or not, first visit or returning with cleared storage) is the canonical brand: magenta accent, Inter + Space Grotesk, warm anthracite.
+- The picker is purely additive — every preset is opt-in.
+- I'll update the project memory's Core rule to allow user-opt-in theme overrides while keeping canonical brand as the default. The existing "magenta as sole accent" rule becomes "magenta is the default accent; users may opt into curated alternates."
 
-```text
---primary  340 90% 68%  →  340 72% 58%
---ring     340 90% 68%  →  340 72% 58%
-```
+## Out of scope (for this iteration)
 
-Shadows — currently tuned for light mode (black on white). In dark mode, swap to deeper, longer shadows so elevation actually reads, plus a subtle top inner-highlight on cards for the "robust object" feel. Add inside the `.dark` block:
+- No DB persistence — localStorage only. Easy to upgrade later by syncing to a `user_preferences` table.
+- No custom hex picker, no free font input.
+- No per-org branding — that's a separate feature.
+- Marketing pages are not locked off from the picker (per your answer), but since defaults are canonical brand, anonymous visitors always see the real identity.
 
-```text
---shadow-sm:  0 1px 2px 0 hsl(0 0% 0% / 0.5)
---shadow-md:  0 6px 16px -6px hsl(0 0% 0% / 0.55)
---shadow-lg:  0 16px 40px -16px hsl(0 0% 0% / 0.6)
---shadow-xl:  0 28px 64px -24px hsl(0 0% 0% / 0.65)
-```
+## Files touched
 
-Sidebar tokens follow the same shifts (background → `30 6% 8%`, border → `30 5% 22%`, primary → new accent).
+- **New** `src/contexts/ThemePreferencesContext.tsx` — provider + hook
+- **New** `src/components/ui/theme-preferences.tsx` — popover UI
+- **Edit** `src/index.css` — `[data-accent]`, `[data-font]`, `[data-dark-flavor]` blocks + extra font imports
+- **Edit** `index.html` — pre-hydration script to apply attributes before paint
+- **Edit** `src/components/layout/Navigation.tsx` — mount the picker next to `ThemeToggle`
+- **Edit** `mem://index.md` Core rule — soften the magenta-only constraint to "default, with opt-in alternates"
 
-Chart-1 follows the new primary hue.
-
-### Optional polish (small, additive)
-
-- Add a barely-visible 1px top inner highlight on `.glass-card` / cards in dark mode: `box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.04);` — gives surfaces a tactile "machined edge".
-- Body text in dark mode: nudge letter-spacing on body to `0.005em` for a touch more weight at small sizes.
-
-### What's not changing
-
-- Light mode tokens, typography, radii, layout, components, and the magenta-as-sole-accent rule all stay.
-- No reintroduction of space background, gradients, or glassmorphism.
-
-### Files touched
-
-- `src/index.css` — only the `.dark { … }` block and one optional `.glass-card` dark rule.
-
-After applying, I'll spot-check the homepage, dashboard, and a card-heavy page in dark mode to confirm contrast and the elevation hierarchy reads correctly.
+No database, no edge functions, no new dependencies.

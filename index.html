@@ -27,16 +27,28 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Prevent theme flash on page load -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Prevent theme + preference flash on page load -->
     <script>
       (function() {
-        const theme = localStorage.getItem('theme');
-        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const resolvedTheme = theme === 'system' || !theme ? (systemDark ? 'dark' : 'light') : theme;
+        var theme = localStorage.getItem('theme');
+        var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var resolvedTheme = theme === 'system' || !theme ? (systemDark ? 'dark' : 'light') : theme;
         if (resolvedTheme === 'dark') {
           document.documentElement.classList.add('dark');
         }
+        try {
+          var raw = localStorage.getItem('elsa.theme.prefs');
+          if (raw) {
+            var p = JSON.parse(raw);
+            var accents = ['magenta','indigo','emerald','amber','slate'];
+            var fonts = ['inter-sora','geist','manrope-sora','jetbrains-inter'];
+            var flavors = ['anthracite','noir','slate'];
+            if (p && accents.indexOf(p.accent) > -1) document.documentElement.setAttribute('data-accent', p.accent);
+            if (p && fonts.indexOf(p.font) > -1) document.documentElement.setAttribute('data-font', p.font);
+            if (p && flavors.indexOf(p.darkFlavor) > -1) document.documentElement.setAttribute('data-dark-flavor', p.darkFlavor);
+          }
+        } catch (e) {}
       })();
     </script>
   </head>
