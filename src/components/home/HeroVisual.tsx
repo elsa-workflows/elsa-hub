@@ -7,13 +7,13 @@ import { Workflow, Code2, Zap, Eye, Layers, Puzzle, GitBranch, Database, Mail, C
  */
 export function HeroVisual() {
   const nodes: Array<{ id: string; label: string; icon: typeof Workflow; x: number; y: number; accent?: boolean }> = [
-    { id: "start", label: "Trigger",  icon: Zap,           x: 8,  y: 50, accent: true },
-    { id: "n1",    label: "Validate", icon: CheckCircle2,  x: 28, y: 22 },
-    { id: "n2",    label: "Branch",   icon: GitBranch,     x: 28, y: 78 },
-    { id: "n3",    label: "Persist",  icon: Database,      x: 52, y: 22 },
-    { id: "n4",    label: "Notify",   icon: Mail,          x: 52, y: 78 },
-    { id: "n5",    label: "Compose",  icon: Code2,         x: 74, y: 50 },
-    { id: "end",   label: "Complete", icon: Workflow,      x: 92, y: 50, accent: true },
+    { id: "start", label: "Trigger",  icon: Zap,           x: 6,  y: 14, accent: true },
+    { id: "n1",    label: "Validate", icon: CheckCircle2,  x: 26, y: 6 },
+    { id: "n2",    label: "Branch",   icon: GitBranch,     x: 26, y: 22 },
+    { id: "n3",    label: "Persist",  icon: Database,      x: 50, y: 6 },
+    { id: "n4",    label: "Notify",   icon: Mail,          x: 50, y: 22 },
+    { id: "n5",    label: "Compose",  icon: Code2,         x: 74, y: 14 },
+    { id: "end",   label: "Complete", icon: Workflow,      x: 94, y: 14, accent: true },
   ];
 
   const edges: Array<[string, string]> = [
@@ -38,7 +38,7 @@ export function HeroVisual() {
         />
 
         <svg
-          viewBox="0 0 100 60"
+          viewBox="0 0 100 28"
           className="relative w-full h-auto block"
           preserveAspectRatio="xMidYMid meet"
           role="img"
@@ -74,7 +74,7 @@ export function HeroVisual() {
 
           {/* Node halos for accent nodes */}
           {nodes.filter(n => n.accent).map(n => (
-            <circle key={`halo-${n.id}`} cx={n.x} cy={n.y} r="6" fill="url(#nodeAccent)" />
+            <circle key={`halo-${n.id}`} cx={n.x} cy={n.y} r="3" fill="url(#nodeAccent)" />
           ))}
         </svg>
 
@@ -87,7 +87,7 @@ export function HeroVisual() {
                 <div
                   key={n.id}
                   className="absolute -translate-x-1/2 -translate-y-1/2 animate-fade-in-up"
-                  style={{ left: `${n.x}%`, top: `${(n.y / 60) * 100}%`, animationDelay: `${i * 80}ms` }}
+                  style={{ left: `${n.x}%`, top: `${(n.y / 28) * 100}%`, animationDelay: `${i * 80}ms` }}
                 >
                   <div
                     className={[
