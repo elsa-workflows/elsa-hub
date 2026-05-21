@@ -157,7 +157,39 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'ss01', 'cv11';
+    position: relative;
+    background-image:
+      radial-gradient(1200px 700px at 12% -8%, hsl(var(--primary) / 0.10), transparent 60%),
+      radial-gradient(900px 600px at 100% 0%, hsl(200 80% 55% / 0.06), transparent 65%),
+      radial-gradient(800px 500px at 50% 110%, hsl(var(--primary) / 0.07), transparent 60%);
+    background-attachment: fixed;
   }
+
+  /* 2D shader feel: fine grain overlay + faint scanline shimmer. Sits above bg, below content. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+    background-size: 180px 180px;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(1100px 700px at 8% -10%, hsl(var(--primary) / 0.18), transparent 60%),
+      radial-gradient(900px 700px at 100% 8%, hsl(200 80% 55% / 0.10), transparent 65%),
+      radial-gradient(900px 600px at 50% 115%, hsl(340 72% 40% / 0.14), transparent 60%);
+  }
+  .dark body::before {
+    opacity: 0.14;
+    mix-blend-mode: soft-light;
+  }
+
+  #root { position: relative; z-index: 1; }
 
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
