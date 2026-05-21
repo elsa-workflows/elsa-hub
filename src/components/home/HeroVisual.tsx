@@ -89,48 +89,45 @@ export function HeroVisual() {
           }}
         />
 
-        <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          className="relative w-full block"
-          style={{ aspectRatio: `${VB_W} / ${VB_H}` }}
-          preserveAspectRatio="none"
-          role="img"
-          aria-label="Animated diagram of an Elsa workflow flowing from trigger to completion"
-        >
-          <defs>
-            <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stopColor="hsl(var(--border))" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.95" />
-            </linearGradient>
-            <radialGradient id="nodeAccent" cx="50%" cy="50%" r="50%">
-              <stop offset="0%"   stopColor="hsl(var(--primary))" stopOpacity="0.30" />
-              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-            </radialGradient>
-          </defs>
+        <div className="relative w-full" style={{ aspectRatio: `${VB_W} / ${VB_H}` }}>
+          <svg
+            viewBox={`0 0 ${VB_W} ${VB_H}`}
+            className="absolute inset-0 w-full h-full block"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Animated diagram of an Elsa workflow flowing from trigger to completion"
+          >
+            <defs>
+              <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stopColor="hsl(var(--border))" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.95" />
+              </linearGradient>
+              <radialGradient id="nodeAccent" cx="50%" cy="50%" r="50%">
+                <stop offset="0%"   stopColor="hsl(var(--primary))" stopOpacity="0.30" />
+                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+              </radialGradient>
+            </defs>
 
-          {/* Edges */}
-          {builtEdges.map((e, i) => (
-            <g key={`${e.from}-${e.to}`}>
-              {/* underlay for slight glow */}
-              <path d={e.d} fill="none" stroke="hsl(var(--primary) / 0.12)" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d={e.d} fill="none" stroke="url(#edgeGrad)" strokeWidth="0.18" strokeLinecap="round" strokeLinejoin="round" />
-              {/* Traveling pulse */}
-              <circle r="0.55" fill="hsl(var(--primary))">
-                <animateMotion dur="3s" repeatCount="indefinite" begin={`${i * 0.35}s`} path={e.d} rotate="auto" />
-                <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="3s" begin={`${i * 0.35}s`} repeatCount="indefinite" />
-              </circle>
-            </g>
-          ))}
+            {/* Edges */}
+            {builtEdges.map((e, i) => (
+              <g key={`${e.from}-${e.to}`}>
+                <path d={e.d} fill="none" stroke="hsl(var(--primary) / 0.12)" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={e.d} fill="none" stroke="url(#edgeGrad)" strokeWidth="0.18" strokeLinecap="round" strokeLinejoin="round" />
+                <circle r="0.55" fill="hsl(var(--primary))">
+                  <animateMotion dur="3s" repeatCount="indefinite" begin={`${i * 0.35}s`} path={e.d} rotate="auto" />
+                  <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="3s" begin={`${i * 0.35}s`} repeatCount="indefinite" />
+                </circle>
+              </g>
+            ))}
 
-          {/* Accent halos */}
-          {nodes.filter(n => n.accent).map(n => (
-            <circle key={`halo-${n.id}`} cx={n.x} cy={n.y} r="3.5" fill="url(#nodeAccent)" />
-          ))}
-        </svg>
+            {/* Accent halos */}
+            {nodes.filter(n => n.accent).map(n => (
+              <circle key={`halo-${n.id}`} cx={n.x} cy={n.y} r="3.5" fill="url(#nodeAccent)" />
+            ))}
+          </svg>
 
-        {/* HTML node overlay positioned over the SVG via percentages */}
-        <div className="absolute inset-0 p-4 md:p-6 pointer-events-none">
-          <div className="relative w-full h-full">
+          {/* HTML node overlay — same box as the SVG */}
+          <div className="absolute inset-0 pointer-events-none">
             {nodes.map((n, i) => {
               const Icon = n.icon;
               return (
@@ -163,6 +160,7 @@ export function HeroVisual() {
             })}
           </div>
         </div>
+
 
         {/* Footer chip row */}
         <div className="relative mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
