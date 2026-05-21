@@ -216,6 +216,10 @@
     background-clip: text;
   }
 
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.75));
+  }
+
   /* Hairline helpers */
   .hairline { border: 1px solid hsl(var(--border)); }
   .divide-hairline > * + * { border-top: 1px solid hsl(var(--border)); }
