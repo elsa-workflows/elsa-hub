@@ -145,20 +145,20 @@ export function HeroVisual() {
                     >
                       <div
                         className={[
-                          "flex items-center gap-2 rounded-full border bg-card/95 backdrop-blur px-3 py-1.5",
+                          "flex items-center gap-1 sm:gap-2 rounded-full border bg-card/95 backdrop-blur px-1.5 py-0.5 sm:px-3 sm:py-1.5",
                           "shadow-md",
                           n.accent ? "border-primary/40 ring-1 ring-primary/20" : "border-border",
                         ].join(" ")}
                       >
                         <span
                           className={[
-                            "flex h-6 w-6 items-center justify-center rounded-full",
+                            "flex h-4 w-4 sm:h-6 sm:w-6 items-center justify-center rounded-full",
                             n.accent ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/80",
                           ].join(" ")}
                         >
-                          <Icon className="h-3.5 w-3.5" />
+                          <Icon className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
                         </span>
-                        <span className="text-xs font-medium tracking-tight whitespace-nowrap">
+                        <span className="text-[9px] sm:text-xs font-medium tracking-tight whitespace-nowrap">
                           {n.label}
                         </span>
                       </div>
