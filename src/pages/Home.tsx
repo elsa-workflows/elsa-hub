@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink } from "lucide-react";
+import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
@@ -199,6 +199,47 @@ export default function Home() {
               </ScrollReveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Roadmap Section */}
+      <section className="py-20 md:py-28">
+        <div className="container">
+          <ScrollReveal>
+            <Link
+              to="/roadmap"
+              className="group block max-w-4xl mx-auto"
+            >
+              <Card className="transition-colors hover:border-primary/60">
+                <CardContent className="p-8 md:p-10 flex flex-col md:flex-row md:items-center gap-6">
+                  <div className="h-14 w-14 shrink-0 rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                    <Map className="h-7 w-7 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Roadmap
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-0.5 text-[10px] normal-case tracking-normal text-muted-foreground">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        Updated regularly
+                      </span>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-semibold tracking-tight mb-2">
+                      Where Elsa is heading next
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Production confidence, authoring productivity, AI-assisted workflow engineering, and more. See the themes and sequencing for the months ahead.
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <span className="inline-flex items-center gap-2 text-sm font-medium text-primary group-hover:gap-3 transition-all">
+                      View roadmap
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </ScrollReveal>
         </div>
       </section>
 
