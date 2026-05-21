@@ -133,27 +133,36 @@ export function HeroVisual() {
               return (
                 <div
                   key={n.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 animate-fade-in-up"
-                  style={{ left: `${n.x}%`, top: `${(n.y / VB_H) * 100}%`, animationDelay: `${i * 80}ms` }}
+                  className="absolute"
+                  style={{ left: `${n.x}%`, top: `${(n.y / VB_H) * 100}%` }}
                 >
-                  <div
-                    className={[
-                      "flex items-center gap-2 rounded-full border bg-card/95 backdrop-blur px-3 py-1.5",
-                      "shadow-md transition-transform",
-                      n.accent ? "border-primary/40 ring-1 ring-primary/20" : "border-border",
-                    ].join(" ")}
-                  >
-                    <span
-                      className={[
-                        "flex h-6 w-6 items-center justify-center rounded-full",
-                        n.accent ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/80",
-                      ].join(" ")}
+                  {/* Centering wrapper — kept free of animation transforms */}
+                  <div className="-translate-x-1/2 -translate-y-1/2">
+                    {/* Animation wrapper — only opacity, no transform conflict */}
+                    <div
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${i * 80}ms`, animationFillMode: "both" }}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="text-xs font-medium tracking-tight whitespace-nowrap">
-                      {n.label}
-                    </span>
+                      <div
+                        className={[
+                          "flex items-center gap-2 rounded-full border bg-card/95 backdrop-blur px-3 py-1.5",
+                          "shadow-md",
+                          n.accent ? "border-primary/40 ring-1 ring-primary/20" : "border-border",
+                        ].join(" ")}
+                      >
+                        <span
+                          className={[
+                            "flex h-6 w-6 items-center justify-center rounded-full",
+                            n.accent ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/80",
+                          ].join(" ")}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="text-xs font-medium tracking-tight whitespace-nowrap">
+                          {n.label}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
