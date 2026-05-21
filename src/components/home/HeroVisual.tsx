@@ -6,7 +6,7 @@ import { Workflow, Code2, Zap, Eye, Layers, Puzzle, GitBranch, Database, Mail, C
  * Replaces the old HeroVideo with something on-brand and lightweight.
  */
 export function HeroVisual() {
-  const nodes = [
+  const nodes: Array<{ id: string; label: string; icon: typeof Workflow; x: number; y: number; accent?: boolean }> = [
     { id: "start", label: "Trigger",  icon: Zap,           x: 8,  y: 50, accent: true },
     { id: "n1",    label: "Validate", icon: CheckCircle2,  x: 28, y: 22 },
     { id: "n2",    label: "Branch",   icon: GitBranch,     x: 28, y: 78 },
@@ -14,14 +14,14 @@ export function HeroVisual() {
     { id: "n4",    label: "Notify",   icon: Mail,          x: 52, y: 78 },
     { id: "n5",    label: "Compose",  icon: Code2,         x: 74, y: 50 },
     { id: "end",   label: "Complete", icon: Workflow,      x: 92, y: 50, accent: true },
-  ] as const;
+  ];
 
-  const edges = [
+  const edges: Array<[string, string]> = [
     ["start", "n1"], ["start", "n2"],
     ["n1", "n3"], ["n2", "n4"],
     ["n3", "n5"], ["n4", "n5"],
     ["n5", "end"],
-  ] as const;
+  ];
 
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
 
