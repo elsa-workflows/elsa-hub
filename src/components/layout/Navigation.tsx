@@ -85,6 +85,7 @@ export function Navigation() {
               GitHub
             </a>
           </Button>
+          <ThemePreferences />
           <ThemeToggle />
           {!loading && (
             <>
