@@ -84,14 +84,14 @@ export default {
   				'Arial',
   				'sans-serif'
   			],
-  			display: [
-  				'Space Grotesk',
+  		display: [
+  				'Sora',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'
   			],
   			serif: [
-  				'Space Grotesk',
+  				'Sora',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'
