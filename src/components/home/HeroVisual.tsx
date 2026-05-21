@@ -74,7 +74,7 @@ export function HeroVisual() {
 
           {/* Node halos for accent nodes */}
           {nodes.filter(n => n.accent).map(n => (
-            <circle key={`halo-${n.id}`} cx={n.x} cy={n.y} r="6" fill="url(#nodeAccent)" />
+            <circle key={`halo-${n.id}`} cx={n.x} cy={n.y} r="3" fill="url(#nodeAccent)" />
           ))}
         </svg>
 
