@@ -7,13 +7,13 @@ import { Workflow, Code2, Zap, Eye, Layers, Puzzle, GitBranch, Database, Mail, C
  */
 export function HeroVisual() {
   const nodes: Array<{ id: string; label: string; icon: typeof Workflow; x: number; y: number; accent?: boolean }> = [
-    { id: "start", label: "Trigger",  icon: Zap,           x: 6,  y: 50, accent: true },
-    { id: "n1",    label: "Validate", icon: CheckCircle2,  x: 26, y: 28 },
-    { id: "n2",    label: "Branch",   icon: GitBranch,     x: 26, y: 72 },
-    { id: "n3",    label: "Persist",  icon: Database,      x: 50, y: 28 },
-    { id: "n4",    label: "Notify",   icon: Mail,          x: 50, y: 72 },
-    { id: "n5",    label: "Compose",  icon: Code2,         x: 74, y: 50 },
-    { id: "end",   label: "Complete", icon: Workflow,      x: 94, y: 50, accent: true },
+    { id: "start", label: "Trigger",  icon: Zap,           x: 6,  y: 14, accent: true },
+    { id: "n1",    label: "Validate", icon: CheckCircle2,  x: 26, y: 6 },
+    { id: "n2",    label: "Branch",   icon: GitBranch,     x: 26, y: 22 },
+    { id: "n3",    label: "Persist",  icon: Database,      x: 50, y: 6 },
+    { id: "n4",    label: "Notify",   icon: Mail,          x: 50, y: 22 },
+    { id: "n5",    label: "Compose",  icon: Code2,         x: 74, y: 14 },
+    { id: "end",   label: "Complete", icon: Workflow,      x: 94, y: 14, accent: true },
   ];
 
   const edges: Array<[string, string]> = [
