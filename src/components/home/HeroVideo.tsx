@@ -7,7 +7,7 @@ const VIDEO_POSTER =
 
 export function HeroVideo() {
   return (
-    <div className="hero-screenshot-wrapper">
+    <div className="hero-screenshot-wrapper max-w-[660px]">
       <div className="screenshot-frame hero-screenshot-frame rounded-xl p-1.5 md:p-2 transition-all duration-400">
         <video
           className="w-full h-auto rounded-lg block"
