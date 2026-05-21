@@ -38,7 +38,7 @@ export function HeroVisual() {
         />
 
         <svg
-          viewBox="0 0 100 60"
+          viewBox="0 0 100 28"
           className="relative w-full h-auto block"
           preserveAspectRatio="xMidYMid meet"
           role="img"
