@@ -1,76 +1,34 @@
 ## Goal
+Restore a downloadable receipt for order `D33C45ED` (Signicat) in the org dashboard. The order was paid before invoice-creation was added to the checkout flow, so `invoices` has no row.
 
-Organization admins can download the Stripe-issued invoice (PDF) for every purchase directly from the bundle management dashboard.
+## Approach
+Build a small, reusable backfill edge function rather than a one-off script. Same function can be reused for any other historical pre-fix orders.
 
-## Background
+### New edge function: `backfill-order-invoice`
+- Auth: platform-admin only (`is_platform_admin(auth.uid())` check via service-role client).
+- Input: `{ order_id: uuid }`.
+- Steps:
+  1. Load order by `id`, require `status = 'paid'` and `stripe_checkout_session_id` present.
+  2. `stripe.checkout.sessions.retrieve(session_id, { expand: ['payment_intent.latest_charge', 'invoice'] })`.
+  3. Resolve fields:
+     - `stripe_receipt_url` ← `invoice.hosted_invoice_url ?? charge.receipt_url`
+     - `invoice_pdf_url` ← `invoice.invoice_pdf ?? null`
+     - `hosted_invoice_url` ← `invoice.hosted_invoice_url ?? null`
+     - `invoice_number` ← `invoice.number ?? null`
+     - `stripe_invoice_id` ← `invoice.id ?? charge.id`
+  4. Upsert into `invoices` (service role) keyed on `order_id`, with `organization_id`, `service_provider_id`, `currency`, `total_cents = order.amount_cents`, `status = 'paid'`, `paid_at = order.paid_at`, `issued_at = now()`.
+- Returns the resolved URLs so I can verify in the response.
 
-- One-time Checkout sessions today only capture a `stripe_receipt_url` (the charge receipt page). No Stripe `Invoice` is created, so there's no `invoice_pdf` or `hosted_invoice_url` to download.
-- Subscription payments do produce a real Stripe Invoice (with `number`, `hosted_invoice_url`, `invoice_pdf`) but we don't capture those fields.
-- To make every purchase produce a downloadable Stripe invoice we need to (a) tell Stripe to issue an invoice for one-time checkouts and (b) store the invoice's number, hosted URL and PDF URL.
+### Invocation
+Once deployed, I invoke it with `order_id = d33c45ed-2a3d-45e2-9c84-fbe7c17cb93b`. The PaymentIntent has no Stripe `invoice` attached (no `invoice_creation` enabled at the time), so the backfill will populate `stripe_receipt_url` from the charge — that becomes the **Download** link in `PurchaseHistoryTable` (which already falls back to `stripe_receipt_url`). No formal Stripe Invoice PDF/number will exist for this row; the existing UI label "Download" / "View receipt" handles this case correctly.
 
-## Plan
+### No frontend changes
+The org dashboard `PurchaseHistoryTable` and `AdminOrders` already prefer `invoice_pdf_url` → `hosted_invoice_url` → `stripe_receipt_url`. Once the row exists, the Download link appears automatically.
 
-### 1. Database
+### Out of scope
+- Generating a brand-new Stripe Invoice PDF retroactively for this charge (Stripe can't attach an invoice to a past PaymentIntent; only a separate out-of-band invoice could be issued, which would double-count revenue). The Stripe-hosted **receipt** is the standard artifact for this case.
+- Bulk backfill of all historical pre-fix orders (function supports it, but I'll only run it for D33C45ED unless you ask otherwise).
 
-Migration on `public.invoices`:
-- Add `invoice_number text` (nullable)
-- Add `hosted_invoice_url text` (nullable)
-- Add `invoice_pdf_url text` (nullable)
-
-No RLS changes — existing org-scoped policies cover these new fields.
-
-### 2. Checkout — make Stripe issue an invoice for one-time orders
-
-In `supabase/functions/create-checkout-session/index.ts`, when creating the Checkout Session in `payment` mode, set:
-
-```ts
-invoice_creation: {
-  enabled: true,
-  invoice_data: {
-    description: `${bundle.name} — ${bundle.hours} hours`,
-    metadata: { order_id, organization_id, service_provider_id },
-    // optional: footer, custom_fields, rendering_options
-  },
-},
-```
-
-Subscription checkouts already produce invoices automatically — no change needed there.
-
-### 3. Webhook — persist invoice identifiers
-
-In `supabase/functions/stripe-webhook/index.ts`:
-
-- **`checkout.session.completed` (one-time)**: after the session is paid, retrieve `session.invoice` (expand it), then upsert into `invoices`:
-  - `stripe_invoice_id = invoice.id`
-  - `invoice_number = invoice.number`
-  - `hosted_invoice_url = invoice.hosted_invoice_url`
-  - `invoice_pdf_url = invoice.invoice_pdf`
-  - keep `stripe_receipt_url` from the charge as a fallback.
-- **`invoice.payment_succeeded` (subscriptions)**: extend the existing handler to also store `invoice_number`, `hosted_invoice_url`, `invoice_pdf_url`.
-
-### 4. UI — surface "Download invoice" in the org admin
-
-Update `useOrganizationDashboard` and `OrderWithBundle` to also pull `invoice_number`, `hosted_invoice_url`, `invoice_pdf_url`.
-
-`src/components/organization/PurchaseHistoryTable.tsx`:
-- Add an **Invoice #** column (monospace; `—` if not yet issued).
-- Replace the current single receipt icon with a small action group: **Download PDF** (→ `invoice_pdf_url`) and **View** (→ `hosted_invoice_url`). Fall back to `stripe_receipt_url` if no invoice exists (legacy rows).
-- Mirror on `src/pages/dashboard/org/OrgOrders.tsx`.
-
-Platform admin (`AdminOrders` + `get_admin_orders` RPC): add the same Invoice # column and Download link.
-
-### 5. Legacy rows
-
-Existing paid orders won't have an invoice attached (Stripe doesn't retroactively issue one). They'll continue to show the Stripe charge receipt link. No backfill attempted.
-
-## Out of scope
-
-- Generating our own branded PDF invoices (we rely on Stripe's).
-- Editing past invoices or custom invoice templates beyond Stripe's defaults.
-- Adding tax/VAT fields — handled separately by the existing billing profile work.
-
-## Technical notes
-
-- `invoice_creation` on a Checkout Session is the supported Stripe pattern for one-time payments. The invoice is generated synchronously when the session completes; we read it via `stripe.checkout.sessions.retrieve(id, { expand: ['invoice'] })` (or the `invoice` event).
-- `get_admin_orders` signature changes → `DROP FUNCTION` + recreate inside the same migration.
-- All additive: existing webhook idempotency and order flow are unchanged.
+## Files
+- `supabase/functions/backfill-order-invoice/index.ts` — new
+- `supabase/config.toml` — register function (verify_jwt default)
