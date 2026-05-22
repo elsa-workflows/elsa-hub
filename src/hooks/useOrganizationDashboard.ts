@@ -149,26 +149,32 @@ export function useOrganizationDashboard(slug: string | undefined) {
       
       const bundleMap = new Map(bundles?.map(b => [b.id, { name: b.name, hours: b.hours }]) || []);
 
-      // Fetch invoices for receipt URLs
+      // Fetch invoices for receipt URLs + Stripe invoice details
       const orderIds = orders.map(o => o.id);
       const { data: invoices } = await supabase
         .from("invoices")
-        .select("order_id, stripe_receipt_url")
+        .select("order_id, stripe_receipt_url, invoice_number, hosted_invoice_url, invoice_pdf_url")
         .in("order_id", orderIds);
-      
-      const invoiceMap = new Map(invoices?.map(i => [i.order_id, i.stripe_receipt_url]) || []);
 
-      return orders.map(order => ({
-        id: order.id,
-        created_at: order.created_at,
-        status: order.status,
-        amount_cents: order.amount_cents,
-        currency: order.currency,
-        paid_at: order.paid_at,
-        bundle_name: bundleMap.get(order.credit_bundle_id)?.name || "Unknown Bundle",
-        bundle_hours: bundleMap.get(order.credit_bundle_id)?.hours || 0,
-        receipt_url: invoiceMap.get(order.id) || null,
-      }));
+      const invoiceMap = new Map(invoices?.map(i => [i.order_id, i]) || []);
+
+      return orders.map(order => {
+        const inv = invoiceMap.get(order.id);
+        return {
+          id: order.id,
+          created_at: order.created_at,
+          status: order.status,
+          amount_cents: order.amount_cents,
+          currency: order.currency,
+          paid_at: order.paid_at,
+          bundle_name: bundleMap.get(order.credit_bundle_id)?.name || "Unknown Bundle",
+          bundle_hours: bundleMap.get(order.credit_bundle_id)?.hours || 0,
+          receipt_url: inv?.stripe_receipt_url || null,
+          invoice_number: inv?.invoice_number || null,
+          hosted_invoice_url: inv?.hosted_invoice_url || null,
+          invoice_pdf_url: inv?.invoice_pdf_url || null,
+        };
+      });
     },
     enabled: !!orgId,
   });
