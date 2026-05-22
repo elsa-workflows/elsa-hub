@@ -15,12 +15,31 @@ import { cn } from "@/lib/utils";
 
 export default function OrgSettings() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { organization, teamMembers, isLoading, notFound, isAdmin } = useOrganizationDashboard(slug);
   const queryClient = useQueryClient();
 
+  const billingCardRef = useRef<HTMLDivElement>(null);
+  const [billingHighlight, setBillingHighlight] = useState(false);
+
   const [contactEmail, setContactEmail] = useState<string | null>(null);
   const [isSavingEmail, setIsSavingEmail] = useState(false);
+
+  // Handle ?setup=billing — scroll to + highlight the billing card
+  useEffect(() => {
+    if (searchParams.get("setup") !== "billing") return;
+    if (isLoading || !isAdmin) return;
+    const t = setTimeout(() => {
+      billingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setBillingHighlight(true);
+      setTimeout(() => setBillingHighlight(false), 2400);
+      const next = new URLSearchParams(searchParams);
+      next.delete("setup");
+      setSearchParams(next, { replace: true });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [searchParams, isLoading, isAdmin, setSearchParams]);
 
   // Find current user's role
   const currentMember = teamMembers.find(m => m.user_id === user?.id);
