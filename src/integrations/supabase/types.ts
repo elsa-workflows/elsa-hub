@@ -381,7 +381,10 @@ export type Database = {
         Row: {
           created_at: string
           currency: string
+          hosted_invoice_url: string | null
           id: string
+          invoice_number: string | null
+          invoice_pdf_url: string | null
           issued_at: string | null
           order_id: string | null
           organization_id: string
@@ -395,7 +398,10 @@ export type Database = {
         Insert: {
           created_at?: string
           currency?: string
+          hosted_invoice_url?: string | null
           id?: string
+          invoice_number?: string | null
+          invoice_pdf_url?: string | null
           issued_at?: string | null
           order_id?: string | null
           organization_id: string
@@ -409,7 +415,10 @@ export type Database = {
         Update: {
           created_at?: string
           currency?: string
+          hosted_invoice_url?: string | null
           id?: string
+          invoice_number?: string | null
+          invoice_pdf_url?: string | null
           issued_at?: string | null
           order_id?: string | null
           organization_id?: string
@@ -1461,11 +1470,15 @@ export type Database = {
           bundle_name: string
           created_at: string
           currency: string
+          hosted_invoice_url: string
           id: string
+          invoice_number: string
+          invoice_pdf_url: string
           organization_id: string
           organization_name: string
           paid_at: string
           status: Database["public"]["Enums"]["order_status"]
+          stripe_receipt_url: string
         }[]
       }
       get_admin_organizations: {
