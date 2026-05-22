@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
-import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard } from "@/components/organization";
+import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder } from "@/components/organization";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { useTidyCalBookingTypes } from "@/hooks/useTidyCalBookingTypes";
 import { useQuery } from "@tanstack/react-query";
