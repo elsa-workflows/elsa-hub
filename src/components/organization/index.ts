@@ -1,4 +1,5 @@
 export { BillingProfileCard } from "./BillingProfileCard";
+export { BillingDetailsReminder, isBillingProfileComplete } from "./BillingDetailsReminder";
 export { CreditBalanceCard } from "./CreditBalanceCard";
 export { CreditLotsTable } from "./CreditLotsTable";
 export { PurchaseHistoryTable } from "./PurchaseHistoryTable";
