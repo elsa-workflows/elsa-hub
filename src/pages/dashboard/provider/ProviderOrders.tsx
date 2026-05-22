@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Search, Receipt, UserCircle, Store, ExternalLink } from "lucide-react";
+import { Building2, Search, Receipt, UserCircle, Store, ExternalLink, FileText, Undo2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useProviderOrders } from "@/hooks/useProviderOrders";
+import { useProviderOrders, type ProviderOrder } from "@/hooks/useProviderOrders";
+import { RefundOrderDialog } from "@/components/provider/RefundOrderDialog";
 
 function formatCurrency(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
