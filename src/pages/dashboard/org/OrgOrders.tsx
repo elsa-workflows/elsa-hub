@@ -42,6 +42,9 @@ interface UnifiedPurchase {
   bundle_name: string;
   bundle_hours: number;
   receipt_url: string | null;
+  invoice_number: string | null;
+  hosted_invoice_url: string | null;
+  invoice_pdf_url: string | null;
   type: "one_time" | "subscription";
   recurring_label?: string;
 }
@@ -65,6 +68,9 @@ export default function OrgOrders() {
       bundle_name: order.bundle_name,
       bundle_hours: order.bundle_hours,
       receipt_url: order.receipt_url,
+      invoice_number: order.invoice_number,
+      hosted_invoice_url: order.hosted_invoice_url,
+      invoice_pdf_url: order.invoice_pdf_url,
       type: "one_time" as const,
     }));
 
@@ -72,11 +78,14 @@ export default function OrgOrders() {
       id: sub.id,
       created_at: sub.created_at,
       status: sub.status,
-      amount_cents: 0, // We don't store subscription price in the record, but we could enhance this
+      amount_cents: 0,
       currency: "eur",
       bundle_name: sub.bundle_name,
       bundle_hours: sub.monthly_hours,
       receipt_url: null,
+      invoice_number: null,
+      hosted_invoice_url: null,
+      invoice_pdf_url: null,
       type: "subscription" as const,
       recurring_label: "Monthly",
     }));
