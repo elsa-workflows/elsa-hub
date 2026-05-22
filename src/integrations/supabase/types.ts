@@ -631,6 +631,7 @@ export type Database = {
           id: string
           organization_id: string
           paid_at: string | null
+          refunded_amount_cents: number
           service_provider_id: string
           status: Database["public"]["Enums"]["order_status"]
           stripe_checkout_session_id: string | null
@@ -645,6 +646,7 @@ export type Database = {
           id?: string
           organization_id: string
           paid_at?: string | null
+          refunded_amount_cents?: number
           service_provider_id: string
           status?: Database["public"]["Enums"]["order_status"]
           stripe_checkout_session_id?: string | null
@@ -659,6 +661,7 @@ export type Database = {
           id?: string
           organization_id?: string
           paid_at?: string | null
+          refunded_amount_cents?: number
           service_provider_id?: string
           status?: Database["public"]["Enums"]["order_status"]
           stripe_checkout_session_id?: string | null
@@ -1614,8 +1617,14 @@ export type Database = {
     Enums: {
       actor_type: "user" | "system"
       billing_type: "one_time" | "recurring"
-      credit_lot_status: "active" | "exhausted" | "expired"
-      invoice_status: "draft" | "issued" | "paid" | "void"
+      credit_lot_status: "active" | "exhausted" | "expired" | "refunded"
+      invoice_status:
+        | "draft"
+        | "issued"
+        | "paid"
+        | "void"
+        | "refunded"
+        | "partially_refunded"
       ledger_entry_type: "credit" | "debit"
       ledger_reason_code:
         | "purchase"
@@ -1770,8 +1779,15 @@ export const Constants = {
     Enums: {
       actor_type: ["user", "system"],
       billing_type: ["one_time", "recurring"],
-      credit_lot_status: ["active", "exhausted", "expired"],
-      invoice_status: ["draft", "issued", "paid", "void"],
+      credit_lot_status: ["active", "exhausted", "expired", "refunded"],
+      invoice_status: [
+        "draft",
+        "issued",
+        "paid",
+        "void",
+        "refunded",
+        "partially_refunded",
+      ],
       ledger_entry_type: ["credit", "debit"],
       ledger_reason_code: [
         "purchase",
