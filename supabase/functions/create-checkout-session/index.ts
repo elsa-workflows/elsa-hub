@@ -303,6 +303,22 @@ serve(async (req) => {
       cancel_url: `${origin}/enterprise/expert-services?payment=cancelled`,
     };
 
+    // For one-time payments, ask Stripe to issue a real Invoice (PDF + hosted page)
+    if (!isSubscription) {
+      sessionConfig.invoice_creation = {
+        enabled: true,
+        invoice_data: {
+          description: `${bundle.name} — ${bundle.hours} hours`,
+          metadata: {
+            organization_id: organizationId,
+            service_provider_id: bundle.service_provider_id,
+            bundle_id: bundle.id,
+            ...(orderId && { order_id: orderId }),
+          },
+        },
+      };
+    }
+
     // For subscriptions, attach customer
     if (isSubscription && stripeCustomerId) {
       sessionConfig.customer = stripeCustomerId;
