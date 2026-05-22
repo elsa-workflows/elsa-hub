@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Receipt, ExternalLink, RefreshCw } from "lucide-react";
+import { Receipt, ExternalLink, RefreshCw, Download } from "lucide-react";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
