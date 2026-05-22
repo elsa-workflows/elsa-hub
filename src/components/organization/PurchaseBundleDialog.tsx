@@ -257,9 +257,16 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
           )}
         </div>
 
-        {/* Availability disclaimer before checkout */}
+        {/* Billing details reminder + availability disclaimer before checkout */}
         {selectedBundle && selectedOrganization && isAdmin && (
-          <AvailabilityDisclaimer className="mt-2" />
+          <div className="mt-2 space-y-2">
+            <BillingDetailsReminder
+              organizationId={selectedOrganization.id}
+              organizationSlug={selectedOrganization.slug}
+              variant="inline"
+            />
+            <AvailabilityDisclaimer />
+          </div>
         )}
 
         {/* Footer */}
