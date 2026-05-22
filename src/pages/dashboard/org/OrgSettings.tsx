@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { Building2, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,19 +7,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { useAuth } from "@/contexts/AuthContext";
-import { LeaveOrganizationDialog, DeleteOrganizationDialog, BillingProfileCard } from "@/components/organization";
+import { LeaveOrganizationDialog, DeleteOrganizationDialog, BillingProfileCard, BillingDetailsReminder } from "@/components/organization";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 export default function OrgSettings() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { organization, teamMembers, isLoading, notFound, isAdmin } = useOrganizationDashboard(slug);
   const queryClient = useQueryClient();
 
+  const billingCardRef = useRef<HTMLDivElement>(null);
+  const [billingHighlight, setBillingHighlight] = useState(false);
+
   const [contactEmail, setContactEmail] = useState<string | null>(null);
   const [isSavingEmail, setIsSavingEmail] = useState(false);
+
+  // Handle ?setup=billing — scroll to + highlight the billing card
+  useEffect(() => {
+    if (searchParams.get("setup") !== "billing") return;
+    if (isLoading || !isAdmin) return;
+    const t = setTimeout(() => {
+      billingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setBillingHighlight(true);
+      setTimeout(() => setBillingHighlight(false), 2400);
+      const next = new URLSearchParams(searchParams);
+      next.delete("setup");
+      setSearchParams(next, { replace: true });
+    }, 150);
+    return () => clearTimeout(t);
+  }, [searchParams, isLoading, isAdmin, setSearchParams]);
 
   // Find current user's role
   const currentMember = teamMembers.find(m => m.user_id === user?.id);
@@ -124,7 +144,21 @@ export default function OrgSettings() {
         </Card>
 
         {/* Billing Information - Only visible to admins */}
-        {isAdmin && <BillingProfileCard organizationId={organization?.id} />}
+        {isAdmin && (
+          <div
+            ref={billingCardRef}
+            className={cn(
+              "rounded-lg transition-all space-y-4",
+              billingHighlight && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+            )}
+          >
+            <BillingDetailsReminder
+              organizationId={organization?.id}
+              organizationSlug={organization?.slug}
+            />
+            <BillingProfileCard organizationId={organization?.id} />
+          </div>
+        )}
 
         {/* Danger Zone */}
         <Card className="border-destructive/50">

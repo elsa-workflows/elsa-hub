@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
-import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard } from "@/components/organization";
+import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder } from "@/components/organization";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { useTidyCalBookingTypes } from "@/hooks/useTidyCalBookingTypes";
 import { useQuery } from "@tanstack/react-query";
@@ -125,6 +125,15 @@ export default function OrgOverview() {
           </div>
         )}
       </div>
+
+      {/* Billing details reminder (admins only, dismissible) */}
+      {isAdmin && (
+        <BillingDetailsReminder
+          organizationId={organization?.id}
+          organizationSlug={organization?.slug}
+          dismissible
+        />
+      )}
 
       {/* Quick Links */}
       <div className="grid gap-4 sm:grid-cols-4">
