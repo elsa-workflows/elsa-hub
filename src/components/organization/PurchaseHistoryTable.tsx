@@ -30,6 +30,9 @@ interface UnifiedPurchase {
   bundle_name: string;
   bundle_hours: number;
   receipt_url: string | null;
+  invoice_number: string | null;
+  hosted_invoice_url: string | null;
+  invoice_pdf_url: string | null;
   type: "one_time" | "subscription";
 }
 
