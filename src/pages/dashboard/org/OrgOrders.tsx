@@ -42,6 +42,9 @@ interface UnifiedPurchase {
   bundle_name: string;
   bundle_hours: number;
   receipt_url: string | null;
+  invoice_number: string | null;
+  hosted_invoice_url: string | null;
+  invoice_pdf_url: string | null;
   type: "one_time" | "subscription";
   recurring_label?: string;
 }
@@ -65,6 +68,9 @@ export default function OrgOrders() {
       bundle_name: order.bundle_name,
       bundle_hours: order.bundle_hours,
       receipt_url: order.receipt_url,
+      invoice_number: order.invoice_number,
+      hosted_invoice_url: order.hosted_invoice_url,
+      invoice_pdf_url: order.invoice_pdf_url,
       type: "one_time" as const,
     }));
 
@@ -72,11 +78,14 @@ export default function OrgOrders() {
       id: sub.id,
       created_at: sub.created_at,
       status: sub.status,
-      amount_cents: 0, // We don't store subscription price in the record, but we could enhance this
+      amount_cents: 0,
       currency: "eur",
       bundle_name: sub.bundle_name,
       bundle_hours: sub.monthly_hours,
       receipt_url: null,
+      invoice_number: null,
+      hosted_invoice_url: null,
+      invoice_pdf_url: null,
       type: "subscription" as const,
       recurring_label: "Monthly",
     }));
@@ -193,65 +202,77 @@ export default function OrgOrders() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Order #</TableHead>
+                  <TableHead>Invoice #</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Bundle</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Receipt</TableHead>
+                  <TableHead className="text-right">Invoice</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPurchases.map((purchase) => (
-                  <TableRow key={purchase.id}>
-                    <TableCell>
-                      <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                        {purchase.id.slice(0, 8).toUpperCase()}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(purchase.created_at), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={purchase.type === "subscription" ? "secondary" : "outline"}>
-                        {purchase.type === "subscription" ? (
-                          <><RefreshCw className="h-3 w-3 mr-1" /> {purchase.recurring_label}</>
+                {filteredPurchases.map((purchase) => {
+                  const downloadUrl = purchase.invoice_pdf_url || purchase.hosted_invoice_url || purchase.receipt_url;
+                  const isPdf = !!purchase.invoice_pdf_url;
+                  return (
+                    <TableRow key={purchase.id}>
+                      <TableCell>
+                        <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                          {purchase.id.slice(0, 8).toUpperCase()}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        {purchase.invoice_number ? (
+                          <code className="text-xs font-mono">{purchase.invoice_number}</code>
                         ) : (
-                          "One-time"
+                          <span className="text-muted-foreground text-sm">—</span>
                         )}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{purchase.bundle_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariants[purchase.status] || "secondary"}>
-                        {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {purchase.receipt_url ? (
-                        <Button variant="ghost" size="sm" asChild>
-                          <a
-                            href={purchase.receipt_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            Receipt
-                          </a>
-                        </Button>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(purchase.created_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={purchase.type === "subscription" ? "secondary" : "outline"}>
+                          {purchase.type === "subscription" ? (
+                            <><RefreshCw className="h-3 w-3 mr-1" /> {purchase.recurring_label}</>
+                          ) : (
+                            "One-time"
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{purchase.bundle_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariants[purchase.status] || "secondary"}>
+                          {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {downloadUrl ? (
+                          <Button variant="ghost" size="sm" asChild>
+                            <a
+                              href={downloadUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              {isPdf ? "PDF" : "Receipt"}
+                            </a>
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

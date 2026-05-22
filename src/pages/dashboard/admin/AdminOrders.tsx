@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -87,10 +89,12 @@ export default function AdminOrders() {
             <TableRow>
               <TableHead>Organization</TableHead>
               <TableHead>Bundle</TableHead>
+              <TableHead>Invoice #</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Paid</TableHead>
+              <TableHead className="text-right">Invoice</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -100,44 +104,80 @@ export default function AdminOrders() {
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                 </TableRow>
               ))
             ) : displayOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   No orders found
                 </TableCell>
               </TableRow>
             ) : (
-              displayOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">
-                    {order.organization_name}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {order.bundle_name}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {formatCurrency(order.amount_cents, order.currency)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusColors[order.status] ?? "outline"}>
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {format(new Date(order.created_at), "MMM d, yyyy")}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {order.paid_at
-                      ? format(new Date(order.paid_at), "MMM d, yyyy")
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))
+              displayOrders.map((order) => {
+                const o = order as typeof order & {
+                  invoice_number: string | null;
+                  hosted_invoice_url: string | null;
+                  invoice_pdf_url: string | null;
+                  stripe_receipt_url: string | null;
+                };
+                const downloadUrl = o.invoice_pdf_url || o.hosted_invoice_url || o.stripe_receipt_url;
+                const isPdf = !!o.invoice_pdf_url;
+                return (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">
+                      {order.organization_name}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {order.bundle_name}
+                    </TableCell>
+                    <TableCell>
+                      {o.invoice_number ? (
+                        <code className="text-xs font-mono">{o.invoice_number}</code>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(order.amount_cents, order.currency)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusColors[order.status] ?? "outline"}>
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {format(new Date(order.created_at), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {order.paid_at
+                        ? format(new Date(order.paid_at), "MMM d, yyyy")
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {downloadUrl ? (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            {isPdf ? "PDF" : "Receipt"}
+                          </a>
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

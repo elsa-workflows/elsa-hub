@@ -1,50 +1,76 @@
-# Personal theme picker
+## Goal
 
-Lets each user pick from a small curated set of accent colors, font pairings, and dark-mode flavors. Choices persist per user and apply across the whole app (marketing + dashboard). Canonical brand stays the default — so first-time visitors and signed-out users still see the real Elsa Workflows identity.
+Organization admins can download the Stripe-issued invoice (PDF) for every purchase directly from the bundle management dashboard.
 
-## What the user gets
+## Background
 
-A small palette icon button next to the existing dark-mode toggle in the nav. Clicking it opens a popover with three sections:
+- One-time Checkout sessions today only capture a `stripe_receipt_url` (the charge receipt page). No Stripe `Invoice` is created, so there's no `invoice_pdf` or `hosted_invoice_url` to download.
+- Subscription payments do produce a real Stripe Invoice (with `number`, `hosted_invoice_url`, `invoice_pdf`) but we don't capture those fields.
+- To make every purchase produce a downloadable Stripe invoice we need to (a) tell Stripe to issue an invoice for one-time checkouts and (b) store the invoice's number, hosted URL and PDF URL.
 
-1. **Accent** — 5 swatches (Magenta default, Indigo, Emerald, Amber, Slate). Click to apply instantly.
-2. **Typography** — 4 font pair cards (Inter + Space Grotesk default, Geist, Manrope + Sora, JetBrains Mono + Inter). Renders a tiny preview using the actual fonts.
-3. **Dark flavor** — 3 chips (Anthracite default, True Noir, Cool Slate). Only affects the dark palette.
+## Plan
 
-A "Reset to default" link at the bottom restores the canonical brand.
+### 1. Database
 
-## How it works
+Migration on `public.invoices`:
+- Add `invoice_number text` (nullable)
+- Add `hosted_invoice_url text` (nullable)
+- Add `invoice_pdf_url text` (nullable)
 
-- A new `ThemePreferencesProvider` wraps the app inside the existing `next-themes` ThemeProvider. It holds `{ accent, fontPair, darkFlavor }`, reads/writes `localStorage` under `elsa.theme.prefs`, and exposes a setter.
-- On mount and on every change, it sets a `data-accent`, `data-font`, and `data-dark-flavor` attribute on `<html>`. Token overrides are written as CSS-only rules — no runtime style injection.
-- A pre-hydration script in `index.html` (same pattern as the FOUC-prevention script already in the project) reads localStorage and applies these attributes before paint, so no flash on reload.
-- `src/index.css` gains scoped overrides:
-  - `[data-accent="indigo"] { --primary: 240 80% 55%; --ring: 240 80% 55%; }` etc.
-  - `[data-font="geist"] { --font-sans: 'Geist', …; --font-display: 'Geist', …; }` etc.
-  - `[data-dark-flavor="noir"].dark { --background: 0 0% 4%; --card: 0 0% 7%; … }` etc.
-- Fonts are loaded via Google Fonts `@import` (matching the existing pattern at the top of `index.css`). Only the curated set — no dynamic font loading.
-- New component `src/components/ui/theme-preferences.tsx` renders the popover. Uses existing shadcn `Popover`, `Button`, `Tabs` primitives. Hairline borders, no new visual language.
-- Mounted next to `<ThemeToggle />` in `src/components/layout/Navigation.tsx` (desktop + mobile).
+No RLS changes — existing org-scoped policies cover these new fields.
 
-## Brand guardrails
+### 2. Checkout — make Stripe issue an invoice for one-time orders
 
-- Default state for everyone (logged in or not, first visit or returning with cleared storage) is the canonical brand: magenta accent, Inter + Space Grotesk, warm anthracite.
-- The picker is purely additive — every preset is opt-in.
-- I'll update the project memory's Core rule to allow user-opt-in theme overrides while keeping canonical brand as the default. The existing "magenta as sole accent" rule becomes "magenta is the default accent; users may opt into curated alternates."
+In `supabase/functions/create-checkout-session/index.ts`, when creating the Checkout Session in `payment` mode, set:
 
-## Out of scope (for this iteration)
+```ts
+invoice_creation: {
+  enabled: true,
+  invoice_data: {
+    description: `${bundle.name} — ${bundle.hours} hours`,
+    metadata: { order_id, organization_id, service_provider_id },
+    // optional: footer, custom_fields, rendering_options
+  },
+},
+```
 
-- No DB persistence — localStorage only. Easy to upgrade later by syncing to a `user_preferences` table.
-- No custom hex picker, no free font input.
-- No per-org branding — that's a separate feature.
-- Marketing pages are not locked off from the picker (per your answer), but since defaults are canonical brand, anonymous visitors always see the real identity.
+Subscription checkouts already produce invoices automatically — no change needed there.
 
-## Files touched
+### 3. Webhook — persist invoice identifiers
 
-- **New** `src/contexts/ThemePreferencesContext.tsx` — provider + hook
-- **New** `src/components/ui/theme-preferences.tsx` — popover UI
-- **Edit** `src/index.css` — `[data-accent]`, `[data-font]`, `[data-dark-flavor]` blocks + extra font imports
-- **Edit** `index.html` — pre-hydration script to apply attributes before paint
-- **Edit** `src/components/layout/Navigation.tsx` — mount the picker next to `ThemeToggle`
-- **Edit** `mem://index.md` Core rule — soften the magenta-only constraint to "default, with opt-in alternates"
+In `supabase/functions/stripe-webhook/index.ts`:
 
-No database, no edge functions, no new dependencies.
+- **`checkout.session.completed` (one-time)**: after the session is paid, retrieve `session.invoice` (expand it), then upsert into `invoices`:
+  - `stripe_invoice_id = invoice.id`
+  - `invoice_number = invoice.number`
+  - `hosted_invoice_url = invoice.hosted_invoice_url`
+  - `invoice_pdf_url = invoice.invoice_pdf`
+  - keep `stripe_receipt_url` from the charge as a fallback.
+- **`invoice.payment_succeeded` (subscriptions)**: extend the existing handler to also store `invoice_number`, `hosted_invoice_url`, `invoice_pdf_url`.
+
+### 4. UI — surface "Download invoice" in the org admin
+
+Update `useOrganizationDashboard` and `OrderWithBundle` to also pull `invoice_number`, `hosted_invoice_url`, `invoice_pdf_url`.
+
+`src/components/organization/PurchaseHistoryTable.tsx`:
+- Add an **Invoice #** column (monospace; `—` if not yet issued).
+- Replace the current single receipt icon with a small action group: **Download PDF** (→ `invoice_pdf_url`) and **View** (→ `hosted_invoice_url`). Fall back to `stripe_receipt_url` if no invoice exists (legacy rows).
+- Mirror on `src/pages/dashboard/org/OrgOrders.tsx`.
+
+Platform admin (`AdminOrders` + `get_admin_orders` RPC): add the same Invoice # column and Download link.
+
+### 5. Legacy rows
+
+Existing paid orders won't have an invoice attached (Stripe doesn't retroactively issue one). They'll continue to show the Stripe charge receipt link. No backfill attempted.
+
+## Out of scope
+
+- Generating our own branded PDF invoices (we rely on Stripe's).
+- Editing past invoices or custom invoice templates beyond Stripe's defaults.
+- Adding tax/VAT fields — handled separately by the existing billing profile work.
+
+## Technical notes
+
+- `invoice_creation` on a Checkout Session is the supported Stripe pattern for one-time payments. The invoice is generated synchronously when the session completes; we read it via `stripe.checkout.sessions.retrieve(id, { expand: ['invoice'] })` (or the `invoice` event).
+- `get_admin_orders` signature changes → `DROP FUNCTION` + recreate inside the same migration.
+- All additive: existing webhook idempotency and order flow are unchanged.

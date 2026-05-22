@@ -228,8 +228,13 @@ async function handleOneTimePaymentCheckout(
     console.error("Failed to create ledger entry:", ledgerError);
   }
 
-  // Get receipt URL
+  // Get receipt URL and Stripe-issued invoice (PDF + hosted page)
   let receiptUrl: string | null = null;
+  let stripeInvoiceId: string | null = null;
+  let invoiceNumber: string | null = null;
+  let hostedInvoiceUrl: string | null = null;
+  let invoicePdfUrl: string | null = null;
+
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
       expand: ["latest_charge"],
@@ -238,6 +243,22 @@ async function handleOneTimePaymentCheckout(
     receiptUrl = charge?.receipt_url || null;
   } catch (err) {
     console.error("Failed to get receipt URL:", err);
+  }
+
+  try {
+    // session.invoice is set when invoice_creation.enabled was true on the Checkout Session
+    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ["invoice"],
+    });
+    const invoice = fullSession.invoice as Stripe.Invoice | null;
+    if (invoice) {
+      stripeInvoiceId = invoice.id ?? null;
+      invoiceNumber = invoice.number ?? null;
+      hostedInvoiceUrl = invoice.hosted_invoice_url ?? null;
+      invoicePdfUrl = invoice.invoice_pdf ?? null;
+    }
+  } catch (err) {
+    console.error("Failed to retrieve Stripe invoice for checkout session:", err);
   }
 
   // Create/upsert invoice
@@ -252,6 +273,10 @@ async function handleOneTimePaymentCheckout(
       issued_at: now,
       paid_at: now,
       stripe_receipt_url: receiptUrl,
+      stripe_invoice_id: stripeInvoiceId,
+      invoice_number: invoiceNumber,
+      hosted_invoice_url: hostedInvoiceUrl,
+      invoice_pdf_url: invoicePdfUrl,
     },
     { onConflict: "order_id" }
   );
@@ -463,6 +488,33 @@ async function handleInvoicePaid(
     monthlyHours: subscription.credit_bundles.monthly_hours,
     periodStart,
   });
+
+  // Persist the Stripe-issued invoice (PDF + hosted page) so org admins can download it
+  if (invoice.id) {
+    const { data: existingInvoice } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("stripe_invoice_id", invoice.id)
+      .maybeSingle();
+
+    if (!existingInvoice) {
+      await supabase.from("invoices").insert({
+        organization_id: subscription.organization_id,
+        service_provider_id: subscription.service_provider_id,
+        total_cents: invoice.amount_paid ?? invoice.total ?? 0,
+        currency: invoice.currency || "usd",
+        status: "paid",
+        issued_at: new Date((invoice.status_transitions?.finalized_at || invoice.created) * 1000).toISOString(),
+        paid_at: invoice.status_transitions?.paid_at
+          ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
+          : new Date().toISOString(),
+        stripe_invoice_id: invoice.id,
+        invoice_number: invoice.number ?? null,
+        hosted_invoice_url: invoice.hosted_invoice_url ?? null,
+        invoice_pdf_url: invoice.invoice_pdf ?? null,
+      });
+    }
+  }
 
   console.log(`Subscription ${stripeSubscriptionId} renewed, credits granted`);
 }
