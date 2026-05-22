@@ -489,6 +489,33 @@ async function handleInvoicePaid(
     periodStart,
   });
 
+  // Persist the Stripe-issued invoice (PDF + hosted page) so org admins can download it
+  if (invoice.id) {
+    const { data: existingInvoice } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("stripe_invoice_id", invoice.id)
+      .maybeSingle();
+
+    if (!existingInvoice) {
+      await supabase.from("invoices").insert({
+        organization_id: subscription.organization_id,
+        service_provider_id: subscription.service_provider_id,
+        total_cents: invoice.amount_paid ?? invoice.total ?? 0,
+        currency: invoice.currency || "usd",
+        status: "paid",
+        issued_at: new Date((invoice.status_transitions?.finalized_at || invoice.created) * 1000).toISOString(),
+        paid_at: invoice.status_transitions?.paid_at
+          ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
+          : new Date().toISOString(),
+        stripe_invoice_id: invoice.id,
+        invoice_number: invoice.number ?? null,
+        hosted_invoice_url: invoice.hosted_invoice_url ?? null,
+        invoice_pdf_url: invoice.invoice_pdf ?? null,
+      });
+    }
+  }
+
   console.log(`Subscription ${stripeSubscriptionId} renewed, credits granted`);
 }
 
