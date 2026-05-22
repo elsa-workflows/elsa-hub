@@ -43,6 +43,7 @@ export default function ProviderOrders() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [refundOrder, setRefundOrder] = useState<ProviderOrder | null>(null);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
