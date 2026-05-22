@@ -144,7 +144,21 @@ export default function OrgSettings() {
         </Card>
 
         {/* Billing Information - Only visible to admins */}
-        {isAdmin && <BillingProfileCard organizationId={organization?.id} />}
+        {isAdmin && (
+          <div
+            ref={billingCardRef}
+            className={cn(
+              "rounded-lg transition-all space-y-4",
+              billingHighlight && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+            )}
+          >
+            <BillingDetailsReminder
+              organizationId={organization?.id}
+              organizationSlug={organization?.slug}
+            />
+            <BillingProfileCard organizationId={organization?.id} />
+          </div>
+        )}
 
         {/* Danger Zone */}
         <Card className="border-destructive/50">
