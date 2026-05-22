@@ -36,6 +36,7 @@ export function CreateOrganizationDialog({ onCreateOrganization, trigger }: Crea
   const [slug, setSlug] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleNameChange = (value: string) => {
     setName(value);
