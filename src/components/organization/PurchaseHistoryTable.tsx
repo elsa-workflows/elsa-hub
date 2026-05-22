@@ -130,66 +130,88 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
             <TableHeader>
               <TableRow>
                 <TableHead>Order #</TableHead>
+                <TableHead>Invoice #</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Bundle</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Receipt</TableHead>
+                <TableHead className="text-right">Invoice</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allPurchases.map((purchase) => (
-                <TableRow key={purchase.id}>
-                  <TableCell>
-                    <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
-                      {purchase.id.slice(0, 8).toUpperCase()}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(purchase.created_at), "MMM d, yyyy")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {purchase.type === "subscription" && (
-                        <RefreshCw className="h-3 w-3 text-muted-foreground" />
+              {allPurchases.map((purchase) => {
+                const downloadUrl = purchase.invoice_pdf_url || purchase.hosted_invoice_url || purchase.receipt_url;
+                return (
+                  <TableRow key={purchase.id}>
+                    <TableCell>
+                      <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
+                        {purchase.id.slice(0, 8).toUpperCase()}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      {purchase.invoice_number ? (
+                        <code className="text-xs font-mono">{purchase.invoice_number}</code>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
                       )}
-                      <div>
-                        <p className="font-medium">{purchase.bundle_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
-                        </p>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(purchase.created_at), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {purchase.type === "subscription" && (
+                          <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className="font-medium">{purchase.bundle_name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {purchase.type === "subscription" ? (
-                      <span className="text-muted-foreground text-sm">Recurring</span>
-                    ) : (
-                      formatCurrency(purchase.amount_cents, purchase.currency)
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariants[purchase.status] || "secondary"}>
-                      {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {purchase.receipt_url ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                      >
-                        <a href={purchase.receipt_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      {purchase.type === "subscription" ? (
+                        <span className="text-muted-foreground text-sm">Recurring</span>
+                      ) : (
+                        formatCurrency(purchase.amount_cents, purchase.currency)
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariants[purchase.status] || "secondary"}>
+                        {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {downloadUrl ? (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={purchase.invoice_pdf_url ? "Download invoice PDF" : "View receipt"}
+                          >
+                            {purchase.invoice_pdf_url ? (
+                              <>
+                                <Download className="h-4 w-4 mr-1" />
+                                <span className="text-xs">PDF</span>
+                              </>
+                            ) : (
+                              <>
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                <span className="text-xs">Receipt</span>
+                              </>
+                            )}
+                          </a>
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
