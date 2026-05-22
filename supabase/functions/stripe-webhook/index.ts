@@ -110,6 +110,8 @@ serve(async (req) => {
     } else if (event.type === "customer.subscription.deleted") {
       // Handle subscription cancellation
       await handleSubscriptionDeleted(supabase, event.data.object as Stripe.Subscription);
+    } else if (event.type === "charge.refunded") {
+      await handleChargeRefunded(supabase, event.data.object as Stripe.Charge);
     }
 
     return new Response(
