@@ -58,7 +58,7 @@ export function CreateOrganizationDialog({ onCreateOrganization, trigger }: Crea
 
     try {
       setIsSubmitting(true);
-      await onCreateOrganization(name.trim(), slug.trim());
+      const created: any = await onCreateOrganization(name.trim(), slug.trim());
       toast({
         title: "Organization Created",
         description: `${name} has been created successfully.`,
@@ -66,6 +66,15 @@ export function CreateOrganizationDialog({ onCreateOrganization, trigger }: Crea
       setOpen(false);
       setName("");
       setSlug("");
+
+      // Guide the user to add company billing details right away
+      const createdSlug = created?.slug || slug.trim();
+      if (createdSlug) {
+        sonnerToast.info("Add your company details", {
+          description: "Take a minute to add billing details so every invoice is properly addressed.",
+        });
+        navigate(`/dashboard/org/${createdSlug}/settings?setup=billing`);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
