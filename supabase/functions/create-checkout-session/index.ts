@@ -283,7 +283,25 @@ serve(async (req) => {
 
     // Create Stripe Checkout session
     const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
-    
+
+    // Build invoice custom fields from billing profile (Stripe allows up to 4)
+    const invoiceCustomFields: { name: string; value: string }[] = [];
+    if (billingProfile?.vat_number) {
+      invoiceCustomFields.push({ name: "VAT number", value: billingProfile.vat_number });
+    }
+    if (billingProfile?.registration_number) {
+      invoiceCustomFields.push({
+        name: "Company reg. no.",
+        value: billingProfile.registration_number,
+      });
+    }
+    if (billingProfile?.company_legal_name && billingProfile.company_legal_name !== org.name) {
+      invoiceCustomFields.push({
+        name: "Billed to",
+        value: billingProfile.company_legal_name,
+      });
+    }
+
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode,
       line_items: [{ price: bundle.stripe_price_id, quantity: 1 }],
@@ -310,15 +328,28 @@ serve(async (req) => {
             bundle_id: bundle.id,
             ...(orderId && { order_id: orderId }),
           },
+          ...(invoiceCustomFields.length > 0 && { custom_fields: invoiceCustomFields }),
+        },
+      };
+    } else {
+      // Label renewal invoices for recurring purchases
+      sessionConfig.subscription_data = {
+        description: `${bundle.name} — ${bundle.monthly_hours ?? bundle.hours} hours/month`,
+        metadata: {
+          organization_id: organizationId,
+          service_provider_id: bundle.service_provider_id,
+          bundle_id: bundle.id,
         },
       };
     }
 
-    // For subscriptions, attach customer
-    if (isSubscription && stripeCustomerId) {
+    // Attach the resolved Stripe customer so address + tax_id flow onto the invoice.
+    // When a customer is attached, Stripe needs explicit permission to keep it in
+    // sync if the buyer edits details during checkout.
+    if (stripeCustomerId) {
       sessionConfig.customer = stripeCustomerId;
-    } else if (!isSubscription && userEmail) {
-      // For one-time payments, prefill email
+      sessionConfig.customer_update = { address: "auto", name: "auto" };
+    } else if (userEmail) {
       sessionConfig.customer_email = userEmail;
     }
 
