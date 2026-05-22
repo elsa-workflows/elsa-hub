@@ -19,6 +19,7 @@ import { useCreditBundlesFull, CreditBundleFull } from "@/hooks/useCreditBundles
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AvailabilityDisclaimer } from "@/components/enterprise";
+import { BillingDetailsReminder } from "./BillingDetailsReminder";
 
 interface PurchaseBundleDialogProps {
   open: boolean;
