@@ -110,6 +110,8 @@ serve(async (req) => {
     } else if (event.type === "customer.subscription.deleted") {
       // Handle subscription cancellation
       await handleSubscriptionDeleted(supabase, event.data.object as Stripe.Subscription);
+    } else if (event.type === "charge.refunded") {
+      await handleChargeRefunded(supabase, event.data.object as Stripe.Charge);
     }
 
     return new Response(
@@ -853,4 +855,179 @@ async function syncBillingInfoFromSession(
     console.error("Failed to sync billing info (non-fatal):", error);
     // Non-fatal - don't fail the webhook
   }
+}
+
+// =============================================================
+// Handle charge.refunded — covers both manual (Stripe Dashboard)
+// and dashboard-initiated refunds. Cumulative & idempotent.
+// =============================================================
+async function handleChargeRefunded(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  charge: Stripe.Charge
+) {
+  const paymentIntentId = (charge.payment_intent as string) || null;
+  if (!paymentIntentId) {
+    console.log("charge.refunded: no payment_intent, skipping");
+    return;
+  }
+
+  // Look up order
+  const { data: order, error: orderErr } = await supabase
+    .from("orders")
+    .select("id, organization_id, service_provider_id, amount_cents, currency, refunded_amount_cents, status")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .maybeSingle();
+
+  if (orderErr || !order) {
+    console.log(`charge.refunded: no matching order for PI ${paymentIntentId}`);
+    return;
+  }
+
+  const cumulativeRefunded = charge.amount_refunded ?? 0;
+  const alreadyApplied = order.refunded_amount_cents ?? 0;
+  const delta = cumulativeRefunded - alreadyApplied;
+
+  if (delta <= 0) {
+    console.log(`charge.refunded: nothing new to apply for order ${order.id} (delta=${delta})`);
+    return;
+  }
+
+  // Find the credit lot from this order
+  const { data: lot } = await supabase
+    .from("credit_lots")
+    .select("id, minutes_purchased, minutes_remaining, status")
+    .eq("order_id", order.id)
+    .maybeSingle();
+
+  let minutesToRemove = 0;
+  let lotRemainingAfter = 0;
+  let shortfall = 0;
+  if (lot) {
+    const ratio = delta / order.amount_cents;
+    const desired = Math.round(ratio * lot.minutes_purchased);
+    minutesToRemove = Math.min(desired, lot.minutes_remaining);
+    shortfall = desired - minutesToRemove;
+    lotRemainingAfter = lot.minutes_remaining - minutesToRemove;
+  }
+
+  const isFullRefund = cumulativeRefunded >= order.amount_cents;
+
+  // Update credit lot
+  if (lot && minutesToRemove > 0) {
+    const newStatus = isFullRefund && lotRemainingAfter <= 0
+      ? "refunded"
+      : (lotRemainingAfter <= 0 ? "exhausted" : lot.status);
+    const { error: lotUpdErr } = await supabase
+      .from("credit_lots")
+      .update({
+        minutes_remaining: lotRemainingAfter,
+        status: newStatus,
+      })
+      .eq("id", lot.id);
+    if (lotUpdErr) console.error("Failed to update credit lot on refund:", lotUpdErr);
+  }
+
+  // Ledger entry (always, even if minutesToRemove == 0, for traceability)
+  await supabase.from("credit_ledger_entries").insert({
+    organization_id: order.organization_id,
+    service_provider_id: order.service_provider_id,
+    entry_type: "debit",
+    minutes_delta: -minutesToRemove,
+    reason_code: "refund",
+    related_order_id: order.id,
+    related_credit_lot_id: lot?.id ?? null,
+    actor_type: "system",
+    notes: `Refund of ${delta} cents via Stripe charge ${charge.id}.${shortfall > 0 ? ` Shortfall: ${shortfall} minutes already consumed.` : ""}`,
+  });
+
+  // Update order
+  await supabase
+    .from("orders")
+    .update({
+      refunded_amount_cents: cumulativeRefunded,
+      status: isFullRefund ? "refunded" : order.status,
+    })
+    .eq("id", order.id);
+
+  // Update invoice
+  await supabase
+    .from("invoices")
+    .update({
+      status: isFullRefund ? "refunded" : "partially_refunded",
+    })
+    .eq("order_id", order.id);
+
+  // Audit event
+  await supabase.from("audit_events").insert({
+    organization_id: order.organization_id,
+    service_provider_id: order.service_provider_id,
+    actor_type: "system",
+    entity_type: "order",
+    entity_id: order.id,
+    action: isFullRefund ? "refunded" : "partially_refunded",
+    after_json: {
+      stripe_charge_id: charge.id,
+      refund_delta_cents: delta,
+      cumulative_refunded_cents: cumulativeRefunded,
+      minutes_removed: minutesToRemove,
+      shortfall_minutes: shortfall,
+    },
+  });
+
+  // Notify org owners + provider admins
+  try {
+    const { data: orgMembers } = await supabase
+      .from("organization_members")
+      .select("user_id")
+      .eq("organization_id", order.organization_id)
+      .in("role", ["owner", "admin"]);
+    const { data: provAdmins } = await supabase
+      .from("provider_members")
+      .select("user_id")
+      .eq("service_provider_id", order.service_provider_id)
+      .in("role", ["owner", "admin"]);
+
+    const recipients = Array.from(
+      new Set([
+        ...(orgMembers ?? []).map((m: { user_id: string }) => m.user_id),
+        ...(provAdmins ?? []).map((m: { user_id: string }) => m.user_id),
+      ])
+    );
+
+    if (recipients.length > 0) {
+      const formatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: (order.currency || "usd").toUpperCase(),
+      });
+      const amountFormatted = formatter.format(delta / 100);
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      await fetch(`${supabaseUrl}/functions/v1/create-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
+          type: "purchase_completed",
+          recipientUserIds: recipients,
+          title: isFullRefund ? "Refund issued" : "Partial refund issued",
+          message: `${amountFormatted} refunded for order ${order.id.slice(0, 8).toUpperCase()}.${minutesToRemove > 0 ? ` ${minutesToRemove} minutes of credit were reversed.` : ""}`,
+          payload: {
+            order_id: order.id,
+            refund_delta_cents: delta,
+            minutes_removed: minutesToRemove,
+          },
+          actionUrl: `/dashboard/org/${order.organization_id}/orders`,
+        }),
+      });
+    }
+  } catch (err) {
+    console.error("Failed to send refund notification (non-fatal):", err);
+  }
+
+  console.log(
+    `Refund processed for order ${order.id}: delta=${delta}c, minutes_removed=${minutesToRemove}, full=${isFullRefund}`
+  );
 }

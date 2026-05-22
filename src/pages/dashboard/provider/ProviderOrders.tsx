@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Building2, Search, Receipt, UserCircle, Store, ExternalLink } from "lucide-react";
+import { Building2, Search, Receipt, UserCircle, Store, ExternalLink, FileText, Undo2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useProviderOrders } from "@/hooks/useProviderOrders";
+import { useProviderOrders, type ProviderOrder } from "@/hooks/useProviderOrders";
+import { RefundOrderDialog } from "@/components/provider/RefundOrderDialog";
 
 function formatCurrency(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
@@ -42,6 +43,7 @@ export default function ProviderOrders() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [refundOrder, setRefundOrder] = useState<ProviderOrder | null>(null);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -220,11 +222,17 @@ export default function ProviderOrders() {
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Receipt</TableHead>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => (
+                  {filteredOrders.map((order) => {
+                    const refundable =
+                      order.status === "paid" &&
+                      !!order.stripe_payment_intent_id &&
+                      (order.amount_cents - (order.refunded_amount_cents ?? 0)) > 0;
+                    return (
                     <TableRow key={order.id}>
                       <TableCell>
                         <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">
@@ -271,27 +279,67 @@ export default function ProviderOrders() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(order.amount_cents, order.currency)}
+                        <div>{formatCurrency(order.amount_cents, order.currency)}</div>
+                        {(order.refunded_amount_cents ?? 0) > 0 && (
+                          <div className="text-xs text-muted-foreground font-normal">
+                            −{formatCurrency(order.refunded_amount_cents, order.currency)} refunded
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {order.hosted_invoice_url ? (
+                          <a
+                            href={order.hosted_invoice_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            {order.invoice_number || "Invoice"}
+                          </a>
+                        ) : order.receipt_url ? (
+                          <a
+                            href={order.receipt_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:underline"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Receipt
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {order.receipt_url ? (
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={order.receipt_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
+                        {refundable ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setRefundOrder(order)}
+                          >
+                            <Undo2 className="h-3.5 w-3.5 mr-1.5" />
+                            Refund
                           </Button>
                         ) : (
                           <span className="text-muted-foreground text-sm">—</span>
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TooltipProvider>
           )}
         </CardContent>
       </Card>
+
+      <RefundOrderDialog
+        order={refundOrder}
+        open={!!refundOrder}
+        onOpenChange={(open) => !open && setRefundOrder(null)}
+      />
     </div>
   );
 }
