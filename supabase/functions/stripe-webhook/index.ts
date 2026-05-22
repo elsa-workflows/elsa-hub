@@ -228,8 +228,13 @@ async function handleOneTimePaymentCheckout(
     console.error("Failed to create ledger entry:", ledgerError);
   }
 
-  // Get receipt URL
+  // Get receipt URL and Stripe-issued invoice (PDF + hosted page)
   let receiptUrl: string | null = null;
+  let stripeInvoiceId: string | null = null;
+  let invoiceNumber: string | null = null;
+  let hostedInvoiceUrl: string | null = null;
+  let invoicePdfUrl: string | null = null;
+
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
       expand: ["latest_charge"],
@@ -238,6 +243,22 @@ async function handleOneTimePaymentCheckout(
     receiptUrl = charge?.receipt_url || null;
   } catch (err) {
     console.error("Failed to get receipt URL:", err);
+  }
+
+  try {
+    // session.invoice is set when invoice_creation.enabled was true on the Checkout Session
+    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ["invoice"],
+    });
+    const invoice = fullSession.invoice as Stripe.Invoice | null;
+    if (invoice) {
+      stripeInvoiceId = invoice.id ?? null;
+      invoiceNumber = invoice.number ?? null;
+      hostedInvoiceUrl = invoice.hosted_invoice_url ?? null;
+      invoicePdfUrl = invoice.invoice_pdf ?? null;
+    }
+  } catch (err) {
+    console.error("Failed to retrieve Stripe invoice for checkout session:", err);
   }
 
   // Create/upsert invoice
@@ -252,6 +273,10 @@ async function handleOneTimePaymentCheckout(
       issued_at: now,
       paid_at: now,
       stripe_receipt_url: receiptUrl,
+      stripe_invoice_id: stripeInvoiceId,
+      invoice_number: invoiceNumber,
+      hosted_invoice_url: hostedInvoiceUrl,
+      invoice_pdf_url: invoicePdfUrl,
     },
     { onConflict: "order_id" }
   );
