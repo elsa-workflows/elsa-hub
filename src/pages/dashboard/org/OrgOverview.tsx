@@ -126,6 +126,15 @@ export default function OrgOverview() {
         )}
       </div>
 
+      {/* Billing details reminder (admins only, dismissible) */}
+      {isAdmin && (
+        <BillingDetailsReminder
+          organizationId={organization?.id}
+          organizationSlug={organization?.slug}
+          dismissible
+        />
+      )}
+
       {/* Quick Links */}
       <div className="grid gap-4 sm:grid-cols-4">
         <QuickLinkCard title="Orders" description="View purchase history" href={`/dashboard/org/${slug}/orders`} />
