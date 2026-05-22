@@ -61,15 +61,11 @@ serve(async (req) => {
       return json({ error: "Order not found" }, 404);
     }
 
-    // Auth: caller must be provider admin
-    const { data: isAdmin, error: roleErr } = await admin.rpc("is_provider_admin", {
+    // Auth: caller must be provider admin (function reads auth.uid())
+    const { data: isAdminUser, error: roleErr } = await userClient.rpc("is_provider_admin", {
       p_provider_id: order.service_provider_id,
     });
-    // is_provider_admin uses auth.uid() — call via user client instead
-    const { data: isAdminUser, error: roleErr2 } = await userClient.rpc("is_provider_admin", {
-      p_provider_id: order.service_provider_id,
-    });
-    if (roleErr2 || !isAdminUser) {
+    if (roleErr || !isAdminUser) {
       return json({ error: "Forbidden: provider admin required" }, 403);
     }
 
