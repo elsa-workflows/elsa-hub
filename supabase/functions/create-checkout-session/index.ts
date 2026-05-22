@@ -191,25 +191,29 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // For subscriptions, we need to get or create a Stripe customer
+    // Resolve or create a Stripe Customer for this user/org so the billing
+    // profile (address + tax id) flows onto every invoice — works for both
+    // one-time and recurring sessions.
     let stripeCustomerId: string | undefined;
-    if (isSubscription && userEmail) {
-      // Check if customer already exists
+    if (userEmail) {
       const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+      const addressPayload = billingProfile?.address_line1
+        ? {
+            line1: billingProfile.address_line1 || undefined,
+            line2: billingProfile.address_line2 || undefined,
+            city: billingProfile.city || undefined,
+            state: billingProfile.state_province || undefined,
+            postal_code: billingProfile.postal_code || undefined,
+            country: billingProfile.country || undefined,
+          }
+        : undefined;
+
       if (customers.data.length > 0) {
         stripeCustomerId = customers.data[0].id;
-        // Update existing customer with billing info if available
         if (billingProfile) {
           await stripe.customers.update(stripeCustomerId, {
             name: billingProfile.company_legal_name || org.name,
-            address: billingProfile.address_line1 ? {
-              line1: billingProfile.address_line1 || undefined,
-              line2: billingProfile.address_line2 || undefined,
-              city: billingProfile.city || undefined,
-              state: billingProfile.state_province || undefined,
-              postal_code: billingProfile.postal_code || undefined,
-              country: billingProfile.country || undefined,
-            } : undefined,
+            address: addressPayload,
             metadata: {
               organization_id: organizationId,
               user_id: userId,
@@ -217,18 +221,10 @@ serve(async (req) => {
           });
         }
       } else {
-        // Create new customer with billing info
         const customer = await stripe.customers.create({
           email: userEmail,
           name: billingProfile?.company_legal_name || org.name,
-          address: billingProfile?.address_line1 ? {
-            line1: billingProfile.address_line1 || undefined,
-            line2: billingProfile.address_line2 || undefined,
-            city: billingProfile.city || undefined,
-            state: billingProfile.state_province || undefined,
-            postal_code: billingProfile.postal_code || undefined,
-            country: billingProfile.country || undefined,
-          } : undefined,
+          address: addressPayload,
           metadata: {
             organization_id: organizationId,
             user_id: userId,
@@ -241,7 +237,6 @@ serve(async (req) => {
       if (billingProfile?.vat_number && billingProfile?.country && stripeCustomerId) {
         try {
           const taxIdType = getTaxIdType(billingProfile.country);
-          // Check if tax ID already exists
           const existingTaxIds = await stripe.customers.listTaxIds(stripeCustomerId);
           const hasVat = existingTaxIds.data.some(
             (t: Stripe.TaxId) => t.value === billingProfile.vat_number
