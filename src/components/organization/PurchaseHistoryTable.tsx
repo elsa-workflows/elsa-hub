@@ -64,6 +64,9 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
       bundle_name: order.bundle_name,
       bundle_hours: order.bundle_hours,
       receipt_url: order.receipt_url,
+      invoice_number: order.invoice_number,
+      hosted_invoice_url: order.hosted_invoice_url,
+      invoice_pdf_url: order.invoice_pdf_url,
       type: "one_time" as const,
     }));
 
@@ -76,6 +79,9 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
       bundle_name: sub.bundle_name,
       bundle_hours: sub.monthly_hours,
       receipt_url: null,
+      invoice_number: null,
+      hosted_invoice_url: null,
+      invoice_pdf_url: null,
       type: "subscription" as const,
     }));
 
