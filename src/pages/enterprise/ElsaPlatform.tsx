@@ -255,11 +255,6 @@ function PipelineDiagram() {
   );
 }
 
-const phases: { tag: string; title: string; horizon: string; items: string[] }[] = [
-  {
-    tag: "Phase 1",
-    title: "Foundation",
-    horizon: "Now → Next",
 type Phase = {
   tag: string;
   title: string;
