@@ -15,6 +15,7 @@ const navItems = [
   { label: "Home", to: "/" },
   { label: "Get Started", to: "/get-started" },
   { label: "Elsa+", to: "/elsa-plus" },
+  { label: "Blog", to: "/blog" },
   { label: "Resources", to: "/resources" },
 ];
 
