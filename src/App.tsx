@@ -27,6 +27,7 @@ import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
 import RuntimeBuilderLanding from "./pages/enterprise/RuntimeBuilderLanding";
 import RuntimeBuilderComposer from "./pages/enterprise/RuntimeBuilderComposer";
+import ElsaPlatform from "./pages/enterprise/ElsaPlatform";
 
 import Resources from "./pages/Resources";
 import Roadmap from "./pages/Roadmap";
