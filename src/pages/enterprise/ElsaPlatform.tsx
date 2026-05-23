@@ -260,39 +260,149 @@ const phases: { tag: string; title: string; horizon: string; items: string[] }[]
     tag: "Phase 1",
     title: "Foundation",
     horizon: "Now → Next",
+type Phase = {
+  tag: string;
+  title: string;
+  horizon: string;
+  status: Status;
+  icon: typeof Rocket;
+  summary: string;
+  objective: string;
+  outcome: string;
+  items: { title: string; detail: string }[];
+};
+
+const phases: Phase[] = [
+  {
+    tag: "Phase 1",
+    title: "Foundation",
+    horizon: "Now → Next",
+    status: "Now",
+    icon: Rocket,
+    summary: "The deterministic deployment loop, CLI-first.",
+    objective:
+      "Ship a credible, end-to-end deployment loop for workflows and runtime configuration that a single team can adopt without operator support.",
+    outcome:
+      "Teams stop hand-rolling deployment scripts. Every change to workflows, variables, and packages is versioned, validated, previewed, and recorded.",
     items: [
-      "Manifest schema (v1alpha)",
-      "Folder & ZIP artifacts",
-      "Workflows & variables as full deployment targets",
-      "CLI-first deployment loop",
-      "Validation, dry-run, apply",
-      "Deployment history",
+      {
+        title: "Manifest schema (v1alpha)",
+        detail:
+          "Versioned EnvironmentManifest in YAML/JSON with a stable v1alpha contract — workflows, variables, packages, features, recipes.",
+      },
+      {
+        title: "Folder & ZIP artifacts",
+        detail:
+          "Reproducible artifacts built from a manifest — directory layout for development, signed ZIP for promotion across environments.",
+      },
+      {
+        title: "Workflows & variables as deployment targets",
+        detail:
+          "First-class resources, not config side-effects. Diffed, planned, and applied like any other declarative resource.",
+      },
+      {
+        title: "CLI-first deployment loop",
+        detail:
+          "elsa validate · plan · preview · apply. Scriptable in CI from day one, no UI required to be productive.",
+      },
+      {
+        title: "Validation, dry-run, apply",
+        detail:
+          "Schema and compatibility validation, deterministic plans, full dry-run, and idempotent apply that is safe to re-run.",
+      },
+      {
+        title: "Deployment history",
+        detail:
+          "Every applied artifact recorded with provenance: who, what, when, against which target, and the diff against prior state.",
+      },
     ],
   },
   {
     tag: "Phase 2",
     title: "Enterprise",
     horizon: "Later · near-term",
+    status: "Next",
+    icon: ShieldCheck,
+    summary: "Trust, supply chain, and GitOps.",
+    objective:
+      "Make the deployment loop safe to operate across multiple teams and environments — with approvals, signed artifacts, and external operators.",
+    outcome:
+      "Regulated and security-conscious teams adopt Elsa Platform without bolting on bespoke approval and signing tooling.",
     items: [
-      "Drift detection & approvals",
-      "Signed artifacts & OCI compatibility",
-      "GitOps & external operators",
-      "Overlays & secret references",
-      "Promotion flows",
-      "Audit metadata",
+      {
+        title: "Drift detection & approvals",
+        detail:
+          "Continuous comparison of applied state vs. desired state, with approval gates before re-applying or reconciling drift.",
+      },
+      {
+        title: "Signed artifacts & OCI compatibility",
+        detail:
+          "Cryptographic signing of deployment artifacts and distribution via OCI registries alongside container images.",
+      },
+      {
+        title: "GitOps & external operators",
+        detail:
+          "Pull-based reconciliation from Git, plus an operator surface so external systems can drive deployments.",
+      },
+      {
+        title: "Overlays & secret references",
+        detail:
+          "Environment overlays merged into the manifest at plan time. Secrets stay in their managers — manifests reference them.",
+      },
+      {
+        title: "Promotion flows",
+        detail:
+          "Promote the exact same artifact through dev → staging → prod with environment-scoped overlays and approval gates.",
+      },
+      {
+        title: "Audit metadata",
+        detail:
+          "Rich, exportable audit records linking artifacts, plans, approvers, and the resulting deployment history entries.",
+      },
     ],
   },
   {
     tag: "Phase 3",
     title: "Platform Engineering",
     horizon: "Later · fleet-scale",
+    status: "Later",
+    icon: Network,
+    summary: "Fleet-scale reconciliation for platform teams.",
+    objective:
+      "Operate Elsa as a managed platform across many tenants and clusters — with policies, attestations, and progressive rollouts.",
+    outcome:
+      "Platform teams treat Elsa runtimes the way SRE treats Kubernetes workloads: declarative, observable, policy-governed, and progressively rolled out.",
     items: [
-      "Multi-tenant reconciliation",
-      "Fleet management",
-      "Kubernetes CRDs",
-      "Progressive rollout",
-      "Policy engine & attestations",
-      "Distributed reconcilers & dashboards",
+      {
+        title: "Multi-tenant reconciliation",
+        detail:
+          "Reconcile desired state for many tenants in parallel, with isolation guarantees and per-tenant deployment history.",
+      },
+      {
+        title: "Fleet management",
+        detail:
+          "Manage groups of runtimes as fleets — shared baselines, targeted overrides, and bulk operations with safety rails.",
+      },
+      {
+        title: "Kubernetes CRDs",
+        detail:
+          "Native CRDs so Elsa resources are first-class on Kubernetes and reconciled by an in-cluster controller.",
+      },
+      {
+        title: "Progressive rollout",
+        detail:
+          "Canary and waved rollouts across the fleet with automated health checks and fast rollback to the previous artifact.",
+      },
+      {
+        title: "Policy engine & attestations",
+        detail:
+          "Pluggable policies gate plans and applies. Attestations capture which policies passed for any given deployment.",
+      },
+      {
+        title: "Distributed reconcilers & dashboards",
+        detail:
+          "Horizontally scalable reconcilers with platform-team dashboards for fleet health, drift, and deployment activity.",
+      },
     ],
   },
 ];
@@ -304,6 +414,211 @@ const takeaways = [
   { icon: Library, title: "Governed packages", body: "Selection and compatibility enforced at the boundary." },
   { icon: Bot, title: "Assistants for users", body: "Help understand, configure, and deploy safely." },
 ];
+
+function InteractiveRoadmap() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
+  const active = phases[activeIdx];
+  const ActiveIcon = active.icon;
+
+  const toggle = (key: string) =>
+    setOpenItems((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <div className="relative">
+      {/* Timeline rail */}
+      <div className="relative">
+        <div
+          className="absolute left-0 right-0 top-5 h-px bg-border md:top-6"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute left-0 top-5 h-px bg-gradient-to-r from-primary via-primary/60 to-transparent transition-all duration-500 md:top-6"
+          style={{ width: `${((activeIdx + 0.5) / phases.length) * 100}%` }}
+          aria-hidden="true"
+        />
+
+        <ol className="relative grid grid-cols-3 gap-3">
+          {phases.map((p, i) => {
+            const Icon = p.icon;
+            const isActive = i === activeIdx;
+            const isPast = i < activeIdx;
+            return (
+              <li key={p.tag} className="flex flex-col items-center text-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveIdx(i)}
+                  aria-pressed={isActive}
+                  aria-label={`Show ${p.title}`}
+                  className={`group relative flex h-10 w-10 items-center justify-center rounded-full border-2 bg-background transition-all md:h-12 md:w-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    isActive
+                      ? "border-primary shadow-lg shadow-primary/25 scale-110"
+                      : isPast
+                        ? "border-primary/60"
+                        : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <Icon
+                    className={`h-4 w-4 transition-colors md:h-5 md:w-5 ${
+                      isActive || isPast ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                    }`}
+                  />
+                  {isActive && (
+                    <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-primary/30" />
+                  )}
+                </button>
+                <div className="mt-3 hidden md:block">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {p.tag}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveIdx(i)}
+                    className={`mt-1 text-[14px] font-semibold transition-colors ${
+                      isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {p.title}
+                  </button>
+                  <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                    {p.horizon}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveIdx(i)}
+                  className={`mt-2 text-[11px] font-semibold md:hidden ${
+                    isActive ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {p.title}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+
+      {/* Active phase detail */}
+      <Card variant="glass" className="mt-10">
+        <CardContent className="p-6 md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-4">
+              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-primary/30 bg-primary/10 text-primary">
+                <ActiveIcon className="h-6 w-6" />
+              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    {active.tag} · {active.horizon}
+                  </span>
+                  <StatusBadge status={active.status} />
+                </div>
+                <h3 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">
+                  {active.title}
+                </h3>
+                <p className="mt-1 text-[15px] text-muted-foreground">{active.summary}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 md:self-end">
+              <button
+                type="button"
+                onClick={() => setActiveIdx((i) => Math.max(0, i - 1))}
+                disabled={activeIdx === 0}
+                className="rounded-md border border-border bg-background px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                ← Prev
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveIdx((i) => Math.min(phases.length - 1, i + 1))}
+                disabled={activeIdx === phases.length - 1}
+                className="rounded-md border border-border bg-background px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border border-border bg-muted/30 p-5">
+              <div className="flex items-center gap-2 text-primary">
+                <TargetIcon className="h-4 w-4" />
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em]">
+                  Objective
+                </span>
+              </div>
+              <p className="mt-3 text-[14px] leading-relaxed text-foreground/85">
+                {active.objective}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/30 p-5">
+              <div className="flex items-center gap-2 text-primary">
+                <Flag className="h-4 w-4" />
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em]">
+                  Outcome
+                </span>
+              </div>
+              <p className="mt-3 text-[14px] leading-relaxed text-foreground/85">
+                {active.outcome}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                What ships in this phase
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                click to expand
+              </span>
+            </div>
+            <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+              {active.items.map((it, idx) => {
+                const key = `${active.tag}-${idx}`;
+                const isOpen = !!openItems[key];
+                return (
+                  <li key={key} className="bg-background/40">
+                    <button
+                      type="button"
+                      onClick={() => toggle(key)}
+                      aria-expanded={isOpen}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus-visible:bg-muted/40"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="mt-1 font-mono text-[10px] text-muted-foreground">
+                          {String(idx + 1).padStart(2, "0")}
+                        </span>
+                        <span className="text-[14.5px] font-medium">{it.title}</span>
+                      </div>
+                      <ChevronRight
+                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                          isOpen ? "rotate-90 text-primary" : ""
+                        }`}
+                      />
+                    </button>
+                    <div
+                      className={`grid transition-all duration-300 ${
+                        isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <p className="px-5 pb-4 pl-12 text-[13.5px] leading-relaxed text-muted-foreground">
+                          {it.detail}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default function ElsaPlatform() {
   return (
