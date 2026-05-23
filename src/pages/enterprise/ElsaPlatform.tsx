@@ -515,6 +515,8 @@ export default function ElsaPlatform() {
             </p>
           </div>
 
+          <PipelineDiagram />
+
           <Card variant="glass">
             <CardContent className="p-6 md:p-8">
               <div className="hidden lg:flex items-stretch gap-2">
@@ -522,7 +524,10 @@ export default function ElsaPlatform() {
                   const Icon = s.icon;
                   return (
                     <div key={s.title} className="flex flex-1 items-stretch">
-                      <div className="flex flex-1 flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                      <div
+                        id={`pipeline-step-${s.id}`}
+                        className="flex flex-1 flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 scroll-mt-24 transition-all"
+                      >
                         <div className="flex items-center justify-between">
                           <span className="font-mono text-[10px] text-muted-foreground">
                             {String(i + 1).padStart(2, "0")}
@@ -550,7 +555,8 @@ export default function ElsaPlatform() {
                   return (
                     <li
                       key={s.title}
-                      className="flex gap-4 rounded-lg border border-border bg-muted/30 p-4"
+                      id={`pipeline-step-${s.id}`}
+                      className="flex gap-4 rounded-lg border border-border bg-muted/30 p-4 scroll-mt-24 transition-all"
                     >
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
                         <Icon className="h-4 w-4" />
