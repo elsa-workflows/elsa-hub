@@ -23,6 +23,11 @@ import {
   GitBranch,
   RefreshCcw,
   GitMerge,
+  Rocket,
+  Network,
+  Sparkles,
+  Target as TargetIcon,
+  Flag,
 } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
