@@ -170,14 +170,84 @@ const pillars: {
 ];
 
 const pipeline = [
-  { icon: FileCode2, title: "Author manifest", body: "Versioned EnvironmentManifest (YAML/JSON, v1alpha)." },
-  { icon: Package, title: "Build artifact", body: "Reproducible folder or ZIP artifact." },
-  { icon: ShieldCheck, title: "Validate", body: "Schema, resources, packages, compatibility." },
-  { icon: ClipboardList, title: "Plan", body: "Deterministic deployment plan with desired-state hashes." },
-  { icon: Eye, title: "Preview", body: "Diff + dry-run before any change is applied." },
-  { icon: PlayCircle, title: "Apply", body: "Idempotent. Re-apply the same artifact safely." },
-  { icon: History, title: "Record", body: "Deployment history with full provenance." },
+  { id: "author-manifest", icon: FileCode2, title: "Author manifest", body: "Versioned EnvironmentManifest (YAML/JSON, v1alpha)." },
+  { id: "build-artifact", icon: Package, title: "Build artifact", body: "Reproducible folder or ZIP artifact." },
+  { id: "validate", icon: ShieldCheck, title: "Validate", body: "Schema, resources, packages, compatibility." },
+  { id: "plan", icon: ClipboardList, title: "Plan", body: "Deterministic deployment plan with desired-state hashes." },
+  { id: "preview", icon: Eye, title: "Preview", body: "Diff + dry-run before any change is applied." },
+  { id: "apply", icon: PlayCircle, title: "Apply", body: "Idempotent. Re-apply the same artifact safely." },
+  { id: "record", icon: History, title: "Record", body: "Deployment history with full provenance." },
 ];
+
+function scrollToStep(id: string) {
+  const el = document.getElementById(`pipeline-step-${id}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background");
+  window.setTimeout(() => {
+    el.classList.remove("ring-2", "ring-primary", "ring-offset-2", "ring-offset-background");
+  }, 1600);
+}
+
+function PipelineDiagram() {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/5 via-background to-accent/5 p-6 md:p-10 mb-8">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{
+          backgroundImage: `linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px)`,
+          backgroundSize: "32px 32px",
+          maskImage: "radial-gradient(ellipse 80% 70% at 50% 50%, black 50%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 80% 70% at 50% 50%, black 50%, transparent 100%)",
+        }}
+      />
+      <div className="relative">
+        <div className="mb-6 flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Interactive flow
+          </span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:block">
+            click a step to jump to details
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-start justify-center gap-y-5">
+          {pipeline.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.id} className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => scrollToStep(s.id)}
+                  className="group flex flex-col items-center gap-2 focus:outline-none"
+                  aria-label={`Jump to ${s.title}`}
+                >
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-background shadow-sm transition-all group-hover:scale-110 group-hover:border-primary group-hover:shadow-md group-hover:shadow-primary/20 group-focus-visible:ring-2 group-focus-visible:ring-primary group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background md:h-16 md:w-16">
+                    <Icon className="h-5 w-5 text-primary md:h-6 md:w-6" />
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary font-mono text-[10px] font-semibold text-primary-foreground">
+                      {i + 1}
+                    </span>
+                  </div>
+                  <span className="max-w-[88px] text-center text-[12px] font-medium leading-tight transition-colors group-hover:text-primary md:text-[13px]">
+                    {s.title}
+                  </span>
+                </button>
+                {i < pipeline.length - 1 && (
+                  <div className="mx-1 mt-7 flex items-center sm:mx-2" aria-hidden="true">
+                    <svg width="28" height="14" viewBox="0 0 28 14" className="text-primary/40">
+                      <path d="M 0 7 L 22 7" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
+                      <path d="M 20 2 L 26 7 L 20 12" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const phases: { tag: string; title: string; horizon: string; items: string[] }[] = [
   {
@@ -445,6 +515,8 @@ export default function ElsaPlatform() {
             </p>
           </div>
 
+          <PipelineDiagram />
+
           <Card variant="glass">
             <CardContent className="p-6 md:p-8">
               <div className="hidden lg:flex items-stretch gap-2">
@@ -452,7 +524,10 @@ export default function ElsaPlatform() {
                   const Icon = s.icon;
                   return (
                     <div key={s.title} className="flex flex-1 items-stretch">
-                      <div className="flex flex-1 flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                      <div
+                        id={`pipeline-step-${s.id}`}
+                        className="flex flex-1 flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 scroll-mt-24 transition-all"
+                      >
                         <div className="flex items-center justify-between">
                           <span className="font-mono text-[10px] text-muted-foreground">
                             {String(i + 1).padStart(2, "0")}
@@ -480,7 +555,8 @@ export default function ElsaPlatform() {
                   return (
                     <li
                       key={s.title}
-                      className="flex gap-4 rounded-lg border border-border bg-muted/30 p-4"
+                      id={`pipeline-step-${s.id}`}
+                      className="flex gap-4 rounded-lg border border-border bg-muted/30 p-4 scroll-mt-24 transition-all"
                     >
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-primary/30 bg-primary/10 text-primary">
                         <Icon className="h-4 w-4" />
