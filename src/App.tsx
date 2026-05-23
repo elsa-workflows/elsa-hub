@@ -39,6 +39,8 @@ import AuthCallback from "./pages/auth/AuthCallback";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 
 // Dashboard
 import { DashboardLayout } from "@/components/dashboard";
@@ -113,6 +115,8 @@ const App = () => (
               <Route path="/enterprise/training" element={<Navigate to="/elsa-plus/training" replace />} />
               <Route path="/marketplace" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/resources" element={<Resources />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/resources/community-content" element={<CommunityContent />} />
               <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/login" element={<Login />} />
