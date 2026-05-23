@@ -102,6 +102,7 @@ const App = () => (
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
+              <Route path="/elsa-plus/platform" element={<ElsaPlatform />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />
               <Route path="/elsa-plus/priority-support" element={<Navigate to="/elsa-plus/expert-services/valence-works" replace />} />
               {/* Backward compatibility redirects */}
