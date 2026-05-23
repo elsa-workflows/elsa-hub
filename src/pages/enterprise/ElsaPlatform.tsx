@@ -938,44 +938,8 @@ export default function ElsaPlatform() {
             </p>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            {phases.map((p, i) => (
-              <Card key={p.tag} variant="glass" className="h-full">
-                <CardContent className="p-7">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full font-mono text-[11px] font-semibold ${
-                        i === 0
-                          ? "bg-primary text-primary-foreground"
-                          : i === 1
-                            ? "bg-accent text-accent-foreground"
-                            : "border border-border bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {i + 1}
-                    </span>
-                    <div>
-                      <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                        {p.tag} · {p.horizon}
-                      </div>
-                      <div className="text-xl font-semibold">{p.title}</div>
-                    </div>
-                  </div>
-                  <ul className="mt-6 space-y-2.5">
-                    {p.items.map((it) => (
-                      <li
-                        key={it}
-                        className="flex items-start gap-2.5 text-[14px] text-foreground/90"
-                      >
-                        <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-foreground/40" />
-                        {it}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <InteractiveRoadmap />
+
         </div>
       </section>
 
