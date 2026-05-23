@@ -8,6 +8,7 @@ import {
   FileCode2,
   Handshake,
   Boxes,
+  LayoutDashboard,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {
@@ -24,17 +25,17 @@ const servicesAndSupport = [
     icon: Users,
     href: "/elsa-plus/expert-services",
   },
-  {
-    title: "Cloud & Managed Services",
-    description:
-      "Managed workflow engine in the cloud with enterprise-grade hosting and seamless management.",
-    icon: Cloud,
-    href: "/elsa-plus/cloud-services",
-    comingSoon: true,
-  },
 ];
 
 const runtimeAndOperations = [
+  {
+    title: "Elsa Platform",
+    description:
+      "Control plane for Elsa: declarative manifests, package governance, runtime composition, and a deterministic deploy loop with full history.",
+    icon: LayoutDashboard,
+    href: "/elsa-plus/platform",
+    badge: "In development",
+  },
   {
     title: "Runtime Builder",
     description:
@@ -50,6 +51,14 @@ const runtimeAndOperations = [
     icon: Container,
     href: "/elsa-plus/docker-images",
     badge: "Preview",
+  },
+  {
+    title: "Cloud & Managed Services",
+    description:
+      "Managed workflow engine in the cloud with enterprise-grade hosting and seamless management.",
+    icon: Cloud,
+    href: "/elsa-plus/cloud-services",
+    comingSoon: true,
   },
 ];
 

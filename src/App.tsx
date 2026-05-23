@@ -27,6 +27,7 @@ import CloudServices from "./pages/enterprise/CloudServices";
 import Training from "./pages/enterprise/Training";
 import RuntimeBuilderLanding from "./pages/enterprise/RuntimeBuilderLanding";
 import RuntimeBuilderComposer from "./pages/enterprise/RuntimeBuilderComposer";
+import ElsaPlatform from "./pages/enterprise/ElsaPlatform";
 
 import Resources from "./pages/Resources";
 import Roadmap from "./pages/Roadmap";
@@ -101,6 +102,7 @@ const App = () => (
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
+              <Route path="/elsa-plus/platform" element={<ElsaPlatform />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />
               <Route path="/elsa-plus/priority-support" element={<Navigate to="/elsa-plus/expert-services/valence-works" replace />} />
               {/* Backward compatibility redirects */}
