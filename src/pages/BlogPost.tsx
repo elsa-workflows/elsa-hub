@@ -234,9 +234,18 @@ export default function BlogPost() {
         {post.tags && post.tags.length > 0 && (
           <div className="mt-12 pt-6 border-t border-border flex flex-wrap gap-2">
             {post.tags.map((t) => (
-              <Badge key={t} variant="outline" className="font-normal">
-                {t}
-              </Badge>
+              <Link
+                key={t}
+                to={`/blog?tag=${encodeURIComponent(t)}`}
+                aria-label={`View posts tagged ${t}`}
+              >
+                <Badge
+                  variant="outline"
+                  className="font-normal cursor-pointer hover:border-primary/60 hover:text-primary transition-colors"
+                >
+                  {t}
+                </Badge>
+              </Link>
             ))}
           </div>
         )}
