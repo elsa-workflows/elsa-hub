@@ -61,15 +61,16 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
   return {
     searchKnowledge: tool({
       description:
-        "Semantic search over Elsa site content, package catalog, bundles, and FAQ. Always call this before answering factual questions.",
+        "Semantic search over Elsa site content, package catalog, bundles, FAQ, and blog posts. Always call this before answering factual questions.",
       inputSchema: z.object({
         query: z.string().min(2).describe("Natural-language search query"),
         topK: z.number().int().min(1).max(8).default(5),
         source: z
-          .enum(["page", "package", "bundle", "faq"])
+          .enum(["page", "package", "bundle", "faq", "blog"])
           .optional()
           .describe("Optional filter by source type"),
       }),
+
       execute: async ({ query, topK, source }) => {
         try {
           const [embedding] = await embedTexts(LOVABLE_API_KEY, [query]);
