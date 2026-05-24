@@ -25,13 +25,100 @@ const CATALOG_KEY = Deno.env.get("ELSA_PACKAGE_CATALOG_API_KEY")!;
 const SITE_BASE = "https://elsa-workflows.io";
 
 type Doc = {
-  source: "page" | "package" | "bundle" | "faq" | "provider" | "infrastructure";
+  source: "page" | "package" | "bundle" | "faq" | "provider" | "infrastructure" | "blog";
   external_id: string;
   url: string | null;
   title: string;
   body: string;
   metadata?: Record<string, unknown>;
 };
+
+const BLOG_BASE = "https://elsa-workflows.github.io/elsa-blog";
+const BLOG_CANONICAL_BASE = "https://www.elsaworkflows.io/blog";
+const BLOG_CHUNK_CHARS = 4000;
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function chunkText(text: string, size: number): string[] {
+  if (text.length <= size) return [text];
+  const out: string[] = [];
+  for (let i = 0; i < text.length; i += size) {
+    out.push(text.slice(i, i + size));
+  }
+  return out;
+}
+
+async function buildBlogDocs(): Promise<Doc[]> {
+  const docs: Doc[] = [];
+  let index: any;
+  try {
+    const res = await fetch(`${BLOG_BASE}/index.json`);
+    if (!res.ok) {
+      console.warn(`blog index fetch failed: ${res.status}`);
+      return docs;
+    }
+    index = await res.json();
+  } catch (e) {
+    console.warn("blog index fetch error", e);
+    return docs;
+  }
+
+  const posts: any[] = Array.isArray(index?.posts) ? index.posts : [];
+  // Fetch posts in batches of 8.
+  for (let i = 0; i < posts.length; i += 8) {
+    const batch = posts.slice(i, i + 8);
+    const results = await Promise.all(batch.map(async (p) => {
+      try {
+        const r = await fetch(`${BLOG_BASE}/posts/${encodeURIComponent(p.slug)}.json`);
+        if (!r.ok) return null;
+        return await r.json();
+      } catch (e) {
+        console.warn(`post fetch failed: ${p.slug}`, e);
+        return null;
+      }
+    }));
+    for (const post of results) {
+      if (!post?.slug) continue;
+      const url = `${BLOG_CANONICAL_BASE}/${post.slug}`;
+      const plain = stripHtml(post.html ?? "");
+      const fullBody = [post.description, plain].filter(Boolean).join("\n\n");
+      const chunks = chunkText(fullBody || post.title || post.slug, BLOG_CHUNK_CHARS);
+      const baseMeta = {
+        slug: post.slug,
+        publishedAt: post.publishedAt,
+        updatedAt: post.updatedAt,
+        category: post.category,
+        tags: post.tags,
+        authors: (post.authors ?? []).map((a: any) => a?.name).filter(Boolean),
+      };
+      chunks.forEach((chunk, idx) => {
+        docs.push({
+          source: "blog",
+          external_id: chunks.length > 1 ? `blog:${post.slug}#${idx}` : `blog:${post.slug}`,
+          url,
+          title: chunks.length > 1 ? `${post.title} (part ${idx + 1})` : post.title,
+          body: chunk,
+          metadata: { ...baseMeta, chunk: idx, chunkCount: chunks.length },
+        });
+      });
+    }
+  }
+  return docs;
+}
+
 
 const PAGE_DOCS: Doc[] = [
   {
