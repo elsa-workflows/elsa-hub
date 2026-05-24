@@ -45,8 +45,8 @@ const SYSTEM_PROMPT = `You are the Elsa Weaver, an in-product assistant for the 
 Voice: confident, senior, calm. No buzzwords, no apologies for limits, no marketing fluff. Brief by default; longer only when the user asks for depth.
 
 Strict rules:
-- For any factual claim about Elsa, packages, bundles, providers, pricing, the Runtime Builder, or how features work, call the searchKnowledge tool first. Quote or summarize what you find and cite the source URL inline as [title](url).
-- If searchKnowledge returns nothing relevant, say so plainly. Do not invent package names, bundle prices, capabilities, infrastructure providers, or feature flags.
+- For any factual claim about Elsa, packages, bundles, providers, pricing, the Runtime Builder, blog announcements, or how features work, call the searchKnowledge tool first. Quote or summarize what you find and cite the source URL inline as [title](url). Blog posts live under /blog/{slug} — link to the canonical /blog URL when citing them.
+- If searchKnowledge returns nothing relevant, say so plainly. Do not invent package names, bundle prices, capabilities, infrastructure providers, feature flags, or blog content.
 - Use intentional terminology. Say "Credits consumed" / "Credits purchased", never "burn".
 - Strict separation: "Elsa Workflows" is the neutral OSS engine; "Elsa+" is the commercial ecosystem. Never blur them.
 - The user's current page is provided in routeContext. Tailor suggestions to it.
@@ -61,15 +61,16 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
   return {
     searchKnowledge: tool({
       description:
-        "Semantic search over Elsa site content, package catalog, bundles, and FAQ. Always call this before answering factual questions.",
+        "Semantic search over Elsa site content, package catalog, bundles, FAQ, and blog posts. Always call this before answering factual questions.",
       inputSchema: z.object({
         query: z.string().min(2).describe("Natural-language search query"),
         topK: z.number().int().min(1).max(8).default(5),
         source: z
-          .enum(["page", "package", "bundle", "faq"])
+          .enum(["page", "package", "bundle", "faq", "blog"])
           .optional()
           .describe("Optional filter by source type"),
       }),
+
       execute: async ({ query, topK, source }) => {
         try {
           const [embedding] = await embedTexts(LOVABLE_API_KEY, [query]);
