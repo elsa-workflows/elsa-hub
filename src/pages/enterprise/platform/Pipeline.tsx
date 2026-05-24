@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Seo } from "@/components/Seo";
 import { ElsaPlusDisclaimer } from "@/components/elsa-plus";
@@ -33,31 +32,27 @@ export default function Pipeline() {
 
       <Card variant="glass">
         <CardContent className="p-6 md:p-8">
-          <div className="hidden lg:flex items-stretch gap-2">
+          <div className="hidden lg:grid grid-cols-7 gap-3">
             {pipeline.map((s, i) => {
               const Icon = s.icon;
               return (
-                <div key={s.title} className="flex flex-1 items-stretch">
-                  <div
-                    id={`pipeline-step-${s.id}`}
-                    className="flex flex-1 flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 scroll-mt-24 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <Icon className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <div className="text-[15px] font-semibold">{s.title}</div>
-                      <div className="mt-1 text-[12.5px] leading-snug text-muted-foreground">
-                        {s.body}
-                      </div>
+                <div
+                  key={s.title}
+                  id={`pipeline-step-${s.id}`}
+                  className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 scroll-mt-24 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <Icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[15px] font-semibold">{s.title}</div>
+                    <div className="mt-1 text-[12.5px] leading-snug text-muted-foreground">
+                      {s.body}
                     </div>
                   </div>
-                  {i < pipeline.length - 1 && (
-                    <ChevronRight className="mx-1 mt-7 h-4 w-4 shrink-0 text-muted-foreground" />
-                  )}
                 </div>
               );
             })}
