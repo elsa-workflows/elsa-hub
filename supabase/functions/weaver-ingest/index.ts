@@ -446,9 +446,32 @@ Deno.serve(async (req) => {
     upserted += rows.length;
   }
 
-  console.log(JSON.stringify({ actor, upserted, total: docs.length }));
+  // Remove stale blog chunks for posts no longer present.
+  let blogPruned = 0;
+  if (blogDocs.length > 0) {
+    const currentBlogIds = blogDocs.map((d) => d.external_id);
+    const { data: existing } = await supabaseService
+      .from("weaver_documents")
+      .select("external_id")
+      .eq("source", "blog");
+    const stale = (existing ?? [])
+      .map((r: any) => r.external_id as string)
+      .filter((id) => !currentBlogIds.includes(id));
+    if (stale.length > 0) {
+      const { error: delErr } = await supabaseService
+        .from("weaver_documents")
+        .delete()
+        .eq("source", "blog")
+        .in("external_id", stale);
+      if (delErr) console.error("stale blog cleanup failed", delErr);
+      else blogPruned = stale.length;
+    }
+  }
+
+  console.log(JSON.stringify({ actor, upserted, total: docs.length, blogPruned }));
   return new Response(
-    JSON.stringify({ ok: true, actor, upserted, total: docs.length }),
+    JSON.stringify({ ok: true, actor, upserted, total: docs.length, blogPruned }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
+
