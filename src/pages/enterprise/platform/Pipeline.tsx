@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Seo } from "@/components/Seo";
 import { ElsaPlusDisclaimer } from "@/components/elsa-plus";
