@@ -392,12 +392,16 @@ Deno.serve(async (req) => {
   });
 
   // Build documents
-  const [catalog, dbDocs] = await Promise.all([
+  const [catalog, dbDocs, blogDocs] = await Promise.all([
     fetchCatalog().catch((e) => {
       console.error("catalog fetch failed", e);
       return { packages: [], infrastructureProviders: [] };
     }),
     buildBundleAndProviderDocs(supabaseService),
+    buildBlogDocs().catch((e) => {
+      console.error("blog docs failed", e);
+      return [] as Doc[];
+    }),
   ]);
   const docs: Doc[] = [
     ...PAGE_DOCS,
@@ -405,7 +409,9 @@ Deno.serve(async (req) => {
     ...dbDocs,
     ...buildPackageDocs(catalog),
     ...buildInfraDocs(catalog),
+    ...blogDocs,
   ];
+
 
   // Embed in batches of 32
   const batchSize = 32;
