@@ -122,6 +122,72 @@ export default function Blog() {
           <p className="mt-4 text-lg text-muted-foreground">{baseDescription}</p>
         </header>
 
+        {/* Search bar */}
+        <div className="mb-8 max-w-xl">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Search posts by title, tag, author..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9"
+              aria-label="Search blog posts"
+            />
+          </div>
+        </div>
+
+        {/* Featured post */}
+        {featuredPost && (
+          <Link
+            to={`/blog/${featuredPost.slug}`}
+            className="group block mb-12 rounded-xl border border-border overflow-hidden hover:border-primary/40 transition-colors"
+          >
+            <div className="grid md:grid-cols-2 gap-0">
+              {featuredPost.featuredImage && (
+                <div className="aspect-[16/10] md:aspect-auto overflow-hidden bg-muted">
+                  <img
+                    src={featuredPost.featuredImage}
+                    alt={featuredPost.title}
+                    loading="eager"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+              )}
+              <div className="p-6 md:p-10 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="default" className="gap-1">
+                    <Star className="h-3 w-3" />
+                    Featured
+                  </Badge>
+                  {featuredPost.category && (
+                    <Badge variant="secondary" className="font-normal">
+                      {featuredPost.category}
+                    </Badge>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    {formatBlogDate(featuredPost.publishedAt)}
+                  </span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight group-hover:text-primary transition-colors">
+                  {featuredPost.title}
+                </h2>
+                {featuredPost.description && (
+                  <p className="mt-3 text-muted-foreground line-clamp-3">
+                    {featuredPost.description}
+                  </p>
+                )}
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary group-hover:gap-3 transition-all">
+                  Read article
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </div>
+            </div>
+          </Link>
+        )}
+
+
         {tagCounts.length > 0 && (
           <div className="mb-10 space-y-3">
             {activeTag && (
@@ -217,9 +283,9 @@ export default function Blog() {
           </div>
         )}
 
-        {!error && filteredPosts && filteredPosts.length > 0 && (
+        {!error && postsToList && postsToList.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPosts.map((post) => (
+            {postsToList.map((post) => (
               <Card
                 key={post.slug}
                 className="h-full overflow-hidden transition-colors hover:border-primary/40 group flex flex-col"
