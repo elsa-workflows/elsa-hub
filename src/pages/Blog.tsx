@@ -271,11 +271,13 @@ export default function Blog() {
           <div className="rounded-lg border border-border bg-muted/30 p-12 text-center">
             <Newspaper className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold">
-              No posts tagged "{activeTag}"
+              {query.trim()
+                ? `No posts match "${query.trim()}"`
+                : `No posts tagged "${activeTag}"`}
             </h2>
             <p className="text-muted-foreground mt-2">
-              Try another tag or{" "}
-              <Link to="/blog" className="text-primary hover:underline">
+              Try a different search or{" "}
+              <Link to="/blog" className="text-primary hover:underline" onClick={() => setQuery("")}>
                 view all posts
               </Link>
               .
