@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map } from "lucide-react";
+import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
@@ -41,6 +41,10 @@ const features = [{
   icon: Shield,
   title: "Enterprise Ready",
   description: "Built for production. Supports clustering, persistence, and scales from small apps to enterprise systems."
+}, {
+  icon: Heart,
+  title: "MIT Open Source",
+  description: "Free and open source under the MIT license. Use it in personal or commercial projects, inspect the code, and contribute back to a thriving community."
 }];
 const ecosystemLinks = [{
   icon: Github,
