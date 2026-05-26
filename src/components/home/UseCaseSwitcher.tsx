@@ -11,6 +11,14 @@ type UseCase = {
   code: string;
 };
 
+// Code samples mirror the real Elsa 3 builder API:
+//   public class MyWorkflow : WorkflowBase {
+//     protected override void Build(IWorkflowBuilder builder) {
+//       builder.Root = new Sequence { Activities = { ... } };
+//     }
+//   }
+// Verified against elsa-workflows/elsa-core via DeepWiki.
+
 const useCases: UseCase[] = [
   {
     value: "background",
@@ -18,13 +26,27 @@ const useCases: UseCase[] = [
     label: "Background jobs",
     headline: "Reliable background processing",
     description:
-      "Replace ad-hoc Hangfire or hosted services with durable, observable workflows that survive restarts and retry on failure.",
-    bullets: ["Automatic retries & checkpoints", "Cron & interval triggers", "Per-step observability"],
-    code: `var workflow = new WorkflowBuilder()
-    .StartWith<FetchInvoices>()
-    .Then<GenerateReport>()
-    .Then<SendEmail>(send =>
-        send.WithRetry(3));`,
+      "Replace ad-hoc Hangfire or hosted services with durable, observable workflows that survive restarts and resume from checkpoints.",
+    bullets: ["Durable persistence across restarts", "Schedule with Cron / Timer triggers", "Per-activity observability"],
+    code: `public class NightlyReportWorkflow : WorkflowBase
+{
+    protected override void Build(IWorkflowBuilder builder)
+    {
+        builder.Root = new Sequence
+        {
+            Activities =
+            {
+                new WriteLine("Fetching invoices..."),
+                new SendHttpRequest
+                {
+                    Url = new("https://api.example.com/invoices"),
+                    Method = new("GET")
+                },
+                new WriteLine("Report generated.")
+            }
+        };
+    }
+}`,
   },
   {
     value: "approval",
@@ -32,15 +54,28 @@ const useCases: UseCase[] = [
     label: "Approval flows",
     headline: "Human-in-the-loop approvals",
     description:
-      "Model multi-step approvals that pause for days or weeks and resume from any signal — email click, API call, or UI action.",
-    bullets: ["Suspends on bookmarks", "Resumes via HTTP, queue, or event", "Built-in audit trail"],
-    code: `workflow
-    .StartWith<SubmitRequest>()
-    .Then<NotifyApprover>()
-    .WaitFor<ApprovalSignal>()
-    .If(ctx => ctx.Approved,
-        ifTrue => ifTrue.Then<Provision>(),
-        ifFalse => ifFalse.Then<Reject>());`,
+      "Model approvals that pause for days or weeks and resume when an external signal arrives — an HTTP callback, an event, or a UI action.",
+    bullets: ["Suspends via bookmarks", "Resumes via HTTP, events, or signals", "Built-in audit trail of every step"],
+    code: `public class ApprovalWorkflow : WorkflowBase
+{
+    protected override void Build(IWorkflowBuilder builder)
+    {
+        builder.Root = new Sequence
+        {
+            Activities =
+            {
+                new WriteLine("Waiting for approval..."),
+                new HttpEndpoint
+                {
+                    Path = new("/approve/{workflowInstanceId}"),
+                    SupportedMethods = new(new[] { HttpMethods.Post })
+                },
+                new WriteLine("Approved. Provisioning..."),
+                new WriteHttpResponse { Content = new("Done") }
+            }
+        };
+    }
+}`,
   },
   {
     value: "ai",
@@ -48,14 +83,30 @@ const useCases: UseCase[] = [
     label: "AI agents",
     headline: "Composable AI agent workflows",
     description:
-      "Orchestrate LLM calls, tool invocations, and human review with full visibility — no opaque agent loops, no lost state.",
-    bullets: ["Deterministic step graph", "Mix code, prompts, and tools", "Replay & inspect any run"],
-    code: `workflow
-    .StartWith<ClassifyIntent>()
-    .Switch(branch => branch
-        .Case("billing", b => b.Then<BillingAgent>())
-        .Case("support", b => b.Then<SupportAgent>())
-        .Default(b => b.Then<FallbackToHuman>()));`,
+      "Orchestrate LLM calls, tool invocations, and human review as explicit activities — no opaque agent loops, no lost state.",
+    bullets: ["Deterministic, replayable step graph", "Mix C# activities, prompts, and tools", "Inspect any past run"],
+    code: `public class TriageAgentWorkflow : WorkflowBase
+{
+    protected override void Build(IWorkflowBuilder builder)
+    {
+        var intent = builder.WithVariable<string>("Intent", "");
+
+        builder.Root = new Sequence
+        {
+            Activities =
+            {
+                new ClassifyIntent { Result = new(intent) },
+                new If
+                {
+                    Condition = new JavaScriptExpression<bool>(
+                        "getIntent() === 'billing'"),
+                    Then = new BillingAgent(),
+                    Else = new SupportAgent()
+                }
+            }
+        };
+    }
+}`,
   },
   {
     value: "integrations",
@@ -63,14 +114,32 @@ const useCases: UseCase[] = [
     label: "Integrations",
     headline: "Glue systems together — your way",
     description:
-      "Webhook in, transform, fan out to APIs and queues. Write activities in C# instead of fighting a node-based UI.",
-    bullets: ["HTTP, MassTransit, MQTT triggers", "Custom activities in pure C#", "Designer-friendly outputs"],
-    code: `workflow
-    .StartWith<HttpEndpoint>(e => e.Path = "/orders")
-    .Then<ValidateOrder>()
-    .Parallel(
-        b => b.Then<PostToErp>(),
-        b => b.Then<PublishToBus>());`,
+      "Webhook in, transform, fan out to APIs and queues. Write activities in pure C# instead of fighting a node-based UI.",
+    bullets: ["HTTP, MassTransit, MQTT triggers", "Custom activities in pure C#", "First-class designer support"],
+    code: `public class OrderWebhookWorkflow : WorkflowBase
+{
+    protected override void Build(IWorkflowBuilder builder)
+    {
+        builder.Root = new Sequence
+        {
+            Activities =
+            {
+                new HttpEndpoint
+                {
+                    Path = new("/orders"),
+                    SupportedMethods = new(new[] { HttpMethods.Post }),
+                    CanStartWorkflow = true
+                },
+                new SendHttpRequest
+                {
+                    Url = new("https://erp.internal/api/orders"),
+                    Method = new("POST")
+                },
+                new WriteHttpResponse { Content = new("Accepted") }
+            }
+        };
+    }
+}`,
   },
   {
     value: "long-running",
@@ -78,14 +147,25 @@ const useCases: UseCase[] = [
     label: "Long-running",
     headline: "Processes that run for weeks",
     description:
-      "Onboarding journeys, billing cycles, SLAs. Persist state safely and pick up where you left off after deploys.",
-    bullets: ["Durable persistence", "Versioned workflow definitions", "Scheduled timers & timeouts"],
-    code: `workflow
-    .StartWith<UserSignedUp>()
-    .Delay(TimeSpan.FromDays(3))
-    .Then<SendOnboardingTips>()
-    .Delay(TimeSpan.FromDays(7))
-    .Then<RequestFeedback>();`,
+      "Onboarding journeys, billing cycles, SLAs. State is persisted safely and resumes where it left off — even across deploys.",
+    bullets: ["Durable persistence", "Versioned workflow definitions", "Scheduled timers and timeouts"],
+    code: `public class OnboardingWorkflow : WorkflowBase
+{
+    protected override void Build(IWorkflowBuilder builder)
+    {
+        builder.Root = new Sequence
+        {
+            Activities =
+            {
+                new WriteLine("User signed up."),
+                new Delay { Timeout = new(TimeSpan.FromDays(3)) },
+                new WriteLine("Sending onboarding tips..."),
+                new Delay { Timeout = new(TimeSpan.FromDays(7)) },
+                new WriteLine("Requesting feedback...")
+            }
+        };
+    }
+}`,
   },
 ];
 
@@ -137,7 +217,7 @@ export function UseCaseSwitcher() {
                     <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
                     <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
                     <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
-                    <span className="ml-2 text-xs font-mono text-muted-foreground">workflow.cs</span>
+                    <span className="ml-2 text-xs font-mono text-muted-foreground">Workflow.cs</span>
                   </div>
                   <pre className="p-4 md:p-5 text-xs md:text-sm font-mono leading-relaxed overflow-x-auto flex-1">
                     <code>{uc.code}</code>
