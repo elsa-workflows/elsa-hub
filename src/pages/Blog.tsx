@@ -5,7 +5,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, AlertTriangle, Newspaper, X, Tag as TagIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Calendar, AlertTriangle, Newspaper, X, Tag as TagIcon, Search, Star, ArrowRight } from "lucide-react";
 import {
   BLOG_CANONICAL_BASE,
   BlogPostSummary,
@@ -17,6 +18,7 @@ import { InlineNewsletter } from "@/components/newsletter";
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPostSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [searchParams] = useSearchParams();
   const activeTag = searchParams.get("tag")?.trim() || null;
 
@@ -49,12 +51,41 @@ export default function Blog() {
 
   const filteredPosts = useMemo(() => {
     if (!posts) return posts;
-    if (!activeTag) return posts;
-    const needle = activeTag.toLowerCase();
-    return posts.filter((p) =>
-      (p.tags ?? []).some((t) => t.toLowerCase() === needle)
-    );
-  }, [posts, activeTag]);
+    let list = posts;
+    if (activeTag) {
+      const needle = activeTag.toLowerCase();
+      list = list.filter((p) =>
+        (p.tags ?? []).some((t) => t.toLowerCase() === needle)
+      );
+    }
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter((p) => {
+        const hay = [
+          p.title,
+          p.description ?? "",
+          p.category ?? "",
+          ...(p.tags ?? []),
+          ...((p.authors ?? []).map((a) => a.name)),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    return list;
+  }, [posts, activeTag, query]);
+
+  const featuredPost = useMemo(() => {
+    if (!posts || posts.length === 0 || activeTag || query.trim()) return null;
+    return posts[0];
+  }, [posts, activeTag, query]);
+
+  const postsToList = useMemo(() => {
+    if (!filteredPosts) return filteredPosts;
+    if (featuredPost) return filteredPosts.filter((p) => p.slug !== featuredPost.slug);
+    return filteredPosts;
+  }, [filteredPosts, featuredPost]);
 
   const baseTitle = "Blog — Elsa Workflows";
   const title = activeTag ? `Posts tagged "${activeTag}" — Elsa Blog` : baseTitle;
