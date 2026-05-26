@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Copy, Terminal, Container, ArrowRight, BookOpen } from "lucide-react";
+import { Check, Copy, Terminal, Container, ArrowRight, BookOpen, Server, Layers, Layout as LayoutIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
 
 interface CommandCardProps {
   icon: typeof Terminal;
@@ -77,14 +78,55 @@ export function Quickstart() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
-          <CommandCard
-            icon={Terminal}
-            label="Elsa Server + Studio (.NET)"
-            command="dotnet new install Elsa.Templates && dotnet new elsaserver -n MyElsaApp"
-            helper="Scaffolds an ASP.NET host with Elsa Server, persistence, and the visual designer wired up."
-            href="/get-started/elsa-server-and-studio"
-            hrefLabel="Full guide"
-          />
+          <div className="rounded-xl border border-border bg-background overflow-hidden flex flex-col">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-surface-subtle/60">
+              <Terminal className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Build with .NET</span>
+            </div>
+            <div className="p-4 flex-1 flex flex-col">
+              <p className="text-sm text-muted-foreground mb-4">
+                Add Elsa to your own ASP.NET Core project. Pick the setup that matches your
+                architecture — engine only, designer only, or both together.
+              </p>
+              <ul className="space-y-2 mb-4">
+                <li>
+                  <Link
+                    to="/get-started/elsa-server-and-studio"
+                    className="group flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                  >
+                    <Layers className="h-4 w-4 text-primary" />
+                    Elsa Server + Studio
+                    <span className="text-xs font-normal text-muted-foreground">Recommended</span>
+                    <ArrowRight className="h-3.5 w-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/get-started/elsa-server"
+                    className="group flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                  >
+                    <Server className="h-4 w-4 text-primary" />
+                    Elsa Server only
+                    <ArrowRight className="h-3.5 w-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/get-started/elsa-studio"
+                    className="group flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                  >
+                    <LayoutIcon className="h-4 w-4 text-primary" />
+                    Elsa Studio only
+                    <ArrowRight className="h-3.5 w-3.5 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                </li>
+              </ul>
+              <p className="mt-auto text-xs text-muted-foreground">
+                A <code className="font-mono text-[0.7rem] px-1 py-0.5 rounded bg-muted/60 border border-border">dotnet new</code> project
+                template is on the way — until then, follow the guide that fits.
+              </p>
+            </div>
+          </div>
           <CommandCard
             icon={Container}
             label="Docker"
@@ -94,6 +136,7 @@ export function Quickstart() {
             hrefLabel="Docker guide"
           />
         </div>
+
 
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
           <Button variant="outline" size="sm" className="gap-2" asChild>
