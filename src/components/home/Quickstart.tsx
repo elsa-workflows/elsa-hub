@@ -78,7 +78,7 @@ export function Quickstart() {
 
         <div className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto">
           <CommandCard
-            icon: {Terminal as any}
+            icon={Terminal}
             label="Elsa Server + Studio (.NET)"
             command="dotnet new install Elsa.Templates && dotnet new elsaserver -n MyElsaApp"
             helper="Scaffolds an ASP.NET host with Elsa Server, persistence, and the visual designer wired up."
@@ -86,7 +86,7 @@ export function Quickstart() {
             hrefLabel="Full guide"
           />
           <CommandCard
-            icon: {Container as any}
+            icon={Container}
             label="Docker"
             command="docker run -it -p 8080:8080 elsaworkflows/elsa-server-and-studio:latest"
             helper="Spin up Elsa Server and Studio in one container — no .NET install required."
