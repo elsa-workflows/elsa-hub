@@ -127,6 +127,16 @@ export default function BlogPost() {
     mainEntityOfPage: canonical,
   };
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://www.elsa-workflows.io/" },
+      { "@type": "ListItem", position: 2, name: "Blog", item: BLOG_CANONICAL_BASE },
+      { "@type": "ListItem", position: 3, name: post.title, item: canonical },
+    ],
+  };
+
   return (
     <Layout>
       <Helmet>
@@ -162,6 +172,7 @@ export default function BlogPost() {
         <meta name="twitter:description" content={seoDescription} />
         {ogImage && <meta name="twitter:image" content={ogImage} />}
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
       </Helmet>
 
       <article className="container max-w-3xl py-12 md:py-16">
