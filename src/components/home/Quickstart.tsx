@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Copy, Terminal, Container, ArrowRight, BookOpen } from "lucide-react";
+import { Check, Copy, Terminal, Container, ArrowRight, BookOpen, Server, Layers, Layout as LayoutIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
 
 interface CommandCardProps {
   icon: typeof Terminal;
