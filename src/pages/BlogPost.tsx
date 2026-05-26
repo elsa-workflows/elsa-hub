@@ -12,6 +12,8 @@ import {
   fetchBlogPost,
   formatBlogDate,
 } from "@/lib/blog";
+import { RelatedPosts } from "@/components/blog/RelatedPosts";
+import { InlineNewsletter } from "@/components/newsletter";
 
 type LoadState =
   | { kind: "loading" }
@@ -249,6 +251,15 @@ export default function BlogPost() {
             ))}
           </div>
         )}
+
+        <div className="mt-12">
+          <InlineNewsletter
+            heading="Liked this post?"
+            description="Get new Elsa articles, release notes, and samples delivered monthly."
+          />
+        </div>
+
+        <RelatedPosts currentSlug={post.slug} tags={post.tags} />
       </article>
     </Layout>
   );

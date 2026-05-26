@@ -286,6 +286,12 @@ export default function Home() {
               </div>
             </div>
           </ScrollReveal>
+
+          <ScrollReveal>
+            <div className="max-w-3xl mx-auto mt-14">
+              <InlineNewsletter />
+            </div>
+          </ScrollReveal>
         </div>
       </section>
     </Layout>;
