@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Seo } from "@/components/Seo";
+import { LearningPaths } from "@/components/resources";
 
 const primaryResources = [
   {
@@ -152,6 +153,9 @@ export default function Resources() {
           </div>
         </div>
       </section>
+
+      {/* Learning paths */}
+      <LearningPaths />
 
       {/* Additional Resources */}
       <section className="py-16 md:py-24 bg-surface-subtle">

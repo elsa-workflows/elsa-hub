@@ -5,7 +5,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, AlertTriangle, Newspaper, X, Tag as TagIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Calendar, AlertTriangle, Newspaper, X, Tag as TagIcon, Search, Star, ArrowRight } from "lucide-react";
 import {
   BLOG_CANONICAL_BASE,
   BlogPostSummary,
@@ -17,6 +18,7 @@ import { InlineNewsletter } from "@/components/newsletter";
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPostSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [searchParams] = useSearchParams();
   const activeTag = searchParams.get("tag")?.trim() || null;
 
@@ -49,12 +51,41 @@ export default function Blog() {
 
   const filteredPosts = useMemo(() => {
     if (!posts) return posts;
-    if (!activeTag) return posts;
-    const needle = activeTag.toLowerCase();
-    return posts.filter((p) =>
-      (p.tags ?? []).some((t) => t.toLowerCase() === needle)
-    );
-  }, [posts, activeTag]);
+    let list = posts;
+    if (activeTag) {
+      const needle = activeTag.toLowerCase();
+      list = list.filter((p) =>
+        (p.tags ?? []).some((t) => t.toLowerCase() === needle)
+      );
+    }
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter((p) => {
+        const hay = [
+          p.title,
+          p.description ?? "",
+          p.category ?? "",
+          ...(p.tags ?? []),
+          ...((p.authors ?? []).map((a) => a.name)),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    return list;
+  }, [posts, activeTag, query]);
+
+  const featuredPost = useMemo(() => {
+    if (!posts || posts.length === 0 || activeTag || query.trim()) return null;
+    return posts[0];
+  }, [posts, activeTag, query]);
+
+  const postsToList = useMemo(() => {
+    if (!filteredPosts) return filteredPosts;
+    if (featuredPost) return filteredPosts.filter((p) => p.slug !== featuredPost.slug);
+    return filteredPosts;
+  }, [filteredPosts, featuredPost]);
 
   const baseTitle = "Blog — Elsa Workflows";
   const title = activeTag ? `Posts tagged "${activeTag}" — Elsa Blog` : baseTitle;
@@ -90,6 +121,72 @@ export default function Blog() {
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">{baseDescription}</p>
         </header>
+
+        {/* Search bar */}
+        <div className="mb-8 max-w-xl">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Search posts by title, tag, author..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9"
+              aria-label="Search blog posts"
+            />
+          </div>
+        </div>
+
+        {/* Featured post */}
+        {featuredPost && (
+          <Link
+            to={`/blog/${featuredPost.slug}`}
+            className="group block mb-12 rounded-xl border border-border overflow-hidden hover:border-primary/40 transition-colors"
+          >
+            <div className="grid md:grid-cols-2 gap-0">
+              {featuredPost.featuredImage && (
+                <div className="aspect-[16/10] md:aspect-auto overflow-hidden bg-muted">
+                  <img
+                    src={featuredPost.featuredImage}
+                    alt={featuredPost.title}
+                    loading="eager"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+              )}
+              <div className="p-6 md:p-10 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="default" className="gap-1">
+                    <Star className="h-3 w-3" />
+                    Featured
+                  </Badge>
+                  {featuredPost.category && (
+                    <Badge variant="secondary" className="font-normal">
+                      {featuredPost.category}
+                    </Badge>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    {formatBlogDate(featuredPost.publishedAt)}
+                  </span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-display font-semibold tracking-tight group-hover:text-primary transition-colors">
+                  {featuredPost.title}
+                </h2>
+                {featuredPost.description && (
+                  <p className="mt-3 text-muted-foreground line-clamp-3">
+                    {featuredPost.description}
+                  </p>
+                )}
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary group-hover:gap-3 transition-all">
+                  Read article
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </div>
+            </div>
+          </Link>
+        )}
+
 
         {tagCounts.length > 0 && (
           <div className="mb-10 space-y-3">
@@ -174,11 +271,13 @@ export default function Blog() {
           <div className="rounded-lg border border-border bg-muted/30 p-12 text-center">
             <Newspaper className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-xl font-semibold">
-              No posts tagged "{activeTag}"
+              {query.trim()
+                ? `No posts match "${query.trim()}"`
+                : `No posts tagged "${activeTag}"`}
             </h2>
             <p className="text-muted-foreground mt-2">
-              Try another tag or{" "}
-              <Link to="/blog" className="text-primary hover:underline">
+              Try a different search or{" "}
+              <Link to="/blog" className="text-primary hover:underline" onClick={() => setQuery("")}>
                 view all posts
               </Link>
               .
@@ -186,9 +285,9 @@ export default function Blog() {
           </div>
         )}
 
-        {!error && filteredPosts && filteredPosts.length > 0 && (
+        {!error && postsToList && postsToList.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPosts.map((post) => (
+            {postsToList.map((post) => (
               <Card
                 key={post.slug}
                 className="h-full overflow-hidden transition-colors hover:border-primary/40 group flex flex-col"
