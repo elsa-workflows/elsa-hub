@@ -14,6 +14,7 @@ import {
   formatBlogDate,
 } from "@/lib/blog";
 import { InlineNewsletter } from "@/components/newsletter";
+import { track } from "@/lib/analytics";
 
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPostSummary[] | null>(null);
