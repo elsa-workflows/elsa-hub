@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart, Terminal } from "lucide-react";
+import { Check, ArrowRight, Workflow, Code2, Puzzle, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
-import { HeroVisual, Quickstart } from "@/components/home";
+import { HeroVisual, Quickstart, SocialProof, UseCaseSwitcher, Comparison } from "@/components/home";
 import { InlineNewsletter } from "@/components/newsletter";
 import { Seo } from "@/components/Seo";
 import { ScrollReveal } from "@/components/ScrollReveal";
+
 
 const benefits = [
   "Build with code, visual designer, or JSON",
@@ -15,6 +16,14 @@ const benefits = [
   "Open source & MIT licensed",
 ];
 const features = [{
+  icon: Heart,
+  title: "MIT Open Source",
+  description: "Free and open source under the MIT license. Use it in personal or commercial projects, inspect the code, and contribute back to a thriving community."
+}, {
+  icon: Shield,
+  title: "Production-Ready",
+  description: "Built for production. Clustering, durable persistence, and proven across small apps and enterprise systems alike."
+}, {
   icon: Workflow,
   title: "Visual Designer",
   description: "Design workflows visually with an intuitive drag-and-drop interface. No code required for simple flows."
@@ -27,26 +36,11 @@ const features = [{
   title: "Extensible",
   description: "Create custom activities, extend the designer, and integrate with any system through a powerful plugin architecture."
 }, {
-  icon: Zap,
-  title: "High Performance",
-  description: "Optimized for speed and efficiency. Handle thousands of concurrent workflows with minimal resource usage."
-}, {
-  icon: Eye,
-  title: "Full Observability",
-  description: "Monitor workflow execution in real-time. Debug, trace, and analyze every step of your workflows."
-}, {
   icon: Layers,
   title: "Multi-Tenancy",
-  description: "Built-in multi-tenant support with flexible isolation levels—from record-level tenancy to fully isolated service collections per tenant using CShells."
-}, {
-  icon: Shield,
-  title: "Enterprise Ready",
-  description: "Built for production. Supports clustering, persistence, and scales from small apps to enterprise systems."
-}, {
-  icon: Heart,
-  title: "MIT Open Source",
-  description: "Free and open source under the MIT license. Use it in personal or commercial projects, inspect the code, and contribute back to a thriving community."
+  description: "Built-in multi-tenant support with flexible isolation levels — from record-level tenancy to fully isolated service collections per tenant using CShells."
 }];
+
 const ecosystemLinks = [{
   icon: Github,
   title: "GitHub",
@@ -134,6 +128,25 @@ export default function Home() {
           {/* Hero Visual — animated workflow graph */}
           <div className="mt-12 md:mt-16 animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
             <HeroVisual />
+          </div>
+        </div>
+      </section>
+
+      {/* Social proof strip */}
+      <SocialProof />
+
+      {/* Quickstart Section */}
+      <Quickstart />
+
+      {/* Use-case switcher */}
+      <UseCaseSwitcher />
+
+      {/* Comparison */}
+      <Comparison />
+
+      {/* (sentinel — replaced below) */}
+      <div className="hidden">
+
           </div>
         </div>
       </section>
