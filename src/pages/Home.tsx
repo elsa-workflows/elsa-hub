@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart } from "lucide-react";
+import { Check, ArrowRight, Workflow, Zap, Code2, Puzzle, Eye, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
-import { HeroVisual } from "@/components/home";
+import { HeroVisual, Quickstart } from "@/components/home";
+import { InlineNewsletter } from "@/components/newsletter";
 import { Seo } from "@/components/Seo";
 import { ScrollReveal } from "@/components/ScrollReveal";
 
@@ -116,10 +117,10 @@ export default function Home() {
             animationDelay: "0.3s"
           }}>
               <Button size="lg" className="gap-2 px-8" asChild>
-                <Link to="/get-started">
-                  Get Started
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                <a href="#quickstart">
+                  <Terminal className="h-4 w-4" />
+                  Start in 60 seconds
+                </a>
               </Button>
               <Button size="lg" variant="outline" className="gap-2" asChild>
                 <a href="https://docs.elsaworkflows.io/" target="_blank" rel="noopener noreferrer">
@@ -136,6 +137,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Quickstart Section */}
+      <Quickstart />
 
       {/* Features Section */}
       <section className="py-20 md:py-28 bg-surface-subtle">
@@ -280,6 +284,12 @@ export default function Home() {
                   </Link>
                 </Button>
               </div>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal>
+            <div className="max-w-3xl mx-auto mt-14">
+              <InlineNewsletter />
             </div>
           </ScrollReveal>
         </div>

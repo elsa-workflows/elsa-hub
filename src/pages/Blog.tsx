@@ -12,6 +12,7 @@ import {
   fetchBlogIndex,
   formatBlogDate,
 } from "@/lib/blog";
+import { InlineNewsletter } from "@/components/newsletter";
 
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPostSummary[] | null>(null);
@@ -257,6 +258,10 @@ export default function Blog() {
             ))}
           </div>
         )}
+
+        <div className="mt-16">
+          <InlineNewsletter />
+        </div>
       </section>
     </Layout>
   );
