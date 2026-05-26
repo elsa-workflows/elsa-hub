@@ -7,6 +7,7 @@ import { HeroVisual, Quickstart, SocialProof, UseCaseSwitcher, Comparison } from
 import { InlineNewsletter } from "@/components/newsletter";
 import { Seo } from "@/components/Seo";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { track } from "@/lib/analytics";
 
 
 const benefits = [

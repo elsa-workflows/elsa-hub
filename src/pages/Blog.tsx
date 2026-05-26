@@ -224,6 +224,7 @@ export default function Blog() {
                   <Link
                     key={tag}
                     to={`/blog?tag=${encodeURIComponent(tag)}`}
+                    onClick={() => track("tag_click", { tag, source: "blog_sidebar" })}
                     className={`inline-flex items-center rounded-full border px-3 py-1 text-xs transition-colors ${
                       isActive
                         ? "border-primary/40 bg-primary/10 text-primary"
@@ -334,6 +335,7 @@ export default function Blog() {
                           <Link
                             key={t}
                             to={`/blog?tag=${encodeURIComponent(t)}`}
+                            onClick={() => track("tag_click", { tag: t, source: "blog_card" })}
                             aria-label={`Filter by tag ${t}`}
                           >
                             <Badge
