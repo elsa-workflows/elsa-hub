@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Calendar } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BlogPostSummary, fetchBlogIndex, formatBlogDate } from "@/lib/blog";
+import { track } from "@/lib/analytics";
 
 interface RelatedPostsProps {
   currentSlug: string;
@@ -66,6 +67,7 @@ export function RelatedPosts({ currentSlug, tags = [], limit = 3 }: RelatedPosts
           <Link
             key={p.slug}
             to={`/blog/${p.slug}`}
+            onClick={() => track("related_post_click", { slug: p.slug, from: currentSlug })}
             className="group block"
             aria-label={`Read: ${p.title}`}
           >

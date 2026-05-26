@@ -7,6 +7,7 @@ import { HeroVisual, Quickstart, SocialProof, UseCaseSwitcher, Comparison } from
 import { InlineNewsletter } from "@/components/newsletter";
 import { Seo } from "@/components/Seo";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { track } from "@/lib/analytics";
 
 
 const benefits = [
@@ -111,13 +112,21 @@ export default function Home() {
             animationDelay: "0.3s"
           }}>
               <Button size="lg" className="gap-2 px-8" asChild>
-                <a href="#quickstart">
+                <a
+                  href="#quickstart"
+                  onClick={() => track("hero_cta_click", { cta: "start_in_60_seconds" })}
+                >
                   <Terminal className="h-4 w-4" />
                   Start in 60 seconds
                 </a>
               </Button>
               <Button size="lg" variant="outline" className="gap-2" asChild>
-                <a href="https://docs.elsaworkflows.io/" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://docs.elsaworkflows.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => track("hero_secondary_click", { cta: "documentation" })}
+                >
                   <BookOpen className="h-4 w-4" />
                   Documentation
                 </a>
