@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Highlight, themes } from "prism-react-renderer";
+import { track } from "@/lib/analytics";
 
 interface CodeBlockProps {
   code: string;
@@ -25,6 +26,7 @@ export function CodeBlock({ code, language, title }: CodeBlockProps) {
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);
+    track("code_copy", { location: "get_started", language, title: title ?? null });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

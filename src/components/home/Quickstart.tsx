@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, Copy, Terminal, Container, ArrowRight, BookOpen, Server, Layers, Layout as LayoutIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 
 
 interface CommandCardProps {
@@ -19,6 +20,7 @@ function CommandCard({ icon: Icon, label, command, helper, href, hrefLabel }: Co
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(command);
+      track("code_copy", { location: "home_quickstart", label });
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { track } from "@/lib/analytics";
 
 interface InlineNewsletterProps {
   variant?: "default" | "compact";
@@ -34,6 +35,7 @@ export function InlineNewsletter({
       return;
     }
     setIsLoading(true);
+    track("newsletter_submit", { location: "inline", variant });
     try {
       const { data, error } = await supabase.functions.invoke("subscribe-newsletter", {
         body: { email },
@@ -43,6 +45,11 @@ export function InlineNewsletter({
         toast.success(
           data.alreadySubscribed ? "You're already subscribed!" : "Thanks for subscribing!"
         );
+        track("newsletter_success", {
+          location: "inline",
+          variant,
+          already_subscribed: !!data.alreadySubscribed,
+        });
         setEmail("");
         setDone(true);
       } else {
