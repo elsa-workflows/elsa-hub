@@ -94,8 +94,9 @@ export function Comparison() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6 max-w-2xl mx-auto">
-          Comparisons reflect public docs at the time of writing and are intentionally
-          high-level. Each tool has strengths — pick what fits your stack and team.
+          Based on each project's public documentation and license files at the time of
+          writing. Intentionally high-level — every tool has strengths, pick what fits
+          your stack and team.
         </p>
       </div>
     </section>
