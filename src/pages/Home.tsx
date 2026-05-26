@@ -144,15 +144,8 @@ export default function Home() {
       {/* Comparison */}
       <Comparison />
 
-      {/* (sentinel — replaced below) */}
-      <div className="hidden">
 
-          </div>
-        </div>
-      </section>
 
-      {/* Quickstart Section */}
-      <Quickstart />
 
       {/* Features Section */}
       <section className="py-20 md:py-28 bg-surface-subtle">
