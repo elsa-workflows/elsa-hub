@@ -4,11 +4,13 @@ import { writeFileSync } from "fs";
 import { resolve } from "path";
 
 const BASE_URL = "https://www.elsa-workflows.io";
+const BLOG_UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
 
 interface SitemapEntry {
   path: string;
   changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   priority?: string;
+  lastmod?: string;
 }
 
 const entries: SitemapEntry[] = [
