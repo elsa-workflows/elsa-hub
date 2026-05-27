@@ -42,7 +42,7 @@ export function ShareExportMenu({ slug }: Props) {
     }
   };
 
-  const mediumUrl = exportUrl(slug, "html");
+  const mediumUrl = canonicalUrl(slug);
 
   return (
     <DropdownMenu>
