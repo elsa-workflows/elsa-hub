@@ -152,6 +152,8 @@ const App = () => (
                 <Route path="org/:slug/messages" element={<OrgMessages />} />
                 <Route path="org/:slug/messages/:conversationId" element={<OrgMessages />} />
                 <Route path="org/:slug/bookings" element={<OrgBookings />} />
+                <Route path="org/:slug/workspaces" element={<OrgWorkspaces />} />
+                <Route path="org/:slug/workspaces/:providerSlug" element={<OrgWorkspace />} />
                 <Route path="provider/:slug" element={<ProviderOverview />} />
                 <Route path="provider/:slug/usage" element={<ProviderUsage />} />
                 <Route path="provider/:slug/orders" element={<ProviderOrders />} />
