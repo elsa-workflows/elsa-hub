@@ -13,7 +13,9 @@ import {
   formatBlogDate,
 } from "@/lib/blog";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
+import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
 import { InlineNewsletter } from "@/components/newsletter";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 type LoadState =
   | { kind: "loading" }
@@ -24,6 +26,7 @@ type LoadState =
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const { data: isAdmin } = useIsAdmin();
 
   useEffect(() => {
     if (!slug) return;
@@ -176,12 +179,16 @@ export default function BlogPost() {
       </Helmet>
 
       <article className="container max-w-3xl py-12 md:py-16">
-        <Button asChild variant="ghost" size="sm" className="mb-6 -ml-3">
-          <Link to="/blog">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            All posts
-          </Link>
-        </Button>
+        <div className="mb-6 flex items-center justify-between -ml-3">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/blog">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              All posts
+            </Link>
+          </Button>
+          {isAdmin && <ShareExportMenu slug={post.slug} />}
+        </div>
+
 
         <header className="mb-8">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-4">
