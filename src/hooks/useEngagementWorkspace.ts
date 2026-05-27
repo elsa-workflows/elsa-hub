@@ -14,6 +14,7 @@ export interface WorkspaceCounterparty {
 export interface WorkspaceFile {
   id: string;
   workspace_id: string;
+  session_id: string | null;
   storage_path: string;
   file_name: string;
   mime_type: string;
