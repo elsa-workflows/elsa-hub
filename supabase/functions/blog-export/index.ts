@@ -83,9 +83,6 @@ function renderMarkdown(post: Post, canonical: string): string {
   return `${front}\n# ${post.title}\n\n${cover}${body}\n`;
 }
 
-function publicUrl(path: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
