@@ -164,6 +164,8 @@ const App = () => (
                 <Route path="provider/:slug/messages" element={<ProviderMessages />} />
                 <Route path="provider/:slug/messages/:conversationId" element={<ProviderMessages />} />
                 <Route path="provider/:slug/bookings" element={<ProviderBookings />} />
+                <Route path="provider/:slug/workspaces" element={<ProviderWorkspaces />} />
+                <Route path="provider/:slug/workspaces/:orgSlug" element={<ProviderWorkspace />
                 {/* Admin Routes */}
                 <Route path="admin" element={<AdminOverview />} />
                 <Route path="admin/users" element={<AdminUsers />} />
