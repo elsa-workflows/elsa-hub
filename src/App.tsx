@@ -74,6 +74,10 @@ import AdminOrganizations from "./pages/dashboard/admin/AdminOrganizations";
 import AdminOrders from "./pages/dashboard/admin/AdminOrders";
 import AdminInvitations from "./pages/dashboard/admin/AdminInvitations";
 import AdminAudit from "./pages/dashboard/admin/AdminAudit";
+import OrgWorkspaces from "./pages/dashboard/org/OrgWorkspaces";
+import OrgWorkspace from "./pages/dashboard/org/OrgWorkspace";
+import ProviderWorkspaces from "./pages/dashboard/provider/ProviderWorkspaces";
+import ProviderWorkspace from "./pages/dashboard/provider/ProviderWorkspace";
 
 const queryClient = new QueryClient();
 
