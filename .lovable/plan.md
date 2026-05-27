@@ -1,87 +1,108 @@
-# Website engagement & growth roadmap
 
-Grounded in the last 7 days: **1,396 visitors · 55% bounce · 2:19 avg session · 2.85 pages/visit · 87% desktop**. Top funnel: Home → Get Started → Elsa+ → Resources. Top sources: Google + Direct + GitHub + ChatGPT. Below is a prioritized roadmap, smallest-bet-first.
+# Engagement Workspace
 
----
+A persistent collaboration space scoped to each `provider_customers` pair (one Org ↔ one Provider). Both sides land in the same workspace and see the same files, notes, decisions, and action items. The existing Messaging thread and Work Logs are linked in but stay where they are.
 
-## Phase 1 — Quick wins (low effort, immediate lift)
+## What gets built
 
-Goal: cut bounce on Home and pull more visitors into Get Started / Weaver.
+### 1. Files tab (shared file library)
+- Folder tree (optional, flat is fine for v1) of files uploaded by either side.
+- Drag-and-drop upload, multi-select.
+- Per file: who uploaded, when, size, type, optional description, link to related work log (if any).
+- Preview for PDF / images / text / markdown / VTT / SRT. Download for everything else.
+- File-level threaded comments.
+- **Defaults (since none were specified):** 50 MB per file, 2 GB per engagement; allow `pdf, md, txt, docx, xlsx, csv, png, jpg, webp, mp3, mp4, m4a, wav, vtt, srt, json, zip`; block executables.
 
-1. **Sticky primary CTA on Home hero** — single "Start in 60 seconds" button that scrolls to a condensed quickstart block (npm/docker one-liner + copy button). Reduce visual competition with secondary links.
-2. **Weaver entry point on every public page** — small floating "Ask Weaver about Elsa" pill (already exists in dashboard area). Visitors landing from ChatGPT/Google expect an "ask anything" affordance. Track opens as engagement events.
-3. **Reading-time + "What's next" footer on blog posts and Get Started pages** — auto-suggest 2 related posts (same tag) + 1 logical next step (e.g. Docker → Elsa Server). Should measurably lift pages/visit.
-4. **Inline newsletter capture mid-content** (not just footer) — one tasteful block on Home, Blog index, and end of each post. Reuses existing MailerLite component.
-5. **Scroll progress + anchor TOC on long pages** (Get Started subpages, Resources, blog posts) — keeps people oriented, signals depth.
-6. **Replace dead-ends with next-step cards** — at bottom of `/elsa-plus`, `/resources`, `/blog`: 3 cards routing to the next likely page based on intent.
+### 2. Notes tab (shared markdown docs)
+- Lightweight markdown documents (think "meeting notes", "scope", "credentials checklist").
+- Last-writer-wins for v1, with `updated_by` + `updated_at` shown. (Realtime CRDT not in scope.)
+- Pinned notes at the top.
 
-## Phase 2 — Homepage as a story (mid effort, biggest engagement lever)
+### 3. Decisions tab (append-only log)
+- One-line decisions with date, author, optional context paragraph.
+- Cannot be edited after 24h; can be marked "superseded by …".
+- Easy to scan months later — the historical record of "what we agreed to".
 
-Bounce is concentrated on `/`. Make the homepage answer "what is this and why should I care" in 10 seconds and "show me" in 30.
+### 4. Action items tab
+- Title, optional description, assignee (any org or provider member), due date, status (open / in progress / done / cancelled).
+- Linkable to a work log, a file, or a note.
+- Notifications on assign, due-soon, and completion (reuses notifications + email infra).
 
-7. **Interactive hero demo** — small embedded workflow visualizer that auto-plays a 3-step workflow (HTTP trigger → activity → response). No click required to see value. Pause on hover.
-8. **"Built with Elsa" social proof strip** — logos / community stats (GitHub stars, npm downloads, contributors, Discord members) pulled live where possible.
-9. **Use-case switcher** — tabs like *Background jobs · Approval flows · AI agents · Integrations* each revealing a short code/diagram snippet. Lets visitors self-identify.
-10. **Comparison block** — calm, factual "Elsa vs hand-rolled state machines / Temporal / n8n" table. Visitors from Google searches are usually evaluating; not addressing this sends them back to SERPs.
-11. **Trim Why-Elsa cards if list gets long** — keep 6 strongest; surface "MIT Open Source" + "Production-ready" near the top.
+### 5. Work log integration
+- Attach files from the workspace to a work log (linking, not duplicating).
+- Quick "Add to workspace Files" toggle when uploading from the Log Work dialog.
+- Work logs show their linked files; workspace Files show which work log (if any) they're attached to.
 
-## Phase 3 — Content depth & SEO compounding
+### 6. AI transcript summarization (Lovable AI Gateway)
+- On any uploaded file that looks like a transcript (`.vtt`, `.srt`, `.txt`, `.md` over a size threshold, or user-flagged), show a **"Summarize + extract actions"** button.
+- Calls a new edge function `summarize-transcript` that:
+  1. Reads the file from Storage.
+  2. Sends to `google/gemini-3-flash-preview` with a structured-output schema: `{ summary, key_points[], action_items[{title, owner_hint, due_hint}], suggested_category, suggested_minutes }`.
+  3. Returns the JSON to the client.
+- The client opens the **Log Work** dialog pre-filled with the summary, suggested minutes, and category. Extracted action items are pre-checked for creation in the Action Items tab.
+- The transcript file is automatically attached to the resulting work log.
 
-`/blog` only got 43 views vs `/get-started` 456 — the content engine is underused. Google is the #1 source, so depth here compounds.
+### 7. Workspace home
+- Activity stream: recent files, notes edited, decisions logged, actions completed, work logs.
+- Quick stats: open actions, files this month, hours logged this month, credits remaining.
 
-12. **Blog index upgrade** — featured post, search box, tag cloud sidebar (already have tag filtering), author filter, sort by recent/popular.
-13. **Tag hub pages** with real intros (`/blog?tag=x` → render an SEO-friendly description, FAQ section, related Get Started link). Targets long-tail keywords.
-14. **"Learning paths" on /resources** — curated sequences: *Beginner*, *Building production workflows*, *AI agent workflows*. Each path is a numbered checklist of blog posts + docs links + sample repos.
-15. **Code playground / sample repo gallery** — embedded snippets with copy buttons; link to runnable StackBlitz/sample repos. Engineers stay longer when they can poke at code.
-16. **JSON-LD Article schema** on blog posts + breadcrumbs everywhere — small SEO multiplier.
+## Navigation
 
-## Phase 4 — Lead capture & community growth
+- Org side: `dashboard/org/:slug/workspace/:providerSlug` with tabs `Overview / Files / Notes / Decisions / Actions`. Messages stays in its current tab and links over.
+- Provider side: `dashboard/provider/:slug/workspace/:orgSlug` with the same tabs.
+- A new "Workspace" item appears in both sidebars (conditional on having at least one counterparty).
 
-17. **Community bar in footer** — GitHub, Discord, Newsletter, YouTube with live counts. Currently underexposed.
-18. **Exit-intent newsletter modal** (desktop only, once per 30 days) — offer "Monthly Elsa digest: releases, samples, articles." Honor a dismiss cookie.
-19. **Gated long-form content** (optional) — e.g. "Elsa Production Checklist (PDF)" in exchange for email. Only if you're comfortable; otherwise skip.
-20. **Discord/GitHub Star prompts contextually placed** — after a successful Get Started step, after reading a blog post.
-21. **"Office hours" / monthly community call** announcement strip — recurring engagement hook for returning visitors.
+## Technical details
 
-## Phase 5 — Measurement & iteration
+### Database (new)
+- `engagement_workspaces` — one row per `(organization_id, service_provider_id)` pair. Acts as the parent for all workspace content.
+- `workspace_files` — `workspace_id, storage_path, file_name, mime_type, size_bytes, uploaded_by, description, related_work_log_id (nullable)`.
+- `workspace_file_comments` — threaded comments on files.
+- `workspace_notes` — `workspace_id, title, body_markdown, pinned, created_by, updated_by`.
+- `workspace_decisions` — append-only; `workspace_id, summary, context, decided_by, superseded_by (nullable)`.
+- `workspace_action_items` — `workspace_id, title, description, assignee_user_id, due_at, status, related_work_log_id, related_file_id, related_note_id`.
+- `work_log_attachments` — link table: `work_log_id, file_id` (file lives in `workspace_files`).
+- All tables: `created_at`, `updated_at`, full GRANTs for `authenticated` + `service_role`, RLS enabled.
 
-22. **Event tracking** for: hero CTA click, Weaver open, newsletter submit, code-copy clicks, tag clicks, "next step" card clicks. Without these, we can't prove lift.
-23. **Two A/B tests to start** — (a) hero variant: static screenshot vs interactive demo; (b) blog post footer: related-posts vs related-posts + newsletter.
-24. **Mobile pass** — only 13% mobile but bounce likely higher. Audit hero, Get Started, and Pipeline on mobile after Phase 1 changes.
-25. **Monthly analytics review** — track bounce, session length, pages/visit, newsletter conversion, Weaver chat opens.
+### RLS pattern
+Reuse existing helpers. A new `is_engagement_member(p_workspace_id uuid)` security-definer function returns true if the caller is an org member of the workspace's org **or** a provider member of the workspace's provider. All workspace child tables policy off this single function.
 
----
+Actions inserts/updates additionally require the caller to be a member of the assigner/assignee's side or the assignee themselves.
 
-## What I'd build first (recommended order)
+### Storage
+- New private bucket `engagement-files`.
+- Path convention: `{workspace_id}/{uuid}-{filename}`.
+- Storage RLS: read/insert/delete allowed when `is_engagement_member((storage.foldername(name))[1]::uuid)`.
 
-If you want a concrete starting batch, I'd ship in this order — each step is a small, shippable PR:
+### Edge functions
+- `summarize-transcript` — auth required; verifies caller is an engagement member of the file's workspace; downloads file via service role; calls Lovable AI Gateway with JSON schema; returns structured result. No persistence — the client decides what to save.
+- `create-engagement-workspace` is **not** needed; workspaces auto-create the first time either side opens the route (RPC `get_or_create_engagement_workspace(p_org_id, p_provider_id)` mirroring the existing `get_or_create_conversation` pattern).
 
-```text
-Step 1  Sticky hero CTA + condensed quickstart       (Phase 1.1)
-Step 2  "What's next" footer on blog + Get Started   (Phase 1.3)
-Step 3  Inline newsletter capture                    (Phase 1.4)
-Step 4  Blog index upgrade (search + featured)       (Phase 3.12)
-Step 5  Use-case switcher on homepage                (Phase 2.9)
-Step 6  Comparison block on homepage                 (Phase 2.10)
-Step 7  Learning paths on /resources                 (Phase 3.14)
-Step 8  Event tracking + first A/B test              (Phase 5.22)
-```
+### Notifications
+Extend the existing notifications enum / preferences with: `notify_action_assigned`, `notify_action_due_soon`, `notify_workspace_file_added`, `notify_workspace_note_updated`. Email templates follow the existing Resend setup.
 
-## Technical notes
+### Frontend
+- New folder `src/components/workspace/` for `FilesTab`, `NotesTab`, `DecisionsTab`, `ActionsTab`, `OverviewTab`, `FileUploader`, `FilePreview`, `TranscriptSummarizeButton`, `ActionItemDialog`, `NoteEditor`.
+- New hooks: `useEngagementWorkspace`, `useWorkspaceFiles`, `useWorkspaceNotes`, `useWorkspaceDecisions`, `useWorkspaceActions`.
+- New pages: `src/pages/dashboard/org/OrgWorkspace.tsx`, `src/pages/dashboard/provider/ProviderWorkspace.tsx`, each rendering a shared `<EngagementWorkspace />` component.
+- Extend `LogWorkDialog` to: (a) accept a pre-fill payload from transcript summarization, (b) show a "Attach files" picker drawing from the workspace's Files tab.
 
-- All new UI uses existing semantic tokens (magenta brand, Inter/Sora, hairline borders, restrained shadows). No glassmorphism, no glow, per brand rules.
-- Reuse existing components: `Newsletter` (MailerLite), `ScrollReveal`, `Weaver` chat trigger, `Badge`, `Card`.
-- Analytics events fire client-side; no schema changes required for Phase 1–3.
-- Phase 4 gated content + exit-intent: add `localStorage` dismiss keys; no backend changes.
-- Comparison and use-case content lives as plain TSX data arrays — easy to edit.
-- Tag hub pages can stay on `/blog?tag=x` (current pattern) with enhanced metadata, or upgrade to `/blog/tag/[slug]` static routes if SEO is the priority.
+## Build order (one slice at a time so you can ship incrementally)
 
-## Out of scope
+1. **Foundations** — migrations for `engagement_workspaces` + `is_engagement_member` + `get_or_create_engagement_workspace` RPC. Sidebar entry + empty workspace shell with tabs.
+2. **Files tab** — bucket, table, upload, list, preview, download, delete. Work log "Attach from workspace" picker.
+3. **AI transcript summarization** — edge function + button on transcript-like files + pre-fill of Log Work dialog.
+4. **Action items** — table, CRUD UI, notifications.
+5. **Notes** — table, simple markdown editor (reuse existing markdown renderer), pin/unpin.
+6. **Decisions** — append-only log with supersede.
+7. **Overview tab** — activity stream + stats.
+8. **File comments** — threaded comments on individual files.
 
-- Redesigning the brand or color system.
-- Replacing MailerLite or the existing Weaver/edge-function stack.
-- Changes to the authenticated dashboard, purchasing, or Elsa+ commercial flows.
+Each step is independently shippable. You can stop after step 3 and already have the transcript-driven flow you originally asked for.
 
----
+## Explicit non-goals (v1)
 
-Pick the slice you want and I'll implement it. Easiest place to start: **Steps 1–3** as a single follow-up — visible lift, tiny surface area.
+- No realtime collaborative editing (Yjs / CRDT). Last-writer-wins.
+- No video transcription pipeline — we accept transcripts the user already has (Teams, Zoom, Otter, etc.).
+- No per-file permissions; everything in a workspace is visible to all members of that org and that provider.
+- No external sharing links — workspace stays inside the platform.
