@@ -178,21 +178,32 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <ScrollReveal key={feature.title} delay={index * 100}>
+              <ScrollReveal key={feature.title} delay={index * 60}>
                 <Card variant="glass" className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow">
                   <CardContent className="p-6">
-                    <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center mb-4">
-                      <feature.icon className="h-6 w-6 text-primary-foreground" />
+                    <div className="h-11 w-11 rounded-lg gradient-primary flex items-center justify-center mb-4">
+                      <feature.icon className="h-5 w-5 text-primary-foreground" />
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <h3 className="text-base font-semibold mb-2 tracking-tight">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
               </ScrollReveal>
             ))}
           </div>
+
+          <ScrollReveal>
+            <div className="mt-12 text-center">
+              <Button size="lg" variant="outline" className="gap-2" asChild>
+                <Link to="/features">
+                  Explore all features
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
