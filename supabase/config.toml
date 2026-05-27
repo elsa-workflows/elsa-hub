@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.copilot-ingest]
 verify_jwt = false
+
+[functions.blog-export]
+verify_jwt = false
