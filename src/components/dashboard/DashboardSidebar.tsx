@@ -53,6 +53,7 @@ const providerNavItems = [
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Customers", icon: Building2, path: "customers" },
   { label: "Bookings", icon: CalendarDays, path: "bookings" },
+  { label: "Workspaces", icon: Layers, path: "workspaces" },
   { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Work Logs", icon: Clock, path: "work-logs" },
   { label: "Bundles", icon: Package, path: "bundles" },
