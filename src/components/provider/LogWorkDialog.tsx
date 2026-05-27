@@ -187,14 +187,16 @@ export function LogWorkDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button>
-            <Clock className="h-4 w-4 mr-2" />
-            Log Hours
-          </Button>
-        )}
-      </DialogTrigger>
+      {controlledOpen === undefined && (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button>
+              <Clock className="h-4 w-4 mr-2" />
+              Log Hours
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Log Work Hours</DialogTitle>
