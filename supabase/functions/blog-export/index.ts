@@ -10,9 +10,6 @@ import TurndownService from "https://esm.sh/turndown@7.2.0";
 const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
 const CANONICAL_BASE = "https://www.elsaworkflows.io/blog";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
 interface Author { name: string; url?: string; title?: string; avatar?: string }
 interface Post {
   slug: string;
