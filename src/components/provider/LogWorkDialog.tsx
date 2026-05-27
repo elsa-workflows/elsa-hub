@@ -89,6 +89,8 @@ interface LogWorkDialogProps {
   customers: Customer[];
   onSuccess: () => void;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   prefill?: {
     organizationId?: string;
     description?: string;
@@ -103,9 +105,16 @@ export function LogWorkDialog({
   customers,
   onSuccess,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
   prefill,
 }: LogWorkDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => {
+    if (onOpenChange) onOpenChange(v);
+    else setInternalOpen(v);
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const prefillHours = prefill?.minutes ? Math.floor(prefill.minutes / 60) : 0;
