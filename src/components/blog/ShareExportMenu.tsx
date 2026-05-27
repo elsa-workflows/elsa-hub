@@ -12,11 +12,16 @@ import { Share2, ExternalLink, Copy, Check, FileCode, FileText, Braces } from "l
 import { toast } from "sonner";
 
 const SUPABASE_URL = "https://tehhrjepyfnhmsgtwzkf.supabase.co";
+const CANONICAL_BASE = "https://www.elsa-workflows.io/blog";
 
 type Format = "html" | "md" | "json";
 
 function exportUrl(slug: string, format: Format) {
   return `${SUPABASE_URL}/functions/v1/blog-export/${encodeURIComponent(slug)}?format=${format}`;
+}
+
+function canonicalUrl(slug: string) {
+  return `${CANONICAL_BASE}/${encodeURIComponent(slug)}`;
 }
 
 interface Props {
