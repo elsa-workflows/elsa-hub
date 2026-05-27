@@ -1,16 +1,14 @@
 // Public endpoint: server-rendered HTML / Markdown / JSON for a blog post.
-// Workaround: Supabase edge gateway forces text/plain + sandbox CSP on all
-// edge-function responses, which breaks Medium's importer. So we render the
-// content, upload it to a public Storage bucket (which serves the correct
-// content-type with no CSP), and 302-redirect to it.
+// NOTE: Supabase's edge gateway forces `text/plain` + a sandbox CSP on every
+// response, so Medium's importer (which requires real text/html) cannot use
+// the HTML output of this function directly. The HTML/MD output is still
+// useful for curl, manual inspection, and the Markdown download.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { createClient } from "npm:@supabase/supabase-js@2";
 // @ts-ignore esm.sh
 import TurndownService from "https://esm.sh/turndown@7.2.0";
 
 const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
 const CANONICAL_BASE = "https://www.elsaworkflows.io/blog";
-const BUCKET = "blog-exports";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
