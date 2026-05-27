@@ -10,8 +10,8 @@ import { EngagementWorkspace, type SummaryPayload } from "@/components/workspace
 
 export default function OrgWorkspace() {
   const { slug, providerSlug } = useParams<{ slug: string; providerSlug: string }>();
-  const { data: orgs } = useOrganizations();
-  const organization = orgs?.find((o) => o.slug === slug);
+  const { organizations } = useOrganizations();
+  const organization = organizations?.find((o) => o.slug === slug);
   const [summary, setSummary] = useState<SummaryPayload | null>(null);
 
   const { data: provider } = useQuery({

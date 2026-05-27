@@ -89,6 +89,12 @@ interface LogWorkDialogProps {
   customers: Customer[];
   onSuccess: () => void;
   trigger?: React.ReactNode;
+  prefill?: {
+    organizationId?: string;
+    description?: string;
+    minutes?: number;
+    category?: WorkCategory;
+  };
 }
 
 export function LogWorkDialog({
@@ -97,19 +103,23 @@ export function LogWorkDialog({
   customers,
   onSuccess,
   trigger,
+  prefill,
 }: LogWorkDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const prefillHours = prefill?.minutes ? Math.floor(prefill.minutes / 60) : 0;
+  const prefillMins = prefill?.minutes ? prefill.minutes % 60 : 0;
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      customerId: "",
+      customerId: prefill?.organizationId ?? "",
       performedAt: new Date(),
-      hours: 0,
-      minutes: 0,
-      category: undefined,
-      description: "",
+      hours: prefillHours,
+      minutes: prefillMins,
+      category: prefill?.category,
+      description: prefill?.description ?? "",
     },
   });
 
