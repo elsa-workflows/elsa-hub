@@ -26,6 +26,7 @@ type LoadState =
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const { data: isAdmin } = useIsAdmin();
 
   useEffect(() => {
     if (!slug) return;
