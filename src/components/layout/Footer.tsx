@@ -8,6 +8,9 @@ const footerLinks = {
     label: "Home",
     to: "/"
   }, {
+    label: "Features",
+    to: "/features"
+  }, {
     label: "Get Started",
     to: "/get-started"
   }, {

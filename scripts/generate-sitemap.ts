@@ -15,6 +15,7 @@ interface SitemapEntry {
 
 const entries: SitemapEntry[] = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
+  { path: "/features", changefreq: "monthly", priority: "0.9" },
   { path: "/get-started", changefreq: "monthly", priority: "0.9" },
   { path: "/get-started/elsa-server", changefreq: "monthly", priority: "0.8" },
   { path: "/get-started/elsa-studio", changefreq: "monthly", priority: "0.8" },
