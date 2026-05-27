@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Code2, Puzzle, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart, Terminal } from "lucide-react";
+import { Check, ArrowRight, Workflow, Code2, Puzzle, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart, Terminal, Timer, LineChart, Settings2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
@@ -17,29 +17,37 @@ const benefits = [
   "Open source & MIT licensed",
 ];
 const features = [{
-  icon: Heart,
-  title: "MIT Open Source",
-  description: "Free and open source under the MIT license. Use it in personal or commercial projects, inspect the code, and contribute back to a thriving community."
+  icon: Code2,
+  title: "Build Workflows Your Way",
+  description: "Author in C#, design visually in Elsa Studio, or store as JSON. Keep critical automation in source control while teams collaborate in the designer."
 }, {
-  icon: Shield,
-  title: "Production-Ready",
-  description: "Built for production. Clustering, durable persistence, and proven across small apps and enterprise systems alike."
+  icon: Timer,
+  title: "Durable Event-Driven Runtime",
+  description: "Pause for timers, webhooks, approvals, and messages. Elsa persists state and resumes the right instance when the next signal arrives."
 }, {
   icon: Workflow,
-  title: "Visual Designer",
-  description: "Design workflows visually with an intuitive drag-and-drop interface. No code required for simple flows."
-}, {
-  icon: Code2,
-  title: ".NET Native",
-  description: "Built from the ground up for .NET. Leverage your existing C# skills and integrate seamlessly with your stack."
+  title: "Visual Workflow Studio",
+  description: "A modular Blazor designer with management UI, diagnostics views, authentication modules, and localization for custom platform experiences."
 }, {
   icon: Puzzle,
-  title: "Extensible",
-  description: "Create custom activities, extend the designer, and integrate with any system through a powerful plugin architecture."
+  title: "Integration-Ready",
+  description: "Built-in activities for HTTP, scheduling, SQL, messaging, files, and email — plus an extension ecosystem for Slack, GitHub, Kafka, and AI agents."
+}, {
+  icon: Settings2,
+  title: "Production Operations",
+  description: "Runtime administration, execution journals, graceful shutdown, recovery scanning, dead-letter handling, and a transactional dispatch outbox."
+}, {
+  icon: LineChart,
+  title: "Observable by Design",
+  description: "Inspect execution history, structured logs, raw console output, trace and span correlation, tenant, and workflow context from API or Studio."
+}, {
+  icon: ShieldCheck,
+  title: "Secure Multi-Tenant",
+  description: "Identity, authorization, tenant-aware behavior, encrypted secrets, and permission-gated APIs for SaaS and regulated systems."
 }, {
   icon: Layers,
-  title: "Multi-Tenancy",
-  description: "Built-in multi-tenant support with flexible isolation levels — from record-level tenancy to fully isolated service collections per tenant using CShells."
+  title: "Extensible by Developers",
+  description: "Custom activities, expression providers, API endpoints, stores, Studio modules, and authentication providers — every layer has extension points."
 }];
 
 const ecosystemLinks = [{
@@ -170,21 +178,32 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <ScrollReveal key={feature.title} delay={index * 100}>
+              <ScrollReveal key={feature.title} delay={index * 60}>
                 <Card variant="glass" className="h-full border-0 shadow-lg hover:shadow-xl transition-shadow">
                   <CardContent className="p-6">
-                    <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center mb-4">
-                      <feature.icon className="h-6 w-6 text-primary-foreground" />
+                    <div className="h-11 w-11 rounded-lg gradient-primary flex items-center justify-center mb-4">
+                      <feature.icon className="h-5 w-5 text-primary-foreground" />
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <h3 className="text-base font-semibold mb-2 tracking-tight">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
               </ScrollReveal>
             ))}
           </div>
+
+          <ScrollReveal>
+            <div className="mt-12 text-center">
+              <Button size="lg" variant="outline" className="gap-2" asChild>
+                <Link to="/features">
+                  Explore all features
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
