@@ -1379,6 +1379,7 @@ export type Database = {
           file_name: string
           id: string
           mime_type: string
+          session_id: string | null
           size_bytes: number
           storage_path: string
           updated_at: string
@@ -1391,6 +1392,7 @@ export type Database = {
           file_name: string
           id?: string
           mime_type: string
+          session_id?: string | null
           size_bytes: number
           storage_path: string
           updated_at?: string
@@ -1403,6 +1405,7 @@ export type Database = {
           file_name?: string
           id?: string
           mime_type?: string
+          session_id?: string | null
           size_bytes?: number
           storage_path?: string
           updated_at?: string
@@ -1411,7 +1414,86 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "workspace_files_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_sessions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workspace_files_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "engagement_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_sessions: {
+        Row: {
+          ai_action_items: Json | null
+          ai_generated_at: string | null
+          ai_key_points: Json | null
+          ai_summary: string | null
+          created_at: string
+          created_by: string
+          duration_minutes: number | null
+          id: string
+          notes_markdown: string
+          occurred_at: string
+          participants: Json
+          related_work_log_id: string | null
+          session_type: Database["public"]["Enums"]["session_type"]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          ai_action_items?: Json | null
+          ai_generated_at?: string | null
+          ai_key_points?: Json | null
+          ai_summary?: string | null
+          created_at?: string
+          created_by: string
+          duration_minutes?: number | null
+          id?: string
+          notes_markdown?: string
+          occurred_at?: string
+          participants?: Json
+          related_work_log_id?: string | null
+          session_type?: Database["public"]["Enums"]["session_type"]
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          ai_action_items?: Json | null
+          ai_generated_at?: string | null
+          ai_key_points?: Json | null
+          ai_summary?: string | null
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number | null
+          id?: string
+          notes_markdown?: string
+          occurred_at?: string
+          participants?: Json
+          related_work_log_id?: string | null
+          session_type?: Database["public"]["Enums"]["session_type"]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_sessions_related_work_log_id_fkey"
+            columns: ["related_work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_sessions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "engagement_workspaces"
@@ -1755,6 +1837,7 @@ export type Database = {
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
       provider_role: "owner" | "admin" | "member"
+      session_type: "call" | "workshop" | "async_review" | "other"
       work_category:
         | "development"
         | "consulting"
@@ -1920,6 +2003,7 @@ export const Constants = {
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],
       provider_role: ["owner", "admin", "member"],
+      session_type: ["call", "workshop", "async_review", "other"],
       work_category: [
         "development",
         "consulting",
