@@ -1,11 +1,19 @@
 // Public endpoint: server-rendered HTML / Markdown / JSON for a blog post.
-// Designed for Medium "Import a story" and similar tools that fetch URLs server-side.
+// Workaround: Supabase edge gateway forces text/plain + sandbox CSP on all
+// edge-function responses, which breaks Medium's importer. So we render the
+// content, upload it to a public Storage bucket (which serves the correct
+// content-type with no CSP), and 302-redirect to it.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-// @ts-ignore - esm.sh deno-compatible
+import { createClient } from "npm:@supabase/supabase-js@2";
+// @ts-ignore esm.sh
 import TurndownService from "https://esm.sh/turndown@7.2.0";
 
 const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
 const CANONICAL_BASE = "https://www.elsaworkflows.io/blog";
+const BUCKET = "blog-exports";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface Author { name: string; url?: string; title?: string; avatar?: string }
 interface Post {
@@ -80,6 +88,35 @@ function renderMarkdown(post: Post, canonical: string): string {
   return `${front}\n# ${post.title}\n\n${cover}${body}\n`;
 }
 
+function publicUrl(path: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+}
+
+async function uploadAndRedirect(
+  path: string,
+  body: string,
+  contentType: string,
+  canonical: string,
+): Promise<Response> {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+  const { error } = await admin.storage.from(BUCKET).upload(path, new Blob([body], { type: contentType }), {
+    contentType,
+    upsert: true,
+    cacheControl: "300",
+  });
+  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+  const target = publicUrl(path);
+  return new Response(null, {
+    status: 302,
+    headers: {
+      ...corsHeaders,
+      Location: target,
+      Link: `<${canonical}>; rel="canonical"`,
+      "Cache-Control": "public, max-age=60",
+    },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -108,22 +145,27 @@ Deno.serve(async (req) => {
     const post = (await upstream.json()) as Post;
     const canonical = post.canonicalUrl || `${CANONICAL_BASE}/${slug}`;
 
-    const cache = "public, max-age=300, s-maxage=300";
-    const linkHeader = `<${canonical}>; rel="canonical"`;
-
     if (format === "json") {
+      // JSON is fine via the edge gateway (no HTML sniffing), return inline.
       return new Response(JSON.stringify(post, null, 2), {
-        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8", "Cache-Control": cache, Link: linkHeader },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "public, max-age=300, s-maxage=300",
+          Link: `<${canonical}>; rel="canonical"`,
+        },
       });
     }
+
     if (format === "md" || format === "markdown") {
-      return new Response(renderMarkdown(post, canonical), {
-        headers: { ...corsHeaders, "Content-Type": "text/markdown; charset=utf-8", "Cache-Control": cache, Link: linkHeader },
-      });
+      const body = renderMarkdown(post, canonical);
+      return await uploadAndRedirect(`${slug}.md`, body, "text/markdown; charset=utf-8", canonical);
     }
-    return new Response(renderHtml(post, canonical), {
-      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": cache, Link: linkHeader },
-    });
+
+    // Default: HTML — must be served from Storage so Medium gets real text/html
+    // without the edge gateway's sandbox CSP.
+    const body = renderHtml(post, canonical);
+    return await uploadAndRedirect(`${slug}.html`, body, "text/html; charset=utf-8", canonical);
   } catch (e) {
     return new Response(`Failed to export post: ${(e as Error).message}`, {
       status: 502,
