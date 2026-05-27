@@ -6,14 +6,15 @@ import { useWorkspaceFiles } from "@/hooks/useEngagementWorkspace";
 
 interface FileUploaderProps {
   workspaceId: string;
+  sessionId?: string | null;
 }
 
 const MAX_SIZE_BYTES = 50 * 1024 * 1024;
 
-export function FileUploader({ workspaceId }: FileUploaderProps) {
+export function FileUploader({ workspaceId, sessionId }: FileUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
-  const { upload, isUploading } = useWorkspaceFiles(workspaceId);
+  const { upload, isUploading } = useWorkspaceFiles(workspaceId, { sessionId });
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
