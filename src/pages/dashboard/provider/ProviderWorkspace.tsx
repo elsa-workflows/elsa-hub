@@ -64,7 +64,25 @@ export default function ProviderWorkspace() {
         title={`${provider.name} ↔ ${organization.name}`}
         subtitle="Shared with the customer's team."
         onSummaryReady={setSummary}
+        onLogWorkFromSession={setSessionToLog}
       />
+
+      {sessionToLog && (
+        <LogWorkDialog
+          providerId={provider.id}
+          providerName={provider.name}
+          customers={customerList}
+          open={!!sessionToLog}
+          onOpenChange={(o) => !o && setSessionToLog(null)}
+          onSuccess={() => { handleSuccess(); setSessionToLog(null); }}
+          prefill={{
+            organizationId: organization.id,
+            description: sessionToLog.ai_summary || sessionToLog.notes_markdown || sessionToLog.title,
+            minutes: sessionToLog.duration_minutes ?? undefined,
+            category: "consulting",
+          }}
+        />
+      )}
 
       {summary && (
         <Card className="p-4 border-primary/40 space-y-3">
