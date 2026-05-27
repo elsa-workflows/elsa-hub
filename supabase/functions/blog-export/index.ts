@@ -87,31 +87,6 @@ function publicUrl(path: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
 
-async function uploadAndRedirect(
-  path: string,
-  body: string,
-  contentType: string,
-  canonical: string,
-): Promise<Response> {
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-  const { error } = await admin.storage.from(BUCKET).upload(path, new Blob([body], { type: contentType }), {
-    contentType,
-    upsert: true,
-    cacheControl: "300",
-  });
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
-  const target = publicUrl(path);
-  return new Response(null, {
-    status: 302,
-    headers: {
-      ...corsHeaders,
-      Location: target,
-      Link: `<${canonical}>; rel="canonical"`,
-      "Cache-Control": "public, max-age=60",
-    },
-  });
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -140,27 +115,22 @@ Deno.serve(async (req) => {
     const post = (await upstream.json()) as Post;
     const canonical = post.canonicalUrl || `${CANONICAL_BASE}/${slug}`;
 
+    const cache = "public, max-age=300, s-maxage=300";
+    const linkHeader = `<${canonical}>; rel="canonical"`;
+
     if (format === "json") {
-      // JSON is fine via the edge gateway (no HTML sniffing), return inline.
       return new Response(JSON.stringify(post, null, 2), {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json; charset=utf-8",
-          "Cache-Control": "public, max-age=300, s-maxage=300",
-          Link: `<${canonical}>; rel="canonical"`,
-        },
+        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8", "Cache-Control": cache, Link: linkHeader },
       });
     }
-
     if (format === "md" || format === "markdown") {
-      const body = renderMarkdown(post, canonical);
-      return await uploadAndRedirect(`${slug}.md`, body, "text/markdown; charset=utf-8", canonical);
+      return new Response(renderMarkdown(post, canonical), {
+        headers: { ...corsHeaders, "Content-Type": "text/markdown; charset=utf-8", "Cache-Control": cache, Link: linkHeader },
+      });
     }
-
-    // Default: HTML — must be served from Storage so Medium gets real text/html
-    // without the edge gateway's sandbox CSP.
-    const body = renderHtml(post, canonical);
-    return await uploadAndRedirect(`${slug}.html`, body, "text/html; charset=utf-8", canonical);
+    return new Response(renderHtml(post, canonical), {
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": cache, Link: linkHeader },
+    });
   } catch (e) {
     return new Response(`Failed to export post: ${(e as Error).message}`, {
       status: 502,
@@ -168,3 +138,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+
