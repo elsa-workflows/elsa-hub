@@ -6,8 +6,8 @@ import { useOrgWorkspaceList } from "@/hooks/useEngagementWorkspace";
 
 export default function OrgWorkspaces() {
   const { slug } = useParams<{ slug: string }>();
-  const { data: orgs } = useOrganizations();
-  const organization = orgs?.find((o) => o.slug === slug);
+  const { organizations } = useOrganizations();
+  const organization = organizations?.find((o) => o.slug === slug);
   const { data: providers, isLoading } = useOrgWorkspaceList(organization?.id);
 
   return (
