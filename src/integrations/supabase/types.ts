@@ -1283,6 +1283,38 @@ export type Database = {
         }
         Relationships: []
       }
+      work_log_attachments: {
+        Row: {
+          created_at: string
+          created_by: string
+          file_id: string
+          id: string
+          work_log_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          file_id: string
+          id?: string
+          work_log_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          file_id?: string
+          id?: string
+          work_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_log_attachments_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_logs: {
         Row: {
           category: Database["public"]["Enums"]["work_category"]
@@ -1336,6 +1368,53 @@ export type Database = {
             columns: ["service_provider_id"]
             isOneToOne: false
             referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_files: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          uploaded_by: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          updated_at?: string
+          uploaded_by: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_files_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "engagement_workspaces"
             referencedColumns: ["id"]
           },
         ]
