@@ -1,36 +1,44 @@
-## Build: Blog export endpoint + admin Share dropdown
+## Prerender blog posts at build time
 
-### 1. Edge function `supabase/functions/blog-export/index.ts` (public, no JWT)
+Generate one real `text/html` file per blog post during `vite build` so Medium's importer (and crawlers, Open Graph scrapers, etc.) can read the actual content from `https://www.elsa-workflows.io/blog/<slug>` — no Supabase function involved.
 
-Route: `GET /functions/v1/blog-export/<slug>?format=html|md|json` (default `html`).
+### How it works
 
-- Fetches `https://elsa-workflows.github.io/elsa-blog/posts/<slug>.json`.
-- Renders:
-  - **html** — full `<!doctype html>` with `<title>`, description, `<link rel="canonical">` back to `https://www.elsaworkflows.io/blog/<slug>`, OG/article meta, and an `<article>` containing title, byline, featured image, description, then `post.html`. This is the URL to paste into Medium's importer.
-  - **md** — Markdown via `turndown` (esm.sh) with YAML frontmatter (title, description, date, authors, category, tags, canonical) + featured image + body.
-  - **json** — passthrough of upstream JSON for debugging.
-- Headers: `Cache-Control: public, max-age=300, s-maxage=300`, `Link: <canonical>; rel="canonical"`, CORS.
-- 404 if upstream 404, 502 on other upstream failures.
-- Register in `supabase/config.toml` with `verify_jwt = false`.
+1. **New script `scripts/prerender-blog.ts`** runs as a `postbuild` hook (after `vite build` writes `dist/index.html`):
+   - Fetch `https://elsa-workflows.github.io/elsa-blog/index.json` → list of posts.
+   - For each post, fetch `posts/<slug>.json`.
+   - Read the freshly-built `dist/index.html` as the SPA shell template.
+   - Inject into a copy of that shell:
+     - Real `<title>`, `<meta name="description">`
+     - `<link rel="canonical" href="https://www.elsa-workflows.io/blog/<slug>">`
+     - Full Open Graph + Twitter card tags (title, description, image, type=article, published_time, author, tags)
+     - JSON-LD `BlogPosting` schema
+     - The post body as a hidden but crawlable `<div id="prerendered-blog-content">` containing `<article>` with `<h1>`, byline, featured image, description and `post.html`
+   - Write to `dist/blog/<slug>/index.html`.
+2. **Static hosting serves the per-post file** at `/blog/<slug>` before the SPA fallback. Browsers still hydrate the React app on top — the prerendered `<div>` is removed by `BlogPost.tsx` after mount so users see no double-render.
+3. **Sitemap update**: `scripts/generate-sitemap.ts` also fetches the blog index and adds one `<url>` entry per post (`/blog/<slug>` with `lastmod` = `updatedAt || publishedAt`).
+4. **`BlogPost.tsx` cleanup**: a small `useEffect` removes `#prerendered-blog-content` on mount so the React-rendered version takes over cleanly. No visible flash because the SPA's own loading state covers it within one paint.
 
-### 2. `src/components/blog/ShareExportMenu.tsx`
+### Medium import
 
-Outline button "Share / Export" using `DropdownMenu` with three sections:
-- **Medium import** — "Copy Medium import URL" (the `?format=html` URL) and "Open Medium importer" (→ `https://medium.com/p/import`).
-- **View as** — HTML / Markdown / JSON links (new tab).
-- **Copy URL** — copy HTML / MD / JSON URLs.
+Paste `https://www.elsa-workflows.io/blog/<slug>` directly into Medium's "Import a story". Medium fetches the URL, sees real `text/html` with the article body and canonical link, and imports cleanly. No Supabase function, no sandbox CSP, no dropdown shenanigans.
 
-Uses sonner `toast` for copy feedback. URL built from the hardcoded Supabase URL already in `client.ts`.
+### Cleanup
 
-### 3. Wire into `src/pages/BlogPost.tsx`
+- The `blog-export` edge function and the `ShareExportMenu` admin dropdown stay in place for `?format=md` / `?format=json` (markdown download is still useful for copy-paste). I'll add a tooltip note on the "Medium import URL" item explaining the production URL is the recommended route now, and re-point the "Copy Medium import URL" action to `https://www.elsa-workflows.io/blog/<slug>`.
 
-- Import `useIsAdmin` and `ShareExportMenu`.
-- In the article header row (next to the date/category metadata, right-aligned on md+), render `{isAdmin && <ShareExportMenu slug={post.slug} />}`. Admin-only, no UI for everyone else.
+### Files
+
+- **New**: `scripts/prerender-blog.ts`
+- **Edited**: `package.json` (add `"postbuild": "tsx scripts/prerender-blog.ts"`), `scripts/generate-sitemap.ts` (append blog entries), `src/pages/BlogPost.tsx` (strip prerendered block on mount), `src/components/blog/ShareExportMenu.tsx` (point Medium URL to canonical site URL).
 
 ### Out of scope
 
-No changes to the upstream blog repo, no SSR of the SPA, no new auth.
+- No changes to the upstream blog repo.
+- No SSR runtime — purely build-time generation against the GitHub-hosted JSON.
+- No removal of the `blog-export` function (kept for MD/JSON export).
 
-### Verification
+### Caveats
 
-After deploy, hit `…/functions/v1/blog-export/console-log-streaming?format=html` with curl and confirm 200 + canonical `Link` header, then paste the same URL into Medium's importer.
+- A new post published on GitHub Pages won't appear at `/blog/<slug>` with prerendered HTML until the next deploy of this site. The SPA route still renders it client-side meanwhile (just without Medium-friendly HTML). Acceptable since deploys are frequent.
+- If the upstream index fetch fails during build, the script logs a warning and continues — the build won't break.
