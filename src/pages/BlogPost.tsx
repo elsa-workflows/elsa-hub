@@ -13,7 +13,9 @@ import {
   formatBlogDate,
 } from "@/lib/blog";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
+import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
 import { InlineNewsletter } from "@/components/newsletter";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 type LoadState =
   | { kind: "loading" }
