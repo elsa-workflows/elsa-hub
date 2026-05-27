@@ -1,7 +1,10 @@
 // Public endpoint: server-rendered HTML / Markdown / JSON for a blog post.
-// Designed for Medium "Import a story" and similar tools that fetch URLs server-side.
+// NOTE: Supabase's edge gateway forces `text/plain` + a sandbox CSP on every
+// response, so Medium's importer (which requires real text/html) cannot use
+// the HTML output of this function directly. The HTML/MD output is still
+// useful for curl, manual inspection, and the Markdown download.
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-// @ts-ignore - esm.sh deno-compatible
+// @ts-ignore esm.sh
 import TurndownService from "https://esm.sh/turndown@7.2.0";
 
 const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
@@ -80,6 +83,7 @@ function renderMarkdown(post: Post, canonical: string): string {
   return `${front}\n# ${post.title}\n\n${cover}${body}\n`;
 }
 
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -131,3 +135,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+
