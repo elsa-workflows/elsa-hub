@@ -14,6 +14,7 @@ export interface WorkspaceCounterparty {
 export interface WorkspaceFile {
   id: string;
   workspace_id: string;
+  session_id: string | null;
   storage_path: string;
   file_name: string;
   mime_type: string;
@@ -137,18 +138,25 @@ export function useProviderWorkspaceList(serviceProviderId: string | undefined) 
 /**
  * Files inside a workspace + upload / delete / signed URL helpers.
  */
-export function useWorkspaceFiles(workspaceId: string | undefined) {
+export function useWorkspaceFiles(
+  workspaceId: string | undefined,
+  options?: { sessionId?: string | null },
+) {
   const queryClient = useQueryClient();
+  const sessionFilter = options?.sessionId; // undefined = no filter, null = root only, string = that session
 
   const filesQuery = useQuery({
-    queryKey: ["workspace-files", workspaceId],
+    queryKey: ["workspace-files", workspaceId, sessionFilter ?? "__all__"],
     queryFn: async (): Promise<WorkspaceFile[]> => {
       if (!workspaceId) return [];
-      const { data, error } = await supabase
+      let q = supabase
         .from("workspace_files")
-        .select("id, workspace_id, storage_path, file_name, mime_type, size_bytes, description, uploaded_by, created_at")
+        .select("id, workspace_id, session_id, storage_path, file_name, mime_type, size_bytes, description, uploaded_by, created_at")
         .eq("workspace_id", workspaceId)
         .order("created_at", { ascending: false });
+      if (sessionFilter === null) q = q.is("session_id", null);
+      else if (typeof sessionFilter === "string") q = q.eq("session_id", sessionFilter);
+      const { data, error } = await q;
       if (error) throw error;
       if (!data?.length) return [];
 
@@ -187,6 +195,7 @@ export function useWorkspaceFiles(workspaceId: string | undefined) {
 
       const { error: insertError } = await supabase.from("workspace_files").insert({
         workspace_id: workspaceId,
+        session_id: typeof sessionFilter === "string" ? sessionFilter : null,
         storage_path: path,
         file_name: file.name,
         mime_type: file.type || "application/octet-stream",
@@ -196,7 +205,6 @@ export function useWorkspaceFiles(workspaceId: string | undefined) {
       });
 
       if (insertError) {
-        // Best-effort cleanup
         await supabase.storage.from(BUCKET).remove([path]);
         throw insertError;
       }
@@ -205,6 +213,7 @@ export function useWorkspaceFiles(workspaceId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ["workspace-files", workspaceId] });
     },
   });
+
 
   const deleteMutation = useMutation({
     mutationFn: async (file: WorkspaceFile) => {

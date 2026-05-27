@@ -40,6 +40,7 @@ import { TranscriptSummarizeButton } from "./TranscriptSummarizeButton";
 
 interface FileListProps {
   workspaceId: string;
+  sessionId?: string | null;
   onSummaryReady?: (payload: SummaryPayload) => void;
 }
 
@@ -72,8 +73,8 @@ function isTranscript(file: WorkspaceFile) {
   return TRANSCRIPT_EXT.test(file.file_name) || file.mime_type.startsWith("text/");
 }
 
-export function FileList({ workspaceId, onSummaryReady }: FileListProps) {
-  const { files, isLoading, remove, getSignedUrl } = useWorkspaceFiles(workspaceId);
+export function FileList({ workspaceId, sessionId, onSummaryReady }: FileListProps) {
+  const { files, isLoading, remove, getSignedUrl } = useWorkspaceFiles(workspaceId, { sessionId });
   const [pendingDelete, setPendingDelete] = useState<WorkspaceFile | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 

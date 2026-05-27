@@ -8,11 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
 import { EngagementWorkspace, type SummaryPayload } from "@/components/workspace";
 import { LogWorkDialog } from "@/components/provider/LogWorkDialog";
+import type { WorkspaceSession } from "@/hooks/useWorkspaceSessions";
 
 export default function ProviderWorkspace() {
   const { slug, orgSlug } = useParams<{ slug: string; orgSlug: string }>();
   const { provider, customers, refetchWorkLogs, refetchCustomers } = useProviderDashboard(slug);
   const [summary, setSummary] = useState<SummaryPayload | null>(null);
+  const [sessionToLog, setSessionToLog] = useState<WorkspaceSession | null>(null);
 
   const { data: organization } = useQuery({
     queryKey: ["org-by-slug", orgSlug],
@@ -62,7 +64,25 @@ export default function ProviderWorkspace() {
         title={`${provider.name} ↔ ${organization.name}`}
         subtitle="Shared with the customer's team."
         onSummaryReady={setSummary}
+        onLogWorkFromSession={setSessionToLog}
       />
+
+      {sessionToLog && (
+        <LogWorkDialog
+          providerId={provider.id}
+          providerName={provider.name}
+          customers={customerList}
+          open={!!sessionToLog}
+          onOpenChange={(o) => !o && setSessionToLog(null)}
+          onSuccess={() => { handleSuccess(); setSessionToLog(null); }}
+          prefill={{
+            organizationId: organization.id,
+            description: sessionToLog.ai_summary || sessionToLog.notes_markdown || sessionToLog.title,
+            minutes: sessionToLog.duration_minutes ?? undefined,
+            category: "consulting",
+          }}
+        />
+      )}
 
       {summary && (
         <Card className="p-4 border-primary/40 space-y-3">

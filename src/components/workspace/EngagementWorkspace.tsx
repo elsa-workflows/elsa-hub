@@ -4,19 +4,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { FileUploader } from "./FileUploader";
 import { FileList, type SummaryPayload } from "./FileList";
+import { SessionList } from "./sessions/SessionList";
+import { SessionDetail } from "./sessions/SessionDetail";
 import { useEngagementWorkspace } from "@/hooks/useEngagementWorkspace";
+import type { WorkspaceSession } from "@/hooks/useWorkspaceSessions";
 
 interface EngagementWorkspaceProps {
   organizationId: string;
   serviceProviderId: string;
   title: string;
   subtitle?: string;
-  /**
-   * Called when an AI summary is produced from a transcript file.
-   * The parent (org or provider page) can use this to open a pre-filled
-   * Log Work dialog.
-   */
   onSummaryReady?: (payload: SummaryPayload) => void;
+  onLogWorkFromSession?: (s: WorkspaceSession) => void;
 }
 
 export function EngagementWorkspace({
@@ -25,12 +24,14 @@ export function EngagementWorkspace({
   title,
   subtitle,
   onSummaryReady,
+  onLogWorkFromSession,
 }: EngagementWorkspaceProps) {
   const { data: workspaceId, isLoading, error } = useEngagementWorkspace(
     organizationId,
     serviceProviderId,
   );
-  const [tab, setTab] = useState("files");
+  const [tab, setTab] = useState("sessions");
+  const [activeSession, setActiveSession] = useState<WorkspaceSession | null>(null);
 
   if (isLoading) {
     return <div className="h-32 bg-muted/40 animate-pulse rounded-lg" />;
@@ -51,15 +52,15 @@ export function EngagementWorkspace({
         {subtitle && <p className="text-muted-foreground mt-1">{subtitle}</p>}
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={(v) => { setTab(v); if (v !== "sessions") setActiveSession(null); }}>
         <TabsList>
+          <TabsTrigger value="sessions">
+            <NotebookPen className="h-4 w-4 mr-2" />
+            Sessions
+          </TabsTrigger>
           <TabsTrigger value="files">
             <Files className="h-4 w-4 mr-2" />
             Files
-          </TabsTrigger>
-          <TabsTrigger value="notes" disabled>
-            <NotebookPen className="h-4 w-4 mr-2" />
-            Notes
           </TabsTrigger>
           <TabsTrigger value="actions" disabled>
             <ListChecks className="h-4 w-4 mr-2" />
@@ -70,6 +71,23 @@ export function EngagementWorkspace({
             Decisions
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="sessions" className="mt-6">
+          {activeSession ? (
+            <SessionDetail
+              workspaceId={workspaceId}
+              session={activeSession}
+              onBack={() => setActiveSession(null)}
+              onLogWork={onLogWorkFromSession}
+            />
+          ) : (
+            <SessionList
+              workspaceId={workspaceId}
+              selectedId={activeSession ? (activeSession as WorkspaceSession).id : null}
+              onSelect={setActiveSession}
+            />
+          )}
+        </TabsContent>
 
         <TabsContent value="files" className="space-y-4 mt-6">
           <FileUploader workspaceId={workspaceId} />
