@@ -9,10 +9,8 @@ import { LocationCard } from "@/components/radar/LocationCard";
 import { RadarStats } from "@/components/radar/RadarStats";
 import { RadarFilters } from "@/components/radar/RadarFilters";
 import { AddTeamDialog } from "@/components/radar/AddTeamDialog";
-import {
-  elsaUsageLocations,
-  type ElsaUsageLocation,
-} from "@/data/elsaUsageLocations";
+import { type ElsaUsageLocation } from "@/data/elsaUsageLocations";
+import { useRadarLocations } from "@/hooks/useRadarLocations";
 
 export default function RadarMap() {
   const [region, setRegion] = useState<string | null>(null);
@@ -22,14 +20,16 @@ export default function RadarMap() {
   const [selected, setSelected] = useState<ElsaUsageLocation | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
+  const { data: locations = [] } = useRadarLocations();
+
   const filtered = useMemo(() => {
-    return elsaUsageLocations.filter((l) => {
+    return locations.filter((l) => {
       if (region && l.region !== region) return false;
       if (industry && l.industry !== industry) return false;
       if (showcaseOnly && l.anonymous) return false;
       return true;
     });
-  }, [region, industry, showcaseOnly]);
+  }, [locations, region, industry, showcaseOnly]);
 
   const stats = useMemo(() => {
     const countries = new Set(filtered.map((l) => l.country));
