@@ -101,6 +101,7 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/features" element={<Features />} />
+              <Route path="/community/radar" element={<RadarMap />} />
               <Route path="/get-started" element={<GetStarted />} />
               <Route path="/get-started/docker" element={<Docker />} />
               <Route path="/get-started/elsa-server" element={<ElsaServer />} />
