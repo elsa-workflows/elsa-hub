@@ -70,7 +70,6 @@ export function useRadarLocations() {
       const mapped = (data as unknown as RadarLocationRow[]).map(rowToLocation);
       return mapped.length > 0 ? mapped : elsaUsageLocations;
     },
-    initialData: elsaUsageLocations,
     placeholderData: (previousData) => previousData ?? elsaUsageLocations,
     staleTime: 60_000,
   });
