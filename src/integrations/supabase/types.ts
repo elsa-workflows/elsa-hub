@@ -1005,7 +1005,14 @@ export type Database = {
           latitude: number
           longitude: number
           region: Database["public"]["Enums"]["radar_region"]
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           sort_order: number
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          submitted_contact_email: string | null
           updated_at: string
           using_since: number | null
           website_url: string | null
@@ -1024,7 +1031,14 @@ export type Database = {
           latitude: number
           longitude: number
           region: Database["public"]["Enums"]["radar_region"]
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sort_order?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_contact_email?: string | null
           updated_at?: string
           using_since?: number | null
           website_url?: string | null
@@ -1043,7 +1057,14 @@ export type Database = {
           latitude?: number
           longitude?: number
           region?: Database["public"]["Enums"]["radar_region"]
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sort_order?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          submitted_contact_email?: string | null
           updated_at?: string
           using_since?: number | null
           website_url?: string | null
@@ -1894,6 +1915,7 @@ export type Database = {
         | "subscription_renewed"
         | "intro_call_submitted"
         | "new_message"
+        | "radar_submission"
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
       provider_role: "owner" | "admin" | "member"
@@ -2066,6 +2088,7 @@ export const Constants = {
         "subscription_renewed",
         "intro_call_submitted",
         "new_message",
+        "radar_submission",
       ],
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],
