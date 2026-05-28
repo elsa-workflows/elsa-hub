@@ -144,7 +144,6 @@ export default function RadarMap() {
                 onHeatmap={setHeatmap}
               />
             </motion.aside>
-            </motion.aside>
           </div>
 
           {/* Privacy strip */}
