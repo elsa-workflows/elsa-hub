@@ -163,7 +163,24 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
           ringMaxRadius="maxR"
           ringPropagationSpeed="propagationSpeed"
           ringRepeatPeriod="repeatPeriod"
+          // Heatmap (hex bins of anonymous deployments)
+          hexBinPointsData={heatmap ? hexBinData : []}
+          hexBinPointLat="lat"
+          hexBinPointLng="lng"
+          hexBinPointWeight="weight"
+          hexBinResolution={3}
+          hexMargin={0.2}
+          hexAltitude={({ sumWeight }: any) => Math.min(0.18, 0.015 + sumWeight * 0.02)}
+          hexTopColor={({ sumWeight }: any) => heatColor(sumWeight, 0.95)}
+          hexSideColor={({ sumWeight }: any) => heatColor(sumWeight, 0.55)}
+          hexLabel={({ sumWeight, points }: any) =>
+            `<div style="font: 500 12px Inter, sans-serif; color:#e2e8f0; background:rgba(2,6,23,0.92); padding:6px 10px; border:1px solid rgba(125,211,252,0.3); border-radius:6px;">
+               <div style="color:#7dd3fc; font-weight:600;">Density · ${sumWeight.toFixed(0)}</div>
+               <div style="opacity:.7; margin-top:2px;">${points.length} anonymous signals</div>
+             </div>`
+          }
         />
+      </Suspense>
       </Suspense>
 
       {/* Corner HUD */}
