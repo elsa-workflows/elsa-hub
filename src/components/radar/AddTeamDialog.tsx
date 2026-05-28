@@ -165,9 +165,9 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
       });
       if (error) throw error;
       toast({
-        title: "Submission received",
+        title: "Check your inbox",
         description:
-          "Thanks — your team is in the review queue and will appear on the radar once approved.",
+          "We sent a confirmation link to your email. Click it to send your submission to the review queue.",
       });
       onOpenChange(false);
       setStep(0);
