@@ -184,9 +184,10 @@ export default function AdminRadarLocations() {
       } else {
         const { error } = await supabase
           .from("radar_locations")
-          .insert(payload);
+          .insert({ ...payload, status: "approved" });
         if (error) throw error;
       }
+
     },
     onSuccess: () => {
       toast.success(editing ? "Location updated" : "Location added");
@@ -210,6 +211,27 @@ export default function AdminRadarLocations() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const setStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("radar_locations")
+        .update({
+          status,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: userData.user?.id ?? null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      toast.success(vars.status === "approved" ? "Submission approved" : "Submission rejected");
+      qc.invalidateQueries({ queryKey: RADAR_LOCATIONS_KEY });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   return (
     <div className="space-y-6 p-6">
