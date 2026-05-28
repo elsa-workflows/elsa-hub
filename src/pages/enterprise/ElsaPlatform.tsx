@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   GitBranch,
+  GitMerge,
   ArrowUpRight,
   Workflow,
   Layers,
@@ -15,6 +16,12 @@ import { ElsaPlusDisclaimer } from "@/components/elsa-plus";
 import { PlatformShell, takeaways } from "./platform/shared";
 
 const sectionCards = [
+  {
+    to: "/elsa-plus/platform/deployment-model",
+    icon: GitMerge,
+    label: "Deployment model",
+    body: "From Elsa Studio to runtime environments — Studio designs, the Platform governs, runtimes install and execute.",
+  },
   {
     to: "/elsa-plus/platform/deployment-loop",
     icon: Workflow,

@@ -30,6 +30,7 @@ import RuntimeBuilderLanding from "./pages/enterprise/RuntimeBuilderLanding";
 import RuntimeBuilderComposer from "./pages/enterprise/RuntimeBuilderComposer";
 import ElsaPlatform from "./pages/enterprise/ElsaPlatform";
 import PlatformDeploymentLoop from "./pages/enterprise/platform/DeploymentLoop";
+import PlatformDeploymentModel from "./pages/enterprise/platform/DeploymentModel";
 import PlatformSurfaces from "./pages/enterprise/platform/Surfaces";
 import PlatformPipeline from "./pages/enterprise/platform/Pipeline";
 import PlatformRoadmap from "./pages/enterprise/platform/Roadmap";
@@ -114,7 +115,8 @@ const App = () => (
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
-              <Route path="/elsa-plus/platform" element={<ElsaPlatform />} />
+              <Route path="/elsa-plus/platform/deployment-model" element={<PlatformDeploymentModel />} />
+              <Route path="/elsa-plus/platform/deployment-loop" element={<PlatformDeploymentLoop />} />
               <Route path="/elsa-plus/platform/deployment-loop" element={<PlatformDeploymentLoop />} />
               <Route path="/elsa-plus/platform/surfaces" element={<PlatformSurfaces />} />
               <Route path="/elsa-plus/platform/pipeline" element={<PlatformPipeline />} />
