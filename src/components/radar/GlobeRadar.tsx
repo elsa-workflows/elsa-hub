@@ -97,14 +97,15 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   return (
     <div
       ref={containerRef}
-      className="relative h-[520px] w-full overflow-hidden rounded-2xl border border-border bg-[#040814] md:h-[640px]"
+      className="relative h-[60vh] min-h-[380px] w-full touch-none select-none overflow-hidden rounded-2xl border border-border bg-[#040814] sm:h-[520px] md:h-[640px]"
       onMouseEnter={() => {
         const c = globeRef.current?.controls?.();
         if (c) c.autoRotate = false;
       }}
       onMouseLeave={() => {
         const c = globeRef.current?.controls?.();
-        if (c) c.autoRotate = true;
+        // Only re-enable auto-rotate on devices that actually use a mouse (skip touch).
+        if (c && window.matchMedia("(hover: hover)").matches) c.autoRotate = true;
       }}
     >
       {/* Vignette */}
