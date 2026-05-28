@@ -14,6 +14,7 @@ import { WeaverProvider, WeaverLauncher, WeaverPanel } from "@/components/weaver
 // Public pages
 import Home from "./pages/Home";
 import Features from "./pages/Features";
+import RadarMap from "./pages/RadarMap";
 import GetStarted from "./pages/GetStarted";
 import ElsaServer from "./pages/get-started/ElsaServer";
 import ElsaStudio from "./pages/get-started/ElsaStudio";
@@ -100,6 +101,7 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/features" element={<Features />} />
+              <Route path="/community/radar" element={<RadarMap />} />
               <Route path="/get-started" element={<GetStarted />} />
               <Route path="/get-started/docker" element={<Docker />} />
               <Route path="/get-started/elsa-server" element={<ElsaServer />} />
