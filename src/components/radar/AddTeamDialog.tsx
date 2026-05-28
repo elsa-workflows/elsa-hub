@@ -255,13 +255,16 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                       />
                     </Field>
                     <Field label="Country" error={errors.country} required>
-                      <Input
+                      <CountryCombobox
                         value={data.country ?? ""}
-                        maxLength={80}
-                        onChange={(e) => set("country", e.target.value)}
-                        placeholder="Netherlands"
+                        onChange={(name) => {
+                          set("country", name);
+                          const c = countryByName(name);
+                          if (c) set("region", c.region as TeamForm["region"]);
+                        }}
                       />
                     </Field>
+
                   </div>
                   <Field label="Region" error={errors.region} required>
                     <Select
