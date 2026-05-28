@@ -192,7 +192,6 @@ export default function RadarMap() {
         </div>
 
         <AddTeamDialog open={addOpen} onOpenChange={setAddOpen} />
-        </div>
       </div>
     </Layout>
   );
