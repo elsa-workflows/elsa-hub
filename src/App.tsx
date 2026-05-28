@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,79 +12,89 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 
 import { WeaverProvider, WeaverLauncher, WeaverPanel } from "@/components/weaver";
 
-// Public pages
+// Home is eager so the initial route paints instantly
 import Home from "./pages/Home";
-import Features from "./pages/Features";
-import RadarMap from "./pages/RadarMap";
-import GetStarted from "./pages/GetStarted";
-import ElsaServer from "./pages/get-started/ElsaServer";
-import ElsaStudio from "./pages/get-started/ElsaStudio";
-import ElsaServerAndStudio from "./pages/get-started/ElsaServerAndStudio";
-import Docker from "./pages/get-started/Docker";
-import ElsaPlus from "./pages/ElsaPlus";
-import ExpertServicesProviders from "./pages/enterprise/ExpertServicesProviders";
-import ExpertServiceProvider from "./pages/enterprise/ExpertServiceProvider";
-import DockerImages from "./pages/enterprise/DockerImages";
-import DockerImageDetail from "./pages/enterprise/DockerImageDetail";
-import CloudServices from "./pages/enterprise/CloudServices";
-import Training from "./pages/enterprise/Training";
-import RuntimeBuilderLanding from "./pages/enterprise/RuntimeBuilderLanding";
-import RuntimeBuilderComposer from "./pages/enterprise/RuntimeBuilderComposer";
-import ElsaPlatform from "./pages/enterprise/ElsaPlatform";
-import PlatformDeploymentLoop from "./pages/enterprise/platform/DeploymentLoop";
-import PlatformDeploymentModel from "./pages/enterprise/platform/DeploymentModel";
-import PlatformSurfaces from "./pages/enterprise/platform/Surfaces";
-import PlatformPipeline from "./pages/enterprise/platform/Pipeline";
-import PlatformRoadmap from "./pages/enterprise/platform/Roadmap";
 
-import Resources from "./pages/Resources";
-import Roadmap from "./pages/Roadmap";
-import CommunityContent from "./pages/resources/CommunityContent";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ConfirmEmail from "./pages/signup/ConfirmEmail";
-import AuthCallback from "./pages/auth/AuthCallback";
-import AcceptInvitation from "./pages/AcceptInvitation";
-import Unsubscribe from "./pages/Unsubscribe";
-import NotFound from "./pages/NotFound";
-import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
+// All other routes are code-split to keep the initial bundle small
+const Features = lazy(() => import("./pages/Features"));
+const RadarMap = lazy(() => import("./pages/RadarMap"));
+const GetStarted = lazy(() => import("./pages/GetStarted"));
+const ElsaServer = lazy(() => import("./pages/get-started/ElsaServer"));
+const ElsaStudio = lazy(() => import("./pages/get-started/ElsaStudio"));
+const ElsaServerAndStudio = lazy(() => import("./pages/get-started/ElsaServerAndStudio"));
+const Docker = lazy(() => import("./pages/get-started/Docker"));
+const ElsaPlus = lazy(() => import("./pages/ElsaPlus"));
+const ExpertServicesProviders = lazy(() => import("./pages/enterprise/ExpertServicesProviders"));
+const ExpertServiceProvider = lazy(() => import("./pages/enterprise/ExpertServiceProvider"));
+const DockerImages = lazy(() => import("./pages/enterprise/DockerImages"));
+const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
+const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
+const Training = lazy(() => import("./pages/enterprise/Training"));
+const RuntimeBuilderLanding = lazy(() => import("./pages/enterprise/RuntimeBuilderLanding"));
+const RuntimeBuilderComposer = lazy(() => import("./pages/enterprise/RuntimeBuilderComposer"));
+const ElsaPlatform = lazy(() => import("./pages/enterprise/ElsaPlatform"));
+const PlatformDeploymentLoop = lazy(() => import("./pages/enterprise/platform/DeploymentLoop"));
+const PlatformDeploymentModel = lazy(() => import("./pages/enterprise/platform/DeploymentModel"));
+const PlatformSurfaces = lazy(() => import("./pages/enterprise/platform/Surfaces"));
+const PlatformPipeline = lazy(() => import("./pages/enterprise/platform/Pipeline"));
+const PlatformRoadmap = lazy(() => import("./pages/enterprise/platform/Roadmap"));
+
+const Resources = lazy(() => import("./pages/Resources"));
+const Roadmap = lazy(() => import("./pages/Roadmap"));
+const CommunityContent = lazy(() => import("./pages/resources/CommunityContent"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const ConfirmEmail = lazy(() => import("./pages/signup/ConfirmEmail"));
+const AuthCallback = lazy(() => import("./pages/auth/AuthCallback"));
+const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 
 // Dashboard
-import { DashboardLayout } from "@/components/dashboard";
-import DashboardHome from "./pages/dashboard/DashboardHome";
-import ProfileSettings from "./pages/dashboard/settings/ProfileSettings";
-import NotificationSettings from "./pages/dashboard/settings/NotificationSettings";
-import OrgOverview from "./pages/dashboard/org/OrgOverview";
-import OrgOrders from "./pages/dashboard/org/OrgOrders";
-import OrgCredits from "./pages/dashboard/org/OrgCredits";
-import OrgTeam from "./pages/dashboard/org/OrgTeam";
-import OrgActivity from "./pages/dashboard/org/OrgActivity";
-import OrgSettings from "./pages/dashboard/org/OrgSettings";
-import ProviderOverview from "./pages/dashboard/provider/ProviderOverview";
-import ProviderUsage from "./pages/dashboard/provider/ProviderUsage";
-import ProviderOrders from "./pages/dashboard/provider/ProviderOrders";
-import ProviderCustomers from "./pages/dashboard/provider/ProviderCustomers";
-import ProviderWorkLogs from "./pages/dashboard/provider/ProviderWorkLogs";
-import ProviderBundles from "./pages/dashboard/provider/ProviderBundles";
-import ProviderSettings from "./pages/dashboard/provider/ProviderSettings";
-import OrgMessages from "./pages/dashboard/org/OrgMessages";
-import OrgBookings from "./pages/dashboard/org/OrgBookings";
-import ProviderMessages from "./pages/dashboard/provider/ProviderMessages";
-import ProviderBookings from "./pages/dashboard/provider/ProviderBookings";
-import AdminOverview from "./pages/dashboard/admin/AdminOverview";
-import AdminUsers from "./pages/dashboard/admin/AdminUsers";
-import AdminOrganizations from "./pages/dashboard/admin/AdminOrganizations";
-import AdminOrders from "./pages/dashboard/admin/AdminOrders";
-import AdminInvitations from "./pages/dashboard/admin/AdminInvitations";
-import AdminAudit from "./pages/dashboard/admin/AdminAudit";
-import AdminRadarLocations from "./pages/dashboard/admin/AdminRadarLocations";
-import OrgWorkspaces from "./pages/dashboard/org/OrgWorkspaces";
-import OrgWorkspace from "./pages/dashboard/org/OrgWorkspace";
-import ProviderWorkspaces from "./pages/dashboard/provider/ProviderWorkspaces";
-import ProviderWorkspace from "./pages/dashboard/provider/ProviderWorkspace";
+const DashboardLayout = lazy(() =>
+  import("@/components/dashboard").then((m) => ({ default: m.DashboardLayout }))
+);
+const DashboardHome = lazy(() => import("./pages/dashboard/DashboardHome"));
+const ProfileSettings = lazy(() => import("./pages/dashboard/settings/ProfileSettings"));
+const NotificationSettings = lazy(() => import("./pages/dashboard/settings/NotificationSettings"));
+const OrgOverview = lazy(() => import("./pages/dashboard/org/OrgOverview"));
+const OrgOrders = lazy(() => import("./pages/dashboard/org/OrgOrders"));
+const OrgCredits = lazy(() => import("./pages/dashboard/org/OrgCredits"));
+const OrgTeam = lazy(() => import("./pages/dashboard/org/OrgTeam"));
+const OrgActivity = lazy(() => import("./pages/dashboard/org/OrgActivity"));
+const OrgSettings = lazy(() => import("./pages/dashboard/org/OrgSettings"));
+const ProviderOverview = lazy(() => import("./pages/dashboard/provider/ProviderOverview"));
+const ProviderUsage = lazy(() => import("./pages/dashboard/provider/ProviderUsage"));
+const ProviderOrders = lazy(() => import("./pages/dashboard/provider/ProviderOrders"));
+const ProviderCustomers = lazy(() => import("./pages/dashboard/provider/ProviderCustomers"));
+const ProviderWorkLogs = lazy(() => import("./pages/dashboard/provider/ProviderWorkLogs"));
+const ProviderBundles = lazy(() => import("./pages/dashboard/provider/ProviderBundles"));
+const ProviderSettings = lazy(() => import("./pages/dashboard/provider/ProviderSettings"));
+const OrgMessages = lazy(() => import("./pages/dashboard/org/OrgMessages"));
+const OrgBookings = lazy(() => import("./pages/dashboard/org/OrgBookings"));
+const ProviderMessages = lazy(() => import("./pages/dashboard/provider/ProviderMessages"));
+const ProviderBookings = lazy(() => import("./pages/dashboard/provider/ProviderBookings"));
+const AdminOverview = lazy(() => import("./pages/dashboard/admin/AdminOverview"));
+const AdminUsers = lazy(() => import("./pages/dashboard/admin/AdminUsers"));
+const AdminOrganizations = lazy(() => import("./pages/dashboard/admin/AdminOrganizations"));
+const AdminOrders = lazy(() => import("./pages/dashboard/admin/AdminOrders"));
+const AdminInvitations = lazy(() => import("./pages/dashboard/admin/AdminInvitations"));
+const AdminAudit = lazy(() => import("./pages/dashboard/admin/AdminAudit"));
+const AdminRadarLocations = lazy(() => import("./pages/dashboard/admin/AdminRadarLocations"));
+const OrgWorkspaces = lazy(() => import("./pages/dashboard/org/OrgWorkspaces"));
+const OrgWorkspace = lazy(() => import("./pages/dashboard/org/OrgWorkspace"));
+const ProviderWorkspaces = lazy(() => import("./pages/dashboard/provider/ProviderWorkspaces"));
+const ProviderWorkspace = lazy(() => import("./pages/dashboard/provider/ProviderWorkspace"));
 
 const queryClient = new QueryClient();
+
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center">
+    <div className="animate-pulse text-muted-foreground">Loading…</div>
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -98,6 +109,7 @@ const App = () => (
           <AuthProvider>
             <OrganizationProvider>
             <WeaverProvider>
+            <Suspense fallback={<RouteFallback />}>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
@@ -191,6 +203,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
             <WeaverLauncher />
             <WeaverPanel />
             </WeaverProvider>
