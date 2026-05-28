@@ -710,11 +710,3 @@ export function IndustryCombobox({
     </Popover>
   );
 }
-
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
