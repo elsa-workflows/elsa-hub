@@ -267,13 +267,15 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                     </Field>
 
                   </div>
-                  <Field label="Region" error={errors.region} required>
-                    <Select
-                      value={data.region}
-                      onValueChange={(v) => set("region", v as TeamForm["region"])}
-                    >
+                  <Field
+                    label="Region"
+                    error={errors.region}
+                    hint="Auto-filled from the selected country."
+                    required
+                  >
+                    <Select value={data.region} disabled>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pick a region" />
+                        <SelectValue placeholder="Pick a country first" />
                       </SelectTrigger>
                       <SelectContent>
                         {elsaRegions.map((r) => (
@@ -284,6 +286,7 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                       </SelectContent>
                     </Select>
                   </Field>
+
                 </>
               )}
 
