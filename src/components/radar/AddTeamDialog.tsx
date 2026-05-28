@@ -601,24 +601,31 @@ function CountryCombobox({
           <CommandList>
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
-              {countries.map((c) => (
-                <CommandItem
-                  key={c.code}
-                  value={c.name}
-                  onSelect={() => {
-                    onChange(c.name);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value.toLowerCase() === c.name.toLowerCase() ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  {c.name}
-                </CommandItem>
-              ))}
+              {countries.map((c) => {
+                const select = () => {
+                  onChange(c.name);
+                  setOpen(false);
+                };
+                return (
+                  <CommandItem
+                    key={c.code}
+                    value={c.name}
+                    onSelect={select}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      select();
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value.toLowerCase() === c.name.toLowerCase() ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    {c.name}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
