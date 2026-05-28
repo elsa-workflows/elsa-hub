@@ -111,7 +111,7 @@ export default function RadarMap() {
           </motion.div>
 
           {/* Globe + Filters */}
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_280px]">
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
