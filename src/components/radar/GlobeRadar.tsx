@@ -236,8 +236,8 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
           hexBinResolution={3}
           hexMargin={0.2}
           hexAltitude={({ sumWeight }: any) => Math.min(0.18, 0.015 + sumWeight * 0.02)}
-          hexTopColor={({ sumWeight }: any) => heatColor(sumWeight, 0.95, isDark)}
-          hexSideColor={({ sumWeight }: any) => heatColor(sumWeight, 0.55, isDark)}
+          hexTopColor={({ sumWeight }: any) => heatColor(sumWeight, 0.95, isDark, primaryHue)}
+          hexSideColor={({ sumWeight }: any) => heatColor(sumWeight, 0.55, isDark, primaryHue)}
           hexLabel={({ sumWeight, points }: any) =>
             `<div style="font: 500 12px Inter, sans-serif; color:${labelTextColor}; background:${labelBg}; padding:6px 10px; border:1px solid ${labelBorderAnon}; border-radius:6px;">
                <div style="color:${isDark ? "#7dd3fc" : "#0284c7"}; font-weight:600;">Density · ${sumWeight.toFixed(0)}</div>
@@ -347,17 +347,20 @@ function GlobeSkeleton({ isDark }: { isDark: boolean }) {
 }
 
 // Cyan/Sky → fuchsia/violet gradient based on bin weight (1..15 expected range)
-function heatColor(weight: number, alpha: number, isDark: boolean) {
+// Cyan/Sky base → active accent hue, based on bin weight (1..15 expected range).
+function heatColor(weight: number, alpha: number, isDark: boolean, accentHue: number) {
   const t = Math.min(1, Math.max(0, (weight - 1) / 14));
   if (isDark) {
-    const h = 186 + (292 - 186) * t;
+    const startHue = 186;
+    const h = startHue + (accentHue - startHue) * t;
     const s = 100 - 16 * t;
     const l = 70 + 5 * t;
     return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
   }
-  // Light: sky 199 → fuchsia 292, deeper lightness for visibility on bright globe
-  const h = 199 + (292 - 199) * t;
+  const startHue = 199;
+  const h = startHue + (accentHue - startHue) * t;
   const s = 89 - 5 * t;
   const l = 52 + 6 * t;
   return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
 }
+
