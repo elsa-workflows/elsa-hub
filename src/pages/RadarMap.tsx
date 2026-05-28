@@ -118,7 +118,7 @@ export default function RadarMap() {
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.15 }}
-              className="relative order-2 lg:order-1"
+              className="relative order-2 self-start lg:order-1"
             >
               <GlobeRadar
                 locations={filtered}
