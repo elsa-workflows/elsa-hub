@@ -22,9 +22,11 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   const isDark = useIsDark();
   // Active accent palette (e.g. "336 78% 48%"). Drives showcase markers + rings.
   const primaryHsl = useCssVar("--primary") || "336 78% 48%";
-  const primary = (a = 1) => `hsla(${primaryHsl.replace(/%/g, "%")} / ${a})`;
-  // Parse just the hue so we can derive a heat gradient that ends at the accent.
-  const primaryHue = Number(primaryHsl.split(" ")[0]) || 336;
+  // d3-color (used by react-globe.gl) only parses the legacy comma form of hsla,
+  // not the modern "h s% l% / a" syntax — so format explicitly.
+  const [pH, pS, pL] = primaryHsl.split(/\s+/);
+  const primary = (a = 1) => `hsla(${pH}, ${pS}, ${pL}, ${a})`;
+  const primaryHue = Number(pH) || 336;
 
   // Theme-dependent visuals
   const globeImageUrl = isDark
