@@ -3,8 +3,14 @@
 // radar_locations row using the service role, and notifies platform admins.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.23.8";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
