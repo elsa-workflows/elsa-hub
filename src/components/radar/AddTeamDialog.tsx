@@ -294,22 +294,12 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                 <>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Industry" error={errors.industry} required>
-                      <Select
+                      <IndustryCombobox
                         value={data.industry}
-                        onValueChange={(v) => set("industry", v)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pick an industry" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {elsaIndustries.map((i) => (
-                            <SelectItem key={i} value={i}>
-                              {i}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        onChange={(v) => set("industry", v)}
+                      />
                     </Field>
+
                     <Field label="Using Elsa since" error={errors.usingSince} required>
                       <Input
                         type="number"
