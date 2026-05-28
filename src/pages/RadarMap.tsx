@@ -190,7 +190,6 @@ export default function RadarMap() {
               </Button>
             </div>
           </motion.section>
-          </motion.section>
         </div>
 
         <AddTeamDialog open={addOpen} onOpenChange={setAddOpen} />
