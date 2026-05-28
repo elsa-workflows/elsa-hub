@@ -38,7 +38,7 @@ function Chip({
         active
           ? [
               "border-primary/60 bg-primary/10 text-primary shadow-[0_0_12px_-4px_rgba(192,38,211,0.45)]",
-              "dark:border-primary/60 dark:bg-primary/20 dark:text-fuchsia-100 dark:shadow-[0_0_12px_-2px_rgba(240,171,252,0.5)]",
+              "dark:border-primary/60 dark:bg-primary/20 dark:text-primary-foreground dark:shadow-[0_0_12px_-2px_rgba(240,171,252,0.5)]",
             ]
           : [
               "border-slate-200 bg-white text-slate-600 hover:border-sky-400/60 hover:text-sky-700",
