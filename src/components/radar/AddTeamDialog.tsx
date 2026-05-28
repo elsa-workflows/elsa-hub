@@ -118,9 +118,6 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
-    const final = teamSchema.safeParse(data);
-  const handleSubmit = async () => {
     if (!validateStep(3)) {
       toast({
         title: "Confirmation required",
@@ -130,6 +127,10 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
       return;
     }
     const final = teamSchema.safeParse(data);
+    if (!final.success) {
+      toast({
+        title: "Form incomplete",
+        description: final.error.errors[0]?.message ?? "Please review your inputs.",
         variant: "destructive",
       });
       return;
