@@ -118,7 +118,14 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
+    if (!validateStep(3)) {
+      toast({
+        title: "Confirmation required",
+        description: "Please tick the authorisation checkbox to submit.",
+        variant: "destructive",
+      });
+      return;
+    }
     const final = teamSchema.safeParse(data);
     if (!final.success) {
       toast({
