@@ -117,6 +117,7 @@ const App = () => (
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
+              <Route path="/elsa-plus/platform" element={<ElsaPlatform />} />
               <Route path="/elsa-plus/platform/deployment-model" element={<PlatformDeploymentModel />} />
               <Route path="/elsa-plus/platform/deployment-loop" element={<PlatformDeploymentLoop />} />
               <Route path="/elsa-plus/platform/deployment-loop" element={<PlatformDeploymentLoop />} />
