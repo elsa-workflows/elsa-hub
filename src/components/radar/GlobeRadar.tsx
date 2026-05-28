@@ -211,3 +211,13 @@ function GlobeSkeleton() {
     </div>
   );
 }
+
+// Cyan → fuchsia gradient based on bin weight (1..15 expected range)
+function heatColor(weight: number, alpha: number) {
+  const t = Math.min(1, Math.max(0, (weight - 1) / 14));
+  // hsl(186,100%,70%) → hsl(292,84%,75%)
+  const h = 186 + (292 - 186) * t;
+  const s = 100 - 16 * t;
+  const l = 70 + 5 * t;
+  return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
+}
