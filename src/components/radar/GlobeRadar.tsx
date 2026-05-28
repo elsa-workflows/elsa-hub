@@ -42,6 +42,10 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   const labelBorderAnon = isDark ? "rgba(125,211,252,0.3)" : "rgba(2,132,199,0.35)";
   const labelBorderShow = primary(0.45);
   const showcaseHeadColor = primary(isDark ? 0.95 : 1);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
     const ro = new ResizeObserver(() => {
       setSize({ w: el.clientWidth, h: el.clientHeight });
     });
