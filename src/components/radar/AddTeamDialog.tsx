@@ -569,3 +569,61 @@ function safeHostname(url: string) {
     return url;
   }
 }
+
+function CountryCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "w-full justify-between bg-transparent font-normal",
+            !value && "text-muted-foreground",
+          )}
+        >
+          {value || "Search country…"}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search country…" />
+          <CommandList>
+            <CommandEmpty>No country found.</CommandEmpty>
+            <CommandGroup>
+              {countries.map((c) => (
+                <CommandItem
+                  key={c.code}
+                  value={c.name}
+                  onSelect={(v) => {
+                    onChange(v);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value.toLowerCase() === c.name.toLowerCase() ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
