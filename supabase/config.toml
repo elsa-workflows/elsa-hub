@@ -55,4 +55,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.blog-export]
+[functions.blog-export]
 verify_jwt = false
+
+[functions.submit-radar-location]
+verify_jwt = false
+
