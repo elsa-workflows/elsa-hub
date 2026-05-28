@@ -29,9 +29,9 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   // Theme-dependent visuals
   const globeImageUrl = isDark
     ? "//unpkg.com/three-globe/example/img/earth-dark.jpg"
+  const globeImageUrl = isDark
+    ? "//unpkg.com/three-globe/example/img/earth-night.jpg"
     : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
-  const atmosphereColor = isDark ? "#7dd3fc" : "#38bdf8";
-  const anonymousColor = isDark ? "rgba(125,211,252,0.85)" : "rgba(2,132,199,0.85)";
   const showcaseColor = primary(isDark ? 0.95 : 1);
   const selectedColor = isDark ? "#ffffff" : "#0f172a";
   const labelTextColor = isDark ? "#e2e8f0" : "#0f172a";
