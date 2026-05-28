@@ -55,8 +55,6 @@ interface Props {
   description?: string;
 }
 
-export function BlogPostActions({ slug, title, url, description }: Props) {
-  const [count, setCount] = useState<number | null>(null);
 type LikeState = { liked: boolean; count: number | null };
 const listeners = new Map<string, Set<(s: LikeState) => void>>();
 function emit(slug: string, s: LikeState) {
