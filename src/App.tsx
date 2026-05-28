@@ -77,6 +77,7 @@ import AdminOrganizations from "./pages/dashboard/admin/AdminOrganizations";
 import AdminOrders from "./pages/dashboard/admin/AdminOrders";
 import AdminInvitations from "./pages/dashboard/admin/AdminInvitations";
 import AdminAudit from "./pages/dashboard/admin/AdminAudit";
+import AdminRadarLocations from "./pages/dashboard/admin/AdminRadarLocations";
 import OrgWorkspaces from "./pages/dashboard/org/OrgWorkspaces";
 import OrgWorkspace from "./pages/dashboard/org/OrgWorkspace";
 import ProviderWorkspaces from "./pages/dashboard/provider/ProviderWorkspaces";
@@ -180,6 +181,7 @@ const App = () => (
                 <Route path="admin/orders" element={<AdminOrders />} />
                 <Route path="admin/invitations" element={<AdminInvitations />} />
                 <Route path="admin/audit" element={<AdminAudit />} />
+                <Route path="admin/radar" element={<AdminRadarLocations />} />
               </Route>
 
               {/* Backward Compatibility Redirects */}
