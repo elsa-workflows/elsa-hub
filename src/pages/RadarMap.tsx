@@ -95,7 +95,6 @@ export default function RadarMap() {
               building.
             </p>
           </motion.header>
-          </motion.header>
 
           {/* Stats */}
           <motion.div
