@@ -218,6 +218,8 @@ export default function BlogPost() {
                 · Updated {formatBlogDate(post.updatedAt)}
               </span>
             )}
+            <span aria-hidden="true">·</span>
+            <BlogPostViews slug={post.slug} />
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-semibold tracking-tight">
             {post.title}
