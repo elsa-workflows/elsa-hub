@@ -55,16 +55,28 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
       })),
     [showcasePoints],
   );
+  const anonymousPoints = useMemo(() => locations.filter((l) => l.anonymous), [locations]);
 
+  // In heatmap mode, hide anonymous markers (replaced by hex bins) and keep showcases on top.
   const pointsData = useMemo(
     () =>
-      locations.map((l) => ({
+      (heatmap ? showcasePoints : locations).map((l) => ({
         ...l,
         lat: l.latitude,
         lng: l.longitude,
         altitude: l.anonymous ? 0.005 : 0.015,
       })),
-    [locations],
+    [locations, showcasePoints, heatmap],
+  );
+
+  const hexBinData = useMemo(
+    () =>
+      anonymousPoints.map((l) => ({
+        lat: l.latitude,
+        lng: l.longitude,
+        weight: l.weight ?? 1,
+      })),
+    [anonymousPoints],
   );
 
   return (
