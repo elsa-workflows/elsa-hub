@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { useState } from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { CountryCombobox } from "./AddTeamDialog";
 import { countryByName } from "@/data/countries";
 import {
@@ -11,18 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { elsaRegions } from "@/data/elsaUsageLocations";
-
-// jsdom shims for Radix UI primitives
-beforeAll(() => {
-  if (!(Element.prototype as any).hasPointerCapture) {
-    (Element.prototype as any).hasPointerCapture = () => false;
-    (Element.prototype as any).setPointerCapture = () => {};
-    (Element.prototype as any).releasePointerCapture = () => {};
-  }
-  if (!(Element.prototype as any).scrollIntoView) {
-    (Element.prototype as any).scrollIntoView = () => {};
-  }
-});
 
 function Harness() {
   const [country, setCountry] = useState("");
