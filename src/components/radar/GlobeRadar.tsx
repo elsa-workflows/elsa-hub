@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import type { ElsaUsageLocation } from "@/data/elsaUsageLocations";
 import { useIsDark } from "@/hooks/use-is-dark";
+import { useCssVar } from "@/hooks/use-css-var";
 import { cn } from "@/lib/utils";
 
+// react-globe.gl is a default export; lazy-load to keep bundle off initial paint
+const Globe = lazy(() => import("react-globe.gl").then((m) => ({ default: m.default })));
 // react-globe.gl is a default export; lazy-load to keep bundle off initial paint
 const Globe = lazy(() => import("react-globe.gl").then((m) => ({ default: m.default })));
 
@@ -19,6 +22,12 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [ready, setReady] = useState(false);
   const isDark = useIsDark();
+  const isDark = useIsDark();
+  // Active accent palette (e.g. "336 78% 48%"). Drives showcase markers + rings.
+  const primaryHsl = useCssVar("--primary") || "336 78% 48%";
+  const primary = (a = 1) => `hsla(${primaryHsl.replace(/%/g, "%")} / ${a})`;
+  // Parse just the hue so we can derive a heat gradient that ends at the accent.
+  const primaryHue = Number(primaryHsl.split(" ")[0]) || 336;
 
   // Theme-dependent visuals
   const globeImageUrl = isDark
@@ -26,17 +35,13 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
     : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
   const atmosphereColor = isDark ? "#7dd3fc" : "#38bdf8";
   const anonymousColor = isDark ? "rgba(125,211,252,0.85)" : "rgba(2,132,199,0.85)";
-  const showcaseColor = isDark ? "#f0abfc" : "#c026d3";
+  const showcaseColor = primary(isDark ? 0.95 : 1);
   const selectedColor = isDark ? "#ffffff" : "#0f172a";
   const labelTextColor = isDark ? "#e2e8f0" : "#0f172a";
   const labelBg = isDark ? "rgba(2,6,23,0.92)" : "rgba(255,255,255,0.96)";
   const labelBorderAnon = isDark ? "rgba(125,211,252,0.3)" : "rgba(2,132,199,0.35)";
-  const labelBorderShow = isDark ? "rgba(240,171,252,0.45)" : "rgba(192,38,211,0.45)";
-  const showcaseHeadColor = isDark ? "#f0abfc" : "#a21caf";
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+  const labelBorderShow = primary(0.45);
+  const showcaseHeadColor = primary(isDark ? 0.95 : 1);
     const ro = new ResizeObserver(() => {
       setSize({ w: el.clientWidth, h: el.clientHeight });
     });
