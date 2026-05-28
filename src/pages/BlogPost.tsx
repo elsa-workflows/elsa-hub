@@ -15,6 +15,7 @@ import {
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
 import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
 import { BlogPostActions } from "@/components/blog/BlogPostActions";
+import { BlogPostViews } from "@/components/blog/BlogPostViews";
 
 import { InlineNewsletter } from "@/components/newsletter";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -217,6 +218,8 @@ export default function BlogPost() {
                 · Updated {formatBlogDate(post.updatedAt)}
               </span>
             )}
+            <span aria-hidden="true">·</span>
+            <BlogPostViews slug={post.slug} />
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-semibold tracking-tight">
             {post.title}
