@@ -14,6 +14,8 @@ import {
 } from "@/lib/blog";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
 import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
+import { BlogPostActions } from "@/components/blog/BlogPostActions";
+
 import { InlineNewsletter } from "@/components/newsletter";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -186,8 +188,17 @@ export default function BlogPost() {
               All posts
             </Link>
           </Button>
-          {isAdmin && <ShareExportMenu slug={post.slug} />}
+          <div className="flex items-center gap-2">
+            <BlogPostActions
+              slug={post.slug}
+              title={post.title}
+              url={canonical}
+              description={seoDescription}
+            />
+            {isAdmin && <ShareExportMenu slug={post.slug} />}
+          </div>
         </div>
+
 
 
         <header className="mb-8">
@@ -269,6 +280,19 @@ export default function BlogPost() {
             ))}
           </div>
         )}
+
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            Found this useful? Give it a like or share it with your network.
+          </p>
+          <BlogPostActions
+            slug={post.slug}
+            title={post.title}
+            url={canonical}
+            description={seoDescription}
+          />
+        </div>
+
 
         <div className="mt-12">
           <InlineNewsletter
