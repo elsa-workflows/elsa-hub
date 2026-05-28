@@ -640,3 +640,81 @@ export function CountryCombobox({
   );
 }
 
+export function IndustryCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const closePopover = (deferred = false) => {
+    if (deferred) {
+      window.setTimeout(() => setOpen(false), 0);
+      return;
+    }
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "w-full justify-between bg-transparent font-normal",
+            !value && "text-muted-foreground",
+          )}
+        >
+          {value || "Pick an industry"}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search industry…" />
+          <CommandList>
+            <CommandEmpty>No industry found.</CommandEmpty>
+            <CommandGroup>
+              {elsaIndustries.map((i) => (
+                <CommandItem
+                  key={i}
+                  value={i}
+                  onSelect={() => {
+                    onChange(i);
+                    closePopover();
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    onChange(i);
+                    closePopover(true);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value.toLowerCase() === i.toLowerCase() ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  {i}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
