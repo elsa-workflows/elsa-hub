@@ -281,6 +281,19 @@ export default function BlogPost() {
           </div>
         )}
 
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            Found this useful? Give it a like or share it with your network.
+          </p>
+          <BlogPostActions
+            slug={post.slug}
+            title={post.title}
+            url={canonical}
+            description={seoDescription}
+          />
+        </div>
+
+
         <div className="mt-12">
           <InlineNewsletter
             heading="Liked this post?"
