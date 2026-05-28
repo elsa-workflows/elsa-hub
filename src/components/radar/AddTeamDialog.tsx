@@ -348,8 +348,24 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                         value="anonymous"
                         title="Anonymous pin"
                         description="Only approximate region — no name or details."
-                      />
+                    </RadioGroup>
+                  </Field>
+                </>
+              )}
+
+              {step === 3 && (
+                <PreviewCard
+                  data={data as TeamForm}
+                  error={errors.consent}
+                  onConsent={(v) => set("consent", v as true)}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
         <div className="flex items-center justify-between border-t border-border px-6 py-4">
+
           <Button
             type="button"
             variant="ghost"
