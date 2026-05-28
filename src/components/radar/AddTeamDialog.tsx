@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { z } from "zod";
-import { Check, ChevronLeft, ChevronRight, Globe2, MapPin, Sparkles, Send } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Globe2, MapPin, Sparkles, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { elsaIndustries, elsaRegions } from "@/data/elsaUsageLocations";
+import { countries, countryByName } from "@/data/countries";
+
 
 const teamSchema = z.object({
   companyName: z.string().trim().min(2, "Team name is required").max(80),
@@ -244,13 +255,16 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                       />
                     </Field>
                     <Field label="Country" error={errors.country} required>
-                      <Input
+                      <CountryCombobox
                         value={data.country ?? ""}
-                        maxLength={80}
-                        onChange={(e) => set("country", e.target.value)}
-                        placeholder="Netherlands"
+                        onChange={(name) => {
+                          set("country", name);
+                          const c = countryByName(name);
+                          if (c) set("region", c.region as TeamForm["region"]);
+                        }}
                       />
                     </Field>
+
                   </div>
                   <Field label="Region" error={errors.region} required>
                     <Select
@@ -555,3 +569,61 @@ function safeHostname(url: string) {
     return url;
   }
 }
+
+function CountryCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "w-full justify-between bg-transparent font-normal",
+            !value && "text-muted-foreground",
+          )}
+        >
+          {value || "Search country…"}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search country…" />
+          <CommandList>
+            <CommandEmpty>No country found.</CommandEmpty>
+            <CommandGroup>
+              {countries.map((c) => (
+                <CommandItem
+                  key={c.code}
+                  value={c.name}
+                  onSelect={(v) => {
+                    onChange(v);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value.toLowerCase() === c.name.toLowerCase() ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
