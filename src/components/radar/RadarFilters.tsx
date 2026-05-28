@@ -5,9 +5,11 @@ interface RadarFiltersProps {
   region: string | null;
   industry: string | null;
   showcaseOnly: boolean;
+  heatmap: boolean;
   onRegion: (r: string | null) => void;
   onIndustry: (i: string | null) => void;
   onShowcaseOnly: (v: boolean) => void;
+  onHeatmap: (v: boolean) => void;
 }
 
 function Chip({
@@ -39,9 +41,11 @@ export function RadarFilters({
   region,
   industry,
   showcaseOnly,
+  heatmap,
   onRegion,
   onIndustry,
   onShowcaseOnly,
+  onHeatmap,
 }: RadarFiltersProps) {
   return (
     <div className="space-y-5">
@@ -89,6 +93,23 @@ export function RadarFilters({
             Showcase only
           </Chip>
         </div>
+      </div>
+
+      <div>
+        <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/50">
+          Density
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip active={!heatmap} onClick={() => onHeatmap(false)}>
+            Markers
+          </Chip>
+          <Chip active={heatmap} onClick={() => onHeatmap(true)}>
+            Heatmap
+          </Chip>
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-cyan-200/40">
+          Aggregates anonymous signals into hex bins to reveal regional intensity.
+        </p>
       </div>
 
       <div className="flex items-center gap-4 border-t border-white/5 pt-4 text-[11px] text-cyan-200/50">

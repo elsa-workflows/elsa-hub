@@ -8,9 +8,10 @@ interface GlobeRadarProps {
   locations: ElsaUsageLocation[];
   onSelect: (loc: ElsaUsageLocation | null) => void;
   selectedId?: string | null;
+  heatmap?: boolean;
 }
 
-export function GlobeRadar({ locations, onSelect, selectedId }: GlobeRadarProps) {
+export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }: GlobeRadarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
@@ -54,16 +55,28 @@ export function GlobeRadar({ locations, onSelect, selectedId }: GlobeRadarProps)
       })),
     [showcasePoints],
   );
+  const anonymousPoints = useMemo(() => locations.filter((l) => l.anonymous), [locations]);
 
+  // In heatmap mode, hide anonymous markers (replaced by hex bins) and keep showcases on top.
   const pointsData = useMemo(
     () =>
-      locations.map((l) => ({
+      (heatmap ? showcasePoints : locations).map((l) => ({
         ...l,
         lat: l.latitude,
         lng: l.longitude,
         altitude: l.anonymous ? 0.005 : 0.015,
       })),
-    [locations],
+    [locations, showcasePoints, heatmap],
+  );
+
+  const hexBinData = useMemo(
+    () =>
+      anonymousPoints.map((l) => ({
+        lat: l.latitude,
+        lng: l.longitude,
+        weight: l.weight ?? 1,
+      })),
+    [anonymousPoints],
   );
 
   return (
@@ -150,6 +163,22 @@ export function GlobeRadar({ locations, onSelect, selectedId }: GlobeRadarProps)
           ringMaxRadius="maxR"
           ringPropagationSpeed="propagationSpeed"
           ringRepeatPeriod="repeatPeriod"
+          // Heatmap (hex bins of anonymous deployments)
+          hexBinPointsData={heatmap ? hexBinData : []}
+          hexBinPointLat="lat"
+          hexBinPointLng="lng"
+          hexBinPointWeight="weight"
+          hexBinResolution={3}
+          hexMargin={0.2}
+          hexAltitude={({ sumWeight }: any) => Math.min(0.18, 0.015 + sumWeight * 0.02)}
+          hexTopColor={({ sumWeight }: any) => heatColor(sumWeight, 0.95)}
+          hexSideColor={({ sumWeight }: any) => heatColor(sumWeight, 0.55)}
+          hexLabel={({ sumWeight, points }: any) =>
+            `<div style="font: 500 12px Inter, sans-serif; color:#e2e8f0; background:rgba(2,6,23,0.92); padding:6px 10px; border:1px solid rgba(125,211,252,0.3); border-radius:6px;">
+               <div style="color:#7dd3fc; font-weight:600;">Density · ${sumWeight.toFixed(0)}</div>
+               <div style="opacity:.7; margin-top:2px;">${points.length} anonymous signals</div>
+             </div>`
+          }
         />
       </Suspense>
 
@@ -181,4 +210,14 @@ function GlobeSkeleton() {
       </div>
     </div>
   );
+}
+
+// Cyan → fuchsia gradient based on bin weight (1..15 expected range)
+function heatColor(weight: number, alpha: number) {
+  const t = Math.min(1, Math.max(0, (weight - 1) / 14));
+  // hsl(186,100%,70%) → hsl(292,84%,75%)
+  const h = 186 + (292 - 186) * t;
+  const s = 100 - 16 * t;
+  const l = 70 + 5 * t;
+  return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
 }
