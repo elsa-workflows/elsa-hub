@@ -71,25 +71,25 @@ export default function RadarMap() {
           }}
         />
 
-        <div className="container relative max-w-7xl py-12 md:py-20">
+        <div className="container relative max-w-7xl px-4 py-8 sm:px-6 sm:py-12 md:py-20">
           {/* Hero */}
           <motion.header
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-10 max-w-3xl"
+            className="mb-8 max-w-3xl sm:mb-10"
           >
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-300/80">
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-300/80 sm:text-[11px]">
               <Radar className="h-3.5 w-3.5" />
               global radar · community telemetry
             </div>
-            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight md:text-5xl">
+            <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight sm:mt-4 sm:text-4xl md:text-5xl">
               Elsa Workflows is running{" "}
               <span className="bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-fuchsia-400 bg-clip-text text-transparent">
                 all over the world.
               </span>
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-cyan-100/70">
+            <p className="mt-4 text-base leading-relaxed text-cyan-100/70 sm:mt-5 sm:text-lg">
               A live, opt-in view of where teams are building durable workflow systems with Elsa.
               Anonymous by default — public showcases for the teams that want to share what they're
               building.
@@ -111,12 +111,12 @@ export default function RadarMap() {
           </motion.div>
 
           {/* Globe + Filters */}
-          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_280px]">
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.15 }}
-              className="relative"
+              className="relative order-2 lg:order-1"
             >
               <GlobeRadar
                 locations={filtered}
@@ -131,7 +131,7 @@ export default function RadarMap() {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.02] p-5 lg:sticky lg:top-24 lg:self-start"
+              className="order-1 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.02] p-4 sm:p-5 lg:order-2 lg:sticky lg:top-24 lg:self-start"
             >
               <RadarFilters
                 region={region}

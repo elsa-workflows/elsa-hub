@@ -35,10 +35,25 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
       controls.autoRotate = true;
       controls.autoRotateSpeed = 0.35;
       controls.enableZoom = true;
+      controls.enableRotate = true;
+      controls.enablePan = false;
       controls.minDistance = 180;
       controls.maxDistance = 500;
+      controls.rotateSpeed = 0.8;
+      controls.zoomSpeed = 0.9;
+      // Touch: one-finger rotate, two-finger pinch zoom (no pan)
+      const THREE = (globeRef.current as any).renderer?.()?.constructor;
+      // Numeric values map to THREE.TOUCH.ROTATE = 0, DOLLY_PAN = 2, DOLLY_ROTATE = 3
+      controls.touches = { ONE: 0, TWO: 2 };
+      // Stop auto-rotate as soon as the user touches/drags
+      const stopAuto = () => { controls.autoRotate = false; };
+      controls.addEventListener?.("start", stopAuto);
     }
-    globeRef.current.pointOfView?.({ lat: 25, lng: 10, altitude: 2.4 }, 0);
+    const isNarrow = (containerRef.current?.clientWidth ?? 800) < 640;
+    globeRef.current.pointOfView?.(
+      { lat: 25, lng: 10, altitude: isNarrow ? 2.8 : 2.4 },
+      0,
+    );
   }, [ready]);
 
   // Generate animated radar rings continuously from active markers
@@ -82,14 +97,15 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   return (
     <div
       ref={containerRef}
-      className="relative h-[520px] w-full overflow-hidden rounded-2xl border border-border bg-[#040814] md:h-[640px]"
+      className="relative h-[60vh] min-h-[380px] w-full touch-none select-none overflow-hidden rounded-2xl border border-border bg-[#040814] sm:h-[520px] md:h-[640px]"
       onMouseEnter={() => {
         const c = globeRef.current?.controls?.();
         if (c) c.autoRotate = false;
       }}
       onMouseLeave={() => {
         const c = globeRef.current?.controls?.();
-        if (c) c.autoRotate = true;
+        // Only re-enable auto-rotate on devices that actually use a mouse (skip touch).
+        if (c && window.matchMedia("(hover: hover)").matches) c.autoRotate = true;
       }}
     >
       {/* Vignette */}
