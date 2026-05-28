@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { SlidersHorizontal, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { elsaIndustries, elsaRegions } from "@/data/elsaUsageLocations";
 
