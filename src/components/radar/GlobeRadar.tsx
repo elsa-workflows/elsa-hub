@@ -118,11 +118,10 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
 
   // Ring color: fuchsia (dark) or violet (light), keep both bright enough to see.
   const ringColorFn = useMemo(
-    () =>
-      isDark
-        ? () => (t: number) => `rgba(240,171,252,${1 - t})`
-        : () => (t: number) => `rgba(192,38,211,${(1 - t) * 0.85})`,
-    [isDark],
+    () => () => (t: number) => primary((1 - t) * (isDark ? 1 : 0.85)),
+    // primaryHsl is the real dependency — recompute when accent changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isDark, primaryHsl],
   );
 
   return (
