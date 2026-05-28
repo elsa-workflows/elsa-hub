@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { ElsaUsageLocation } from "@/data/elsaUsageLocations";
+import { elsaUsageLocations, type ElsaUsageLocation } from "@/data/elsaUsageLocations";
 
 export type RadarLocationRow = {
   id: string;
@@ -61,9 +61,17 @@ export function useRadarLocations() {
         .order("sort_order", { ascending: true })
         .order("country", { ascending: true })
         .limit(2000);
-      if (error) throw error;
-      return (data as unknown as RadarLocationRow[]).map(rowToLocation);
+
+      if (error) {
+        console.warn("Falling back to curated radar locations", error);
+        return elsaUsageLocations;
+      }
+
+      const mapped = (data as unknown as RadarLocationRow[]).map(rowToLocation);
+      return mapped.length > 0 ? mapped : elsaUsageLocations;
     },
+    initialData: elsaUsageLocations,
+    placeholderData: (previousData) => previousData ?? elsaUsageLocations,
     staleTime: 60_000,
   });
 }
