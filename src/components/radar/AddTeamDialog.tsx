@@ -349,29 +349,12 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                         title="Anonymous pin"
                         description="Only approximate region — no name or details."
                       />
-                    </RadioGroup>
-                  </Field>
-                </>
-              )}
-
-              {step === 3 && (
-                <PreviewCard
-                  data={data as TeamForm}
-                  error={errors.consent}
-                  onConsent={(v) => set("consent", v as true)}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-white/5 px-6 py-4">
+        <div className="flex items-center justify-between border-t border-border px-6 py-4">
           <Button
             type="button"
             variant="ghost"
             onClick={back}
             disabled={step === 0 || submitting}
-            className="text-cyan-200/70 hover:text-cyan-50"
           >
             <ChevronLeft className="mr-1 h-4 w-4" />
             Back
@@ -380,7 +363,6 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
             <Button
               type="button"
               onClick={next}
-              className="bg-cyan-400/90 text-[#03060f] hover:bg-cyan-300"
             >
               Continue
               <ChevronRight className="ml-1 h-4 w-4" />
@@ -390,7 +372,6 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {submitting ? "Submitting…" : "Submit for review"}
               <Send className="ml-1 h-4 w-4" />
@@ -413,9 +394,9 @@ function Stepper({ current }: { current: number }) {
             <span
               className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border font-mono text-[10px]",
-                done && "border-cyan-400 bg-cyan-400/20 text-cyan-100",
-                active && "border-primary bg-primary/20 text-primary-foreground",
-                !done && !active && "border-white/10 text-cyan-200/40",
+                done && "border-primary/60 bg-primary/10 text-primary",
+                active && "border-primary bg-primary text-primary-foreground",
+                !done && !active && "border-border text-muted-foreground",
               )}
             >
               {done ? <Check className="h-3 w-3" /> : i + 1}
@@ -423,7 +404,7 @@ function Stepper({ current }: { current: number }) {
             <span
               className={cn(
                 "hidden font-mono text-[10px] uppercase tracking-[0.18em] sm:inline",
-                active ? "text-primary-foreground" : "text-cyan-200/40",
+                active ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {s.label}
@@ -432,7 +413,7 @@ function Stepper({ current }: { current: number }) {
               <span
                 className={cn(
                   "h-px flex-1",
-                  done ? "bg-cyan-400/50" : "bg-white/10",
+                  done ? "bg-primary/40" : "bg-border",
                 )}
               />
             )}
@@ -458,15 +439,15 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[12px] font-medium text-cyan-100/80">
+      <Label className="text-[12px] font-medium text-foreground/80">
         {label}
-        {required && <span className="ml-1 text-primary-foreground">*</span>}
+        {required && <span className="ml-1 text-primary">*</span>}
       </Label>
       {children}
       {error ? (
-        <p className="text-[11px] text-rose-300">{error}</p>
+        <p className="text-[11px] text-destructive">{error}</p>
       ) : hint ? (
-        <p className="text-[11px] text-cyan-200/40">{hint}</p>
+        <p className="text-[11px] text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );
@@ -484,12 +465,12 @@ function RadioOption({
   return (
     <Label
       htmlFor={`vis-${value}`}
-      className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3 transition-colors hover:border-cyan-400/40 [&:has(:checked)]:border-primary/60 [&:has(:checked)]:bg-primary/10"
+      className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/40 [&:has(:checked)]:border-primary/60 [&:has(:checked)]:bg-primary/5"
     >
       <RadioGroupItem id={`vis-${value}`} value={value} className="mt-0.5" />
       <div>
-        <div className="text-[13px] font-medium text-cyan-50">{title}</div>
-        <div className="text-[11.5px] text-cyan-200/60">{description}</div>
+        <div className="text-[13px] font-medium text-foreground">{title}</div>
+        <div className="text-[11.5px] text-muted-foreground">{description}</div>
       </div>
     </Label>
   );
@@ -507,36 +488,36 @@ function PreviewCard({
   const anonymous = data.visibility === "anonymous";
   return (
     <div className="space-y-5">
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-300/70">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary/80">
         Preview · how it will appear
       </div>
-      <div className="overflow-hidden rounded-2xl border border-cyan-400/20 bg-[#040814]">
-        <div className="border-b border-white/5 px-5 py-3 text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-200/60">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="border-b border-border px-5 py-3 text-[11px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
           {anonymous ? "Anonymous signal" : "Showcase deployment"}
         </div>
         <div className="space-y-3 px-5 py-5">
           <div>
-            <div className="text-base font-semibold text-cyan-50">
+            <div className="text-base font-semibold text-foreground">
               {anonymous ? "Anonymous" : data.companyName || "—"}
             </div>
-            <div className="text-[12.5px] text-cyan-200/60">
+            <div className="text-[12.5px] text-muted-foreground">
               {data.city}, {data.country} · {data.region}
             </div>
           </div>
           {!anonymous && (
             <>
-              <p className="text-[13px] leading-relaxed text-cyan-100/80">
+              <p className="text-[13px] leading-relaxed text-foreground/80">
                 {data.description}
               </p>
               <div className="flex flex-wrap gap-1.5 pt-1 text-[10.5px] font-mono uppercase tracking-[0.18em]">
-                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-cyan-200">
+                <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-primary">
                   {data.industry}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-cyan-200/70">
+                <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-muted-foreground">
                   since {data.usingSince}
                 </span>
                 {data.websiteUrl && (
-                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-cyan-200/70">
+                  <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-muted-foreground">
                     {safeHostname(data.websiteUrl)}
                   </span>
                 )}
@@ -546,7 +527,7 @@ function PreviewCard({
         </div>
       </div>
 
-      <Label className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3 text-[12.5px] text-cyan-100/80">
+      <Label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-[12.5px] text-foreground/80">
         <input
           type="checkbox"
           checked={Boolean(data.consent)}
@@ -558,8 +539,11 @@ function PreviewCard({
           public radar (anonymous pins show only region).
         </span>
       </Label>
-      {error && <p className="text-[11px] text-rose-300">{error}</p>}
+      {error && <p className="text-[11px] text-destructive">{error}</p>}
     </div>
+  );
+}
+
   );
 }
 
