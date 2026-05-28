@@ -180,7 +180,6 @@ export default function BlogPost() {
         <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
       </Helmet>
 
-      <article className="container max-w-3xl py-12 md:py-16">
         <div className="mb-6 flex items-center justify-between -ml-3">
           <Button asChild variant="ghost" size="sm">
             <Link to="/blog">
@@ -188,7 +187,17 @@ export default function BlogPost() {
               All posts
             </Link>
           </Button>
-          {isAdmin && <ShareExportMenu slug={post.slug} />}
+          <div className="flex items-center gap-2">
+            <BlogPostActions
+              slug={post.slug}
+              title={post.title}
+              url={canonical}
+              description={seoDescription}
+            />
+            {isAdmin && <ShareExportMenu slug={post.slug} />}
+          </div>
+        </div>
+
         </div>
 
 
