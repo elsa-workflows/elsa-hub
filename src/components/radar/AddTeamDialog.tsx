@@ -189,16 +189,17 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl border-cyan-400/20 bg-[#03060f] p-0 text-cyan-50">
-        <DialogHeader className="border-b border-white/5 px-6 py-5">
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-cyan-50">
-            <StepIcon className="h-4 w-4 text-cyan-300" />
+      <DialogContent className="max-w-2xl p-0">
+        <DialogHeader className="border-b border-border px-6 py-5">
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <StepIcon className="h-4 w-4 text-primary" />
             Add your team to the radar
           </DialogTitle>
           <Stepper current={step} />
         </DialogHeader>
 
         <div className="max-h-[60vh] overflow-y-auto px-6 py-6">
+
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
