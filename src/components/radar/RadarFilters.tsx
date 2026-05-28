@@ -33,10 +33,17 @@ function Chip({
       aria-label={ariaLabel}
       className={cn(
         "rounded-full border px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.16em] transition-all",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#03060f]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "focus-visible:ring-fuchsia-500 focus-visible:ring-offset-white dark:focus-visible:ring-fuchsia-300/70 dark:focus-visible:ring-offset-[#03060f]",
         active
-          ? "border-fuchsia-400/60 bg-fuchsia-400/15 text-fuchsia-100 shadow-[0_0_12px_-2px_rgba(240,171,252,0.5)]"
-          : "border-cyan-400/15 bg-transparent text-cyan-200/60 hover:border-cyan-400/40 hover:text-cyan-100",
+          ? [
+              "border-fuchsia-500/60 bg-fuchsia-500/10 text-fuchsia-700 shadow-[0_0_12px_-4px_rgba(192,38,211,0.45)]",
+              "dark:border-fuchsia-400/60 dark:bg-fuchsia-400/15 dark:text-fuchsia-100 dark:shadow-[0_0_12px_-2px_rgba(240,171,252,0.5)]",
+            ]
+          : [
+              "border-slate-200 bg-white text-slate-600 hover:border-sky-400/60 hover:text-sky-700",
+              "dark:border-cyan-400/15 dark:bg-transparent dark:text-cyan-200/60 dark:hover:border-cyan-400/40 dark:hover:text-cyan-100",
+            ],
       )}
     >
       {children}
@@ -64,7 +71,7 @@ export function RadarFilters({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-lg border border-cyan-400/20 bg-cyan-400/[0.04] px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-cyan-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70 lg:hidden"
+        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 dark:border-cyan-400/20 dark:bg-cyan-400/[0.04] dark:text-cyan-100 dark:focus-visible:ring-fuchsia-300/70 lg:hidden"
         aria-expanded={open}
         aria-controls="radar-filter-groups"
         aria-label={`${open ? "Hide" : "Show"} filters${activeCount ? `, ${activeCount} active` : ""}`}
@@ -74,7 +81,7 @@ export function RadarFilters({
           Filters
           {activeCount > 0 && (
             <span
-              className="rounded-full bg-fuchsia-400/20 px-2 py-0.5 text-[10px] text-fuchsia-200"
+              className="rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] text-fuchsia-700 dark:bg-fuchsia-400/20 dark:text-fuchsia-200"
               aria-hidden="true"
             >
               {activeCount}
@@ -87,19 +94,15 @@ export function RadarFilters({
         />
       </button>
 
-      {/* Always-visible compact controls (mobile + desktop) */}
-      <div
-        role="group"
-        aria-label="Display mode"
-        className="flex flex-wrap gap-1.5"
-      >
+      {/* Always-visible compact controls */}
+      <div role="group" aria-label="Display mode" className="flex flex-wrap gap-1.5">
         <Chip active={!heatmap} onClick={() => onHeatmap(false)} ariaLabel="Show individual markers">
           Markers
         </Chip>
         <Chip active={heatmap} onClick={() => onHeatmap(true)} ariaLabel="Show density heatmap">
           Heatmap
         </Chip>
-        <span className="mx-1 hidden h-6 w-px self-center bg-white/10 sm:inline-block" aria-hidden="true" />
+        <span className="mx-1 hidden h-6 w-px self-center bg-slate-200 dark:bg-white/10 sm:inline-block" aria-hidden="true" />
         <Chip active={!showcaseOnly} onClick={() => onShowcaseOnly(false)} ariaLabel="Show all signals">
           All signals
         </Chip>
@@ -113,7 +116,7 @@ export function RadarFilters({
         <div role="group" aria-labelledby="radar-region-label">
           <div
             id="radar-region-label"
-            className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/50"
+            className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500 dark:text-cyan-200/50"
           >
             Region
           </div>
@@ -137,7 +140,7 @@ export function RadarFilters({
         <div role="group" aria-labelledby="radar-industry-label">
           <div
             id="radar-industry-label"
-            className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/50"
+            className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500 dark:text-cyan-200/50"
           >
             Industry
           </div>
@@ -158,22 +161,22 @@ export function RadarFilters({
           </div>
         </div>
 
-        <p className="text-[11px] leading-relaxed text-cyan-200/40">
+        <p className="text-[11px] leading-relaxed text-slate-500 dark:text-cyan-200/40">
           Heatmap aggregates anonymous signals into hex bins to reveal regional intensity.
         </p>
 
         <div
-          className="flex items-center gap-4 border-t border-white/5 pt-4 text-[11px] text-cyan-200/50"
+          className="flex items-center gap-4 border-t border-slate-200 pt-4 text-[11px] text-slate-600 dark:border-white/5 dark:text-cyan-200/50"
           aria-label="Marker legend"
           role="group"
         >
           <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-cyan-300/80" aria-hidden="true" />
+            <span className="h-2 w-2 rounded-full bg-sky-500 dark:bg-cyan-300/80" aria-hidden="true" />
             Anonymous
           </div>
           <div className="flex items-center gap-1.5">
             <span
-              className="h-2 w-2 rounded-full bg-fuchsia-300 shadow-[0_0_6px_rgba(240,171,252,0.8)]"
+              className="h-2 w-2 rounded-full bg-fuchsia-500 shadow-[0_0_6px_rgba(192,38,211,0.6)] dark:bg-fuchsia-300 dark:shadow-[0_0_6px_rgba(240,171,252,0.8)]"
               aria-hidden="true"
             />
             Showcase

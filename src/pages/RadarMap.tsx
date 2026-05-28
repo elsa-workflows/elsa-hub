@@ -49,22 +49,23 @@ export default function RadarMap() {
         description="A live radar of Elsa Workflows deployments across the world. Anonymous by default, opt-in showcases for teams that want to share what they're building."
       />
 
-      {/* Dark scoped wrapper */}
-      <div className="relative min-h-screen overflow-hidden bg-[#03060f] text-cyan-50">
+      {/* Theme-aware scoped wrapper */}
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-sky-50/60 via-white to-slate-50 text-slate-900 dark:bg-[#03060f] dark:bg-none dark:text-cyan-50">
         {/* Ambient backdrop */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-60"
+          className="pointer-events-none absolute inset-0 opacity-70 dark:opacity-60"
           style={{
             background:
-              "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(125,211,252,0.10), transparent 60%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240,171,252,0.10), transparent 60%)",
+              "radial-gradient(ellipse 80% 50% at 50% 0%, hsla(199,89%,60%,0.10), transparent 60%), radial-gradient(ellipse 60% 40% at 80% 100%, hsla(292,84%,65%,0.10), transparent 60%)",
           }}
         />
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          className="pointer-events-none absolute inset-0 opacity-[0.05] dark:opacity-[0.04]"
           style={{
             backgroundImage:
-              "linear-gradient(to right, #7dd3fc 1px, transparent 1px), linear-gradient(to bottom, #7dd3fc 1px, transparent 1px)",
+              "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
             backgroundSize: "64px 64px",
+            color: "var(--radar-grid, hsl(199 89% 48%))",
             maskImage:
               "radial-gradient(ellipse 80% 70% at 50% 30%, black 30%, transparent 90%)",
             WebkitMaskImage:
@@ -80,17 +81,17 @@ export default function RadarMap() {
             transition={{ duration: 0.5 }}
             className="mb-8 max-w-3xl sm:mb-10"
           >
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-300/80 sm:text-[11px]">
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-sky-700/90 dark:text-cyan-300/80 sm:text-[11px]">
               <Radar className="h-3.5 w-3.5" />
               global radar · community telemetry
             </div>
             <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight sm:mt-4 sm:text-4xl md:text-5xl">
               Elsa Workflows is running{" "}
-              <span className="bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-fuchsia-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-sky-600 via-fuchsia-600 to-fuchsia-500 bg-clip-text text-transparent dark:from-cyan-200 dark:via-fuchsia-200 dark:to-fuchsia-400">
                 all over the world.
               </span>
             </h1>
-            <p className="mt-4 text-base leading-relaxed text-cyan-100/70 sm:mt-5 sm:text-lg">
+            <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-cyan-100/70 sm:mt-5 sm:text-lg">
               A live, opt-in view of where teams are building durable workflow systems with Elsa.
               Anonymous by default — public showcases for the teams that want to share what they're
               building.

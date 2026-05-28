@@ -12,7 +12,6 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = "radar-location-title";
 
-  // Auto-focus the close button when card opens, and bind Escape to close.
   useEffect(() => {
     if (!location) return;
     closeRef.current?.focus();
@@ -37,12 +36,12 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
           role="dialog"
           aria-modal="false"
           aria-labelledby={titleId}
-          className="absolute bottom-4 left-4 z-30 w-[min(360px,calc(100%-2rem))] rounded-xl border border-fuchsia-400/30 bg-[rgba(2,6,23,0.92)] p-5 shadow-[0_0_40px_-10px_rgba(240,171,252,0.4)] backdrop-blur-md"
+          className="absolute bottom-4 left-4 z-30 w-[min(360px,calc(100%-2rem))] rounded-xl border border-fuchsia-400/40 bg-white/95 p-5 shadow-[0_10px_40px_-12px_rgba(192,38,211,0.35)] backdrop-blur-md dark:border-fuchsia-400/30 dark:bg-[rgba(2,6,23,0.92)] dark:shadow-[0_0_40px_-10px_rgba(240,171,252,0.4)]"
         >
           <button
             ref={closeRef}
             onClick={onClose}
-            className="absolute right-3 top-3 rounded-md p-1 text-cyan-200/60 transition-colors hover:bg-white/5 hover:text-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
+            className="absolute right-3 top-3 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 dark:text-cyan-200/60 dark:hover:bg-white/5 dark:hover:text-cyan-200 dark:focus-visible:ring-fuchsia-300/70"
             aria-label="Close deployment details"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -52,22 +51,22 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
             <div>
               <div
                 id={titleId}
-                className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-300/70"
+                className="font-mono text-[10px] uppercase tracking-[0.22em] text-sky-700 dark:text-cyan-300/70"
               >
                 Anonymous deployment
               </div>
-              <div className="mt-2 flex items-center gap-2 text-sm text-cyan-50">
-                <MapPin className="h-3.5 w-3.5 text-cyan-300/70" aria-hidden="true" />
+              <div className="mt-2 flex items-center gap-2 text-sm text-slate-900 dark:text-cyan-50">
+                <MapPin className="h-3.5 w-3.5 text-sky-600 dark:text-cyan-300/70" aria-hidden="true" />
                 {location.city ? `${location.city}, ` : ""}
                 {location.country}
               </div>
-              <p className="mt-3 text-[12.5px] leading-relaxed text-cyan-100/60">
+              <p className="mt-3 text-[12.5px] leading-relaxed text-slate-600 dark:text-cyan-100/60">
                 Approximate location. No identifying data is exposed for anonymous deployments.
               </p>
             </div>
           ) : (
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-fuchsia-300/80">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-fuchsia-700 dark:text-fuchsia-300/80">
                 Showcase deployment
               </div>
               <div className="mt-2 flex items-center gap-3">
@@ -75,21 +74,21 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
                   <img
                     src={location.companyLogoUrl}
                     alt=""
-                    className="h-10 w-10 rounded-md border border-fuchsia-400/30 object-cover"
+                    className="h-10 w-10 rounded-md border border-fuchsia-400/40 object-cover dark:border-fuchsia-400/30"
                   />
                 ) : (
                   <div
-                    className="flex h-10 w-10 items-center justify-center rounded-md border border-fuchsia-400/30 bg-fuchsia-400/10 font-mono text-sm font-semibold text-fuchsia-200"
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-fuchsia-400/40 bg-fuchsia-50 font-mono text-sm font-semibold text-fuchsia-700 dark:border-fuchsia-400/30 dark:bg-fuchsia-400/10 dark:text-fuchsia-200"
                     aria-hidden="true"
                   >
                     {location.companyName?.[0] ?? "?"}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <div id={titleId} className="truncate text-base font-semibold text-cyan-50">
+                  <div id={titleId} className="truncate text-base font-semibold text-slate-900 dark:text-cyan-50">
                     {location.companyName}
                   </div>
-                  <div className="flex items-center gap-1 text-[12px] text-cyan-200/60">
+                  <div className="flex items-center gap-1 text-[12px] text-slate-600 dark:text-cyan-200/60">
                     <MapPin className="h-3 w-3" aria-hidden="true" />
                     {location.city ? `${location.city}, ` : ""}
                     {location.country}
@@ -98,21 +97,21 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
               </div>
 
               {location.description && (
-                <p className="mt-3 text-[13px] leading-relaxed text-cyan-100/80">
+                <p className="mt-3 text-[13px] leading-relaxed text-slate-700 dark:text-cyan-100/80">
                   {location.description}
                 </p>
               )}
 
-              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/5 pt-3 text-[11.5px]">
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-200 pt-3 text-[11.5px] dark:border-white/5">
                 {location.industry && (
-                  <div className="flex items-center gap-1.5 text-cyan-200/70">
+                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-cyan-200/70">
                     <Briefcase className="h-3 w-3" aria-hidden="true" />
                     <span className="sr-only">Industry: </span>
                     {location.industry}
                   </div>
                 )}
                 {location.usingSince && (
-                  <div className="flex items-center gap-1.5 text-cyan-200/70">
+                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-cyan-200/70">
                     <Calendar className="h-3 w-3" aria-hidden="true" />
                     Since {location.usingSince}
                   </div>
@@ -124,7 +123,7 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
                   href={location.websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-fuchsia-300 transition-colors hover:text-fuchsia-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-fuchsia-700 transition-colors hover:text-fuchsia-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 dark:text-fuchsia-300 dark:hover:text-fuchsia-200 dark:focus-visible:ring-fuchsia-300/70"
                   aria-label={`Visit ${location.companyName} website (opens in new tab)`}
                 >
                   Visit website
