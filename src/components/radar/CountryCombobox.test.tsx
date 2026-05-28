@@ -71,7 +71,6 @@ describe("CountryCombobox", () => {
     expect(screen.queryByPlaceholderText(/search country/i)).not.toBeInTheDocument();
 
     // Region was auto-derived to "Europe" and is shown on the region trigger
-    const regionTrigger = screen.getByRole("combobox", { name: /region/i });
     expect(regionTrigger).toHaveTextContent("Europe");
 
     // Region listbox is NOT open (regression guard for the prior cmdk/popover bug)
