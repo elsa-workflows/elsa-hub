@@ -181,7 +181,6 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
           }
         />
       </Suspense>
-      </Suspense>
 
       {/* Corner HUD */}
       <div className="pointer-events-none absolute left-4 top-4 z-20 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/70">
