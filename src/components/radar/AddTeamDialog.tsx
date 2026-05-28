@@ -129,19 +129,43 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
       return;
     }
     setSubmitting(true);
-    // No backend wiring yet — simulate submission so reviewers can manually onboard the team.
-    await new Promise((r) => setTimeout(r, 700));
-    setSubmitting(false);
-    toast({
-      title: "Submission received",
-      description:
-        "Thanks — we'll review your profile and add you to the radar within a few days.",
-    });
-    onOpenChange(false);
-    setStep(0);
-    setData(initial);
-    setErrors({});
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error } = await supabase.functions.invoke("submit-radar-location", {
+        body: {
+          companyName: final.data.companyName,
+          websiteUrl: final.data.websiteUrl || "",
+          contactEmail: final.data.contactEmail,
+          city: final.data.city,
+          country: final.data.country,
+          region: final.data.region,
+          industry: final.data.industry,
+          description: final.data.description,
+          usingSince: final.data.usingSince,
+          visibility: final.data.visibility,
+        },
+      });
+      if (error) throw error;
+      toast({
+        title: "Submission received",
+        description:
+          "Thanks — your team is in the review queue and will appear on the radar once approved.",
+      });
+      onOpenChange(false);
+      setStep(0);
+      setData(initial);
+      setErrors({});
+    } catch (e) {
+      toast({
+        title: "Submission failed",
+        description: e instanceof Error ? e.message : "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
+
 
   const StepIcon = steps[step].icon;
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Search, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, MapPin, Check, X, Mail, Clock } from "lucide-react";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -95,26 +96,40 @@ function rowToForm(r: RadarLocationRow): FormState {
   };
 }
 
+type StatusFilter = "all" | "pending" | "approved" | "rejected";
+
 export default function AdminRadarLocations() {
   const qc = useQueryClient();
   const { data: rows, isLoading } = useRadarLocationsAdmin();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
   const [editing, setEditing] = useState<RadarLocationRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteRow, setDeleteRow] = useState<RadarLocationRow | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const counts = useMemo(() => {
+    const c = { all: 0, pending: 0, approved: 0, rejected: 0 };
+    rows?.forEach((r) => {
+      c.all++;
+      c[r.status] = (c[r.status] ?? 0) + 1;
+    });
+    return c;
+  }, [rows]);
+
   const filtered = useMemo(() => {
     if (!rows) return [];
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.city, r.country, r.region, r.company_name, r.industry]
+    return rows.filter((r) => {
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (!q) return true;
+      return [r.city, r.country, r.region, r.company_name, r.industry, r.submitted_contact_email]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [rows, search]);
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [rows, search, statusFilter]);
+
 
   const openNew = () => {
     setEditing(null);
@@ -169,9 +184,10 @@ export default function AdminRadarLocations() {
       } else {
         const { error } = await supabase
           .from("radar_locations")
-          .insert(payload);
+          .insert({ ...payload, status: "approved" });
         if (error) throw error;
       }
+
     },
     onSuccess: () => {
       toast.success(editing ? "Location updated" : "Location added");
@@ -196,13 +212,34 @@ export default function AdminRadarLocations() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const setStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("radar_locations")
+        .update({
+          status,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: userData.user?.id ?? null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      toast.success(vars.status === "approved" ? "Submission approved" : "Submission rejected");
+      qc.invalidateQueries({ queryKey: RADAR_LOCATIONS_KEY });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Radar locations</h1>
           <p className="text-muted-foreground">
-            Markers shown on the public Global Radar map. {rows?.length ?? 0} total.
+            Curate community submissions and manage markers shown on the public Global Radar.
           </p>
         </div>
         <Button onClick={openNew}>
@@ -211,27 +248,43 @@ export default function AdminRadarLocations() {
         </Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search city, country, company..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        {(["pending", "approved", "rejected", "all"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setStatusFilter(s)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+              statusFilter === s
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {s} <span className="ml-1 opacity-70">({counts[s] ?? 0})</span>
+          </button>
+        ))}
+        <div className="relative ml-auto max-w-xs flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search city, country, company, email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Status</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Region</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Industry</TableHead>
-              <TableHead className="text-right">Coordinates</TableHead>
-              <TableHead className="w-24 text-right">Actions</TableHead>
+              <TableHead>Submitter</TableHead>
+              <TableHead className="w-48 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -253,6 +306,21 @@ export default function AdminRadarLocations() {
               filtered.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>
+                    {r.status === "pending" ? (
+                      <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+                        <Clock className="mr-1 h-3 w-3" /> Pending
+                      </Badge>
+                    ) : r.status === "approved" ? (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                        <Check className="mr-1 h-3 w-3" /> Approved
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-destructive/40 text-destructive">
+                        <X className="mr-1 h-3 w-3" /> Rejected
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     {r.anonymous ? (
                       <Badge variant="secondary">Anonymous</Badge>
                     ) : (
@@ -265,20 +333,68 @@ export default function AdminRadarLocations() {
                       <span className="font-medium">
                         {r.city ? `${r.city}, ` : ""}{r.country}
                       </span>
+                      <span className="text-xs text-muted-foreground">· {r.region}</span>
                     </div>
+                    {r.description && r.status === "pending" && (
+                      <p className="mt-1 line-clamp-2 max-w-md text-xs text-muted-foreground">
+                        {r.description}
+                      </p>
+                    )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{r.region}</TableCell>
                   <TableCell className="font-medium">
                     {r.company_name ?? <span className="text-muted-foreground">—</span>}
+                    {r.website_url && (
+                      <a
+                        href={r.website_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block truncate text-xs text-muted-foreground hover:underline"
+                      >
+                        {r.website_url.replace(/^https?:\/\//, "")}
+                      </a>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {r.industry ?? "—"}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                    {Number(r.latitude).toFixed(2)}, {Number(r.longitude).toFixed(2)}
+                  <TableCell className="text-xs text-muted-foreground">
+                    {r.submitted_contact_email ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        <a href={`mailto:${r.submitted_contact_email}`} className="hover:underline">
+                          {r.submitted_contact_email}
+                        </a>
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      {r.status === "pending" && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setStatus.mutate({ id: r.id, status: "approved" })}
+                            disabled={setStatus.isPending}
+                            aria-label="Approve"
+                            title="Approve"
+                          >
+                            <Check className="h-4 w-4 text-emerald-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setStatus.mutate({ id: r.id, status: "rejected" })}
+                            disabled={setStatus.isPending}
+                            aria-label="Reject"
+                            title="Reject"
+                          >
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => openEdit(r)} aria-label="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -293,6 +409,8 @@ export default function AdminRadarLocations() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Add / Edit dialog */}
 
       {/* Add / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

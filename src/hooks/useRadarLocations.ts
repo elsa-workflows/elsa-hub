@@ -18,9 +18,17 @@ export type RadarLocationRow = {
   description: string | null;
   using_since: number | null;
   sort_order: number;
+  status: "pending" | "approved" | "rejected";
+  submitted_contact_email: string | null;
+  submitted_by: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  rejection_reason: string | null;
   created_at: string;
   updated_at: string;
 };
+
 
 export function rowToLocation(r: RadarLocationRow): ElsaUsageLocation {
   return {
