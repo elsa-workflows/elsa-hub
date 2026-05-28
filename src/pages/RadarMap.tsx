@@ -133,7 +133,6 @@ export default function RadarMap() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="order-1 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.02] p-4 sm:p-5 lg:order-2 lg:sticky lg:top-24 lg:self-start"
             >
-            >
               <RadarFilters
                 region={region}
                 industry={industry}
