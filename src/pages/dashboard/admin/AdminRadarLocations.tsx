@@ -410,7 +410,7 @@ export default function AdminRadarLocations() {
         </Table>
       </div>
 
-      </div>
+      {/* Add / Edit dialog */}
 
       {/* Add / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
