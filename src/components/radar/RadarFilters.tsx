@@ -45,8 +45,6 @@ export function RadarFilters({
   onShowcaseOnly,
   onHeatmap,
 }: RadarFiltersProps) {
-  onShowcaseOnly,
-}: RadarFiltersProps) {
   return (
     <div className="space-y-5">
       <div>
