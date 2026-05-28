@@ -274,18 +274,17 @@ export default function AdminRadarLocations() {
         </div>
       </div>
 
-
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Status</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Region</TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Industry</TableHead>
-              <TableHead className="text-right">Coordinates</TableHead>
-              <TableHead className="w-24 text-right">Actions</TableHead>
+              <TableHead>Submitter</TableHead>
+              <TableHead className="w-48 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -307,6 +306,21 @@ export default function AdminRadarLocations() {
               filtered.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>
+                    {r.status === "pending" ? (
+                      <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">
+                        <Clock className="mr-1 h-3 w-3" /> Pending
+                      </Badge>
+                    ) : r.status === "approved" ? (
+                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                        <Check className="mr-1 h-3 w-3" /> Approved
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-destructive/40 text-destructive">
+                        <X className="mr-1 h-3 w-3" /> Rejected
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     {r.anonymous ? (
                       <Badge variant="secondary">Anonymous</Badge>
                     ) : (
@@ -319,20 +333,68 @@ export default function AdminRadarLocations() {
                       <span className="font-medium">
                         {r.city ? `${r.city}, ` : ""}{r.country}
                       </span>
+                      <span className="text-xs text-muted-foreground">· {r.region}</span>
                     </div>
+                    {r.description && r.status === "pending" && (
+                      <p className="mt-1 line-clamp-2 max-w-md text-xs text-muted-foreground">
+                        {r.description}
+                      </p>
+                    )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{r.region}</TableCell>
                   <TableCell className="font-medium">
                     {r.company_name ?? <span className="text-muted-foreground">—</span>}
+                    {r.website_url && (
+                      <a
+                        href={r.website_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block truncate text-xs text-muted-foreground hover:underline"
+                      >
+                        {r.website_url.replace(/^https?:\/\//, "")}
+                      </a>
+                    )}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {r.industry ?? "—"}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                    {Number(r.latitude).toFixed(2)}, {Number(r.longitude).toFixed(2)}
+                  <TableCell className="text-xs text-muted-foreground">
+                    {r.submitted_contact_email ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        <a href={`mailto:${r.submitted_contact_email}`} className="hover:underline">
+                          {r.submitted_contact_email}
+                        </a>
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      {r.status === "pending" && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setStatus.mutate({ id: r.id, status: "approved" })}
+                            disabled={setStatus.isPending}
+                            aria-label="Approve"
+                            title="Approve"
+                          >
+                            <Check className="h-4 w-4 text-emerald-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setStatus.mutate({ id: r.id, status: "rejected" })}
+                            disabled={setStatus.isPending}
+                            aria-label="Reject"
+                            title="Reject"
+                          >
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => openEdit(r)} aria-label="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -346,6 +408,8 @@ export default function AdminRadarLocations() {
             )}
           </TableBody>
         </Table>
+      </div>
+
       </div>
 
       {/* Add / Edit dialog */}
