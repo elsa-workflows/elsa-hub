@@ -17,6 +17,7 @@ import {
   MessageSquare,
   CalendarDays,
   Layers,
+  Radar,
 } from "lucide-react";
 import {
   Sidebar,
@@ -67,6 +68,7 @@ const adminNavItems = [
   { label: "Orders", icon: Receipt, path: "orders" },
   { label: "Invitations", icon: Mail, path: "invitations" },
   { label: "Audit Log", icon: FileText, path: "audit" },
+  { label: "Radar Map", icon: Radar, path: "radar" },
 ];
 
 export function DashboardSidebar() {
