@@ -183,7 +183,7 @@ export default function RadarMap() {
               <Button
                 size="lg"
                 onClick={() => setAddOpen(true)}
-                className="bg-primary text-white hover:bg-primary dark:bg-primary dark:text-[#03060f] dark:hover:bg-primary-foreground"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Submit your team
                 <ArrowUpRight className="ml-1 h-4 w-4" />

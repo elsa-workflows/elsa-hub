@@ -344,7 +344,7 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-primary text-[#03060f] hover:bg-primary-foreground"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {submitting ? "Submitting…" : "Submit for review"}
               <Send className="ml-1 h-4 w-4" />
