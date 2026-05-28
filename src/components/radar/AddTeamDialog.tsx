@@ -37,7 +37,7 @@ const teamSchema = z.object({
     .string()
     .trim()
     .min(20, "Tell us a little more (20+ chars)")
-    .max(280, "Keep it under 280 characters"),
+    .max(560, "Keep it under 560 characters"),
   usingSince: z
     .number({ invalid_type_error: "Year is required" })
     .int()
@@ -276,12 +276,12 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                   <Field
                     label="What are you building?"
                     error={errors.description}
-                    hint={`${(data.description ?? "").length}/280`}
+                    hint={`${(data.description ?? "").length}/560`}
                     required
                   >
                     <Textarea
                       value={data.description ?? ""}
-                      maxLength={280}
+                      maxLength={560}
                       rows={4}
                       onChange={(e) => set("description", e.target.value)}
                       placeholder="Durable workflow systems for regulated industries…"
