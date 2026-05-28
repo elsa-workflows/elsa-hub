@@ -35,14 +35,16 @@ function Chip({
       {children}
     </button>
   );
-}
-
 export function RadarFilters({
   region,
   industry,
   showcaseOnly,
+  heatmap,
   onRegion,
   onIndustry,
+  onShowcaseOnly,
+  onHeatmap,
+}: RadarFiltersProps) {
   onShowcaseOnly,
 }: RadarFiltersProps) {
   return (
