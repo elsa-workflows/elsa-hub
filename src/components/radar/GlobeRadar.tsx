@@ -8,9 +8,10 @@ interface GlobeRadarProps {
   locations: ElsaUsageLocation[];
   onSelect: (loc: ElsaUsageLocation | null) => void;
   selectedId?: string | null;
+  heatmap?: boolean;
 }
 
-export function GlobeRadar({ locations, onSelect, selectedId }: GlobeRadarProps) {
+export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }: GlobeRadarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
