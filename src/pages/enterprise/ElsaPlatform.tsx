@@ -1,15 +1,16 @@
 import { Link } from "react-router-dom";
 import {
+import {
   AlertTriangle,
   CheckCircle2,
   GitBranch,
+  GitMerge,
   ArrowUpRight,
   Workflow,
   Layers,
   GitBranch as PipelineIcon,
   Map as MapIcon,
 } from "lucide-react";
-import { Seo } from "@/components/Seo";
 import { Card, CardContent } from "@/components/ui/card";
 import { ElsaPlusDisclaimer } from "@/components/elsa-plus";
 import { PlatformShell, takeaways } from "./platform/shared";
