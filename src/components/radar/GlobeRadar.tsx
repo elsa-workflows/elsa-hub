@@ -6,8 +6,6 @@ import { cn } from "@/lib/utils";
 
 // react-globe.gl is a default export; lazy-load to keep bundle off initial paint
 const Globe = lazy(() => import("react-globe.gl").then((m) => ({ default: m.default })));
-// react-globe.gl is a default export; lazy-load to keep bundle off initial paint
-const Globe = lazy(() => import("react-globe.gl").then((m) => ({ default: m.default })));
 
 interface GlobeRadarProps {
   locations: ElsaUsageLocation[];
@@ -20,7 +18,6 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
-  const [ready, setReady] = useState(false);
   const isDark = useIsDark();
   const isDark = useIsDark();
   // Active accent palette (e.g. "336 78% 48%"). Drives showcase markers + rings.
