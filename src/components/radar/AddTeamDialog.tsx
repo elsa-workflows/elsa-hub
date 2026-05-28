@@ -583,6 +583,16 @@ export function CountryCombobox({
   onChange: (name: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+
+  const closePopover = (deferred = false) => {
+    if (deferred) {
+      window.setTimeout(() => setOpen(false), 0);
+      return;
+    }
+
+    setOpen(false);
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -609,7 +619,7 @@ export function CountryCombobox({
               {countries.map((c) => {
                 const select = () => {
                   onChange(c.name);
-                  setOpen(false);
+                  closePopover();
                 };
                 return (
                   <CommandItem
@@ -618,7 +628,8 @@ export function CountryCombobox({
                     onSelect={select}
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      select();
+                      onChange(c.name);
+                      closePopover(true);
                     }}
                   >
                     <Check
