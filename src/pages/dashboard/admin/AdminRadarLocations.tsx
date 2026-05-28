@@ -239,7 +239,7 @@ export default function AdminRadarLocations() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Radar locations</h1>
           <p className="text-muted-foreground">
-            Markers shown on the public Global Radar map. {rows?.length ?? 0} total.
+            Curate community submissions and manage markers shown on the public Global Radar.
           </p>
         </div>
         <Button onClick={openNew}>
@@ -248,15 +248,32 @@ export default function AdminRadarLocations() {
         </Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search city, country, company..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        {(["pending", "approved", "rejected", "all"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setStatusFilter(s)}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+              statusFilter === s
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {s} <span className="ml-1 opacity-70">({counts[s] ?? 0})</span>
+          </button>
+        ))}
+        <div className="relative ml-auto max-w-xs flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search city, country, company, email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
+
 
       <div className="rounded-lg border">
         <Table>
