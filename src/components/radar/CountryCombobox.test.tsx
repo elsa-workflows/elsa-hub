@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { useState } from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CountryCombobox } from "./AddTeamDialog";
 import { countryByName } from "@/data/countries";
 import {
@@ -42,7 +42,7 @@ function Harness() {
 }
 
 describe("CountryCombobox", () => {
-  it("selects a country, fills region, and does not leave the region dropdown open", async () => {
+  it("selects a country on click, fills region, and does not leave the region dropdown open", async () => {
     render(<Harness />);
 
     const comboboxes = screen.getAllByRole("combobox");
@@ -61,14 +61,16 @@ describe("CountryCombobox", () => {
 
     const option = await screen.findByRole("option", { name: /netherlands/i });
 
-    // Use mousedown — matches real interaction handled by the component
     fireEvent.mouseDown(option);
+    fireEvent.click(option);
 
     // Country trigger reflects selection
-    expect(trigger).toHaveTextContent("Netherlands");
+    await waitFor(() => expect(trigger).toHaveTextContent("Netherlands"));
 
     // Country popover is closed (no search input remains in the DOM)
-    expect(screen.queryByPlaceholderText(/search country/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText(/search country/i)).not.toBeInTheDocument();
+    });
 
     // Region was auto-derived to "Europe" and is shown on the region trigger
     expect(regionTrigger).toHaveTextContent("Europe");
@@ -87,6 +89,7 @@ describe("CountryCombobox", () => {
 
     const option = screen.getByRole("option", { name: /netherlands/i });
     fireEvent.mouseDown(option);
+    fireEvent.click(option);
 
     expect(onChange).toHaveBeenCalledWith("Netherlands");
     expect(onChange).not.toHaveBeenCalledWith("netherlands");
