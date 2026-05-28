@@ -991,6 +991,66 @@ export type Database = {
           },
         ]
       }
+      radar_locations: {
+        Row: {
+          anonymous: boolean
+          city: string | null
+          company_logo_url: string | null
+          company_name: string | null
+          country: string
+          created_at: string
+          description: string | null
+          id: string
+          industry: string | null
+          latitude: number
+          longitude: number
+          region: Database["public"]["Enums"]["radar_region"]
+          sort_order: number
+          updated_at: string
+          using_since: number | null
+          website_url: string | null
+          weight: number
+        }
+        Insert: {
+          anonymous?: boolean
+          city?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          country: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry?: string | null
+          latitude: number
+          longitude: number
+          region: Database["public"]["Enums"]["radar_region"]
+          sort_order?: number
+          updated_at?: string
+          using_since?: number | null
+          website_url?: string | null
+          weight?: number
+        }
+        Update: {
+          anonymous?: boolean
+          city?: string | null
+          company_logo_url?: string | null
+          company_name?: string | null
+          country?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          industry?: string | null
+          latitude?: number
+          longitude?: number
+          region?: Database["public"]["Enums"]["radar_region"]
+          sort_order?: number
+          updated_at?: string
+          using_since?: number | null
+          website_url?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
       service_providers: {
         Row: {
           accepting_new_purchases: boolean
@@ -1837,6 +1897,13 @@ export type Database = {
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
       provider_role: "owner" | "admin" | "member"
+      radar_region:
+        | "Europe"
+        | "North America"
+        | "South America"
+        | "Asia"
+        | "Africa"
+        | "Oceania"
       session_type: "call" | "workshop" | "async_review" | "other"
       work_category:
         | "development"
@@ -2003,6 +2070,14 @@ export const Constants = {
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],
       provider_role: ["owner", "admin", "member"],
+      radar_region: [
+        "Europe",
+        "North America",
+        "South America",
+        "Asia",
+        "Africa",
+        "Oceania",
+      ],
       session_type: ["call", "workshop", "async_review", "other"],
       work_category: [
         "development",
