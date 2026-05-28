@@ -155,9 +155,57 @@ export const elsaUsageLocations: ElsaUsageLocation[] = [
   })),
 ];
 
+// Curated industry list — kept broad enough to cover most teams without
+// devolving into free-text fragmentation. Seeded with industries used by
+// existing locations plus common verticals we expect to see on the radar.
+const curatedIndustries = [
+  "Aerospace & Defense",
+  "Agriculture",
+  "Automotive",
+  "Banking",
+  "Biotech",
+  "Construction",
+  "Consulting",
+  "Consumer Goods",
+  "Cybersecurity",
+  "E-commerce",
+  "Education",
+  "Energy & Utilities",
+  "Engineering",
+  "Financial Services",
+  "Gaming",
+  "Government & Public Sector",
+  "Healthcare",
+  "Hospitality & Travel",
+  "Human Resources",
+  "Insurance",
+  "Legal",
+  "Logistics",
+  "Manufacturing",
+  "Marketing & Advertising",
+  "Media & Entertainment",
+  "Non-profit",
+  "Oil & Gas",
+  "Pharmaceuticals",
+  "Real Estate",
+  "Research",
+  "Retail",
+  "SaaS",
+  "Software",
+  "Supply Chain",
+  "Telecommunications",
+  "Transportation",
+  "Workflow Consulting",
+  "Other",
+];
+
 export const elsaIndustries = Array.from(
-  new Set(elsaUsageLocations.map((l) => l.industry).filter(Boolean) as string[]),
-).sort();
+  new Set([
+    ...curatedIndustries,
+    ...(elsaUsageLocations.map((l) => l.industry).filter(Boolean) as string[]),
+  ]),
+).sort((a, b) => (a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b)));
+
 
 export const elsaRegions: ElsaUsageLocation["region"][] = [
   "Europe",
