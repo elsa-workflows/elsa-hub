@@ -562,8 +562,7 @@ function PreviewCard({
   );
 }
 
-  );
-}
+
 
 function safeHostname(url: string) {
   try {
