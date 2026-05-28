@@ -55,6 +55,17 @@ interface Props {
   description?: string;
 }
 
+type LikeState = { liked: boolean; count: number | null };
+const listeners = new Map<string, Set<(s: LikeState) => void>>();
+function emit(slug: string, s: LikeState) {
+  listeners.get(slug)?.forEach((fn) => fn(s));
+}
+function subscribe(slug: string, fn: (s: LikeState) => void) {
+  if (!listeners.has(slug)) listeners.set(slug, new Set());
+  listeners.get(slug)!.add(fn);
+  return () => listeners.get(slug)?.delete(fn);
+}
+
 export function BlogPostActions({ slug, title, url, description }: Props) {
   const [count, setCount] = useState<number | null>(null);
   const [liked, setLiked] = useState<boolean>(() => likedSet().has(slug));
@@ -63,6 +74,7 @@ export function BlogPostActions({ slug, title, url, description }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    setLiked(likedSet().has(slug));
     (async () => {
       const { data, error } = await supabase.rpc("get_blog_like_counts", {
         p_slugs: [slug],
@@ -71,8 +83,13 @@ export function BlogPostActions({ slug, title, url, description }: Props) {
       const row = (data ?? []).find((r: { slug: string }) => r.slug === slug);
       setCount(row ? Number(row.total) : 0);
     })();
+    const unsub = subscribe(slug, (s) => {
+      setLiked(s.liked);
+      setCount(s.count);
+    });
     return () => {
       cancelled = true;
+      unsub();
     };
   }, [slug]);
 
@@ -81,8 +98,10 @@ export function BlogPostActions({ slug, title, url, description }: Props) {
     setPending(true);
     // optimistic update
     const wasLiked = liked;
+    const optimisticCount = count === null ? count : Math.max(0, count + (wasLiked ? -1 : 1));
     setLiked(!wasLiked);
-    setCount((c) => (c === null ? c : Math.max(0, c + (wasLiked ? -1 : 1))));
+    setCount(optimisticCount);
+    emit(slug, { liked: !wasLiked, count: optimisticCount });
     try {
       const { data, error } = await supabase.rpc("toggle_blog_like", {
         p_slug: slug,
@@ -91,17 +110,22 @@ export function BlogPostActions({ slug, title, url, description }: Props) {
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
       if (row) {
-        setLiked(Boolean(row.liked));
-        setCount(Number(row.total));
+        const newLiked = Boolean(row.liked);
+        const newCount = Number(row.total);
+        setLiked(newLiked);
+        setCount(newCount);
         const ls = likedSet();
-        if (row.liked) ls.add(slug);
+        if (newLiked) ls.add(slug);
         else ls.delete(slug);
         persistLiked(ls);
+        emit(slug, { liked: newLiked, count: newCount });
       }
     } catch (e) {
       // revert
+      const revertedCount = count === null ? count : Math.max(0, (count ?? 0) + (wasLiked ? 1 : -1));
       setLiked(wasLiked);
-      setCount((c) => (c === null ? c : Math.max(0, c + (wasLiked ? 1 : -1))));
+      setCount(revertedCount);
+      emit(slug, { liked: wasLiked, count: revertedCount });
       toast.error(e instanceof Error ? e.message : "Couldn't update like.");
     } finally {
       setPending(false);
@@ -120,6 +144,7 @@ export function BlogPostActions({ slug, title, url, description }: Props) {
       email: `mailto:?subject=${t}&body=${d}%0A%0A${u}`,
     };
   })();
+
 
   const copyLink = async () => {
     try {
