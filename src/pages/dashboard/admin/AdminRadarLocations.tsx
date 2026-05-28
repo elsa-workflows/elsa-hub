@@ -109,6 +109,40 @@ export default function AdminRadarLocations() {
   const [deleteRow, setDeleteRow] = useState<RadarLocationRow | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [geocoding, setGeocoding] = useState(false);
+
+  const geocodeFromAddress = async () => {
+    const city = form.city.trim();
+    const country = form.country.trim();
+    if (!country) {
+      toast.error("Enter a country first.");
+      return;
+    }
+    setGeocoding(true);
+    try {
+      const q = [city, country].filter(Boolean).join(", ");
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error(`Geocoder responded ${res.status}`);
+      const data = (await res.json()) as Array<{ lat: string; lon: string }>;
+      if (!data.length) {
+        toast.error("No coordinates found for that location.");
+        return;
+      }
+      const { lat, lon } = data[0];
+      setForm((f) => ({
+        ...f,
+        latitude: Number(lat).toFixed(6),
+        longitude: Number(lon).toFixed(6),
+      }));
+      toast.success(`Coordinates filled for ${q}.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Geocoding failed.");
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
 
   const counts = useMemo(() => {
     const c = { all: 0, pending: 0, approved: 0, rejected: 0 };
