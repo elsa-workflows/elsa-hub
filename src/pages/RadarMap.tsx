@@ -122,6 +122,7 @@ export default function RadarMap() {
                 locations={filtered}
                 selectedId={selected?.id ?? null}
                 onSelect={setSelected}
+                heatmap={heatmap && !showcaseOnly}
               />
               <LocationCard location={selected} onClose={() => setSelected(null)} />
             </motion.div>
@@ -136,10 +137,13 @@ export default function RadarMap() {
                 region={region}
                 industry={industry}
                 showcaseOnly={showcaseOnly}
+                heatmap={heatmap}
                 onRegion={setRegion}
                 onIndustry={setIndustry}
                 onShowcaseOnly={setShowcaseOnly}
+                onHeatmap={setHeatmap}
               />
+            </motion.aside>
             </motion.aside>
           </div>
 
