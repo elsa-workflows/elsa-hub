@@ -134,6 +134,8 @@ export function BlogPostActions({ slug, title, url, description }: Props) {
     }
   };
 
+  const shareTargets = (() => {
+    const u = encodeURIComponent(url);
     const t = encodeURIComponent(title);
     const d = encodeURIComponent(description ?? "");
     return {
@@ -144,6 +146,7 @@ export function BlogPostActions({ slug, title, url, description }: Props) {
       email: `mailto:?subject=${t}&body=${d}%0A%0A${u}`,
     };
   })();
+
 
   const copyLink = async () => {
     try {
