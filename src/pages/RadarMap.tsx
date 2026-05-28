@@ -18,6 +18,7 @@ export default function RadarMap() {
   const [region, setRegion] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
   const [showcaseOnly, setShowcaseOnly] = useState(false);
+  const [heatmap, setHeatmap] = useState(false);
   const [selected, setSelected] = useState<ElsaUsageLocation | null>(null);
 
   const filtered = useMemo(() => {
