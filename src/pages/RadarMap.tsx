@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { ArrowUpRight, Radar, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
@@ -9,6 +8,7 @@ import { GlobeRadar } from "@/components/radar/GlobeRadar";
 import { LocationCard } from "@/components/radar/LocationCard";
 import { RadarStats } from "@/components/radar/RadarStats";
 import { RadarFilters } from "@/components/radar/RadarFilters";
+import { AddTeamDialog } from "@/components/radar/AddTeamDialog";
 import {
   elsaUsageLocations,
   type ElsaUsageLocation,
@@ -20,6 +20,7 @@ export default function RadarMap() {
   const [showcaseOnly, setShowcaseOnly] = useState(false);
   const [heatmap, setHeatmap] = useState(false);
   const [selected, setSelected] = useState<ElsaUsageLocation | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return elsaUsageLocations.filter((l) => {
@@ -179,18 +180,18 @@ export default function RadarMap() {
                 </p>
               </div>
               <Button
-                asChild
                 size="lg"
+                onClick={() => setAddOpen(true)}
                 className="bg-fuchsia-400/90 text-[#03060f] hover:bg-fuchsia-300"
               >
-                <Link to="/contact">
-                  Submit your team
-                  <ArrowUpRight className="ml-1 h-4 w-4" />
-                </Link>
+                Submit your team
+                <ArrowUpRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
           </motion.section>
         </div>
+
+        <AddTeamDialog open={addOpen} onOpenChange={setAddOpen} />
       </div>
     </Layout>
   );
