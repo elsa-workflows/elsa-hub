@@ -37,8 +37,8 @@ function Chip({
         "focus-visible:ring-primary focus-visible:ring-offset-white dark:focus-visible:ring-primary/70 dark:focus-visible:ring-offset-[#03060f]",
         active
           ? [
-              "border-primary/60 bg-primary/10 text-primary shadow-[0_0_12px_-4px_rgba(192,38,211,0.45)]",
-              "dark:border-primary/60 dark:bg-primary/20 dark:text-primary-foreground dark:shadow-[0_0_12px_-2px_rgba(240,171,252,0.5)]",
+              "border-primary/70 bg-primary text-primary-foreground shadow-[0_0_12px_-4px_hsl(var(--primary)/0.45)]",
+              "dark:border-primary dark:bg-primary dark:text-primary-foreground dark:shadow-[0_0_14px_-3px_hsl(var(--primary)/0.6)]",
             ]
           : [
               "border-slate-200 bg-white text-slate-600 hover:border-sky-400/60 hover:text-sky-700",
