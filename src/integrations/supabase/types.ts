@@ -1015,6 +1015,9 @@ export type Database = {
           submitted_contact_email: string | null
           updated_at: string
           using_since: number | null
+          verification_token: string | null
+          verification_token_expires_at: string | null
+          verified_at: string | null
           website_url: string | null
           weight: number
         }
@@ -1041,6 +1044,9 @@ export type Database = {
           submitted_contact_email?: string | null
           updated_at?: string
           using_since?: number | null
+          verification_token?: string | null
+          verification_token_expires_at?: string | null
+          verified_at?: string | null
           website_url?: string | null
           weight?: number
         }
@@ -1067,6 +1073,9 @@ export type Database = {
           submitted_contact_email?: string | null
           updated_at?: string
           using_since?: number | null
+          verification_token?: string | null
+          verification_token_expires_at?: string | null
+          verified_at?: string | null
           website_url?: string | null
           weight?: number
         }

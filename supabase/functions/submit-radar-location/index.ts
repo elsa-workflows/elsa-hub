@@ -139,6 +139,15 @@ Deno.serve(async (req) => {
 
   const anonymous = data.visibility === "anonymous";
 
+  // Generate a verification token (URL-safe base64 of 32 random bytes).
+  const tokenBytes = new Uint8Array(32);
+  crypto.getRandomValues(tokenBytes);
+  const verificationToken = btoa(String.fromCharCode(...tokenBytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
   const insertPayload = {
     latitude: coords.lat,
     longitude: coords.lon,
@@ -153,10 +162,12 @@ Deno.serve(async (req) => {
     industry: anonymous ? null : data.industry,
     description: anonymous ? null : data.description,
     using_since: anonymous ? null : data.usingSince,
-    status: "pending",
+    status: "pending_verification",
     submitted_contact_email: data.contactEmail,
     submitted_by: submittedBy,
     submitted_at: new Date().toISOString(),
+    verification_token: verificationToken,
+    verification_token_expires_at: tokenExpiresAt.toISOString(),
   };
 
   const { data: inserted, error: insertErr } = await admin
@@ -173,39 +184,62 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Notify all platform admins (in-app notification).
-  try {
-    const { data: admins } = await admin.from("platform_admins").select("user_id");
-    if (admins?.length) {
-      const summary = anonymous
-        ? `${data.city}, ${data.country} (anonymous)`
-        : `${data.companyName} — ${data.city}, ${data.country}`;
-      const rows = admins.map((a) => ({
-        user_id: a.user_id,
-        type: "radar_submission",
-        title: "New radar submission",
-        message: summary,
-        action_url: "/dashboard/admin/radar-locations",
-        payload: {
-          submission_id: inserted.id,
-          company_name: data.companyName,
-          city: data.city,
-          country: data.country,
-          region: data.region,
-          contact_email: data.contactEmail,
-          visibility: data.visibility,
-          geocoded,
+  // Send verification email.
+  const verifyUrl = `${SUPABASE_URL}/functions/v1/verify-radar-submission?token=${verificationToken}`;
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  let emailSent = false;
+  if (resendApiKey) {
+    try {
+      const displayName = anonymous
+        ? `${data.city}, ${data.country}`
+        : data.companyName;
+      const html = `<!doctype html><html><body style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f7;padding:24px;color:#111">
+<div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;border:1px solid #e5e7eb">
+<h1 style="margin:0 0 8px;font-size:20px">Confirm your radar submission</h1>
+<p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.55">
+Thanks for adding <strong>${displayName}</strong> to the Elsa Workflows community radar.
+Please confirm your email so our team can review the submission.
+</p>
+<p style="text-align:center;margin:28px 0">
+<a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;background:#e11d74;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px">Confirm email</a>
+</p>
+<p style="margin:0;font-size:12px;color:#6b7280;line-height:1.55">
+Or paste this link into your browser:<br>
+<span style="word-break:break-all;color:#374151">${verifyUrl}</span>
+</p>
+<p style="margin:20px 0 0;font-size:12px;color:#9ca3af">This link expires in 7 days. If you didn't submit this, you can safely ignore the email.</p>
+</div>
+<p style="text-align:center;margin:16px 0 0;font-size:11px;color:#9ca3af">Elsa Workflows · Community Radar</p>
+</body></html>`;
+
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${resendApiKey}`,
         },
-      }));
-      const { error: notifErr } = await admin.from("notifications").insert(rows);
-      if (notifErr) console.error("Notification insert failed", notifErr);
+        body: JSON.stringify({
+          from: "Elsa Workflows <noreply@notifications.elsaworkflows.io>",
+          to: [data.contactEmail],
+          subject: "Confirm your radar submission",
+          html,
+        }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("Resend send failed", res.status, txt);
+      } else {
+        emailSent = true;
+      }
+    } catch (e) {
+      console.error("Verification email failed", e);
     }
-  } catch (e) {
-    console.error("Admin notification step failed", e);
+  } else {
+    console.warn("RESEND_API_KEY not configured — skipping verification email");
   }
 
   return new Response(
-    JSON.stringify({ ok: true, id: inserted.id, geocoded }),
+    JSON.stringify({ ok: true, id: inserted.id, geocoded, emailSent }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
