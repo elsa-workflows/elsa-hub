@@ -45,8 +45,9 @@ describe("CountryCombobox", () => {
   it("selects a country, fills region, and does not leave the region dropdown open", async () => {
     render(<Harness />);
 
-    const trigger = screen.getByRole("combobox", { name: /search country/i }) ??
-      screen.getAllByRole("combobox")[0];
+    const comboboxes = screen.getAllByRole("combobox");
+    const trigger = comboboxes[0]; // country trigger
+    const regionTrigger = comboboxes[1];
 
     // Initial state
     expect(trigger).toHaveTextContent(/search country/i);
