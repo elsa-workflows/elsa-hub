@@ -605,8 +605,8 @@ function CountryCombobox({
                 <CommandItem
                   key={c.code}
                   value={c.name}
-                  onSelect={(v) => {
-                    onChange(v);
+                  onSelect={() => {
+                    onChange(c.name);
                     setOpen(false);
                   }}
                 >
