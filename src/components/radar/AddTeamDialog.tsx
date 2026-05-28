@@ -348,7 +348,9 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
                         value="anonymous"
                         title="Anonymous pin"
                         description="Only approximate region — no name or details."
+                      />
                     </RadioGroup>
+
                   </Field>
                 </>
               )}
