@@ -507,22 +507,24 @@ function PreviewCard({
   return (
     <div className="space-y-5">
       <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-300/70">
-        Preview · how it will appear
-      </div>
-      <div className="overflow-hidden rounded-2xl border border-cyan-400/20 bg-[#040814]">
-        <div className="border-b border-white/5 px-5 py-3 text-[11px] font-mono uppercase tracking-[0.2em] text-cyan-200/60">
-          {anonymous ? "Anonymous signal" : "Showcase deployment"}
-        </div>
-        <div className="space-y-3 px-5 py-5">
-          <div>
-            <div className="text-base font-semibold text-cyan-50">
-              {anonymous ? "Anonymous" : data.companyName || "—"}
-            </div>
-            <div className="text-[12.5px] text-cyan-200/60">
-              {data.city}, {data.country} · {data.region}
-            </div>
-          </div>
-          {!anonymous && (
+              {countries.map((c) => (
+                <CommandItem
+                  key={c.code}
+                  value={`${c.name} ${c.code}`}
+                  onSelect={() => {
+                    onChange(c.name);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === c.name ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  {c.name}
+                </CommandItem>
+              ))}
             <>
               <p className="text-[13px] leading-relaxed text-cyan-100/80">
                 {data.description}
