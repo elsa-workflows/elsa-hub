@@ -5,9 +5,11 @@ interface RadarFiltersProps {
   region: string | null;
   industry: string | null;
   showcaseOnly: boolean;
+  heatmap: boolean;
   onRegion: (r: string | null) => void;
   onIndustry: (i: string | null) => void;
   onShowcaseOnly: (v: boolean) => void;
+  onHeatmap: (v: boolean) => void;
 }
 
 function Chip({
