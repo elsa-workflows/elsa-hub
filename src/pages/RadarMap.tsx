@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { ArrowUpRight, Radar, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
@@ -9,6 +8,7 @@ import { GlobeRadar } from "@/components/radar/GlobeRadar";
 import { LocationCard } from "@/components/radar/LocationCard";
 import { RadarStats } from "@/components/radar/RadarStats";
 import { RadarFilters } from "@/components/radar/RadarFilters";
+import { AddTeamDialog } from "@/components/radar/AddTeamDialog";
 import {
   elsaUsageLocations,
   type ElsaUsageLocation,
