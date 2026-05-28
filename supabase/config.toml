@@ -61,3 +61,6 @@ verify_jwt = false
 [functions.submit-radar-location]
 verify_jwt = false
 
+[functions.verify-radar-submission]
+verify_jwt = false
+
