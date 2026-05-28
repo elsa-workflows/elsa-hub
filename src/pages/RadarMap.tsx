@@ -77,23 +77,24 @@ export default function RadarMap() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-10 max-w-3xl"
+            className="mb-8 max-w-3xl sm:mb-10"
           >
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-300/80">
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-300/80 sm:text-[11px]">
               <Radar className="h-3.5 w-3.5" />
               global radar · community telemetry
             </div>
-            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight md:text-5xl">
+            <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight sm:mt-4 sm:text-4xl md:text-5xl">
               Elsa Workflows is running{" "}
               <span className="bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-fuchsia-400 bg-clip-text text-transparent">
                 all over the world.
               </span>
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-cyan-100/70">
+            <p className="mt-4 text-base leading-relaxed text-cyan-100/70 sm:mt-5 sm:text-lg">
               A live, opt-in view of where teams are building durable workflow systems with Elsa.
               Anonymous by default — public showcases for the teams that want to share what they're
               building.
             </p>
+          </motion.header>
           </motion.header>
 
           {/* Stats */}
