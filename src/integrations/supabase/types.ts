@@ -92,6 +92,30 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_post_views: {
+        Row: {
+          created_at: string
+          id: string
+          slug: string
+          view_date: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          slug: string
+          view_date?: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          slug?: string
+          view_date?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -1822,6 +1846,13 @@ export type Database = {
           total: number
         }[]
       }
+      get_blog_view_counts: {
+        Args: { p_slugs: string[] }
+        Returns: {
+          slug: string
+          total: number
+        }[]
+      }
       get_credit_balance: {
         Args: { p_org_id: string }
         Returns: {
@@ -1923,6 +1954,10 @@ export type Database = {
           lots_expired: number
           total_minutes_expired: number
         }[]
+      }
+      record_blog_view: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: number
       }
       toggle_blog_like: {
         Args: { p_slug: string; p_visitor_id: string }
