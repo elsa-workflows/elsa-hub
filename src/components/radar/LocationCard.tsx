@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ExternalLink, X, MapPin, Briefcase, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ElsaUsageLocation } from "@/data/elsaUsageLocations";
@@ -8,6 +9,23 @@ interface LocationCardProps {
 }
 
 export function LocationCard({ location, onClose }: LocationCardProps) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const titleId = "radar-location-title";
+
+  // Auto-focus the close button when card opens, and bind Escape to close.
+  useEffect(() => {
+    if (!location) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [location, onClose]);
+
   return (
     <AnimatePresence>
       {location && (
@@ -16,23 +34,30 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.96 }}
           transition={{ duration: 0.22, ease: "easeOut" }}
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby={titleId}
           className="absolute bottom-4 left-4 z-30 w-[min(360px,calc(100%-2rem))] rounded-xl border border-fuchsia-400/30 bg-[rgba(2,6,23,0.92)] p-5 shadow-[0_0_40px_-10px_rgba(240,171,252,0.4)] backdrop-blur-md"
         >
           <button
+            ref={closeRef}
             onClick={onClose}
-            className="absolute right-3 top-3 rounded-md p-1 text-cyan-200/60 transition-colors hover:bg-white/5 hover:text-cyan-200"
-            aria-label="Close"
+            className="absolute right-3 top-3 rounded-md p-1 text-cyan-200/60 transition-colors hover:bg-white/5 hover:text-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
+            aria-label="Close deployment details"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
 
           {location.anonymous ? (
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-300/70">
+              <div
+                id={titleId}
+                className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-300/70"
+              >
                 Anonymous deployment
               </div>
               <div className="mt-2 flex items-center gap-2 text-sm text-cyan-50">
-                <MapPin className="h-3.5 w-3.5 text-cyan-300/70" />
+                <MapPin className="h-3.5 w-3.5 text-cyan-300/70" aria-hidden="true" />
                 {location.city ? `${location.city}, ` : ""}
                 {location.country}
               </div>
@@ -53,16 +78,19 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
                     className="h-10 w-10 rounded-md border border-fuchsia-400/30 object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md border border-fuchsia-400/30 bg-fuchsia-400/10 font-mono text-sm font-semibold text-fuchsia-200">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-fuchsia-400/30 bg-fuchsia-400/10 font-mono text-sm font-semibold text-fuchsia-200"
+                    aria-hidden="true"
+                  >
                     {location.companyName?.[0] ?? "?"}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <div className="truncate text-base font-semibold text-cyan-50">
+                  <div id={titleId} className="truncate text-base font-semibold text-cyan-50">
                     {location.companyName}
                   </div>
                   <div className="flex items-center gap-1 text-[12px] text-cyan-200/60">
-                    <MapPin className="h-3 w-3" />
+                    <MapPin className="h-3 w-3" aria-hidden="true" />
                     {location.city ? `${location.city}, ` : ""}
                     {location.country}
                   </div>
@@ -78,13 +106,14 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
               <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/5 pt-3 text-[11.5px]">
                 {location.industry && (
                   <div className="flex items-center gap-1.5 text-cyan-200/70">
-                    <Briefcase className="h-3 w-3" />
+                    <Briefcase className="h-3 w-3" aria-hidden="true" />
+                    <span className="sr-only">Industry: </span>
                     {location.industry}
                   </div>
                 )}
                 {location.usingSince && (
                   <div className="flex items-center gap-1.5 text-cyan-200/70">
-                    <Calendar className="h-3 w-3" />
+                    <Calendar className="h-3 w-3" aria-hidden="true" />
                     Since {location.usingSince}
                   </div>
                 )}
@@ -95,10 +124,11 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
                   href={location.websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-medium text-fuchsia-300 transition-colors hover:text-fuchsia-200"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-fuchsia-300 transition-colors hover:text-fuchsia-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300/70"
+                  aria-label={`Visit ${location.companyName} website (opens in new tab)`}
                 >
                   Visit website
-                  <ExternalLink className="h-3 w-3" />
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
                 </a>
               )}
             </div>
