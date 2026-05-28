@@ -93,6 +93,23 @@ export function RadarFilters({
         </div>
       </div>
 
+      <div>
+        <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/50">
+          Density
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip active={!heatmap} onClick={() => onHeatmap(false)}>
+            Markers
+          </Chip>
+          <Chip active={heatmap} onClick={() => onHeatmap(true)}>
+            Heatmap
+          </Chip>
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-cyan-200/40">
+          Aggregates anonymous signals into hex bins to reveal regional intensity.
+        </p>
+      </div>
+
       <div className="flex items-center gap-4 border-t border-white/5 pt-4 text-[11px] text-cyan-200/50">
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-cyan-300/80" />
