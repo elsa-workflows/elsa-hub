@@ -120,10 +120,16 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
   const handleSubmit = async () => {
     if (!validateStep(3)) return;
     const final = teamSchema.safeParse(data);
-    if (!final.success) {
+  const handleSubmit = async () => {
+    if (!validateStep(3)) {
       toast({
-        title: "Form incomplete",
-        description: final.error.errors[0]?.message ?? "Please review your inputs.",
+        title: "Confirmation required",
+        description: "Please tick the authorisation checkbox to submit.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const final = teamSchema.safeParse(data);
         variant: "destructive",
       });
       return;
