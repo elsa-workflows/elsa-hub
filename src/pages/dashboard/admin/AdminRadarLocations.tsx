@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, Search, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, MapPin, Check, X, Mail, Clock } from "lucide-react";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -95,26 +96,40 @@ function rowToForm(r: RadarLocationRow): FormState {
   };
 }
 
+type StatusFilter = "all" | "pending" | "approved" | "rejected";
+
 export default function AdminRadarLocations() {
   const qc = useQueryClient();
   const { data: rows, isLoading } = useRadarLocationsAdmin();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
   const [editing, setEditing] = useState<RadarLocationRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteRow, setDeleteRow] = useState<RadarLocationRow | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const counts = useMemo(() => {
+    const c = { all: 0, pending: 0, approved: 0, rejected: 0 };
+    rows?.forEach((r) => {
+      c.all++;
+      c[r.status] = (c[r.status] ?? 0) + 1;
+    });
+    return c;
+  }, [rows]);
+
   const filtered = useMemo(() => {
     if (!rows) return [];
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.city, r.country, r.region, r.company_name, r.industry]
+    return rows.filter((r) => {
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (!q) return true;
+      return [r.city, r.country, r.region, r.company_name, r.industry, r.submitted_contact_email]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [rows, search]);
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [rows, search, statusFilter]);
+
 
   const openNew = () => {
     setEditing(null);
