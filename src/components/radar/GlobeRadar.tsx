@@ -92,16 +92,44 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   );
   const anonymousPoints = useMemo(() => locations.filter((l) => l.anonymous), [locations]);
 
-  const pointsData = useMemo(
-    () =>
-      (heatmap ? showcasePoints : locations).map((l) => ({
-        ...l,
-        lat: l.latitude,
-        lng: l.longitude,
-        altitude: l.anonymous ? 0.005 : 0.015,
-      })),
-    [locations, showcasePoints, heatmap],
-  );
+  const pointsData = useMemo(() => {
+    const base = (heatmap ? showcasePoints : locations).map((l) => ({
+      ...l,
+      lat: l.latitude,
+      lng: l.longitude,
+      altitude: l.anonymous ? 0.005 : 0.015,
+    }));
+    // Nudge overlapping showcase markers apart so none get hidden behind another.
+    // Two showcases within ~75 km on the globe will collapse to the same pixel
+    // at default zoom; fan them out around their shared centroid.
+    const SHOWCASE_MIN_DEG = 0.8; // ~88 km
+    const showcases = base.filter((d) => !d.anonymous);
+    const groups: (typeof showcases)[] = [];
+    for (const p of showcases) {
+      const g = groups.find((grp) =>
+        grp.some(
+          (q) =>
+            Math.abs(q.lat - p.lat) < SHOWCASE_MIN_DEG &&
+            Math.abs(q.lng - p.lng) < SHOWCASE_MIN_DEG,
+        ),
+      );
+      if (g) g.push(p);
+      else groups.push([p]);
+    }
+    for (const g of groups) {
+      if (g.length < 2) continue;
+      const cLat = g.reduce((s, p) => s + p.lat, 0) / g.length;
+      const cLng = g.reduce((s, p) => s + p.lng, 0) / g.length;
+      const r = SHOWCASE_MIN_DEG; // spread radius in degrees
+      g.forEach((p, i) => {
+        const angle = (i / g.length) * Math.PI * 2;
+        p.lat = cLat + Math.sin(angle) * r;
+        p.lng = cLng + Math.cos(angle) * r;
+      });
+    }
+    return base;
+  }, [locations, showcasePoints, heatmap]);
+
 
   const hexBinData = useMemo(
     () =>
