@@ -14,6 +14,8 @@ import {
 } from "@/lib/blog";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
 import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
+import { BlogPostActions } from "@/components/blog/BlogPostActions";
+
 import { InlineNewsletter } from "@/components/newsletter";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
