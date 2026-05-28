@@ -71,7 +71,7 @@ export default function RadarMap() {
           }}
         />
 
-        <div className="container relative max-w-7xl py-12 md:py-20">
+        <div className="container relative max-w-7xl px-4 py-8 sm:px-6 sm:py-12 md:py-20">
           {/* Hero */}
           <motion.header
             initial={{ opacity: 0, y: 12 }}
