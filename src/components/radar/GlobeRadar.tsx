@@ -94,9 +94,16 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
     [anonymousPoints],
   );
 
+  const selectedLocation = useMemo(
+    () => locations.find((l) => l.id === selectedId) ?? null,
+    [locations, selectedId],
+  );
+
   return (
     <div
       ref={containerRef}
+      role="region"
+      aria-label="Interactive globe showing Elsa Workflows deployments. Use the list below the globe to browse locations with the keyboard."
       className="relative h-[60vh] min-h-[380px] w-full touch-none select-none overflow-hidden rounded-2xl border border-border bg-[#040814] sm:h-[520px] md:h-[640px]"
       onMouseEnter={() => {
         const c = globeRef.current?.controls?.();
@@ -108,6 +115,14 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
         if (c && window.matchMedia("(hover: hover)").matches) c.autoRotate = true;
       }}
     >
+      {/* Live region announces selection changes to assistive tech */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {selectedLocation
+          ? selectedLocation.anonymous
+            ? `Selected anonymous deployment in ${selectedLocation.city ? `${selectedLocation.city}, ` : ""}${selectedLocation.country}`
+            : `Selected ${selectedLocation.companyName} in ${selectedLocation.city ? `${selectedLocation.city}, ` : ""}${selectedLocation.country}`
+          : ""}
+      </div>
       {/* Vignette */}
       <div
         className="pointer-events-none absolute inset-0 z-10"
@@ -209,6 +224,37 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
       <div className="pointer-events-none absolute bottom-4 right-4 z-20 hidden font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/50 md:block">
         drag · zoom · click a node
       </div>
+
+      {/* Keyboard-accessible marker list. Visually hidden but focusable so
+          screen-reader and keyboard users can browse and activate the same
+          deployments that mouse users click on the canvas. */}
+      <ul
+        aria-label={`${locations.length} deployment markers. Use Tab and Enter to inspect.`}
+        className="sr-only"
+      >
+        {locations.map((l) => {
+          const label = l.anonymous
+            ? `Anonymous deployment in ${l.city ? `${l.city}, ` : ""}${l.country}`
+            : `${l.companyName ?? "Showcase deployment"} in ${l.city ? `${l.city}, ` : ""}${l.country}${l.industry ? ` — ${l.industry}` : ""}`;
+          return (
+            <li key={l.id}>
+              <button
+                type="button"
+                aria-pressed={selectedId === l.id}
+                onClick={() => onSelect(l)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(l);
+                  }
+                }}
+              >
+                {label}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
