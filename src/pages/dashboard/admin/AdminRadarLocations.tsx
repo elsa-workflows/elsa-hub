@@ -517,6 +517,27 @@ export default function AdminRadarLocations() {
                 />
               </Field>
 
+              <div className="col-span-2 flex items-center justify-between gap-3 rounded-md border border-dashed border-border bg-muted/30 px-3 py-2">
+                <p className="text-xs text-muted-foreground">
+                  Auto-fill latitude and longitude from the city and country above.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={geocodeFromAddress}
+                  disabled={geocoding || !form.country.trim()}
+                >
+                  {geocoding ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Locate className="mr-2 h-4 w-4" />
+                  )}
+                  {geocoding ? "Locating…" : "Locate coordinates"}
+                </Button>
+              </div>
+
+
               <Field label="Latitude *" error={errors.latitude}>
                 <Input
                   type="number" step="0.000001"
