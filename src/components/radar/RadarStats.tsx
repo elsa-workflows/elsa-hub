@@ -24,15 +24,15 @@ function Counter({ value, label, sublabel }: CounterProps) {
   }, [value]);
 
   return (
-    <div className="flex flex-col gap-1 rounded-xl border border-cyan-400/15 bg-cyan-400/[0.03] p-4 transition-colors hover:border-cyan-400/30">
-      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-200/60">
+    <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-sky-400/60 dark:border-cyan-400/15 dark:bg-cyan-400/[0.03] dark:hover:border-cyan-400/30">
+      <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-slate-500 dark:text-cyan-200/60">
         {label}
       </div>
-      <div className="font-display text-3xl font-bold tabular-nums text-cyan-50 md:text-4xl">
+      <div className="font-display text-3xl font-bold tabular-nums text-slate-900 dark:text-cyan-50 md:text-4xl">
         {display.toLocaleString()}
       </div>
       {sublabel && (
-        <div className="text-[11.5px] text-cyan-200/40">{sublabel}</div>
+        <div className="text-[11.5px] text-slate-500 dark:text-cyan-200/40">{sublabel}</div>
       )}
     </div>
   );

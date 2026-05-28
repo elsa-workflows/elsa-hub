@@ -49,22 +49,23 @@ export default function RadarMap() {
         description="A live radar of Elsa Workflows deployments across the world. Anonymous by default, opt-in showcases for teams that want to share what they're building."
       />
 
-      {/* Dark scoped wrapper */}
-      <div className="relative min-h-screen overflow-hidden bg-[#03060f] text-cyan-50">
+      {/* Theme-aware scoped wrapper */}
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-sky-50/60 via-white to-slate-50 text-slate-900 dark:bg-[#03060f] dark:bg-none dark:text-cyan-50">
         {/* Ambient backdrop */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-60"
+          className="pointer-events-none absolute inset-0 opacity-70 dark:opacity-60"
           style={{
             background:
-              "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(125,211,252,0.10), transparent 60%), radial-gradient(ellipse 60% 40% at 80% 100%, rgba(240,171,252,0.10), transparent 60%)",
+              "radial-gradient(ellipse 80% 50% at 50% 0%, hsla(199,89%,60%,0.10), transparent 60%), radial-gradient(ellipse 60% 40% at 80% 100%, hsla(292,84%,65%,0.10), transparent 60%)",
           }}
         />
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          className="pointer-events-none absolute inset-0 opacity-[0.05] dark:opacity-[0.04]"
           style={{
             backgroundImage:
-              "linear-gradient(to right, #7dd3fc 1px, transparent 1px), linear-gradient(to bottom, #7dd3fc 1px, transparent 1px)",
+              "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
             backgroundSize: "64px 64px",
+            color: "var(--radar-grid, hsl(199 89% 48%))",
             maskImage:
               "radial-gradient(ellipse 80% 70% at 50% 30%, black 30%, transparent 90%)",
             WebkitMaskImage:
@@ -80,17 +81,17 @@ export default function RadarMap() {
             transition={{ duration: 0.5 }}
             className="mb-8 max-w-3xl sm:mb-10"
           >
-            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-300/80 sm:text-[11px]">
+            <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-sky-700/90 dark:text-cyan-300/80 sm:text-[11px]">
               <Radar className="h-3.5 w-3.5" />
               global radar · community telemetry
             </div>
             <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight sm:mt-4 sm:text-4xl md:text-5xl">
               Elsa Workflows is running{" "}
-              <span className="bg-gradient-to-r from-cyan-200 via-fuchsia-200 to-fuchsia-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-sky-600 via-fuchsia-600 to-fuchsia-500 bg-clip-text text-transparent dark:from-cyan-200 dark:via-fuchsia-200 dark:to-fuchsia-400">
                 all over the world.
               </span>
             </h1>
-            <p className="mt-4 text-base leading-relaxed text-cyan-100/70 sm:mt-5 sm:text-lg">
+            <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-cyan-100/70 sm:mt-5 sm:text-lg">
               A live, opt-in view of where teams are building durable workflow systems with Elsa.
               Anonymous by default — public showcases for the teams that want to share what they're
               building.
@@ -132,7 +133,7 @@ export default function RadarMap() {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="order-1 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.02] p-4 sm:p-5 lg:order-2 lg:sticky lg:top-24 lg:self-start"
+              className="order-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-cyan-400/15 dark:bg-cyan-400/[0.02] dark:shadow-none sm:p-5 lg:order-2 lg:sticky lg:top-24 lg:self-start"
             >
               <RadarFilters
                 region={region}
@@ -148,13 +149,13 @@ export default function RadarMap() {
           </div>
 
           {/* Privacy strip */}
-          <div className="mt-10 flex items-start gap-3 rounded-xl border border-cyan-400/15 bg-cyan-400/[0.03] p-5">
-            <Shield className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300/80" />
-            <div className="text-[13px] leading-relaxed text-cyan-100/70">
-              <span className="font-medium text-cyan-50">Privacy first.</span> All participation is
-              opt-in. Anonymous markers show approximate regional locations only — no IPs, no
-              telemetry, no tracking. Showcase data is voluntarily submitted by teams who want to
-              share what they're building.
+          <div className="mt-10 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-cyan-400/15 dark:bg-cyan-400/[0.03] dark:shadow-none">
+            <Shield className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-cyan-300/80" />
+            <div className="text-[13px] leading-relaxed text-slate-600 dark:text-cyan-100/70">
+              <span className="font-medium text-slate-900 dark:text-cyan-50">Privacy first.</span>{" "}
+              All participation is opt-in. Anonymous markers show approximate regional locations
+              only — no IPs, no telemetry, no tracking. Showcase data is voluntarily submitted by
+              teams who want to share what they're building.
             </div>
           </div>
 
@@ -164,17 +165,17 @@ export default function RadarMap() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5 }}
-            className="mt-12 overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-gradient-to-br from-fuchsia-500/10 via-transparent to-cyan-500/10 p-8 md:p-12"
+            className="mt-12 overflow-hidden rounded-2xl border border-fuchsia-300/50 bg-gradient-to-br from-fuchsia-50 via-white to-sky-50 p-8 dark:border-fuchsia-400/25 dark:from-fuchsia-500/10 dark:via-transparent dark:to-cyan-500/10 md:p-12"
           >
             <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
               <div className="max-w-2xl">
-                <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-fuchsia-300/80">
+                <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-fuchsia-700 dark:text-fuchsia-300/80">
                   Join the radar
                 </div>
-                <h2 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl">
+                <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-cyan-50 md:text-3xl">
                   Add your team to the map.
                 </h2>
-                <p className="mt-3 text-[14.5px] leading-relaxed text-cyan-100/70">
+                <p className="mt-3 text-[14.5px] leading-relaxed text-slate-600 dark:text-cyan-100/70">
                   Building something interesting with Elsa? Share a short profile and we'll add you
                   as a showcase deployment. Anonymous teams stay anonymous — no pressure.
                 </p>
@@ -182,7 +183,7 @@ export default function RadarMap() {
               <Button
                 size="lg"
                 onClick={() => setAddOpen(true)}
-                className="bg-fuchsia-400/90 text-[#03060f] hover:bg-fuchsia-300"
+                className="bg-fuchsia-600 text-white hover:bg-fuchsia-500 dark:bg-fuchsia-400/90 dark:text-[#03060f] dark:hover:bg-fuchsia-300"
               >
                 Submit your team
                 <ArrowUpRight className="ml-1 h-4 w-4" />
