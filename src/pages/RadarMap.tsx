@@ -20,6 +20,7 @@ export default function RadarMap() {
   const [showcaseOnly, setShowcaseOnly] = useState(false);
   const [heatmap, setHeatmap] = useState(false);
   const [selected, setSelected] = useState<ElsaUsageLocation | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return elsaUsageLocations.filter((l) => {
