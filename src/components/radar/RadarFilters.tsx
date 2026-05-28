@@ -34,6 +34,7 @@ function Chip({
     >
       {children}
     </button>
+  );
 }
 
 export function RadarFilters({
