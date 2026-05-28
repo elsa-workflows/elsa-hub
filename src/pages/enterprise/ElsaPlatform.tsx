@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ElsaPlusDisclaimer } from "@/components/elsa-plus";
 import { PlatformShell, takeaways } from "./platform/shared";
 
+const sectionCards = [
   {
     to: "/elsa-plus/platform/deployment-model",
     icon: GitMerge,
