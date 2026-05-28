@@ -30,6 +30,7 @@ import RuntimeBuilderLanding from "./pages/enterprise/RuntimeBuilderLanding";
 import RuntimeBuilderComposer from "./pages/enterprise/RuntimeBuilderComposer";
 import ElsaPlatform from "./pages/enterprise/ElsaPlatform";
 import PlatformDeploymentLoop from "./pages/enterprise/platform/DeploymentLoop";
+import PlatformDeploymentModel from "./pages/enterprise/platform/DeploymentModel";
 import PlatformSurfaces from "./pages/enterprise/platform/Surfaces";
 import PlatformPipeline from "./pages/enterprise/platform/Pipeline";
 import PlatformRoadmap from "./pages/enterprise/platform/Roadmap";
