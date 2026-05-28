@@ -36,12 +36,12 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
           role="dialog"
           aria-modal="false"
           aria-labelledby={titleId}
-          className="absolute bottom-4 left-4 z-30 w-[min(360px,calc(100%-2rem))] rounded-xl border border-fuchsia-400/40 bg-white/95 p-5 shadow-[0_10px_40px_-12px_rgba(192,38,211,0.35)] backdrop-blur-md dark:border-fuchsia-400/30 dark:bg-[rgba(2,6,23,0.92)] dark:shadow-[0_0_40px_-10px_rgba(240,171,252,0.4)]"
+          className="absolute bottom-4 left-4 z-30 w-[min(360px,calc(100%-2rem))] rounded-xl border border-primary/50 bg-white/95 p-5 shadow-[0_10px_40px_-12px_rgba(192,38,211,0.35)] backdrop-blur-md dark:border-primary/40 dark:bg-[rgba(2,6,23,0.92)] dark:shadow-[0_0_40px_-10px_rgba(240,171,252,0.4)]"
         >
           <button
             ref={closeRef}
             onClick={onClose}
-            className="absolute right-3 top-3 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 dark:text-cyan-200/60 dark:hover:bg-white/5 dark:hover:text-cyan-200 dark:focus-visible:ring-fuchsia-300/70"
+            className="absolute right-3 top-3 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-cyan-200/60 dark:hover:bg-white/5 dark:hover:text-cyan-200 dark:focus-visible:ring-primary/70"
             aria-label="Close deployment details"
           >
             <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -66,7 +66,7 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
             </div>
           ) : (
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-fuchsia-700 dark:text-fuchsia-300/80">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-primary dark:text-primary/80">
                 Showcase deployment
               </div>
               <div className="mt-2 flex items-center gap-3">
@@ -74,11 +74,11 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
                   <img
                     src={location.companyLogoUrl}
                     alt=""
-                    className="h-10 w-10 rounded-md border border-fuchsia-400/40 object-cover dark:border-fuchsia-400/30"
+                    className="h-10 w-10 rounded-md border border-primary/50 object-cover dark:border-primary/40"
                   />
                 ) : (
                   <div
-                    className="flex h-10 w-10 items-center justify-center rounded-md border border-fuchsia-400/40 bg-fuchsia-50 font-mono text-sm font-semibold text-fuchsia-700 dark:border-fuchsia-400/30 dark:bg-fuchsia-400/10 dark:text-fuchsia-200"
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-primary/50 bg-primary/5 font-mono text-sm font-semibold text-primary dark:border-primary/40 dark:bg-primary/10 dark:text-primary-foreground"
                     aria-hidden="true"
                   >
                     {location.companyName?.[0] ?? "?"}
@@ -123,7 +123,7 @@ export function LocationCard({ location, onClose }: LocationCardProps) {
                   href={location.websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-fuchsia-700 transition-colors hover:text-fuchsia-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 dark:text-fuchsia-300 dark:hover:text-fuchsia-200 dark:focus-visible:ring-fuchsia-300/70"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium text-primary transition-colors hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-primary-foreground dark:hover:text-primary-foreground dark:focus-visible:ring-primary/70"
                   aria-label={`Visit ${location.companyName} website (opens in new tab)`}
                 >
                   Visit website
