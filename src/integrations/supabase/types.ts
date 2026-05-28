@@ -71,6 +71,27 @@ export type Database = {
           },
         ]
       }
+      blog_post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          slug: string
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          slug: string
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          slug?: string
+          visitor_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -1794,6 +1815,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_blog_like_counts: {
+        Args: { p_slugs: string[] }
+        Returns: {
+          slug: string
+          total: number
+        }[]
+      }
       get_credit_balance: {
         Args: { p_org_id: string }
         Returns: {
@@ -1894,6 +1922,13 @@ export type Database = {
         Returns: {
           lots_expired: number
           total_minutes_expired: number
+        }[]
+      }
+      toggle_blog_like: {
+        Args: { p_slug: string; p_visitor_id: string }
+        Returns: {
+          liked: boolean
+          total: number
         }[]
       }
     }
