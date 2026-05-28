@@ -18,7 +18,7 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
-  const isDark = useIsDark();
+  const [ready, setReady] = useState(false);
   const isDark = useIsDark();
   // Active accent palette (e.g. "336 78% 48%"). Drives showcase markers + rings.
   const primaryHsl = useCssVar("--primary") || "336 78% 48%";
