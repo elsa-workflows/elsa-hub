@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { z } from "zod";
-import { Check, ChevronLeft, ChevronRight, Globe2, MapPin, Sparkles, Send } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ChevronsUpDown, Globe2, MapPin, Sparkles, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { elsaIndustries, elsaRegions } from "@/data/elsaUsageLocations";
+import { countries, countryByName } from "@/data/countries";
+
 
 const teamSchema = z.object({
   companyName: z.string().trim().min(2, "Team name is required").max(80),
