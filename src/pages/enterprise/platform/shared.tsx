@@ -531,6 +531,7 @@ export function InteractiveRoadmap() {
 
 export const platformNav = [
   { to: "/elsa-plus/platform", label: "Overview", icon: Compass, end: true },
+  { to: "/elsa-plus/platform/deployment-model", label: "Deployment model", icon: GitMerge },
   { to: "/elsa-plus/platform/deployment-loop", label: "Deployment loop", icon: Workflow },
   { to: "/elsa-plus/platform/surfaces", label: "Surfaces", icon: Layers },
   { to: "/elsa-plus/platform/pipeline", label: "Pipeline", icon: GitBranch },
