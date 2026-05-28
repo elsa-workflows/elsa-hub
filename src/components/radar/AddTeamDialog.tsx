@@ -344,7 +344,7 @@ export function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="bg-fuchsia-400/90 text-[#03060f] hover:bg-fuchsia-300"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {submitting ? "Submitting…" : "Submit for review"}
               <Send className="ml-1 h-4 w-4" />
@@ -368,7 +368,7 @@ function Stepper({ current }: { current: number }) {
               className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border font-mono text-[10px]",
                 done && "border-cyan-400 bg-cyan-400/20 text-cyan-100",
-                active && "border-fuchsia-400 bg-fuchsia-400/20 text-fuchsia-100",
+                active && "border-primary bg-primary/20 text-primary-foreground",
                 !done && !active && "border-white/10 text-cyan-200/40",
               )}
             >
@@ -377,7 +377,7 @@ function Stepper({ current }: { current: number }) {
             <span
               className={cn(
                 "hidden font-mono text-[10px] uppercase tracking-[0.18em] sm:inline",
-                active ? "text-fuchsia-200" : "text-cyan-200/40",
+                active ? "text-primary-foreground" : "text-cyan-200/40",
               )}
             >
               {s.label}
@@ -414,7 +414,7 @@ function Field({
     <div className="space-y-1.5">
       <Label className="text-[12px] font-medium text-cyan-100/80">
         {label}
-        {required && <span className="ml-1 text-fuchsia-300">*</span>}
+        {required && <span className="ml-1 text-primary-foreground">*</span>}
       </Label>
       {children}
       {error ? (
@@ -438,7 +438,7 @@ function RadioOption({
   return (
     <Label
       htmlFor={`vis-${value}`}
-      className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3 transition-colors hover:border-cyan-400/40 [&:has(:checked)]:border-fuchsia-400/60 [&:has(:checked)]:bg-fuchsia-400/[0.06]"
+      className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.02] p-3 transition-colors hover:border-cyan-400/40 [&:has(:checked)]:border-primary/60 [&:has(:checked)]:bg-primary/10"
     >
       <RadioGroupItem id={`vis-${value}`} value={value} className="mt-0.5" />
       <div>
@@ -505,7 +505,7 @@ function PreviewCard({
           type="checkbox"
           checked={Boolean(data.consent)}
           onChange={(e) => onConsent(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-fuchsia-400"
+          className="mt-0.5 h-4 w-4 accent-primary"
         />
         <span>
           I'm authorised to submit this team and I agree to the information above being shown on the

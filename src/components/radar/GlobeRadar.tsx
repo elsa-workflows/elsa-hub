@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import type { ElsaUsageLocation } from "@/data/elsaUsageLocations";
 import { useIsDark } from "@/hooks/use-is-dark";
+import { useCssVar } from "@/hooks/use-css-var";
 import { cn } from "@/lib/utils";
 
 // react-globe.gl is a default export; lazy-load to keep bundle off initial paint
@@ -19,6 +20,11 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [ready, setReady] = useState(false);
   const isDark = useIsDark();
+  // Active accent palette (e.g. "336 78% 48%"). Drives showcase markers + rings.
+  const primaryHsl = useCssVar("--primary") || "336 78% 48%";
+  const primary = (a = 1) => `hsla(${primaryHsl.replace(/%/g, "%")} / ${a})`;
+  // Parse just the hue so we can derive a heat gradient that ends at the accent.
+  const primaryHue = Number(primaryHsl.split(" ")[0]) || 336;
 
   // Theme-dependent visuals
   const globeImageUrl = isDark
@@ -26,13 +32,13 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
     : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
   const atmosphereColor = isDark ? "#7dd3fc" : "#38bdf8";
   const anonymousColor = isDark ? "rgba(125,211,252,0.85)" : "rgba(2,132,199,0.85)";
-  const showcaseColor = isDark ? "#f0abfc" : "#c026d3";
+  const showcaseColor = primary(isDark ? 0.95 : 1);
   const selectedColor = isDark ? "#ffffff" : "#0f172a";
   const labelTextColor = isDark ? "#e2e8f0" : "#0f172a";
   const labelBg = isDark ? "rgba(2,6,23,0.92)" : "rgba(255,255,255,0.96)";
   const labelBorderAnon = isDark ? "rgba(125,211,252,0.3)" : "rgba(2,132,199,0.35)";
-  const labelBorderShow = isDark ? "rgba(240,171,252,0.45)" : "rgba(192,38,211,0.45)";
-  const showcaseHeadColor = isDark ? "#f0abfc" : "#a21caf";
+  const labelBorderShow = primary(0.45);
+  const showcaseHeadColor = primary(isDark ? 0.95 : 1);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -112,11 +118,10 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
 
   // Ring color: fuchsia (dark) or violet (light), keep both bright enough to see.
   const ringColorFn = useMemo(
-    () =>
-      isDark
-        ? () => (t: number) => `rgba(240,171,252,${1 - t})`
-        : () => (t: number) => `rgba(192,38,211,${(1 - t) * 0.85})`,
-    [isDark],
+    () => () => (t: number) => primary((1 - t) * (isDark ? 1 : 0.85)),
+    // primaryHsl is the real dependency — recompute when accent changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isDark, primaryHsl],
   );
 
   return (
@@ -230,8 +235,8 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
           hexBinResolution={3}
           hexMargin={0.2}
           hexAltitude={({ sumWeight }: any) => Math.min(0.18, 0.015 + sumWeight * 0.02)}
-          hexTopColor={({ sumWeight }: any) => heatColor(sumWeight, 0.95, isDark)}
-          hexSideColor={({ sumWeight }: any) => heatColor(sumWeight, 0.55, isDark)}
+          hexTopColor={({ sumWeight }: any) => heatColor(sumWeight, 0.95, isDark, primaryHue)}
+          hexSideColor={({ sumWeight }: any) => heatColor(sumWeight, 0.55, isDark, primaryHue)}
           hexLabel={({ sumWeight, points }: any) =>
             `<div style="font: 500 12px Inter, sans-serif; color:${labelTextColor}; background:${labelBg}; padding:6px 10px; border:1px solid ${labelBorderAnon}; border-radius:6px;">
                <div style="color:${isDark ? "#7dd3fc" : "#0284c7"}; font-weight:600;">Density · ${sumWeight.toFixed(0)}</div>
@@ -341,17 +346,20 @@ function GlobeSkeleton({ isDark }: { isDark: boolean }) {
 }
 
 // Cyan/Sky → fuchsia/violet gradient based on bin weight (1..15 expected range)
-function heatColor(weight: number, alpha: number, isDark: boolean) {
+// Cyan/Sky base → active accent hue, based on bin weight (1..15 expected range).
+function heatColor(weight: number, alpha: number, isDark: boolean, accentHue: number) {
   const t = Math.min(1, Math.max(0, (weight - 1) / 14));
   if (isDark) {
-    const h = 186 + (292 - 186) * t;
+    const startHue = 186;
+    const h = startHue + (accentHue - startHue) * t;
     const s = 100 - 16 * t;
     const l = 70 + 5 * t;
     return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
   }
-  // Light: sky 199 → fuchsia 292, deeper lightness for visibility on bright globe
-  const h = 199 + (292 - 199) * t;
+  const startHue = 199;
+  const h = startHue + (accentHue - startHue) * t;
   const s = 89 - 5 * t;
   const l = 52 + 6 * t;
   return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
 }
+

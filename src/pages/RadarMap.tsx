@@ -87,7 +87,7 @@ export default function RadarMap() {
             </div>
             <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight sm:mt-4 sm:text-4xl md:text-5xl">
               Elsa Workflows is running{" "}
-              <span className="bg-gradient-to-r from-sky-600 via-fuchsia-600 to-fuchsia-500 bg-clip-text text-transparent dark:from-cyan-200 dark:via-fuchsia-200 dark:to-fuchsia-400">
+              <span className="bg-gradient-to-r from-sky-600 via-primary to-primary bg-clip-text text-transparent dark:from-cyan-200 dark:via-primary-foreground dark:to-primary">
                 all over the world.
               </span>
             </h1>
@@ -165,11 +165,11 @@ export default function RadarMap() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5 }}
-            className="mt-12 overflow-hidden rounded-2xl border border-fuchsia-300/50 bg-gradient-to-br from-fuchsia-50 via-white to-sky-50 p-8 dark:border-fuchsia-400/25 dark:from-fuchsia-500/10 dark:via-transparent dark:to-cyan-500/10 md:p-12"
+            className="mt-12 overflow-hidden rounded-2xl border border-primary-foreground/50 bg-gradient-to-br from-primary/5 via-white to-sky-50 p-8 dark:border-primary/30 dark:from-primary/10 dark:via-transparent dark:to-cyan-500/10 md:p-12"
           >
             <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
               <div className="max-w-2xl">
-                <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-fuchsia-700 dark:text-fuchsia-300/80">
+                <div className="font-mono text-[11px] uppercase tracking-[0.24em] text-primary dark:text-primary/80">
                   Join the radar
                 </div>
                 <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-cyan-50 md:text-3xl">
@@ -183,7 +183,7 @@ export default function RadarMap() {
               <Button
                 size="lg"
                 onClick={() => setAddOpen(true)}
-                className="bg-fuchsia-600 text-white hover:bg-fuchsia-500 dark:bg-fuchsia-400/90 dark:text-[#03060f] dark:hover:bg-fuchsia-300"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Submit your team
                 <ArrowUpRight className="ml-1 h-4 w-4" />

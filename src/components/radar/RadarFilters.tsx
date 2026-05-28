@@ -34,11 +34,11 @@ function Chip({
       className={cn(
         "rounded-full border px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.16em] transition-all",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        "focus-visible:ring-fuchsia-500 focus-visible:ring-offset-white dark:focus-visible:ring-fuchsia-300/70 dark:focus-visible:ring-offset-[#03060f]",
+        "focus-visible:ring-primary focus-visible:ring-offset-white dark:focus-visible:ring-primary/70 dark:focus-visible:ring-offset-[#03060f]",
         active
           ? [
-              "border-fuchsia-500/60 bg-fuchsia-500/10 text-fuchsia-700 shadow-[0_0_12px_-4px_rgba(192,38,211,0.45)]",
-              "dark:border-fuchsia-400/60 dark:bg-fuchsia-400/15 dark:text-fuchsia-100 dark:shadow-[0_0_12px_-2px_rgba(240,171,252,0.5)]",
+              "border-primary/60 bg-primary/10 text-primary shadow-[0_0_12px_-4px_rgba(192,38,211,0.45)]",
+              "dark:border-primary/60 dark:bg-primary/20 dark:text-primary-foreground dark:shadow-[0_0_12px_-2px_rgba(240,171,252,0.5)]",
             ]
           : [
               "border-slate-200 bg-white text-slate-600 hover:border-sky-400/60 hover:text-sky-700",
@@ -71,7 +71,7 @@ export function RadarFilters({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 dark:border-cyan-400/20 dark:bg-cyan-400/[0.04] dark:text-cyan-100 dark:focus-visible:ring-fuchsia-300/70 lg:hidden"
+        className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:border-cyan-400/20 dark:bg-cyan-400/[0.04] dark:text-cyan-100 dark:focus-visible:ring-primary/70 lg:hidden"
         aria-expanded={open}
         aria-controls="radar-filter-groups"
         aria-label={`${open ? "Hide" : "Show"} filters${activeCount ? `, ${activeCount} active` : ""}`}
@@ -81,7 +81,7 @@ export function RadarFilters({
           Filters
           {activeCount > 0 && (
             <span
-              className="rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] text-fuchsia-700 dark:bg-fuchsia-400/20 dark:text-fuchsia-200"
+              className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] text-primary dark:bg-primary/25 dark:text-primary-foreground"
               aria-hidden="true"
             >
               {activeCount}
@@ -176,7 +176,7 @@ export function RadarFilters({
           </div>
           <div className="flex items-center gap-1.5">
             <span
-              className="h-2 w-2 rounded-full bg-fuchsia-500 shadow-[0_0_6px_rgba(192,38,211,0.6)] dark:bg-fuchsia-300 dark:shadow-[0_0_6px_rgba(240,171,252,0.8)]"
+              className="h-2 w-2 rounded-full bg-primary shadow-[0_0_6px_rgba(192,38,211,0.6)] dark:bg-primary-foreground dark:shadow-[0_0_6px_rgba(240,171,252,0.8)]"
               aria-hidden="true"
             />
             Showcase
