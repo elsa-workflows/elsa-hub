@@ -1126,6 +1126,45 @@ export type Database = {
         }
         Relationships: []
       }
+      roadmap_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          issue_number: number
+          issue_updated_at: string | null
+          parse_error: string | null
+          parse_status: string
+          parsed_json: Json | null
+          raw_markdown: string
+          source_url: string
+          synced_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issue_number: number
+          issue_updated_at?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          parsed_json?: Json | null
+          raw_markdown: string
+          source_url: string
+          synced_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issue_number?: number
+          issue_updated_at?: string | null
+          parse_error?: string | null
+          parse_status?: string
+          parsed_json?: Json | null
+          raw_markdown?: string
+          source_url?: string
+          synced_at?: string
+        }
+        Relationships: []
+      }
       service_providers: {
         Row: {
           accepting_new_purchases: boolean
