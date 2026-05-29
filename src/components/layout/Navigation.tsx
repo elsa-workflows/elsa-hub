@@ -17,7 +17,6 @@ const navItems = [
   { label: "Get Started", to: "/get-started" },
   { label: "Elsa+", to: "/elsa-plus" },
   { label: "Radar", to: "/community/radar" },
-  { label: "Blog", to: "/blog" },
   { label: "Resources", to: "/resources" },
 ];
 
@@ -50,9 +49,9 @@ export function Navigation() {
     >
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity whitespace-nowrap">
           <img src={elsaLogo} alt="Elsa Workflows" className="h-9 w-9" />
-          <span className="text-xl font-semibold tracking-tight">
+          <span className="text-xl font-semibold tracking-tight whitespace-nowrap">
             Elsa <span className="text-primary">Workflows</span>
           </span>
         </Link>
@@ -63,7 +62,7 @@ export function Navigation() {
             <NavLink
               key={item.to}
               to={item.to}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted whitespace-nowrap"
               activeClassName="text-primary bg-primary/5"
             >
               {item.label}
