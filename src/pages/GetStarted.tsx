@@ -85,7 +85,7 @@ const resources = [
     icon: Package,
     title: "NuGet Packages",
     description: "All available Elsa packages",
-    href: "https://www.nuget.org/profiles/phalanx",
+    href: "https://www.nuget.org/packages?q=elsa&includeComputedFrameworks=true&prerel=true",
     cta: "Browse Packages",
   },
   {
