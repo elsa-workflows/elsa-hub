@@ -49,9 +49,9 @@ export function Navigation() {
     >
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity whitespace-nowrap">
           <img src={elsaLogo} alt="Elsa Workflows" className="h-9 w-9" />
-          <span className="text-xl font-semibold tracking-tight">
+          <span className="text-xl font-semibold tracking-tight whitespace-nowrap">
             Elsa <span className="text-primary">Workflows</span>
           </span>
         </Link>
