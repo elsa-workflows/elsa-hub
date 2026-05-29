@@ -48,6 +48,13 @@ const primaryResources = [
 const additionalResources = [
   {
     icon: Newspaper,
+    title: "Blog",
+    description: "Articles, releases & deep dives",
+    href: "/blog",
+    isInternal: true,
+  },
+  {
+    icon: Newspaper,
     title: "Community Content",
     description: "Blog posts, videos & tutorials",
     href: "/resources/community-content",
