@@ -118,7 +118,7 @@ export default function Roadmap() {
         .limit(1)
         .maybeSingle();
       if (!cancelled) {
-        setSnapshot(data as Snapshot | null);
+        setSnapshot((data as unknown as Snapshot) ?? null);
         setLoading(false);
       }
     })();
