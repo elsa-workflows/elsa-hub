@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
         type: "radar_submission",
         title: "New radar submission",
         message: summary,
-        action_url: "/dashboard/admin/radar-locations",
+        action_url: "/dashboard/admin/radar",
         payload: {
           submission_id: row.id,
           city: row.city,
