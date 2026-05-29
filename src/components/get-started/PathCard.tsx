@@ -73,6 +73,7 @@ export function PathCard({
           </span>
         </CardContent>
       </Card>
-    </Link>
+    </Wrapper>
+
   );
 }
