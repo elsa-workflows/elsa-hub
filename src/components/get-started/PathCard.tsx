@@ -24,8 +24,21 @@ export function PathCard({
   cta,
   badge,
 }: PathCardProps) {
+  const isHash = href.startsWith("#");
+  const handleHashClick = (e: React.MouseEvent) => {
+    if (!isHash) return;
+    e.preventDefault();
+    const el = document.querySelector(href);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      history.replaceState(null, "", href);
+    }
+  };
+  const Wrapper: any = isHash ? "a" : Link;
+  const wrapperProps = isHash ? { href, onClick: handleHashClick } : { to: href };
   return (
-    <Link to={href} className="group block">
+    <Wrapper {...wrapperProps} className="group block">
+
       <Card variant="glass" className="h-full hover:border-primary/50 transition-all hover:shadow-lg">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between mb-3">
