@@ -64,3 +64,6 @@ verify_jwt = false
 [functions.verify-radar-submission]
 verify_jwt = false
 
+
+[functions.sync-roadmap]
+verify_jwt = false
