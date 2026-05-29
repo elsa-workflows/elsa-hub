@@ -17,7 +17,6 @@ const navItems = [
   { label: "Get Started", to: "/get-started" },
   { label: "Elsa+", to: "/elsa-plus" },
   { label: "Radar", to: "/community/radar" },
-  { label: "Blog", to: "/blog" },
   { label: "Resources", to: "/resources" },
 ];
 
