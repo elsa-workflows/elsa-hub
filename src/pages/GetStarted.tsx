@@ -30,6 +30,17 @@ const paths = [
     cta: "Launch Containers",
   },
   {
+    icon: Package,
+    title: "Use a Template",
+    subtitle: "Scaffold with dotnet new",
+    description:
+      "Generate a ready-to-run Elsa solution from the official .NET templates. Pick Server, Studio, or a combined solution and choose persistence, hosting, and auth.",
+    bestFor: ["Fastest .NET start", "Production-shaped layout", "Consistent project structure"],
+    href: "#templates",
+    cta: "See Templates",
+    badge: "New",
+  },
+  {
     icon: Code2,
     title: "Build Your Own",
     subtitle: "Create a custom solution",
@@ -39,6 +50,7 @@ const paths = [
     cta: "Choose Setup",
   },
 ];
+
 
 const guides = [
   {
