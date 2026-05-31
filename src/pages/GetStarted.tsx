@@ -134,12 +134,12 @@ export default function GetStarted() {
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-4">Choose Your Path</h2>
               <p className="text-muted-foreground max-w-2xl">
-                Just want to explore? Try our Docker containers. Ready to build? Create your own project from scratch.
+                Just want to explore? Try our Docker containers. Want the fastest .NET start? Use a template. Need full control? Build your own.
               </p>
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {paths.map((path, index) => (
               <ScrollReveal key={path.title} delay={index * 100}>
                 <PathCard {...path} />
@@ -148,6 +148,131 @@ export default function GetStarted() {
           </div>
         </div>
       </section>
+
+      {/* Templates */}
+      <section id="templates" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
+        <div className="container">
+          <ScrollReveal>
+            <div className="mb-10 max-w-3xl">
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-2xl font-bold">Scaffold with .NET Templates</h2>
+                <Badge variant="secondary">New</Badge>
+              </div>
+              <p className="text-muted-foreground">
+                The <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Templates</code> package
+                ships official <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">dotnet new</code> templates
+                for Elsa Server, Elsa Studio, and a combined solution. The current stable release targets Elsa 3.7.0.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid lg:grid-cols-2 gap-6 max-w-5xl">
+            <ScrollReveal>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-1">1. Install the templates</h3>
+                  <p className="text-sm text-muted-foreground mb-3">From NuGet.org (stable release).</p>
+                  <CodeBlock language="bash" code={`dotnet new install Elsa.Templates`} />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Or install a preview</h3>
+                  <p className="text-sm text-muted-foreground mb-3">From the Elsa preview feed.</p>
+                  <CodeBlock
+                    language="bash"
+                    code={`dotnet new install Elsa.Templates@3.8.0-preview \\
+  --add-source https://f.feedz.io/elsa-workflows/elsa-3/nuget/index.json`}
+                  />
+                </div>
+              </div>
+            </ScrollReveal>
+
+            <ScrollReveal delay={100}>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-1">2. Create a project</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Pick the template that fits your setup.</p>
+                  <CodeBlock
+                    language="bash"
+                    title="Elsa Server + Studio (recommended)"
+                    code={`dotnet new elsa-combined -n MyElsaApp \\
+  --feature-model static \\
+  --studio-hosting server`}
+                  />
+                </div>
+                <CodeBlock
+                  language="bash"
+                  title="Elsa Server only"
+                  code={`dotnet new elsa-server -n MyElsaServer \\
+  --feature-model static \\
+  --persistence sqlite`}
+                />
+                <CodeBlock
+                  language="bash"
+                  title="Elsa Studio only"
+                  code={`dotnet new elsa-studio -n MyElsaStudio \\
+  --hosting server \\
+  --auth-provider elsa-identity`}
+                />
+              </div>
+            </ScrollReveal>
+          </div>
+
+          <ScrollReveal delay={200}>
+            <div className="mt-10 grid md:grid-cols-3 gap-4 max-w-5xl">
+              <div className="rounded-lg border bg-background p-5">
+                <h4 className="font-semibold mb-2 text-sm">Feature model</h4>
+                <p className="text-xs text-muted-foreground">
+                  <code className="font-mono">--feature-model static</code> for compile-time registration, or{" "}
+                  <code className="font-mono">shell</code> for runtime CShells.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-5">
+                <h4 className="font-semibold mb-2 text-sm">Persistence</h4>
+                <p className="text-xs text-muted-foreground">
+                  EF Core providers: <code className="font-mono">sqlite</code>,{" "}
+                  <code className="font-mono">sqlserver</code>, <code className="font-mono">postgresql</code>,{" "}
+                  <code className="font-mono">oracle</code>.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-5">
+                <h4 className="font-semibold mb-2 text-sm">Studio hosting &amp; auth</h4>
+                <p className="text-xs text-muted-foreground">
+                  Hosting: <code className="font-mono">server</code>, <code className="font-mono">wasm</code>,{" "}
+                  <code className="font-mono">hybrid</code>. Auth: <code className="font-mono">elsa-identity</code>,{" "}
+                  <code className="font-mono">open-id-connect</code>, <code className="font-mono">elsa-login</code>.
+                </p>
+              </div>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal delay={300}>
+            <div className="mt-8 flex flex-wrap items-center gap-3 text-sm">
+              <a
+                href="https://github.com/elsa-workflows/elsa-templates"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all"
+              >
+                <Github className="h-4 w-4" />
+                elsa-workflows/elsa-templates
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <span className="text-muted-foreground">·</span>
+              <a
+                href="https://www.nuget.org/packages/Elsa.Templates"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all"
+              >
+                <Package className="h-4 w-4" />
+                Elsa.Templates on NuGet
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
 
       {/* Build Your Own - Guide Cards */}
       <section id="build-your-own" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
