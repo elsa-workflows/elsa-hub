@@ -13,8 +13,10 @@ import {
   Container,
   Code2,
 } from "lucide-react";
-import { GuideCard, PathCard } from "@/components/get-started";
+import { GuideCard, PathCard, CodeBlock } from "@/components/get-started";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { Badge } from "@/components/ui/badge";
+
 
 const paths = [
   {
