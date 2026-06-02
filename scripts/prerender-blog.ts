@@ -133,7 +133,7 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function main() {
+export async function prerenderBlog(): Promise<void> {
   if (!existsSync(SHELL_PATH)) {
     console.warn(`[prerender-blog] ${SHELL_PATH} not found, skipping.`);
     return;
@@ -173,6 +173,18 @@ async function main() {
   console.log(`[prerender-blog] wrote ${ok} post(s), ${failed} failed.`);
 }
 
-main().catch((e) => {
-  console.warn(`[prerender-blog] unexpected error: ${(e as Error).message}`);
-});
+// Allow running this file directly via `tsx scripts/prerender-blog.ts`.
+const isDirectRun = (() => {
+  try {
+    const argv1 = process.argv[1] ? new URL(`file://${process.argv[1]}`).href : "";
+    return import.meta.url === argv1;
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectRun) {
+  prerenderBlog().catch((e) => {
+    console.warn(`[prerender-blog] unexpected error: ${(e as Error).message}`);
+  });
+}
