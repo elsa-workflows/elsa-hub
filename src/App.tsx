@@ -90,6 +90,14 @@ const ProviderWorkspace = lazy(() => import("./pages/dashboard/provider/Provider
 
 const queryClient = new QueryClient();
 
+// Sends browser visitors of the prerendered /blog/<slug>.html download URL
+// back to the clean SPA route, so React Router doesn't render NotFound on
+// top of the prerendered article.
+const BlogHtmlRedirect = () => {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/blog/${slug ?? ""}`} replace />;
+};
+
 const RouteFallback = () => (
   <div className="flex min-h-screen items-center justify-center">
     <div className="animate-pulse text-muted-foreground">Loading…</div>
