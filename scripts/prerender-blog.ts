@@ -160,11 +160,12 @@ export async function prerenderBlog(): Promise<void> {
       const article = buildArticle(post);
       const html = injectIntoShell(shell, headExtras, article);
 
-      // Lovable hosting serves exact file-path matches before SPA fallback.
-      // For a request like /blog/my-post it does not appear to resolve the
-      // directory form /blog/my-post/index.html, so we emit an extensionless
-      // file at the exact route path instead.
-      const outPath = resolve(DIST, "blog", post.slug);
+      // Emit as <slug>.html so the host serves it with text/html (an
+      // extensionless file is served as application/octet-stream, which
+      // browsers download). The SPA route /blog/<slug> still falls back to
+      // index.html for normal users; crawlers and Medium's importer can use
+      // the .html URL to get fully-rendered article markup.
+      const outPath = resolve(DIST, "blog", `${post.slug}.html`);
       mkdirSync(dirname(outPath), { recursive: true });
       writeFileSync(outPath, html, "utf-8");
       ok++;
