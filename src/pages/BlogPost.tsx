@@ -31,7 +31,19 @@ type LoadState =
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const { data: isAdmin } = useIsAdmin();
+
+  // Open lightbox when a content image inside the rendered post HTML is clicked.
+  const handleArticleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const img = target.closest("img") as HTMLImageElement | null;
+    if (!img) return;
+    // Skip tiny inline images (emoji-like, badges, avatars).
+    if (img.naturalWidth > 0 && img.naturalWidth < 80) return;
+    e.preventDefault();
+    setLightbox({ src: img.currentSrc || img.src, alt: img.alt || "" });
+  };
 
   useEffect(() => {
     if (!slug) return;
