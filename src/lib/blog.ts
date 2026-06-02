@@ -37,6 +37,17 @@ export interface BlogIndex {
 const BASE = "https://elsa-workflows.github.io/elsa-blog";
 export const BLOG_CANONICAL_BASE = "https://www.elsaworkflows.io/blog";
 
+// Rewrite relative `../assets/...` (and bare `assets/...`) image/anchor URLs
+// in post HTML to the upstream GitHub Pages location so they resolve when the
+// post is rendered on our domain.
+function absolutizeAssetUrls(html: string): string {
+  if (!html) return html;
+  return html.replace(
+    /(\b(?:src|href)=")(?:\.\.\/|\.\/)?(assets\/[^"]+)(")/gi,
+    (_m, pre, path, post) => `${pre}${BASE}/${path}${post}`,
+  );
+}
+
 export async function fetchBlogIndex(signal?: AbortSignal): Promise<BlogIndex> {
   const res = await fetch(`${BASE}/index.json`, { signal });
   if (!res.ok) throw new Error(`Failed to load blog index (${res.status})`);
@@ -47,7 +58,9 @@ export async function fetchBlogPost(slug: string, signal?: AbortSignal): Promise
   const res = await fetch(`${BASE}/posts/${encodeURIComponent(slug)}.json`, { signal });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Failed to load post (${res.status})`);
-  return res.json();
+  const post = (await res.json()) as BlogPost;
+  if (post?.html) post.html = absolutizeAssetUrls(post.html);
+  return post;
 }
 
 export function formatBlogDate(iso?: string): string {
