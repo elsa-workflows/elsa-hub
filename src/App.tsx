@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
@@ -90,6 +90,14 @@ const ProviderWorkspace = lazy(() => import("./pages/dashboard/provider/Provider
 
 const queryClient = new QueryClient();
 
+// Sends browser visitors of the prerendered /blog/<slug>.html download URL
+// back to the clean SPA route, so React Router doesn't render NotFound on
+// top of the prerendered article.
+const BlogHtmlRedirect = () => {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/blog/${slug ?? ""}`} replace />;
+};
+
 const RouteFallback = () => (
   <div className="flex min-h-screen items-center justify-center">
     <div className="animate-pulse text-muted-foreground">Loading…</div>
@@ -149,6 +157,10 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              {/* The .html variant is a prerendered download/import target for
+                  crawlers and Medium. If a real browser lands on it, send the
+                  user to the clean SPA route so React Router doesn't 404. */}
+              <Route path="/blog/:slug.html" element={<BlogHtmlRedirect />} />
               <Route path="/resources/community-content" element={<CommunityContent />} />
               <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/login" element={<Login />} />
