@@ -1,5 +1,5 @@
 // Postbuild: fetch every blog post and write a fully-rendered HTML file
-// per slug into dist/blog/<slug>/index.html.
+// per slug into dist/blog/<slug>.
 //
 // Why: the SPA route renders post content client-side, which means
 // Medium's "Import a story", LinkedIn previews, and other non-JS
@@ -160,7 +160,11 @@ export async function prerenderBlog(): Promise<void> {
       const article = buildArticle(post);
       const html = injectIntoShell(shell, headExtras, article);
 
-      const outPath = resolve(DIST, "blog", post.slug, "index.html");
+      // Lovable hosting serves exact file-path matches before SPA fallback.
+      // For a request like /blog/my-post it does not appear to resolve the
+      // directory form /blog/my-post/index.html, so we emit an extensionless
+      // file at the exact route path instead.
+      const outPath = resolve(DIST, "blog", post.slug);
       mkdirSync(dirname(outPath), { recursive: true });
       writeFileSync(outPath, html, "utf-8");
       ok++;
