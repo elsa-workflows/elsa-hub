@@ -270,12 +270,14 @@ export default function BlogPost() {
           <img
             src={post.featuredImage}
             alt={post.title}
-            className="w-full rounded-lg border border-border mb-10"
+            className="w-full rounded-lg border border-border mb-10 cursor-zoom-in"
+            onClick={() => setLightbox({ src: post.featuredImage!, alt: post.title })}
           />
         )}
 
         <div
-          className="prose prose-neutral dark:prose-invert max-w-none"
+          className="prose prose-neutral dark:prose-invert max-w-none [&_img]:cursor-zoom-in"
+          onClick={handleArticleClick}
           dangerouslySetInnerHTML={{ __html: post.html }}
         />
 
