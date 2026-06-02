@@ -86,6 +86,14 @@ function buildHead(post: Post, canonical: string): string {
   ].filter(Boolean).join("\n    ");
 }
 
+function absolutizeAssetUrls(html: string): string {
+  if (!html) return html;
+  return html.replace(
+    /(\b(?:src|href)=")(?:\.\.\/|\.\/)?(assets\/[^"]+)(")/gi,
+    (_m, pre, path, post) => `${pre}${UPSTREAM}/${path}${post}`,
+  );
+}
+
 function buildArticle(post: Post): string {
   const authors = (post.authors || []).map((a) => a.name).filter(Boolean).join(", ");
   const date = post.publishedAt ? new Date(post.publishedAt).toISOString().slice(0, 10) : "";
@@ -94,7 +102,7 @@ function buildArticle(post: Post): string {
   <p><em>${authors ? `By ${esc(authors)}` : ""}${authors && date ? " · " : ""}${date}</em></p>
   ${post.featuredImage ? `<p><img src="${esc(post.featuredImage)}" alt="${esc(post.title)}" /></p>` : ""}
   ${post.description ? `<p><strong>${esc(post.description)}</strong></p>` : ""}
-  ${post.html}
+  ${absolutizeAssetUrls(post.html)}
 </article>`;
 }
 
