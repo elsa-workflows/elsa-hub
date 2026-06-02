@@ -5,6 +5,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ArrowLeft, Calendar, AlertTriangle } from "lucide-react";
 import {
   BLOG_CANONICAL_BASE,
@@ -29,7 +31,19 @@ type LoadState =
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const { data: isAdmin } = useIsAdmin();
+
+  // Open lightbox when a content image inside the rendered post HTML is clicked.
+  const handleArticleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const img = target.closest("img") as HTMLImageElement | null;
+    if (!img) return;
+    // Skip tiny inline images (emoji-like, badges, avatars).
+    if (img.naturalWidth > 0 && img.naturalWidth < 80) return;
+    e.preventDefault();
+    setLightbox({ src: img.currentSrc || img.src, alt: img.alt || "" });
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -256,12 +270,14 @@ export default function BlogPost() {
           <img
             src={post.featuredImage}
             alt={post.title}
-            className="w-full rounded-lg border border-border mb-10"
+            className="w-full rounded-lg border border-border mb-10 cursor-zoom-in"
+            onClick={() => setLightbox({ src: post.featuredImage!, alt: post.title })}
           />
         )}
 
         <div
-          className="prose prose-neutral dark:prose-invert max-w-none"
+          className="prose prose-neutral dark:prose-invert max-w-none [&_img]:cursor-zoom-in"
+          onClick={handleArticleClick}
           dangerouslySetInnerHTML={{ __html: post.html }}
         />
 
@@ -306,6 +322,24 @@ export default function BlogPost() {
 
         <RelatedPosts currentSlug={post.slug} tags={post.tags} />
       </article>
+
+      <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <DialogContent
+          className="max-w-[95vw] w-fit p-2 sm:p-3 bg-background/95 border-border"
+          onClick={() => setLightbox(null)}
+        >
+          <VisuallyHidden asChild>
+            <DialogTitle>{lightbox?.alt || "Image preview"}</DialogTitle>
+          </VisuallyHidden>
+          {lightbox && (
+            <img
+              src={lightbox.src}
+              alt={lightbox.alt}
+              className="max-h-[88vh] max-w-[92vw] w-auto h-auto rounded object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
