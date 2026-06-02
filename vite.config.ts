@@ -1,13 +1,14 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { spawnSync } from "node:child_process";
 import { componentTagger } from "lovable-tagger";
+import { prerenderBlog } from "./scripts/prerender-blog";
 
 // Runs the blog prerender script after vite finishes the production bundle.
-// We hook into the build itself (instead of relying on the npm `postbuild`
-// script) because Lovable hosting invokes `vite build` directly, which would
-// otherwise skip postbuild and ship the SPA shell for every blog URL.
+// We hook into the build itself (instead of npm's `postbuild` script) because
+// Lovable hosting invokes `vite build` directly, which would otherwise skip
+// postbuild and ship the SPA shell for every blog URL. The prerender logic is
+// imported in-process so we don't need `tsx` (a devDependency) at build time.
 function prerenderBlogPlugin(): Plugin {
   return {
     name: "elsa-prerender-blog",
@@ -15,15 +16,12 @@ function prerenderBlogPlugin(): Plugin {
     closeBundle: {
       sequential: true,
       order: "post",
-      handler() {
-        const result = spawnSync(
-          "npx",
-          ["tsx", "scripts/prerender-blog.ts"],
-          { stdio: "inherit", env: process.env },
-        );
-        if (result.status !== 0) {
+      async handler() {
+        try {
+          await prerenderBlog();
+        } catch (e) {
           console.warn(
-            `[elsa-prerender-blog] script exited with status ${result.status}; continuing.`,
+            `[elsa-prerender-blog] failed: ${(e as Error).message}; continuing.`,
           );
         }
       },
