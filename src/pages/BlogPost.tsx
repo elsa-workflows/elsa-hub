@@ -322,6 +322,24 @@ export default function BlogPost() {
 
         <RelatedPosts currentSlug={post.slug} tags={post.tags} />
       </article>
+
+      <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <DialogContent
+          className="max-w-[95vw] w-fit p-2 sm:p-3 bg-background/95 border-border"
+          onClick={() => setLightbox(null)}
+        >
+          <VisuallyHidden asChild>
+            <DialogTitle>{lightbox?.alt || "Image preview"}</DialogTitle>
+          </VisuallyHidden>
+          {lightbox && (
+            <img
+              src={lightbox.src}
+              alt={lightbox.alt}
+              className="max-h-[88vh] max-w-[92vw] w-auto h-auto rounded object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
