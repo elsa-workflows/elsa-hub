@@ -149,6 +149,10 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              {/* The .html variant is a prerendered download/import target for
+                  crawlers and Medium. If a real browser lands on it, send the
+                  user to the clean SPA route so React Router doesn't 404. */}
+              <Route path="/blog/:slug.html" element={<BlogHtmlRedirect />} />
               <Route path="/resources/community-content" element={<CommunityContent />} />
               <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/login" element={<Login />} />
