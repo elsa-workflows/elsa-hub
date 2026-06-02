@@ -21,7 +21,7 @@ function exportUrl(slug: string, format: Format) {
 }
 
 function canonicalUrl(slug: string) {
-  return `${CANONICAL_BASE}/${encodeURIComponent(slug)}`;
+  return `${CANONICAL_BASE}/${encodeURIComponent(slug)}.html`;
 }
 
 interface Props {
