@@ -21,6 +21,12 @@ const footerLinks = {
     to: "/elsa-plus/runtime-builder",
     badge: "Preview"
   }, {
+    label: "Radar",
+    to: "/community/radar"
+  }, {
+    label: "Blog",
+    to: "/blog"
+  }, {
     label: "Resources",
     to: "/resources"
   }, {
