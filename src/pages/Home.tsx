@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Check, ArrowRight, Workflow, Code2, Puzzle, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart, Terminal, Timer, LineChart, Settings2, ShieldCheck } from "lucide-react";
+import { Check, ArrowRight, Workflow, Code2, Puzzle, Shield, Layers, Github, BookOpen, MessageCircle, ExternalLink, Map, Heart, Terminal, Timer, LineChart, Settings2, ShieldCheck, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
@@ -50,7 +50,15 @@ const features = [{
   description: "Custom activities, expression providers, API endpoints, stores, Studio modules, and authentication providers — every layer has extension points."
 }];
 
-const ecosystemLinks = [{
+type EcosystemLink = {
+  icon: typeof Github;
+  title: string;
+  description: string;
+  href?: string;
+  to?: string;
+};
+
+const ecosystemLinks: EcosystemLink[] = [{
   icon: Github,
   title: "GitHub",
   description: "Explore the source code and contribute",
@@ -65,6 +73,11 @@ const ecosystemLinks = [{
   title: "Community",
   description: "Join our Discord and connect with developers",
   href: "https://discord.gg/hhChk5H472"
+}, {
+  icon: Newspaper,
+  title: "Blog",
+  description: "Read the latest news, guides, and updates",
+  to: "/blog"
 }];
 export default function Home() {
   const jsonLd = [
@@ -222,24 +235,35 @@ export default function Home() {
           </ScrollReveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {ecosystemLinks.map((link, index) => (
-              <ScrollReveal key={link.title} delay={index * 100}>
-                <a href={link.href} target="_blank" rel="noopener noreferrer" className="group block h-full">
-                  <Card variant="glass" className="h-full border hover:border-primary/50 transition-all hover:shadow-lg">
-                    <CardContent className="p-6 text-center">
-                      <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
-                        <link.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
-                      </div>
-                      <h3 className="text-lg font-semibold mb-2 flex items-center justify-center gap-2">
-                        {link.title}
+            {ecosystemLinks.map((link, index) => {
+              const cardInner = (
+                <Card variant="glass" className="h-full border hover:border-primary/50 transition-all hover:shadow-lg">
+                  <CardContent className="p-6 text-center">
+                    <div className="h-12 w-12 rounded-full bg-muted/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-primary/10 transition-colors">
+                      <link.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2 flex items-center justify-center gap-2">
+                      {link.title}
+                      {link.href ? (
                         <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{link.description}</p>
-                    </CardContent>
-                  </Card>
-                </a>
-              </ScrollReveal>
-            ))}
+                      ) : (
+                        <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">{link.description}</p>
+                  </CardContent>
+                </Card>
+              );
+              return (
+                <ScrollReveal key={link.title} delay={index * 100}>
+                  {link.to ? (
+                    <Link to={link.to} className="group block h-full">{cardInner}</Link>
+                  ) : (
+                    <a href={link.href} target="_blank" rel="noopener noreferrer" className="group block h-full">{cardInner}</a>
+                  )}
+                </ScrollReveal>
+              );
+            })}
           </div>
         </div>
       </section>
