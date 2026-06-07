@@ -1,15 +1,25 @@
 ## Goal
-Reorganize the footer navigation in `src/components/layout/Footer.tsx` to eliminate duplication and group items by their natural category.
+Add a Blog tile to the "Join the Ecosystem" card grid on the homepage, linking to the internal `/blog` route.
 
 ## Changes
 
-### 1. Data (`footerLinks` object)
-- **Product**: Remove `Resources`, `Blog`, and `Radar`. Keep: Home, Features, Get Started, Elsa+, Runtime Builder, Roadmap.
-- **Resources**: Add `Blog` (internal `to: "/blog"`). Keep: Documentation, GitHub, Discord, NuGet Packages.
-- **Community**: Add `Radar` (internal `to: "/community/radar"`). Keep: Contributing, Discussions, Issues.
+### 1. `src/pages/Home.tsx`
 
-### 2. Rendering logic
-- Update the **Resources** section to render both internal `Link` (for Blog) and external `<a>` (for everything else), matching the existing Product/Community styling.
-- Update the **Community** section to render both internal `Link` (for Radar) and external `<a>` (for everything else).
+**a) Import `Newspaper` icon** from `lucide-react` alongside existing imports.
 
-No other files touched. No visual style changes.
+**b) Add a Blog entry to `ecosystemLinks`**:
+```ts
+{
+  icon: Newspaper,
+  title: "Blog",
+  description: "Read the latest news, guides, and updates",
+  to: "/blog"
+}
+```
+
+**c) Update rendering logic** in the ecosystem grid to support both internal (`to`) and external (`href`) links:
+- If `to` exists, render a React Router `<Link to={...}>`
+- If `href` exists, render an `<a href={...} target="_blank" rel="noopener noreferrer">`
+- Keep the same card styling, hover effects, and external-link icon behavior (show `ExternalLink` only on external links)
+
+**d) Adjust grid columns** from `lg:grid-cols-4` to `lg:grid-cols-4` (already 4 columns, but now there are 4 items — still works) or `lg:grid-cols-2` / adjust as needed. With 4 items, `lg:grid-cols-4` remains appropriate.
