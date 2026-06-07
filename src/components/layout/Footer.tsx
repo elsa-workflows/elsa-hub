@@ -21,19 +21,13 @@ const footerLinks = {
     to: "/elsa-plus/runtime-builder",
     badge: "Preview"
   }, {
-    label: "Radar",
-    to: "/community/radar"
-  }, {
-    label: "Blog",
-    to: "/blog"
-  }, {
-    label: "Resources",
-    to: "/resources"
-  }, {
     label: "Roadmap",
     to: "/roadmap"
   }],
   resources: [{
+    label: "Blog",
+    to: "/blog"
+  }, {
     label: "Documentation",
     href: "https://docs.elsaworkflows.io/",
     external: true
@@ -51,6 +45,9 @@ const footerLinks = {
     external: true
   }],
   community: [{
+    label: "Radar",
+    to: "/community/radar"
+  }, {
     label: "Contributing",
     href: "https://github.com/elsa-workflows/elsa-core/blob/main/CONTRIBUTING.md",
     external: true
@@ -111,12 +108,20 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Resources</h4>
             <ul className="space-y-3">
-              {footerLinks.resources.map(link => <li key={link.href}>
-                  <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
-                    {link.label}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </li>)}
+              {footerLinks.resources.map(link => (
+                <li key={"to" in link ? link.to : link.href}>
+                  {"to" in link ? (
+                    <Link to={link.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
+                      {link.label}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -124,12 +129,20 @@ export function Footer() {
           <div>
             <h4 className="font-semibold mb-4">Community</h4>
             <ul className="space-y-3">
-              {footerLinks.community.map(link => <li key={link.href}>
-                  <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
-                    {link.label}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </li>)}
+              {footerLinks.community.map(link => (
+                <li key={"to" in link ? link.to : link.href}>
+                  {"to" in link ? (
+                    <Link to={link.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a href={link.href} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
+                      {link.label}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </li>
+              ))}
             </ul>
           </div>
 
