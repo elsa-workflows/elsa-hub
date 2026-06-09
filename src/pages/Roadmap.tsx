@@ -20,10 +20,13 @@ import {
   Github,
   MessageCircle,
   ExternalLink,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { toast } from "sonner";
 
 const ROADMAP_ISSUE_URL = "https://github.com/elsa-workflows/elsa-core/issues/3232";
 
@@ -107,6 +110,36 @@ function formatDate(iso: string | null | undefined): string {
 export default function Roadmap() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const { data: isAdmin } = useIsAdmin();
+
+  const fetchSnapshot = async () => {
+    const { data } = await supabase
+      .from("roadmap_snapshots")
+      .select("raw_markdown, parsed_json, parse_status, synced_at, issue_updated_at")
+      .order("synced_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setSnapshot((data as unknown as Snapshot) ?? null);
+    setLoading(false);
+  };
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("sync-roadmap", {
+        body: { trigger: "manual" },
+      });
+      if (error) throw error;
+      toast.success("Roadmap synced");
+      await fetchSnapshot();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to sync roadmap");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -186,6 +219,18 @@ export default function Roadmap() {
                   Join the community
                 </a>
               </Button>
+              {isAdmin && (
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="gap-2"
+                  onClick={handleSyncNow}
+                  disabled={syncing}
+                >
+                  <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+                  {syncing ? "Syncing…" : "Sync roadmap now"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
