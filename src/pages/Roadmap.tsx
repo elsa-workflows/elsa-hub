@@ -110,6 +110,36 @@ function formatDate(iso: string | null | undefined): string {
 export default function Roadmap() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const { data: isAdmin } = useIsAdmin();
+
+  const fetchSnapshot = async () => {
+    const { data } = await supabase
+      .from("roadmap_snapshots")
+      .select("raw_markdown, parsed_json, parse_status, synced_at, issue_updated_at")
+      .order("synced_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setSnapshot((data as unknown as Snapshot) ?? null);
+    setLoading(false);
+  };
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("sync-roadmap", {
+        body: { trigger: "manual" },
+      });
+      if (error) throw error;
+      toast.success("Roadmap synced");
+      await fetchSnapshot();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to sync roadmap");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
