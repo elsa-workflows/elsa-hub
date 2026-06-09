@@ -219,6 +219,18 @@ export default function Roadmap() {
                   Join the community
                 </a>
               </Button>
+              {isAdmin && (
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="gap-2"
+                  onClick={handleSyncNow}
+                  disabled={syncing}
+                >
+                  <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+                  {syncing ? "Syncing…" : "Sync roadmap now"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
