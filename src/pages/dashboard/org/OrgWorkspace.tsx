@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { EngagementWorkspace, type SummaryPayload } from "@/components/workspace";
+import { CustomerHoursCard } from "../provider/ProviderWorkspace";
 
 export default function OrgWorkspace() {
   const { slug, providerSlug } = useParams<{ slug: string; providerSlug: string }>();
@@ -26,6 +27,38 @@ export default function OrgWorkspace() {
       return data;
     },
     enabled: !!providerSlug,
+  });
+
+  const { data: workLogs = [] } = useQuery({
+    queryKey: ["org-provider-work-logs", organization?.id, provider?.id],
+    queryFn: async () => {
+      if (!organization?.id || !provider?.id) return [];
+      const { data: logs } = await supabase
+        .from("work_logs")
+        .select("id, performed_at, category, description, minutes_spent, performed_by")
+        .eq("organization_id", organization.id)
+        .eq("service_provider_id", provider.id)
+        .order("performed_at", { ascending: false })
+        .limit(50);
+      if (!logs || logs.length === 0) return [];
+
+      const performerIds = [...new Set(logs.map((l) => l.performed_by))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, email")
+        .in("user_id", performerIds);
+      const nameMap = new Map(profiles?.map((p) => [p.user_id, p.display_name || p.email]) || []);
+
+      return logs.map((l) => ({
+        id: l.id,
+        performed_at: l.performed_at,
+        category: l.category,
+        description: l.description,
+        minutes_spent: l.minutes_spent,
+        performer_name: nameMap.get(l.performed_by) || null,
+      }));
+    },
+    enabled: !!organization?.id && !!provider?.id,
   });
 
   if (!organization || !provider) {
@@ -51,6 +84,13 @@ export default function OrgWorkspace() {
         title={`${organization.name} ↔ ${provider.name}`}
         subtitle="Shared with your service provider's team."
         onSummaryReady={setSummary}
+      />
+
+      <CustomerHoursCard
+        logs={workLogs}
+        providerSlug={provider.slug}
+        organizationId={organization.id}
+        readOnly
       />
 
       {summary && (
