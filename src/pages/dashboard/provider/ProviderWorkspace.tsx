@@ -26,7 +26,7 @@ function minutesToHours(minutes: number): string {
 
 export default function ProviderWorkspace() {
   const { slug, orgSlug } = useParams<{ slug: string; orgSlug: string }>();
-  const { provider, customers, refetchWorkLogs, refetchCustomers } = useProviderDashboard(slug);
+  const { provider, customers, workLogs, refetchWorkLogs, refetchCustomers } = useProviderDashboard(slug);
   const [summary, setSummary] = useState<SummaryPayload | null>(null);
   const [sessionToLog, setSessionToLog] = useState<WorkspaceSession | null>(null);
 
