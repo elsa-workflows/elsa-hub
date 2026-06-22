@@ -56,7 +56,7 @@ const providerNavItems = [
   { label: "Bookings", icon: CalendarDays, path: "bookings" },
   { label: "Workspaces", icon: Layers, path: "workspaces" },
   { label: "Messages", icon: MessageSquare, path: "messages" },
-  { label: "Work Logs", icon: Clock, path: "work-logs" },
+  { label: "Hours", icon: Clock, path: "work-logs" },
   { label: "Bundles", icon: Package, path: "bundles" },
   { label: "Settings", icon: Settings, path: "settings" },
 ];

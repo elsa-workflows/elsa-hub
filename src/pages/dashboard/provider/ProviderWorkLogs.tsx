@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Building2, Clock, Search, Filter, Plus } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, Link, useSearchParams } from "react-router-dom";
+import { Building2, Clock, Search, Filter, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
-import { LogWorkDialog } from "@/components/provider";
 
 function minutesToHours(minutes: number): string {
   const hours = minutes / 60;
@@ -32,19 +31,27 @@ const categoryColors: Record<string, "default" | "secondary" | "outline"> = {
 
 export default function ProviderWorkLogs() {
   const { slug } = useParams<{ slug: string }>();
-  const { provider, workLogs, customers, isLoading, notFound, refetchWorkLogs, refetchCustomers } = useProviderDashboard(slug);
+  const { provider, workLogs, customers, isLoading, notFound } = useProviderDashboard(slug);
+  const [searchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [customerFilter, setCustomerFilter] = useState<string>("all");
 
-  const handleWorkLogSuccess = () => {
-    refetchWorkLogs();
-    refetchCustomers(); // Refetch to update credit balances
-  };
+  // Pre-apply ?customer= filter from query string (deep-link from a Workspace)
+  useEffect(() => {
+    const fromQuery = searchParams.get("customer");
+    if (fromQuery) setCustomerFilter(fromQuery);
+  }, [searchParams]);
+
+  const customerSlugById = useMemo(() => {
+    const m = new Map<string, string>();
+    customers.forEach((c) => m.set(c.organization_id, c.organization_slug));
+    return m;
+  }, [customers]);
 
   const filteredLogs = useMemo(() => {
     return workLogs.filter((log) => {
-      const matchesSearch = 
+      const matchesSearch =
         log.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         log.organization_name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = categoryFilter === "all" || log.category === categoryFilter;
@@ -74,27 +81,19 @@ export default function ProviderWorkLogs() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Work Logs</h1>
+          <h1 className="text-2xl font-bold">Hours</h1>
           <p className="text-muted-foreground mt-1">
-            Track and manage logged hours for {provider?.name}
+            Every entry logged across your customers. Log new hours from a Workspace.
           </p>
         </div>
-        {provider && (
-          <LogWorkDialog
-            providerId={provider.id}
-            providerName={provider.name}
-            customers={customers}
-            onSuccess={handleWorkLogSuccess}
-            trigger={
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Log Hours
-              </Button>
-            }
-          />
-        )}
+        <Button variant="outline" asChild>
+          <Link to={`/dashboard/provider/${slug}/workspaces`}>
+            <Layers className="h-4 w-4 mr-2" />
+            Go to Workspaces
+          </Link>
+        </Button>
       </div>
 
       {/* Summary Stats */}
