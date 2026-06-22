@@ -179,3 +179,78 @@ export default function ProviderWorkspace() {
     </div>
   );
 }
+
+interface CustomerHoursCardProps {
+  logs: Array<{
+    id: string;
+    performed_at: string;
+    category: string;
+    description: string;
+    minutes_spent: number;
+    performer_name: string | null;
+  }>;
+  providerSlug: string;
+  organizationId: string;
+  logTrigger?: React.ReactNode;
+  readOnly?: boolean;
+  ledgerHref?: string;
+}
+
+function CustomerHoursCard({ logs, providerSlug, organizationId, logTrigger, readOnly, ledgerHref }: CustomerHoursCardProps) {
+  const recent = logs.slice(0, 10);
+  const totalMinutes = logs.reduce((acc, l) => acc + l.minutes_spent, 0);
+  const href = ledgerHref ?? `/dashboard/provider/${providerSlug}/work-logs?customer=${organizationId}`;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+        <div>
+          <CardTitle className="text-lg">Logged hours for this customer</CardTitle>
+          <CardDescription>
+            {logs.length === 0
+              ? "No hours logged yet."
+              : `${minutesToHours(totalMinutes)}h across ${logs.length} ${logs.length === 1 ? "entry" : "entries"}`}
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          {!readOnly && logTrigger}
+          {!readOnly && (
+            <Button asChild variant="ghost" size="sm">
+              <Link to={href}>
+                View all
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      {recent.length > 0 && (
+        <CardContent className="space-y-2">
+          {recent.map((log) => (
+            <div
+              key={log.id}
+              className="flex items-start justify-between gap-4 py-2 border-b border-border/50 last:border-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(log.performed_at), "MMM d, yyyy")}
+                  </span>
+                  <Badge variant={categoryColors[log.category] || "outline"} className="capitalize text-xs">
+                    {log.category}
+                  </Badge>
+                </div>
+                <p className="text-sm line-clamp-2">{log.description}</p>
+              </div>
+              <div className="text-sm font-medium whitespace-nowrap">
+                {minutesToHours(log.minutes_spent)}h
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+export { CustomerHoursCard };
