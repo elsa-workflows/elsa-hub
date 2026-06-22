@@ -81,6 +81,27 @@ export default function ProviderWorkspace() {
         onLogWorkFromSession={setSessionToLog}
       />
 
+      <CustomerHoursCard
+        logs={workLogs.filter((l) => l.organization_id === organization.id)}
+        providerSlug={slug!}
+        organizationId={organization.id}
+        logTrigger={
+          <LogWorkDialog
+            providerId={provider.id}
+            providerName={provider.name}
+            customers={customerList}
+            onSuccess={handleSuccess}
+            prefill={{ organizationId: organization.id }}
+            trigger={
+              <Button size="sm" variant="outline">
+                <Clock className="h-4 w-4 mr-2" />
+                Log hours
+              </Button>
+            }
+          />
+        }
+      />
+
       {sessionToLog && (
         <LogWorkDialog
           providerId={provider.id}
