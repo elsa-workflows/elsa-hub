@@ -1,14 +1,28 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, ArrowRight } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
 import { EngagementWorkspace, type SummaryPayload } from "@/components/workspace";
 import { LogWorkDialog } from "@/components/provider/LogWorkDialog";
 import type { WorkspaceSession } from "@/hooks/useWorkspaceSessions";
+
+const categoryColors: Record<string, "default" | "secondary" | "outline"> = {
+  development: "default",
+  consulting: "secondary",
+  training: "outline",
+  support: "secondary",
+  other: "outline",
+};
+
+function minutesToHours(minutes: number): string {
+  return (minutes / 60).toFixed(1);
+}
 
 export default function ProviderWorkspace() {
   const { slug, orgSlug } = useParams<{ slug: string; orgSlug: string }>();
