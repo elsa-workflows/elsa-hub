@@ -1,18 +1,32 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, ArrowRight } from "lucide-react";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useProviderDashboard } from "@/hooks/useProviderDashboard";
 import { EngagementWorkspace, type SummaryPayload } from "@/components/workspace";
 import { LogWorkDialog } from "@/components/provider/LogWorkDialog";
 import type { WorkspaceSession } from "@/hooks/useWorkspaceSessions";
 
+const categoryColors: Record<string, "default" | "secondary" | "outline"> = {
+  development: "default",
+  consulting: "secondary",
+  training: "outline",
+  support: "secondary",
+  other: "outline",
+};
+
+function minutesToHours(minutes: number): string {
+  return (minutes / 60).toFixed(1);
+}
+
 export default function ProviderWorkspace() {
   const { slug, orgSlug } = useParams<{ slug: string; orgSlug: string }>();
-  const { provider, customers, refetchWorkLogs, refetchCustomers } = useProviderDashboard(slug);
+  const { provider, customers, workLogs, refetchWorkLogs, refetchCustomers } = useProviderDashboard(slug);
   const [summary, setSummary] = useState<SummaryPayload | null>(null);
   const [sessionToLog, setSessionToLog] = useState<WorkspaceSession | null>(null);
 
@@ -65,6 +79,27 @@ export default function ProviderWorkspace() {
         subtitle="Shared with the customer's team."
         onSummaryReady={setSummary}
         onLogWorkFromSession={setSessionToLog}
+      />
+
+      <CustomerHoursCard
+        logs={workLogs.filter((l) => l.organization_id === organization.id)}
+        providerSlug={slug!}
+        organizationId={organization.id}
+        logTrigger={
+          <LogWorkDialog
+            providerId={provider.id}
+            providerName={provider.name}
+            customers={customerList}
+            onSuccess={handleSuccess}
+            prefill={{ organizationId: organization.id }}
+            trigger={
+              <Button size="sm" variant="outline">
+                <Clock className="h-4 w-4 mr-2" />
+                Log hours
+              </Button>
+            }
+          />
+        }
       />
 
       {sessionToLog && (
@@ -144,3 +179,78 @@ export default function ProviderWorkspace() {
     </div>
   );
 }
+
+interface CustomerHoursCardProps {
+  logs: Array<{
+    id: string;
+    performed_at: string;
+    category: string;
+    description: string;
+    minutes_spent: number;
+    performer_name: string | null;
+  }>;
+  providerSlug: string;
+  organizationId: string;
+  logTrigger?: React.ReactNode;
+  readOnly?: boolean;
+  ledgerHref?: string;
+}
+
+function CustomerHoursCard({ logs, providerSlug, organizationId, logTrigger, readOnly, ledgerHref }: CustomerHoursCardProps) {
+  const recent = logs.slice(0, 10);
+  const totalMinutes = logs.reduce((acc, l) => acc + l.minutes_spent, 0);
+  const href = ledgerHref ?? `/dashboard/provider/${providerSlug}/work-logs?customer=${organizationId}`;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+        <div>
+          <CardTitle className="text-lg">Logged hours for this customer</CardTitle>
+          <CardDescription>
+            {logs.length === 0
+              ? "No hours logged yet."
+              : `${minutesToHours(totalMinutes)}h across ${logs.length} ${logs.length === 1 ? "entry" : "entries"}`}
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          {!readOnly && logTrigger}
+          {!readOnly && (
+            <Button asChild variant="ghost" size="sm">
+              <Link to={href}>
+                View all
+                <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      {recent.length > 0 && (
+        <CardContent className="space-y-2">
+          {recent.map((log) => (
+            <div
+              key={log.id}
+              className="flex items-start justify-between gap-4 py-2 border-b border-border/50 last:border-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(log.performed_at), "MMM d, yyyy")}
+                  </span>
+                  <Badge variant={categoryColors[log.category] || "outline"} className="capitalize text-xs">
+                    {log.category}
+                  </Badge>
+                </div>
+                <p className="text-sm line-clamp-2">{log.description}</p>
+              </div>
+              <div className="text-sm font-medium whitespace-nowrap">
+                {minutesToHours(log.minutes_spent)}h
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+export { CustomerHoursCard };
