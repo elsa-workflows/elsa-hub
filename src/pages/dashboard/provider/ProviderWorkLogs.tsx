@@ -207,8 +207,16 @@ export default function ProviderWorkLogs() {
               {workLogs.length === 0 ? (
                 <>
                   <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-lg font-medium">No work logs yet</p>
-                  <p className="text-sm mt-1">Click "Log Hours" to record your first entry.</p>
+                  <p className="text-lg font-medium">No hours logged yet</p>
+                  <p className="text-sm mt-1 mb-4">
+                    Open a customer Workspace to log work against a session or summary.
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/dashboard/provider/${slug}/workspaces`}>
+                      <Layers className="h-4 w-4 mr-2" />
+                      Go to Workspaces
+                    </Link>
+                  </Button>
                 </>
               ) : (
                 <>
@@ -236,7 +244,16 @@ export default function ProviderWorkLogs() {
                       {format(new Date(log.performed_at), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="font-medium">
-                      {log.organization_name}
+                      {customerSlugById.get(log.organization_id) ? (
+                        <Link
+                          to={`/dashboard/provider/${slug}/workspaces/${customerSlugById.get(log.organization_id)}`}
+                          className="hover:text-primary hover:underline"
+                        >
+                          {log.organization_name}
+                        </Link>
+                      ) : (
+                        log.organization_name
+                      )}
                     </TableCell>
                     <TableCell className="max-w-xs">
                       <p className="line-clamp-2 text-sm">{log.description}</p>
