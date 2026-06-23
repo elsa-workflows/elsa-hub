@@ -70,7 +70,7 @@ const formSchema = z.object({
   description: z
     .string()
     .min(5, "Description must be at least 5 characters")
-    .max(500, "Description must be less than 500 characters"),
+    .max(10000, "Description must be less than 10000 characters"),
 }).refine((data) => data.hours > 0 || data.minutes > 0, {
   message: "Please enter at least 1 minute of work",
   path: ["hours"],
