@@ -51,6 +51,7 @@ const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
 // Dashboard
 const DashboardLayout = lazy(() =>
@@ -169,6 +170,7 @@ const App = () => (
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/invite/:token" element={<AcceptInvitation />} />
               <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
+              <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
               {/* Dashboard Routes */}
               <Route path="/dashboard" element={<DashboardLayout />}>
