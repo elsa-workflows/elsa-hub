@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://tehhrjepyfnhmsgtwzkf.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "elsa-workflows-mcp",
+      "version": "0.1.0",
+      "title": "Elsa Workflows"
+    },
+    "tools": [
+      {
+        "name": "who_am_i",
+        "title": "Who am I",
+        "description": "Return the signed-in Elsa Workflows user: user id, email, and display name from their profile.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_organizations",
+        "title": "List my organizations",
+        "description": "List the Elsa Workflows organizations the signed-in user belongs to, with role, slug, and id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_organization_credits",
+        "title": "Get organization credit balance",
+        "description": "Summarize active credit lots for an organization the user belongs to. Provide the organization slug (e.g. 'acme'). Returns per-provider totals of purchased vs remaining minutes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "organizationSlug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The organization's URL slug."
+            }
+          },
+          "required": [
+            "organizationSlug"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

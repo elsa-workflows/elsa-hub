@@ -116,92 +116,128 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/blog/suspended-workflows-and-elsa-upgrades</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/stable-instance-names-for-azure-service-bus</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/weaver-grounding-tools-in-elsa-3-8</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/openid-connect-in-elsa-studio</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/groundwork-and-the-persistence-boundary-in-elsa</loc>
+    <lastmod>2026-06-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/blog/the-elsa-studio-dashboard-is-split-on-purpose</loc>
-    <lastmod>2026-06-08</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/configuring-elsa-with-shell-features</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/workflow-alterations-in-elsa-3-8</loc>
-    <lastmod>2026-06-06</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/secret-references-in-elsa-3-8</loc>
-    <lastmod>2026-06-05</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/opentelemetry-diagnostics-in-elsa-3-8</loc>
-    <lastmod>2026-06-04</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/console-logs-in-elsa-3-8</loc>
-    <lastmod>2026-06-03</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/structured-logs-in-elsa-3-8</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/elsa-3-8-preview-1</loc>
-    <lastmod>2026-06-01</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/introducing-elsa-templates</loc>
-    <lastmod>2026-05-31</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/console-log-streaming</loc>
-    <lastmod>2026-05-27</lastmod>
+    <lastmod>2026-06-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/why-elsa-4-rebuilding-a-dotnet-workflow-engine</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/introducing-nuplane-nuget-packages-as-a-runtime-primitive</loc>
-    <lastmod>2026-04-19</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/building-multitenant-web-apps-in-dotnet-with-cshells</loc>
-    <lastmod>2026-03-01</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/ai-agents-with-microsoft-agent-framework-and-elsa-workflows</loc>
-    <lastmod>2025-12-28</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/building-modular-dotnet-applications-with-cshells</loc>
-    <lastmod>2025-12-03</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/reusing-triggers-in-elsa-workflows-3-5</loc>
-    <lastmod>2025-03-21</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

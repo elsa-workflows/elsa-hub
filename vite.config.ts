@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 import { prerenderBlog } from "./scripts/prerender-blog";
 
 // Runs the blog prerender script after vite finishes the production bundle.
@@ -40,6 +41,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    mcpPlugin(),
     mode === "development" && componentTagger(),
     mode !== "development" && prerenderBlogPlugin(),
   ].filter(Boolean),
