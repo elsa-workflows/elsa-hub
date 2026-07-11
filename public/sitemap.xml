@@ -116,14 +116,38 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/blog/inline-vs-deferred-events-in-elsa-4</loc>
+    <lastmod>2026-07-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-8</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/blog/suspended-workflows-and-elsa-upgrades</loc>
     <lastmod>2026-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-7</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/blog/stable-instance-names-for-azure-service-bus</loc>
     <lastmod>2026-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-6</loc>
+    <lastmod>2026-06-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -135,7 +159,13 @@
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/openid-connect-in-elsa-studio</loc>
-    <lastmod>2026-07-01</lastmod>
+    <lastmod>2026-07-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-5</loc>
+    <lastmod>2026-06-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -160,6 +190,12 @@
   <url>
     <loc>https://www.elsa-workflows.io/blog/workflow-alterations-in-elsa-3-8</loc>
     <lastmod>2026-06-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-4</loc>
+    <lastmod>2026-06-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -200,8 +236,26 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-3</loc>
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/blog/console-log-streaming</loc>
     <lastmod>2026-06-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-2</loc>
+    <lastmod>2026-05-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/building-elsa-4-week-1</loc>
+    <lastmod>2026-05-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
