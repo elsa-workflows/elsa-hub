@@ -4,19 +4,18 @@ import { GuideBreadcrumb, PrerequisitesBox, DockerSection } from "@/components/g
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, AlertTriangle, Boxes } from "lucide-react";
+import {
+  ELSA_DOCKER_PULL_COMMAND,
+  ELSA_DOCKER_RUN_COMMAND,
+} from "@/data/canonicalSamples";
 
 const dockerOptions = [
   {
     title: "Elsa Server + Studio",
     description:
-      "The complete package — both the workflow engine and visual designer in one container.",
-    pullCommand: "docker pull elsaworkflows/elsa-server-and-studio-v3-5:latest",
-    runCommand: `docker run -t -i \\
-  -e ASPNETCORE_ENVIRONMENT='Development' \\
-  -e HTTP_PORTS=8080 \\
-  -e HOSTING__BASEURL=http://localhost:13000 \\
-  -p 13000:8080 \\
-  elsaworkflows/elsa-server-and-studio-v3-5:latest`,
+      "The complete package — both the workflow engine and visual designer in one container. Canonical quick-start from the release/3.7.0 branch.",
+    pullCommand: ELSA_DOCKER_PULL_COMMAND,
+    runCommand: ELSA_DOCKER_RUN_COMMAND,
     accessUrl: "http://localhost:13000",
     credentials: { username: "admin", password: "password" },
     badge: "Recommended",
