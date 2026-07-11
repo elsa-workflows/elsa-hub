@@ -84,17 +84,25 @@ function GroupTrigger({ group, pathname }: { group: NavGroup; pathname: string }
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-56">
-        {group.items.map((item) =>
-          item.href ? (
+        {group.items.map((item) => {
+          const isActive = !!item.to && (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to));
+          return item.href ? (
             <DropdownMenuItem key={item.label} asChild>
               <a href={item.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3">
-                <span>{item.label}</span>
+                <span className="flex items-center gap-2">
+                  {item.label}
+                  {item.badge && (
+                    <span className="text-[10px] font-medium uppercase tracking-wider rounded border border-border px-1.5 py-0.5 text-muted-foreground">
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
                 <ExternalLink className="h-3.5 w-3.5 opacity-60" />
               </a>
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem key={item.label} asChild>
-              <Link to={item.to!} className="flex items-center justify-between gap-3">
+              <Link to={item.to!} aria-current={isActive ? "page" : undefined} className="flex items-center justify-between gap-3">
                 <span>{item.label}</span>
                 {item.badge && (
                   <span className="text-[10px] font-medium uppercase tracking-wider rounded border border-border px-1.5 py-0.5 text-muted-foreground">
@@ -103,8 +111,8 @@ function GroupTrigger({ group, pathname }: { group: NavGroup; pathname: string }
                 )}
               </Link>
             </DropdownMenuItem>
-          ),
-        )}
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );
