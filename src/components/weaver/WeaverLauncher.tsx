@@ -9,18 +9,21 @@ export function WeaverLauncher() {
   if (open) return null;
   return (
     <Button
+      variant="outline"
+      size="sm"
       onClick={() => {
         track("weaver_open", { source: "launcher" });
         openPanel();
       }}
       className={cn(
-        "fixed bottom-5 right-5 z-50 h-12 gap-2 rounded-full px-5 shadow-lg",
-        "bg-primary text-primary-foreground hover:bg-primary/90",
+        "fixed bottom-4 right-4 z-40 h-9 gap-1.5 rounded-full px-3.5",
+        "bg-background/95 backdrop-blur border-border text-muted-foreground",
+        "hover:text-foreground hover:border-primary/40 shadow-sm",
       )}
-      aria-label="Open Elsa Weaver"
+      aria-label="Ask Weaver"
     >
-      <Sparkles className="size-4" />
-      <span className="text-sm font-medium">Weaver</span>
+      <Sparkles className="size-3.5" />
+      <span className="text-xs font-medium">Ask Weaver</span>
     </Button>
   );
 }

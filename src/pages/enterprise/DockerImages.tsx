@@ -40,7 +40,7 @@ const links = [
 export default function DockerImages() {
   return (
     <Layout>
-      <Seo path="/elsa-plus/docker-images" title="Production Docker images for Elsa — Elsa+" description="Production-oriented Elsa containers from Valence Works: server, studio, and combined images on .NET 10 with Elsa 3.8 preview. Configure via mounted config.json and Nuplane." />
+      <Seo path="/elsa-plus/docker-images" title="Production-oriented Docker images for Elsa — Early Preview" description="Early Preview Elsa containers provided by Valence Works: server, studio, and combined images on .NET 10 with Elsa 3.8 preview. Configure via mounted config.json and Nuplane. Free to try, MIT-licensed source." />
       <section className="pt-8 pb-4">
         <div className="container">
           <Breadcrumb>
@@ -60,19 +60,21 @@ export default function DockerImages() {
       </section>
 
       {/* Hero */}
-      <section className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-transparent">
+      <section className="py-12 md:py-20">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
               <Badge variant="secondary">Provided by Valence Works</Badge>
               <Badge variant="outline">Early Preview</Badge>
               <Badge variant="outline">Free to try</Badge>
+              <Badge variant="outline">MIT-licensed source</Badge>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Production Docker Images</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">Production-oriented Docker Images</h1>
             <p className="text-xl text-muted-foreground">
-              Production-oriented Elsa containers built on .NET 10 with Elsa 3.8 preview. Configure with a mounted{" "}
+              Early Preview Elsa containers built on .NET 10 with Elsa 3.8 preview. Configure with a mounted{" "}
               <code className="font-mono text-base bg-muted px-1.5 py-0.5 rounded">config.json</code>, load NuGet
-              packages at runtime via Nuplane, and compose features per shell with CShells.
+              packages at runtime via Nuplane, and compose features per shell with CShells. Not yet a supported
+              distribution — production hardening, container scanning, and stable release guarantees are on the roadmap.
             </p>
           </div>
         </div>
