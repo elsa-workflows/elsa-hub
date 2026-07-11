@@ -109,7 +109,7 @@ export default function Home() {
         <div className="container py-16 md:py-24">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="min-w-0">
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary mb-4">
+              <p className="text-sm font-medium uppercase tracking-[0.14em] text-brand mb-4">
                 Open-source workflow infrastructure for .NET
               </p>
               <h1 className="font-display text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.05] font-semibold tracking-tight mb-6">
