@@ -10,7 +10,7 @@ import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 
-import { WeaverProvider, WeaverLauncher, WeaverPanel } from "@/components/weaver";
+import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
 
 // Home is eager so the initial route paints instantly
 import Home from "./pages/Home";
@@ -219,7 +219,7 @@ const App = () => (
             </Routes>
             </Suspense>
             <WeaverLauncher />
-            <WeaverPanel />
+            <WeaverHost />
             </WeaverProvider>
             </OrganizationProvider>
           </AuthProvider>
