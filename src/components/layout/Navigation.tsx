@@ -24,7 +24,12 @@ const groups: NavGroup[] = [
     items: [
       { label: "Overview", to: "/" },
       { label: "Features", to: "/features" },
-      { label: "Elsa Platform", to: "/elsa-plus/platform", badge: "Preview" },
+      {
+        label: "Elsa Platform",
+        href: "https://github.com/elsa-workflows/elsa-platform",
+        badge: "Open source · Preview",
+        external: true,
+      },
     ],
   },
   {
