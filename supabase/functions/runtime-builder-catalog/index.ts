@@ -89,14 +89,41 @@ Deno.serve(async (req) => {
       if (catalogCache && catalogCache.key === cacheKey && catalogCache.expiresAt > now) {
         return jsonResponse(200, catalogCache.payload);
       }
-      const { status, body } = await proxyJson(`${baseUrl}/api/builder/catalog`, {
-        method: "GET",
-        headers: { "X-Api-Key": apiKey, Accept: "application/json" },
-      });
-      if (status >= 200 && status < 300) {
-        catalogCache = { key: cacheKey, expiresAt: now + CATALOG_TTL_MS, payload: body };
+      try {
+        const { status, body } = await proxyJson(`${baseUrl}/api/builder/catalog`, {
+          method: "GET",
+          headers: { "X-Api-Key": apiKey, Accept: "application/json" },
+        });
+        if (status >= 200 && status < 300) {
+          catalogCache = { key: cacheKey, expiresAt: now + CATALOG_TTL_MS, payload: body };
+          return jsonResponse(status, body);
+        }
+        // Serve stale cache on upstream error if available
+        if (catalogCache && catalogCache.key === cacheKey) {
+          console.error("catalog upstream error, serving stale cache", status);
+          return jsonResponse(200, catalogCache.payload);
+        }
+        console.error("catalog upstream error", status, JSON.stringify(body).slice(0, 500));
+        return jsonResponse(200, {
+          packages: [],
+          infrastructureProviders: [],
+          _degraded: true,
+          _error: "Catalog service temporarily unavailable.",
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        if (catalogCache && catalogCache.key === cacheKey) {
+          console.error("catalog fetch failed, serving stale cache:", message);
+          return jsonResponse(200, catalogCache.payload);
+        }
+        console.error("catalog fetch failed:", message);
+        return jsonResponse(200, {
+          packages: [],
+          infrastructureProviders: [],
+          _degraded: true,
+          _error: "Catalog service temporarily unavailable.",
+        });
       }
-      return jsonResponse(status, body);
     }
 
     if (action === "resolve") {
@@ -104,8 +131,6 @@ Deno.serve(async (req) => {
         packages?: Array<{ id?: string; packageId?: string; version?: string; features?: string[] }>;
         infrastructure?: unknown[];
       };
-      // Upstream expects `packageId` (matching the /catalog shape). Map both
-      // for compatibility.
       const upstreamBody = {
         packages: (incoming.packages ?? []).map((p) => ({
           packageId: p.packageId ?? p.id,
@@ -116,18 +141,35 @@ Deno.serve(async (req) => {
         })),
         infrastructure: incoming.infrastructure ?? [],
       };
-      const { status, body: respBody } = await proxyJson(`${baseUrl}/api/builder/resolve`, {
-        method: "POST",
-        headers: {
-          "X-Api-Key": apiKey,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(upstreamBody),
-      });
-      // Don't let upstream 5xx crash the wizard — degrade to a warning finding.
-      if (status >= 500) {
-        console.error("resolve upstream error", status, JSON.stringify(respBody).slice(0, 500));
+      try {
+        const { status, body: respBody } = await proxyJson(`${baseUrl}/api/builder/resolve`, {
+          method: "POST",
+          headers: {
+            "X-Api-Key": apiKey,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(upstreamBody),
+        });
+        if (status >= 500) {
+          console.error("resolve upstream error", status, JSON.stringify(respBody).slice(0, 500));
+          return jsonResponse(200, {
+            compatible: true,
+            findings: [
+              {
+                level: "warning",
+                code: "upstream_unavailable",
+                message:
+                  "The compatibility checker is temporarily unavailable. Your selection has not been validated against the upstream resolver.",
+                scope: { kind: "global" },
+              },
+            ],
+          });
+        }
+        return jsonResponse(status, respBody);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("resolve fetch failed:", message);
         return jsonResponse(200, {
           compatible: true,
           findings: [
@@ -141,7 +183,6 @@ Deno.serve(async (req) => {
           ],
         });
       }
-      return jsonResponse(status, respBody);
     }
 
     if (action === "health") {
@@ -156,6 +197,12 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("runtime-builder-catalog proxy error", message);
-    return jsonResponse(502, { error: `Upstream call failed: ${message}` });
+    return jsonResponse(200, {
+      packages: [],
+      infrastructureProviders: [],
+      _degraded: true,
+      _error: `Upstream call failed: ${message}`,
+    });
   }
 });
+
