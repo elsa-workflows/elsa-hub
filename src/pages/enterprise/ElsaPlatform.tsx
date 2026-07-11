@@ -63,16 +63,24 @@ export default function ElsaPlatform() {
       {/* Hero */}
       <header className="mb-10">
         <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-          control plane · v1alpha · in development
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+          open source · preview · in development
         </div>
         <h1 className="mt-4 max-w-3xl text-4xl md:text-5xl font-bold leading-tight tracking-tight">
           Elsa <span className="text-primary">Platform</span>
         </h1>
         <p className="mt-5 max-w-2xl text-lg text-muted-foreground leading-relaxed">
-          Design, package, validate, deploy, and operate Elsa-based workflow systems across
-          environments — and run AI assistants on workflows you can audit and govern.
+          Elsa Platform is an MIT-licensed open-source project that gives Elsa Workflows
+          a reproducible, auditable control plane. Design, package, validate, deploy,
+          and operate Elsa-based workflow systems across environments.
         </p>
+        <div className="mt-5 rounded-lg border border-border bg-muted/40 p-4 max-w-2xl text-sm text-muted-foreground leading-relaxed">
+          <strong className="text-foreground">Open source, no paid tier required.</strong>{" "}
+          Elsa Platform and its Runtime Builder subsystem are available under
+          open-source licences on GitHub. Elsa+ lists optional provider-backed
+          hosting, support, and managed services around it — they are separate
+          product surfaces, not requirements.
+        </div>
       </header>
 
       {/* Why */}

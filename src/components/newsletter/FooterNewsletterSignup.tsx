@@ -49,19 +49,30 @@ export function FooterNewsletterSignup() {
         Release updates and ecosystem news.
       </p>
       <form onSubmit={handleSubmit} className="flex gap-2">
+        <label htmlFor="footer-newsletter-email" className="sr-only">
+          Email address
+        </label>
         <Input
+          id="footer-newsletter-email"
           type="email"
           placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="flex-1 h-9 text-sm"
           required
+          aria-label="Email address"
         />
-        <Button type="submit" size="sm" disabled={isLoading} className="h-9 px-3">
+        <Button
+          type="submit"
+          size="sm"
+          disabled={isLoading}
+          className="h-9 px-3"
+          aria-label={isLoading ? "Subscribing…" : "Subscribe to newsletter"}
+        >
           {isLoading ? (
-            <span className="animate-pulse">...</span>
+            <span aria-hidden="true" className="animate-pulse">...</span>
           ) : (
-            <Send className="h-4 w-4" />
+            <Send aria-hidden="true" className="h-4 w-4" />
           )}
         </Button>
       </form>

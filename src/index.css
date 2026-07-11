@@ -23,7 +23,7 @@
     --popover-foreground: 240 6% 10%;
 
     /* Primary: deepened rose-magenta for AA on white */
-    --primary: 336 78% 48%;
+    --primary: 336 82% 42%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 5% 96%;
@@ -94,7 +94,7 @@
     --popover: 30 5% 15%;
     --popover-foreground: 30 10% 92%;
 
-    --primary: 340 72% 58%;
+    --primary: 340 78% 48%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 30 5% 17%;
@@ -114,7 +114,7 @@
 
     --border: 30 5% 22%;
     --input: 30 5% 22%;
-    --ring: 340 72% 58%;
+    --ring: 340 78% 48%;
 
     --surface-elevated: 30 5% 14%;
     --surface-subtle: 30 6% 6%;
