@@ -98,6 +98,8 @@
 
     --primary: 340 78% 48%;
     --primary-foreground: 0 0% 100%;
+    /* Lighter magenta for text on dark surfaces (>=4.5:1 vs bg/card/subtle). */
+    --brand-foreground: 340 90% 78%;
 
     --secondary: 30 5% 17%;
     --secondary-foreground: 30 10% 92%;
