@@ -212,14 +212,21 @@ export function Navigation() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-[320px] sm:w-[380px] overflow-y-auto">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Site navigation</SheetTitle>
+              <SheetDescription>
+                Browse Elsa Workflows product, developer, community, and Elsa+ links.
+              </SheetDescription>
+            </SheetHeader>
             <nav className="flex flex-col gap-6 mt-8">
               {groups.map((group) => (
                 <div key={group.label} className="flex flex-col gap-1">
                   <div className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                     {group.label}
                   </div>
-                  {group.items.map((item) =>
-                    item.href ? (
+                  {group.items.map((item) => {
+                    const isActive = !!item.to && (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to));
+                    return item.href ? (
                       <a
                         key={item.label}
                         href={item.href}
@@ -228,7 +235,14 @@ export function Navigation() {
                         onClick={() => setOpen(false)}
                         className="px-3 py-2 text-base rounded-lg hover:bg-muted transition-colors flex items-center justify-between"
                       >
-                        <span>{item.label}</span>
+                        <span className="flex items-center gap-2">
+                          {item.label}
+                          {item.badge && (
+                            <span className="text-[10px] font-medium uppercase tracking-wider rounded border border-border px-1.5 py-0.5 text-muted-foreground">
+                              {item.badge}
+                            </span>
+                          )}
+                        </span>
                         <ExternalLink className="h-3.5 w-3.5 opacity-60" />
                       </a>
                     ) : (
@@ -236,6 +250,7 @@ export function Navigation() {
                         key={item.label}
                         to={item.to!}
                         onClick={() => setOpen(false)}
+                        aria-current={isActive ? "page" : undefined}
                         className="px-3 py-2 text-base rounded-lg hover:bg-muted transition-colors flex items-center justify-between"
                       >
                         <span>{item.label}</span>
@@ -245,9 +260,10 @@ export function Navigation() {
                           </span>
                         )}
                       </Link>
-                    ),
-                  )}
+                    );
+                  })}
                 </div>
+
               ))}
 
               <hr />
