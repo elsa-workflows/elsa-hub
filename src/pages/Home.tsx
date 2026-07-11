@@ -11,6 +11,7 @@ import {
   Boxes,
   Activity,
   ExternalLink,
+  LibraryBig,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,25 +20,17 @@ import { Seo } from "@/components/Seo";
 import { track } from "@/lib/analytics";
 import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
 import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
+import {
+  ELSA_EMBED_SNIPPET,
+  ELSA_DOCKER_QUICKSTART,
+  ELSA_DOCKER_QUICKSTART_NOTE,
+} from "@/data/canonicalSamples";
 
 const DOCS_URL = "https://docs.elsaworkflows.io/";
 const GITHUB_URL = "https://github.com/elsa-workflows/elsa-core";
 const DISCORD_URL = "https://discord.gg/hhChk5H472";
 
-const embedSnippet = `// Program.cs — embed Elsa in your .NET app
-services.AddElsa(elsa =>
-{
-    elsa.UseWorkflows();
-    elsa.UseHttp();
-    elsa.UseScheduling();
-});`;
-
-const deploySnippet = `# Run Elsa Server + Studio with Docker
-docker run -d -p 8080:8080 \\
-  --name elsa-server \\
-  elsaworkflows/elsa-server-and-studio-v3:latest`;
-
-const buildRunOperate = [
+const lifecycleSteps = [
   {
     icon: Workflow,
     title: "Build",
@@ -46,12 +39,12 @@ const buildRunOperate = [
   {
     icon: Boxes,
     title: "Run",
-    body: "Execute short-running, long-running, scheduled, and event-driven workflows on a durable, persistent runtime.",
+    body: "Execute short-running and long-running workflows on a durable runtime. Bookmarks let activities suspend and resume when a matching event or timer arrives.",
   },
   {
     icon: Activity,
     title: "Operate",
-    body: "Inspect execution history, structured logs, and workflow instances from the Studio management UI or the API.",
+    body: "Inspect workflow instances and execution journals through the Elsa 3.7 API, and manage them from Elsa Studio.",
   },
 ];
 
@@ -66,7 +59,7 @@ const useCases = [
   },
   {
     title: "Event-driven systems",
-    body: "React to webhooks, message-bus events, and timers with workflows that resume exactly where they left off.",
+    body: "React to webhooks, message-bus events, and timers with workflows that suspend on bookmarks and continue when the matching signal arrives.",
   },
 ];
 
@@ -81,6 +74,8 @@ const communityLinks: Array<{
   { icon: Newspaper, title: "Blog", description: "Release notes and deep dives", to: "/blog" },
   { icon: Map, title: "Roadmap", description: "What we are working on next", to: "/roadmap" },
   { icon: MessageCircle, title: "Discord", description: "Talk to the community", href: DISCORD_URL },
+  { icon: LibraryBig, title: "Resources", description: "Guides, samples, videos", to: "/resources" },
+  { icon: Map, title: "Radar", description: "Teams and projects using Elsa", to: "/community/radar" },
 ];
 
 export default function Home() {
@@ -113,7 +108,7 @@ export default function Home() {
       <section className="border-b border-border/60">
         <div className="container py-16 md:py-24">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary mb-4">
                 Open-source workflow infrastructure for .NET
               </p>
@@ -160,28 +155,21 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="relative min-w-0">
               <div className="rounded-xl border border-border bg-card p-1.5 shadow-sm">
-                <img
-                  src={elsaStudioDesignerMobile}
-                  alt="Elsa Studio workflow designer"
-                  className="block md:hidden w-full h-auto rounded-lg"
-                  width={800}
-                  height={600}
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="async"
-                />
-                <img
-                  src={elsaStudioDesigner}
-                  alt="Elsa Studio visual workflow designer showing a workflow with connected activities"
-                  className="hidden md:block w-full h-auto rounded-lg"
-                  width={1600}
-                  height={1000}
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="async"
-                />
+                <picture>
+                  <source media="(max-width: 767px)" srcSet={elsaStudioDesignerMobile} />
+                  <img
+                    src={elsaStudioDesigner}
+                    alt="Elsa Studio visual workflow designer showing a workflow with connected activities"
+                    className="w-full h-auto rounded-lg"
+                    width={1600}
+                    height={1000}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                </picture>
               </div>
             </div>
           </div>
@@ -201,16 +189,20 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="border-border">
-              <CardContent className="p-6 md:p-8 flex flex-col h-full">
+            <Card className="border-border min-w-0">
+              <CardContent className="p-6 md:p-8 flex flex-col h-full min-w-0">
                 <h3 className="text-xl font-semibold mb-2">Embed Elsa</h3>
                 <p className="text-sm text-muted-foreground mb-5">
                   Integrate Elsa libraries into a custom .NET application while
                   keeping control over hosting, persistence, authentication, UI,
                   and domain integrations.
                 </p>
-                <pre className="flex-1 text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono">
-                  <code>{embedSnippet}</code>
+                <pre
+                  tabIndex={0}
+                  aria-label="C# code sample: embedding Elsa in a .NET application"
+                  className="flex-1 min-w-0 max-w-full text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <code>{ELSA_EMBED_SNIPPET}</code>
                 </pre>
                 <div className="mt-5">
                   <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent" asChild>
@@ -223,16 +215,24 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-border">
-              <CardContent className="p-6 md:p-8 flex flex-col h-full">
+            <Card className="border-border min-w-0">
+              <CardContent className="p-6 md:p-8 flex flex-col h-full min-w-0">
                 <h3 className="text-xl font-semibold mb-2">Deploy Elsa</h3>
                 <p className="text-sm text-muted-foreground mb-5">
                   Run Elsa Server and Studio as a separately deployed workflow
-                  system using open-source templates or the official Docker image.
+                  system using the canonical quick-start image from the
+                  release/3.7.0 branch.
                 </p>
-                <pre className="flex-1 text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono">
-                  <code>{deploySnippet}</code>
+                <pre
+                  tabIndex={0}
+                  aria-label="Shell commands: pull and run the Elsa Server + Studio quick-start Docker image"
+                  className="flex-1 min-w-0 max-w-full text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <code>{ELSA_DOCKER_QUICKSTART}</code>
                 </pre>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {ELSA_DOCKER_QUICKSTART_NOTE}
+                </p>
                 <div className="mt-5">
                   <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent" asChild>
                     <Link to="/get-started/docker">
@@ -247,7 +247,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. Build → Run → Operate */}
+      {/* 3. Build → Run → Operate — divided lifecycle */}
       <section className="py-16 md:py-24 border-y border-border/60 bg-surface-subtle">
         <div className="container">
           <div className="max-w-2xl mb-10">
@@ -259,21 +259,24 @@ export default function Home() {
             </h2>
             <p className="text-muted-foreground text-lg">
               The same definition you author in C# or the visual designer runs on a
-              durable runtime and stays observable through the Studio management UI.
+              durable runtime and stays inspectable through the workflow-instance
+              and execution-journal APIs.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {buildRunOperate.map((item) => (
-              <div key={item.title} className="rounded-xl border border-border bg-card p-6">
-                <div className="h-10 w-10 rounded-md border border-border flex items-center justify-center mb-4">
-                  <item.icon className="h-5 w-5 text-primary" />
+          <ol className="rounded-xl border border-border bg-card divide-y divide-border md:divide-y-0 md:divide-x md:grid md:grid-cols-3">
+            {lifecycleSteps.map((item, idx) => (
+              <li key={item.title} className="p-6 md:p-8 min-w-0">
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="text-lg font-semibold">{item.title}</h3>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.body}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
@@ -301,19 +304,24 @@ export default function Home() {
               <div>
                 <dt className="font-medium mb-1">Pluggable persistence</dt>
                 <dd className="text-sm text-muted-foreground">
-                  Entity Framework Core providers for SQL Server, PostgreSQL, SQLite, and MySQL. Swap the store without touching workflow code.
+                  Choose from supported Entity Framework Core providers — SQL Server,
+                  PostgreSQL, SQLite, and MySQL — and configure the provider for your host.
                 </dd>
               </div>
               <div>
-                <dt className="font-medium mb-1">Extension points at every layer</dt>
+                <dt className="font-medium mb-1">Extension points across the stack</dt>
                 <dd className="text-sm text-muted-foreground">
-                  Custom activities, expression providers, endpoints, stores, Studio modules, and authentication providers.
+                  Custom activities, expression handlers, HTTP endpoints, EF Core stores,
+                  and dependency-injection modules such as <code className="font-mono text-xs">UseWorkflows</code>,
+                  {" "}<code className="font-mono text-xs">UseHttp</code>, and{" "}
+                  <code className="font-mono text-xs">UseScheduling</code>.
                 </dd>
               </div>
               <div>
-                <dt className="font-medium mb-1">Observable execution</dt>
+                <dt className="font-medium mb-1">Inspectable execution</dt>
                 <dd className="text-sm text-muted-foreground">
-                  Execution history, structured logs, and workflow-instance inspection through the API and Studio.
+                  Elsa 3.7 exposes workflow instances and execution journals through
+                  its API for external observability tooling.
                 </dd>
               </div>
             </dl>
@@ -321,26 +329,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. Developer experience & use cases */}
+      {/* 5. Use cases */}
       <section className="py-16 md:py-24 bg-surface-subtle border-y border-border/60">
         <div className="container">
           <div className="max-w-2xl mb-10">
             <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">
-              Real workflows, real code.
+              Built for real workflow use cases.
             </h2>
             <p className="text-muted-foreground text-lg">
               Elsa is used to build durable business processes, integrations, and
               event-driven systems on top of the .NET stack.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <ul className="rounded-xl border border-border bg-card divide-y divide-border">
             {useCases.map((uc) => (
-              <div key={uc.title} className="rounded-xl border border-border bg-card p-6">
-                <h3 className="text-lg font-semibold mb-2">{uc.title}</h3>
+              <li key={uc.title} className="p-6 md:p-7">
+                <h3 className="text-base font-semibold mb-1">{uc.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{uc.body}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
           <div className="mt-10">
             <Button variant="outline" className="gap-2" asChild>
               <Link to="/features">
@@ -371,9 +379,9 @@ export default function Home() {
               control over infrastructure or application design.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              Elsa Workflows is MIT-licensed, developed openly on GitHub, and
-              vendor-neutral. Every layer has extension points; nothing is locked
-              behind a paid tier.
+              Elsa Core, Server, Studio, and the extension model are available under
+              open-source licences. Optional provider-backed products and services
+              are listed separately through Elsa+.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button variant="outline" className="gap-2" asChild>
@@ -393,7 +401,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. Community */}
+      {/* 7. Community — compact divided link band */}
       <section className="py-16 md:py-24 border-y border-border/60 bg-surface-subtle">
         <div className="container">
           <div className="max-w-2xl mb-10">
@@ -404,29 +412,31 @@ export default function Home() {
               Follow releases, browse the roadmap, and talk to other Elsa developers.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <ul className="rounded-xl border border-border bg-card divide-y divide-border sm:divide-y-0 sm:divide-x sm:grid sm:grid-cols-2 lg:grid-cols-6">
             {communityLinks.map((link) => {
               const inner = (
-                <div className="h-full rounded-xl border border-border bg-card p-5 hover:border-primary/50 transition-colors">
-                  <link.icon className="h-5 w-5 text-primary mb-3" />
-                  <div className="flex items-center gap-1.5 font-medium">
-                    {link.title}
-                    {link.href && <ExternalLink className="h-3 w-3 opacity-60" />}
+                <div className="flex items-center gap-3 p-5 h-full hover:bg-muted/50 transition-colors">
+                  <link.icon className="h-4 w-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 font-medium text-sm">
+                      {link.title}
+                      {link.href && <ExternalLink className="h-3 w-3 opacity-60" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{link.description}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
                 </div>
               );
-              return link.to ? (
-                <Link key={link.title} to={link.to} className="block h-full">
-                  {inner}
-                </Link>
-              ) : (
-                <a key={link.title} href={link.href} target="_blank" rel="noopener noreferrer" className="block h-full">
-                  {inner}
-                </a>
+              return (
+                <li key={link.title}>
+                  {link.to ? (
+                    <Link to={link.to} className="block h-full">{inner}</Link>
+                  ) : (
+                    <a href={link.href} target="_blank" rel="noopener noreferrer" className="block h-full">{inner}</a>
+                  )}
+                </li>
               );
             })}
-          </div>
+          </ul>
         </div>
       </section>
 
