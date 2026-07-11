@@ -48,7 +48,7 @@ networks:
       <Seo
         path={`/elsa-plus/docker-images/${image.slug}`}
         title={`${image.name} Docker image — Elsa+`}
-        description={`${image.name} (${image.image}): production-ready Elsa container. Configuration, environment variables, docker run and Docker Compose snippets.`}
+        description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works. Configuration, environment variables, docker run and Docker Compose snippets. Free to try; not yet a supported distribution.`}
       />
       <section className="pt-8 pb-4">
         <div className="container">
