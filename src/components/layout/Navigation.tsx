@@ -75,7 +75,7 @@ function GroupTrigger({ group, pathname }: { group: NavGroup; pathname: string }
           className={cn(
             "inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
             active
-              ? "text-primary bg-primary/5"
+              ? "text-brand bg-primary/5"
               : "text-muted-foreground hover:text-foreground hover:bg-muted",
           )}
         >
@@ -151,7 +151,7 @@ export function Navigation() {
         <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity whitespace-nowrap">
           <img src={elsaLogo} alt="Elsa Workflows" className="h-8 w-8" />
           <span className="text-lg font-semibold tracking-tight whitespace-nowrap">
-            Elsa <span className="text-primary">Workflows</span>
+            Elsa <span className="text-brand">Workflows</span>
           </span>
         </Link>
 

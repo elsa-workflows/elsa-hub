@@ -95,7 +95,7 @@ export function Footer() {
                   <Link to={link.to} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                     {link.label}
                     {"badge" in link && link.badge ? (
-                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                      <span className="rounded-full border border-amber-600/50 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-200">
                         {link.badge}
                       </span>
                     ) : null}
