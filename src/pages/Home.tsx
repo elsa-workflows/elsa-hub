@@ -251,7 +251,7 @@ export default function Home() {
       <section className="py-16 md:py-24 border-y border-border/60 bg-surface-subtle">
         <div className="container">
           <div className="max-w-2xl mb-10">
-            <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary mb-3">
+            <p className="text-sm font-medium uppercase tracking-[0.14em] text-brand mb-3">
               Build → Run → Operate
             </p>
             <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">
