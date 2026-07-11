@@ -151,7 +151,7 @@ export function Navigation() {
         <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity whitespace-nowrap">
           <img src={elsaLogo} alt="Elsa Workflows" className="h-8 w-8" />
           <span className="text-lg font-semibold tracking-tight whitespace-nowrap">
-            Elsa <span className="text-primary">Workflows</span>
+            Elsa <span className="text-brand">Workflows</span>
           </span>
         </Link>
 
