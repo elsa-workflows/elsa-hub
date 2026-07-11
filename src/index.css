@@ -25,6 +25,8 @@
     /* Primary: deepened rose-magenta for AA on white */
     --primary: 336 82% 42%;
     --primary-foreground: 0 0% 100%;
+    /* Brand foreground: magenta text token, guaranteed >=4.5:1 on its surface. */
+    --brand-foreground: 336 82% 38%;
 
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
