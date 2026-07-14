@@ -161,10 +161,10 @@ export default function NotificationSettings() {
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <Label htmlFor="notify_work_logged" className="text-base">
-                        Work logged
+                        Work logged (instant)
                       </Label>
                       <p className="text-sm text-muted-foreground">
-                        When providers log work to your organization
+                        Get an email each time a provider logs work
                       </p>
                     </div>
                   </div>
@@ -172,6 +172,29 @@ export default function NotificationSettings() {
                     id="notify_work_logged"
                     checked={preferences?.notify_work_logged ?? true}
                     onCheckedChange={(checked) => handleToggle("notify_work_logged", checked)}
+                    disabled={isUpdating}
+                  />
+                </div>
+              )}
+
+              {/* Daily work summary email - for org members */}
+              {isOrgMember && (
+                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <Label htmlFor="notify_work_digest" className="text-base">
+                        Daily work summary
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        One end-of-day email per provider with all hours logged that day. Nothing is sent on days without activity.
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="notify_work_digest"
+                    checked={preferences?.notify_work_digest ?? true}
+                    onCheckedChange={(checked) => handleToggle("notify_work_digest", checked)}
                     disabled={isUpdating}
                   />
                 </div>
