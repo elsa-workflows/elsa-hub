@@ -67,3 +67,6 @@ verify_jwt = false
 
 [functions.sync-roadmap]
 verify_jwt = false
+
+[functions.send-work-digest]
+verify_jwt = false
