@@ -184,9 +184,14 @@ const handler = async (req: Request): Promise<Response> => {
 
           // Check preferences
           const preferenceColumn = getPreferenceColumn(type);
-          const selectFields = preferenceColumn 
+          const baseFields = preferenceColumn
             ? `email_enabled, ${preferenceColumn}`
             : "email_enabled";
+          // Also read digest preference to suppress per-entry work_logged email
+          // when the user has the daily digest enabled.
+          const selectFields = type === "work_logged"
+            ? `${baseFields}, notify_work_digest`
+            : baseFields;
           const { data: prefs } = await supabase
             .from("notification_preferences")
             .select(selectFields)
@@ -197,8 +202,14 @@ const handler = async (req: Request): Promise<Response> => {
           const prefsData = prefs as Record<string, boolean> | null;
           const emailEnabled = prefsData?.email_enabled ?? true;
           const typeEnabled = preferenceColumn && prefsData ? prefsData[preferenceColumn] ?? true : true;
+          const digestEnabled = type === "work_logged"
+            ? (prefsData?.notify_work_digest ?? true)
+            : false;
+          // For work_logged: skip immediate email when digest is on (the
+          // end-of-day summary covers it). In-app notification still fires.
+          const suppressForDigest = type === "work_logged" && digestEnabled;
 
-          if (emailEnabled && typeEnabled) {
+          if (emailEnabled && typeEnabled && !suppressForDigest) {
             const resend = new Resend(resendApiKey);
             const { subject, html } = getEmailTemplate(type, title, message, payload, actionUrl);
 
