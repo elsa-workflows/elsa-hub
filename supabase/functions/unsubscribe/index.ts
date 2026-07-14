@@ -16,9 +16,9 @@ async function sha256(message: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-type UnsubscribeType = "all" | "newsletter" | "work_logged" | "purchase" | "subscription";
+type UnsubscribeType = "all" | "newsletter" | "work_logged" | "work_digest" | "purchase" | "subscription";
 
-const VALID_TYPES: UnsubscribeType[] = ["all", "newsletter", "work_logged", "purchase", "subscription"];
+const VALID_TYPES: UnsubscribeType[] = ["all", "newsletter", "work_logged", "work_digest", "purchase", "subscription"];
 
 function getPreferenceUpdates(type: UnsubscribeType): Record<string, boolean> {
   switch (type) {
@@ -28,6 +28,8 @@ function getPreferenceUpdates(type: UnsubscribeType): Record<string, boolean> {
       return { newsletter_enabled: false };
     case "work_logged":
       return { notify_work_logged: false };
+    case "work_digest":
+      return { notify_work_digest: false };
     case "purchase":
       return { notify_purchase: false };
     case "subscription":
@@ -45,6 +47,8 @@ function getTypeLabel(type: UnsubscribeType): string {
       return "the newsletter";
     case "work_logged":
       return "work logged notifications";
+    case "work_digest":
+      return "the daily work summary email";
     case "purchase":
       return "purchase notifications";
     case "subscription":
