@@ -617,6 +617,7 @@ export type Database = {
           notify_org_invitation: boolean
           notify_purchase: boolean
           notify_subscription: boolean
+          notify_work_digest: boolean
           notify_work_logged: boolean
           updated_at: string
           user_id: string
@@ -631,6 +632,7 @@ export type Database = {
           notify_org_invitation?: boolean
           notify_purchase?: boolean
           notify_subscription?: boolean
+          notify_work_digest?: boolean
           notify_work_logged?: boolean
           updated_at?: string
           user_id: string
@@ -645,6 +647,7 @@ export type Database = {
           notify_org_invitation?: boolean
           notify_purchase?: boolean
           notify_subscription?: boolean
+          notify_work_digest?: boolean
           notify_work_logged?: boolean
           updated_at?: string
           user_id?: string
@@ -1454,6 +1457,39 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      work_digest_sends: {
+        Row: {
+          digest_date: string
+          id: string
+          organization_id: string
+          sent_at: string
+          service_provider_id: string
+          total_minutes: number
+          user_id: string
+          work_log_count: number
+        }
+        Insert: {
+          digest_date: string
+          id?: string
+          organization_id: string
+          sent_at?: string
+          service_provider_id: string
+          total_minutes?: number
+          user_id: string
+          work_log_count?: number
+        }
+        Update: {
+          digest_date?: string
+          id?: string
+          organization_id?: string
+          sent_at?: string
+          service_provider_id?: string
+          total_minutes?: number
+          user_id?: string
+          work_log_count?: number
         }
         Relationships: []
       }

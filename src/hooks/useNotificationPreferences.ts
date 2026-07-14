@@ -9,6 +9,7 @@ export interface NotificationPreferences {
   email_enabled: boolean;
   notify_purchase: boolean;
   notify_work_logged: boolean;
+  notify_work_digest: boolean;
   notify_subscription: boolean;
   notify_org_invitation: boolean;
   notify_intro_call: boolean;
@@ -42,6 +43,7 @@ export function useNotificationPreferences() {
           email_enabled: true,
           notify_purchase: true,
           notify_work_logged: true,
+          notify_work_digest: true,
           notify_subscription: true,
           notify_org_invitation: true,
           notify_intro_call: true,

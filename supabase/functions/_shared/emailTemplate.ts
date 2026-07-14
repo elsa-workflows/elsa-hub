@@ -7,7 +7,7 @@ export interface EmailTemplateOptions {
   ctaText?: string;
   ctaUrl?: string;
   unsubscribeToken?: string;
-  unsubscribeType?: "all" | "newsletter" | "work_logged" | "purchase" | "subscription";
+  unsubscribeType?: "all" | "newsletter" | "work_logged" | "work_digest" | "purchase" | "subscription";
   recipientEmail?: string;   // For RFC 8058 headers
 }
 
