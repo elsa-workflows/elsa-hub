@@ -116,6 +116,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/blog/execute-workflow-needs-published-child-workflow</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/blog/inline-vs-deferred-events-in-elsa-4</loc>
     <lastmod>2026-07-06</lastmod>
     <changefreq>monthly</changefreq>
