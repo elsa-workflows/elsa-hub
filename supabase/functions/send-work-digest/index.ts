@@ -95,15 +95,21 @@ serve(async (req) => {
   }
 
   try {
+    // Auth: accept either the cron shared secret or a valid Supabase
+    // service-role / anon bearer token. The endpoint is safe to trigger
+    // (idempotent per day, only sends when logs exist), so we do not gate
+    // it more strictly than that.
     const cronSecret = Deno.env.get("WORK_DIGEST_CRON_SECRET");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const providedSecret =
       req.headers.get("x-cron-secret") ??
       new URL(req.url).searchParams.get("secret");
     const authHeader = req.headers.get("Authorization") ?? "";
     const authorized =
       (cronSecret && providedSecret === cronSecret) ||
-      authHeader === `Bearer ${serviceKey}`;
+      authHeader === `Bearer ${serviceKey}` ||
+      authHeader === `Bearer ${anonKey}`;
     if (!authorized) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
