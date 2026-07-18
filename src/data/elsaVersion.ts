@@ -17,7 +17,7 @@
 export const ELSA_VERSION = "3.7.1";
 
 /** .NET SDKs the pinned Elsa release is tested against. */
-export const SUPPORTED_DOTNET_SDKS = ["8.0", "9.0"] as const;
+export const SUPPORTED_DOTNET_SDKS = ["8.0", "9.0", "10.0"] as const;
 
 /** ISO date of the last clean-room verification of the guides. */
 export const LAST_VERIFIED_ON = "2026-07-18";
