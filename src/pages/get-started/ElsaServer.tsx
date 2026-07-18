@@ -90,7 +90,8 @@ app.Run();`;
 export default function ElsaServer() {
   return (
     <Layout>
-      <Seo path="/get-started/elsa-server" title="Get started with Elsa Server" description="Step-by-step guide to running Elsa Server: a standalone .NET workflow engine you can host and call from any client." />
+      <Seo path="/get-started/elsa-server" title={`Get started with Elsa Server (${ELSA_VERSION})`} description={`Step-by-step guide to running Elsa Server ${ELSA_VERSION}: a standalone .NET workflow engine you can host and call from any client.`} />
+      <p className="sr-only">Pinned to Elsa {ELSA_VERSION}.</p>
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
