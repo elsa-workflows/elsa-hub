@@ -10,14 +10,17 @@ import {
   GuideBreadcrumb,
   GuideNavigation,
 } from "@/components/get-started";
+import { ELSA_VERSION, pkg } from "@/data/elsaVersion";
 
-const packages = `dotnet add package Elsa.Studio
-dotnet add package Elsa.Studio.Core.BlazorWasm
-dotnet add package Elsa.Studio.Login.BlazorWasm
-dotnet add package Elsa.Studio.Shell.BlazorWasm
-dotnet add package Elsa.Studio.Workflows.Designer
-dotnet add package Elsa.Studio.Workflows.Core
-dotnet add package Elsa.Studio.Workflows.Monaco`;
+const packages = [
+  "Elsa.Studio",
+  "Elsa.Studio.Core.BlazorWasm",
+  "Elsa.Studio.Login.BlazorWasm",
+  "Elsa.Studio.Workflows.Designer",
+  "Elsa.Studio.Workflows.Core",
+]
+  .map(pkg)
+  .join("\n");
 
 const programCs = `using Elsa.Studio.Core.BlazorWasm.Extensions;
 using Elsa.Studio.Extensions;

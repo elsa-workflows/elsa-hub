@@ -9,17 +9,22 @@ import {
   GuideBreadcrumb,
   GuideNavigation,
 } from "@/components/get-started";
+import { ELSA_VERSION, pkg } from "@/data/elsaVersion";
 
-const packages = `dotnet add package Elsa
-dotnet add package Elsa.Persistence.EFCore
-dotnet add package Elsa.Persistence.EFCore.Sqlite
-dotnet add package Elsa.Http
-dotnet add package Elsa.Identity
-dotnet add package Elsa.Scheduling
-dotnet add package Elsa.Workflows.Api
-dotnet add package Elsa.Expressions.CSharp
-dotnet add package Elsa.Expressions.JavaScript
-dotnet add package Elsa.Expressions.Liquid`;
+const packages = [
+  "Elsa",
+  "Elsa.Persistence.EFCore",
+  "Elsa.Persistence.EFCore.Sqlite",
+  "Elsa.Http",
+  "Elsa.Identity",
+  "Elsa.Scheduling",
+  "Elsa.Workflows.Api",
+  "Elsa.Expressions.CSharp",
+  "Elsa.Expressions.JavaScript",
+  "Elsa.Expressions.Liquid",
+]
+  .map(pkg)
+  .join("\n");
 
 const programCs = `using Elsa.Persistence.EFCore.Extensions;
 using Elsa.Persistence.EFCore.Modules.Management;
@@ -85,7 +90,8 @@ app.Run();`;
 export default function ElsaServer() {
   return (
     <Layout>
-      <Seo path="/get-started/elsa-server" title="Get started with Elsa Server" description="Step-by-step guide to running Elsa Server: a standalone .NET workflow engine you can host and call from any client." />
+      <Seo path="/get-started/elsa-server" title={`Get started with Elsa Server (${ELSA_VERSION})`} description={`Step-by-step guide to running Elsa Server ${ELSA_VERSION}: a standalone .NET workflow engine you can host and call from any client.`} />
+      
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
