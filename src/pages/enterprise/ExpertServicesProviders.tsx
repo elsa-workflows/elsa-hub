@@ -85,12 +85,12 @@ export default function ExpertServicesProviders() {
                 className={cn(
                   "grid gap-6",
                   providers.length === 1
-                    ? "mx-auto max-w-md"
+                    ? "grid-cols-1"
                     : "sm:grid-cols-2 lg:grid-cols-2",
                 )}
               >
                 {providers.map((provider) => (
-                  <ProviderTile key={provider.id} provider={provider as any} />
+                  <ProviderTile key={provider.id} provider={provider as any} wide={providers.length === 1} />
                 ))}
               </div>
             ) : (
