@@ -136,6 +136,10 @@ export default function ValenceWorks() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
+  const isDark = useIsDark();
+  const brand = providerBrandAssets["valence-works"];
+  const wordmark = brand ? (isDark ? brand.logoDark : brand.logoLight) : null;
+
   
   const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
     open: false,
