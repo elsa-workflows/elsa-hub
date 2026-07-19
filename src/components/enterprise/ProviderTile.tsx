@@ -20,13 +20,11 @@ export interface ProviderTileData {
 interface ProviderTileProps {
   provider: ProviderTileData;
   tagline?: string;
-  wide?: boolean;
 }
 
 export function ProviderTile({
   provider,
   tagline = "Expert advisory, engineering & priority support for Elsa Workflows",
-  wide = false,
 }: ProviderTileProps) {
   const isDark = useIsDark();
   const brand = providerBrandAssets[provider.slug];
@@ -39,10 +37,7 @@ export function ProviderTile({
   return (
     <Card
       variant="glass"
-      className={cn(
-        "group relative overflow-hidden flex transition-all hover:border-primary/60 hover:shadow-lg",
-        wide ? "flex-col md:flex-row" : "flex-col",
-      )}
+      className="group relative overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:shadow-lg"
     >
       {/* Overlay link — sits behind explicit buttons */}
       <Link
