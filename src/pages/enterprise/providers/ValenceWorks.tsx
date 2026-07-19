@@ -244,38 +244,76 @@ export default function ValenceWorks() {
       </section>
 
       {/* Hero */}
-      <section className="py-12 md:py-20 bg-gradient-to-b from-primary/5 to-transparent">
+      <section className="pt-8 pb-12 md:pb-20">
         <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Valence Works
-            </h1>
-            <p className="text-xl text-muted-foreground mb-4">
-              Direct access to the creator and core maintainer of Elsa Workflows.
-            </p>
-            <p className="text-lg text-muted-foreground">
-              Get focused, senior-level guidance to design, extend, and operate Elsa Workflows 
-              in real-world systems. Whether you need architectural clarity, hands-on pairing, 
-              or help unblocking production issues,{" "}
-               <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
-               provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
-            </p>
-            <p className="text-base text-muted-foreground italic mt-3">
-              Priority Support provides faster access to expertise — not outsourced operations.
-            </p>
-            <div className="mt-8">
-              <Button
-                size="lg"
-                className="gap-2"
-                onClick={() => window.open(VALENCE_WORKS_SCHEDULE_URL, "_blank", "noopener,noreferrer")}
-              >
-                <Calendar className="h-4 w-4" />
-                Book a Call
-              </Button>
+          <div className="max-w-5xl mx-auto">
+            {/* Branded canvas */}
+            <div
+              className={cn(
+                "relative overflow-hidden rounded-2xl border bg-gradient-to-br aspect-[16/6] md:aspect-[16/5]",
+                brand?.accentFrom ?? "from-primary/10",
+                brand?.accentTo ?? "to-transparent",
+              )}
+            >
+              {brand?.mark && (
+                <img
+                  src={brand.mark}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 opacity-[0.06] dark:opacity-[0.08]"
+                />
+              )}
+              {brand?.mark && (
+                <img
+                  src={brand.mark}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -left-16 -bottom-16 h-72 w-72 opacity-[0.04] dark:opacity-[0.06] rotate-12"
+                />
+              )}
+              <div className="relative flex h-full w-full items-center justify-center p-8">
+                {wordmark ? (
+                  <img
+                    src={wordmark}
+                    alt="Valence Works"
+                    className="max-h-20 md:max-h-28 w-auto max-w-[70%] object-contain"
+                  />
+                ) : (
+                  <h1 className="text-4xl md:text-5xl font-bold">Valence Works</h1>
+                )}
+              </div>
+            </div>
+
+            <div className="max-w-3xl mx-auto text-center mt-10 md:mt-14">
+              <h1 className="sr-only">Valence Works</h1>
+              <p className="text-xl text-muted-foreground mb-4">
+                Direct access to the creator and core maintainer of Elsa Workflows.
+              </p>
+              <p className="text-lg text-muted-foreground">
+                Get focused, senior-level guidance to design, extend, and operate Elsa Workflows
+                in real-world systems. Whether you need architectural clarity, hands-on pairing,
+                or help unblocking production issues,{" "}
+                 <a href="https://www.valence.works/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Valence Works</a>{" "}
+                 provides expert support grounded in deep knowledge of Elsa's internals and real-world usage.
+              </p>
+              <p className="text-base text-muted-foreground italic mt-3">
+                Priority Support provides faster access to expertise — not outsourced operations.
+              </p>
+              <div className="mt-8">
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => window.open(VALENCE_WORKS_SCHEDULE_URL, "_blank", "noopener,noreferrer")}
+                >
+                  <Calendar className="h-4 w-4" />
+                  Book a Call
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Who This Is For */}
       <section className="py-16 md:py-24">
