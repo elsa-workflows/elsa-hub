@@ -20,13 +20,11 @@ export interface ProviderTileData {
 interface ProviderTileProps {
   provider: ProviderTileData;
   tagline?: string;
-  wide?: boolean;
 }
 
 export function ProviderTile({
   provider,
   tagline = "Expert advisory, engineering & priority support for Elsa Workflows",
-  wide = false,
 }: ProviderTileProps) {
   const isDark = useIsDark();
   const brand = providerBrandAssets[provider.slug];
@@ -39,10 +37,7 @@ export function ProviderTile({
   return (
     <Card
       variant="glass"
-      className={cn(
-        "group relative overflow-hidden flex transition-all hover:border-primary/60 hover:shadow-lg",
-        wide ? "flex-col md:flex-row" : "flex-col",
-      )}
+      className="group relative overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:shadow-lg"
     >
       {/* Overlay link — sits behind explicit buttons */}
       <Link
@@ -54,12 +49,9 @@ export function ProviderTile({
       {/* Brand canvas */}
       <div
         className={cn(
-          "relative overflow-hidden border-b bg-gradient-to-br",
+          "relative overflow-hidden border-b bg-gradient-to-br w-full aspect-[16/10] md:aspect-[2/1]",
           accentFrom,
           accentTo,
-          wide
-            ? "aspect-[5/3] w-full md:aspect-square md:w-2/5 md:border-b-0 md:border-r"
-            : "aspect-[5/3] w-full",
         )}
       >
         {mark && (
@@ -89,10 +81,7 @@ export function ProviderTile({
       </div>
 
       {/* Meta + actions */}
-      <div className={cn(
-        "relative z-10 flex flex-1 flex-col gap-4 p-6",
-        wide && "md:justify-center",
-      )}>
+      <div className="relative z-10 flex flex-1 flex-col gap-4 p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors">
