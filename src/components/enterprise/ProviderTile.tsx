@@ -39,7 +39,10 @@ export function ProviderTile({
   return (
     <Card
       variant="glass"
-      className="group relative overflow-hidden flex flex-col transition-all hover:border-primary/60 hover:shadow-lg"
+      className={cn(
+        "group relative overflow-hidden flex transition-all hover:border-primary/60 hover:shadow-lg",
+        wide ? "flex-col md:flex-row" : "flex-col",
+      )}
     >
       {/* Overlay link — sits behind explicit buttons */}
       <Link
@@ -51,9 +54,12 @@ export function ProviderTile({
       {/* Brand canvas */}
       <div
         className={cn(
-          "relative aspect-[5/3] w-full overflow-hidden border-b bg-gradient-to-br",
+          "relative overflow-hidden border-b bg-gradient-to-br",
           accentFrom,
           accentTo,
+          wide
+            ? "aspect-[5/3] w-full md:aspect-square md:w-2/5 md:border-b-0 md:border-r"
+            : "aspect-[5/3] w-full",
         )}
       >
         {mark && (
