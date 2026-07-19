@@ -11,11 +11,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { NeutralityDisclaimer, AvailabilityStatusBadge } from "@/components/enterprise";
+import { NeutralityDisclaimer, ProviderTile } from "@/components/enterprise";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowRight, Loader2, Headphones, Calendar } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Headphones } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function ExpertServicesProviders() {
   const { data: providers, isLoading } = useQuery({
@@ -71,88 +71,32 @@ export default function ExpertServicesProviders() {
       {/* Provider Listing */}
       <section className="py-16 md:py-24">
         <div className="container">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-8">Providers</h2>
+          <div className="mx-auto max-w-5xl">
+            <h2 className="mb-8 text-2xl font-bold">Providers</h2>
 
             {isLoading ? (
-              <div className="space-y-4">
+              <div className="grid gap-6 sm:grid-cols-2">
                 {[1, 2].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-4">
-                        <Skeleton className="h-12 w-12 rounded-lg" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-5 w-48" />
-                          <Skeleton className="h-4 w-96" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <Skeleton key={i} className="h-[360px] w-full rounded-xl" />
+                ))}
+              </div>
+            ) : providers && providers.length > 0 ? (
+              <div
+                className={cn(
+                  "grid gap-6",
+                  providers.length === 1
+                    ? "mx-auto max-w-md"
+                    : "sm:grid-cols-2 lg:grid-cols-2",
+                )}
+              >
+                {providers.map((provider) => (
+                  <ProviderTile key={provider.id} provider={provider as any} />
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
-                {providers?.map((provider) => (
-                  <Link
-                    key={provider.id}
-                    to={`/elsa-plus/expert-services/${provider.slug}`}
-                    className="block group"
-                  >
-                    <Card className="transition-all hover:border-primary/50 hover:shadow-md">
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            {provider.logo_url ? (
-                              <img
-                                src={provider.logo_url}
-                                alt={provider.name}
-                                className="h-8 w-8 rounded object-contain"
-                              />
-                            ) : (
-                              <Headphones className="h-6 w-6 text-primary" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-1">
-                              <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
-                                {provider.name}
-                              </h3>
-                              <AvailabilityStatusBadge
-                                status={provider.availability_status}
-                                estimatedLeadTimeDays={provider.estimated_lead_time_days}
-                              />
-                            </div>
-                            <p className="text-muted-foreground text-sm">
-                              Expert advisory, engineering, and priority support for Elsa Workflows
-                            </p>
-                          </div>
-                          {(provider as any).booking_url && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="shrink-0 gap-1.5"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                window.open((provider as any).booking_url, "_blank", "noopener,noreferrer");
-                              }}
-                            >
-                              <Calendar className="h-3.5 w-3.5" />
-                              Book
-                            </Button>
-                          )}
-                          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-
-                {providers?.length === 0 && (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Headphones className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No providers are currently available.</p>
-                  </div>
-                )}
+              <div className="py-12 text-center text-muted-foreground">
+                <Headphones className="mx-auto mb-4 h-12 w-12 opacity-50" />
+                <p>No providers are currently available.</p>
               </div>
             )}
           </div>
