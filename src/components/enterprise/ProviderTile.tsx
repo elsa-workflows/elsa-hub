@@ -81,10 +81,7 @@ export function ProviderTile({
       </div>
 
       {/* Meta + actions */}
-      <div className={cn(
-        "relative z-10 flex flex-1 flex-col gap-4 p-6",
-        wide && "md:justify-center",
-      )}>
+      <div className="relative z-10 flex flex-1 flex-col gap-4 p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-lg font-semibold leading-tight group-hover:text-primary transition-colors">
