@@ -20,11 +20,13 @@ export interface ProviderTileData {
 interface ProviderTileProps {
   provider: ProviderTileData;
   tagline?: string;
+  wide?: boolean;
 }
 
 export function ProviderTile({
   provider,
   tagline = "Expert advisory, engineering & priority support for Elsa Workflows",
+  wide = false,
 }: ProviderTileProps) {
   const isDark = useIsDark();
   const brand = providerBrandAssets[provider.slug];
