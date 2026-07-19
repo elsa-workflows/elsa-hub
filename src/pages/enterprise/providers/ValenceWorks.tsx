@@ -46,6 +46,8 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { providerBrandAssets } from "@/components/enterprise/providerBrandAssets";
+import { useIsDark } from "@/hooks/use-is-dark";
 
 const VALENCE_WORKS_SCHEDULE_URL = "https://schedule.valence.works/";
 
