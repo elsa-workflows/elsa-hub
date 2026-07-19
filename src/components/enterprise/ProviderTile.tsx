@@ -49,12 +49,9 @@ export function ProviderTile({
       {/* Brand canvas */}
       <div
         className={cn(
-          "relative overflow-hidden border-b bg-gradient-to-br",
+          "relative overflow-hidden border-b bg-gradient-to-br w-full aspect-[16/10] md:aspect-[2/1]",
           accentFrom,
           accentTo,
-          wide
-            ? "aspect-[5/3] w-full md:aspect-square md:w-2/5 md:border-b-0 md:border-r"
-            : "aspect-[5/3] w-full",
         )}
       >
         {mark && (
