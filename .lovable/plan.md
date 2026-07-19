@@ -1,49 +1,47 @@
 ## Goal
 
-When work is logged for a customer during the day, send that organization's members a single end-of-day digest email summarizing the hours. Skip days with no activity. Respect existing notification preferences.
+Give providers on `/elsa-plus/expert-services` real presence. Replace the horizontal thin rows with large square tiles where the provider's logo is the hero, backed by a distinctive branded surface.
 
-## Approach
+## Assets to add
 
-Reuse the existing Resend + `buildEmailTemplate` + `notification_preferences` stack. Add one scheduled edge function and one small preference flag. No changes to how work is logged. The existing per-entry `work_logged` in-app notification stays; only the noisy per-entry email path is complemented (and, per user intent, effectively replaced for digest-subscribed users — see Decision below).
+Copy Valence Works's updated branding from the sibling project (`91e636ed-cbe0-4905-8bc4-26ef06811f91`) into `src/assets/providers/`:
 
-## Changes
+- `valence-works-logo.svg` (primary wordmark, light backgrounds)
+- `valence-works-logo-dark.svg` (wordmark for dark backgrounds)
+- `valence-works-mark.svg` (icon-only mark, used as a subtle backdrop watermark)
 
-### 1. Preferences (migration)
-- Add column `notify_work_digest boolean NOT NULL DEFAULT true` to `notification_preferences`.
-- Extend `useNotificationPreferences` typing + `NotificationSettings.tsx` UI: new toggle "Daily work summary email" grouped with existing work notification setting.
-- Extend `emailTemplate.ts` `unsubscribeType` union with `"work_digest"` and handle it in `unsubscribe` edge function + `notification_preferences` mapping.
+The DB column `service_providers.logo_url` currently stores a bitmap. We'll keep DB values untouched and, for known slugs, prefer the local SVGs (mapped by slug in a small `providerBrandAssets` object). Unknown providers fall back to `logo_url` or a generic icon — behavior unchanged for them.
 
-### 2. New edge function `send-work-digest`
-- `verify_jwt = false`, invoked by pg_cron (auth via `WORK_DIGEST_CRON_SECRET` header, mirroring existing `WEAVER_INGEST_CRON_SECRET` pattern).
-- Accepts optional `{ date?: "YYYY-MM-DD", tz?: "UTC" }`; defaults to yesterday UTC.
-- Logic:
-  1. Query `work_logs` grouped by `organization_id, service_provider_id` where `performed_at` falls in the target day AND `created_at` also falls in it (so back-dated entries logged today still get included on "today's" digest — see Decision).
-  2. For each `(org, provider)` group with ≥1 entry: load provider name, org members, and each member's `notification_preferences`.
-  3. For each member where `email_enabled AND notify_work_digest`: send one email using `buildEmailTemplate` with subject `"Today's work summary — {providerName}"`, a small table (date, category, hours, description truncated) and totals, CTA to `…/dashboard/org/{slug}/workspaces/{providerSlug}`.
-  4. Idempotency: insert a row into a new `work_digest_sends(organization_id, service_provider_id, digest_date, user_id, sent_at)` table with a unique index on `(organization_id, service_provider_id, digest_date, user_id)`; skip already-sent rows. Prevents duplicate sends if cron retries.
+## New tile design
 
-### 3. Scheduling (SQL via supabase insert tool, not migration — contains anon key)
-- Enable `pg_cron`, `pg_net`.
-- Schedule `send-work-digest` daily at 18:00 UTC (end of European workday; acceptable default, easy to change later).
+Layout on `/elsa-plus/expert-services`:
 
-### 4. Decision to confirm with user
-- **Turn off the existing immediate per-entry `send-work-notification` email?** Currently every logged entry pings org members via `create-notification` (in-app + probably email through `send-notification`). If the digest is the goal, we should keep the in-app notification but suppress the per-entry *email* for users who have `notify_work_digest` on. Proposed: yes, suppress per-entry email when digest is enabled; users who disable digest still get per-entry emails (via existing `notify_work_logged`).
+- Responsive grid: 1 col mobile, 2 col md, 2–3 col lg (keeps tiles large; we only have one provider today, so a single centered tile with `max-w-md` when count === 1).
+- Each tile is a ~square card (`aspect-[4/5]` on mobile, `aspect-square` md+), variant `glass`, hairline border, generous padding.
 
-## Technical notes
+Tile anatomy, top → bottom:
 
-- Idempotency table + unique index avoid duplicate emails on retries or manual re-runs.
-- "No activity ⇒ no email" is enforced by grouping on actual `work_logs` rows — the function simply produces zero sends when the query returns nothing.
-- Timezone: v1 uses UTC day boundaries; per-org timezone can be added later without schema changes (add nullable `timezone` to `organizations` and read it in the grouping query).
-- All new SQL for the new table follows the required GRANT + RLS structure; only `service_role` needs access.
+1. **Brand canvas** (top ~55%): a soft branded surface — subtle radial gradient using the provider's accent (default: primary/8 → primary/0), with the icon mark rendered large and low-opacity (~8%) as a watermark, top-right. The full wordmark logo sits centered, sized to breathe (max-h ~72px, dark/light variant chosen via `useIsDark`).
+2. **Divider**: hairline `border-t`.
+3. **Meta strip**: provider name (sr-only, already in logo) + `AvailabilityStatusBadge` inline with a short tagline ("Expert advisory, engineering & priority support for Elsa Workflows"). One line, muted.
+4. **Actions**: primary "View details" button (fills width on mobile, auto md+) with `ArrowRight`. If `booking_url` is set, a secondary outline "Book intro" button with `Calendar`. Buttons live on the card; the whole card is not a `<Link>` anymore so button clicks aren't hacks with `preventDefault` — the tile has an overlay `<Link>` with `aria-label` that sits behind the buttons (buttons use `relative z-10`).
+
+Hover: border becomes `border-primary/60`, shadow lifts (`shadow-lg`), the brand canvas gradient intensifies slightly. No scale transform.
+
+## Files to change
+
+- **New**: `src/assets/providers/valence-works-logo.svg`, `valence-works-logo-dark.svg`, `valence-works-mark.svg` — copied from the Valence Works project.
+- **New**: `src/components/enterprise/ProviderTile.tsx` — the tile component described above. Uses `useIsDark` to pick light/dark wordmark, and imports the SVGs so Vite fingerprints them.
+- **New**: `src/components/enterprise/providerBrandAssets.ts` — small map `{ [slug]: { logoLight, logoDark, mark, accent? } }`.
+- **Edit**: `src/components/enterprise/index.ts` — export `ProviderTile`.
+- **Edit**: `src/pages/enterprise/ExpertServicesProviders.tsx`:
+  - Replace the vertical `space-y-4` list with the responsive grid described above.
+  - Render `<ProviderTile provider={p} />` instead of the inline `Card`.
+  - Skeleton state: 2 aspect-square skeleton tiles in the same grid.
+  - Keep hero, breadcrumb, and neutrality disclaimer unchanged.
 
 ## Out of scope
-- Per-user timezone preferences.
-- Weekly/monthly rollups.
-- Provider-side digest (this is customer-facing only, matching the request).
-- Any change to `create_work_log_and_allocate` RPC.
 
-## Verification
-- Toggle appears in Notification Settings and persists.
-- Manually invoking `send-work-digest` with `?date=YYYY-MM-DD` for a day with logs sends one email per eligible member per (org, provider); second invocation sends nothing (idempotency).
-- Invoking for a day with no logs sends nothing and writes no rows.
-- Unsubscribe link with `type=work_digest` flips only `notify_work_digest` to false.
+- No DB changes, no edits to provider records.
+- No changes to `/elsa-plus/expert-services/:slug` detail page.
+- Provider portal branding upload UI stays as-is.
