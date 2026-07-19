@@ -90,7 +90,7 @@ export default function ExpertServicesProviders() {
                 )}
               >
                 {providers.map((provider) => (
-                  <ProviderTile key={provider.id} provider={provider as any} wide={providers.length === 1} />
+                  <ProviderTile key={provider.id} provider={provider as any} />
                 ))}
               </div>
             ) : (
