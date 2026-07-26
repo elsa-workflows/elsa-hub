@@ -8,7 +8,7 @@ import {
   FileCode2,
   Handshake,
   Boxes,
-  LayoutDashboard,
+  LayoutDashboard as _LayoutDashboardUnused,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {
