@@ -29,14 +29,6 @@ const servicesAndSupport = [
 
 const runtimeAndOperations = [
   {
-    title: "Elsa Platform",
-    description:
-      "Control plane for Elsa: declarative manifests, package governance, runtime composition, and a deterministic deploy loop with full history.",
-    icon: LayoutDashboard,
-    href: "/elsa-plus/platform",
-    badge: "In development",
-  },
-  {
     title: "Runtime Builder",
     description:
       "Visually compose an Elsa runtime — pick an image, enable capabilities, configure settings, and preview a complete Docker deployment bundle.",
