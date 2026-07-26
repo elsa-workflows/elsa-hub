@@ -8,7 +8,7 @@ import {
   FileCode2,
   Handshake,
   Boxes,
-  LayoutDashboard,
+  
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {
@@ -28,14 +28,6 @@ const servicesAndSupport = [
 ];
 
 const runtimeAndOperations = [
-  {
-    title: "Elsa Platform",
-    description:
-      "Control plane for Elsa: declarative manifests, package governance, runtime composition, and a deterministic deploy loop with full history.",
-    icon: LayoutDashboard,
-    href: "/elsa-plus/platform",
-    badge: "In development",
-  },
   {
     title: "Runtime Builder",
     description:

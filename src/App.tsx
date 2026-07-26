@@ -32,12 +32,6 @@ const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
 const Training = lazy(() => import("./pages/enterprise/Training"));
 const RuntimeBuilderLanding = lazy(() => import("./pages/enterprise/RuntimeBuilderLanding"));
 const RuntimeBuilderComposer = lazy(() => import("./pages/enterprise/RuntimeBuilderComposer"));
-const ElsaPlatform = lazy(() => import("./pages/enterprise/ElsaPlatform"));
-const PlatformDeploymentLoop = lazy(() => import("./pages/enterprise/platform/DeploymentLoop"));
-const PlatformDeploymentModel = lazy(() => import("./pages/enterprise/platform/DeploymentModel"));
-const PlatformSurfaces = lazy(() => import("./pages/enterprise/platform/Surfaces"));
-const PlatformPipeline = lazy(() => import("./pages/enterprise/platform/Pipeline"));
-const PlatformRoadmap = lazy(() => import("./pages/enterprise/platform/Roadmap"));
 
 const Resources = lazy(() => import("./pages/Resources"));
 const Roadmap = lazy(() => import("./pages/Roadmap"));
@@ -139,13 +133,6 @@ const App = () => (
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
-              <Route path="/elsa-plus/platform" element={<ElsaPlatform />} />
-              <Route path="/elsa-plus/platform/deployment-model" element={<PlatformDeploymentModel />} />
-              <Route path="/elsa-plus/platform/deployment-loop" element={<PlatformDeploymentLoop />} />
-              <Route path="/elsa-plus/platform/deployment-loop" element={<PlatformDeploymentLoop />} />
-              <Route path="/elsa-plus/platform/surfaces" element={<PlatformSurfaces />} />
-              <Route path="/elsa-plus/platform/pipeline" element={<PlatformPipeline />} />
-              <Route path="/elsa-plus/platform/roadmap" element={<PlatformRoadmap />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />
               <Route path="/elsa-plus/priority-support" element={<Navigate to="/elsa-plus/expert-services/valence-works" replace />} />
               {/* Backward compatibility redirects */}

@@ -52,7 +52,7 @@ const paths: LearningPath[] = [
       { label: "Combined Server + Studio reference setup", href: "/get-started/elsa-server-and-studio", internal: true, kind: "guide" },
       { label: "Production checklist & guidance", href: "https://docs.elsaworkflows.io/", kind: "doc" },
       { label: "Browse the blog for deep dives", href: "/blog", internal: true, kind: "post" },
-      { label: "Pre-built Docker images & runtime builder", href: "/elsa-platform", internal: true, kind: "guide" },
+      { label: "Pre-built Docker images & runtime builder", href: "/elsa-plus/runtime-builder", internal: true, kind: "guide" },
       { label: "Explore Elsa+ for managed hosting & support", href: "/elsa-plus", internal: true, kind: "guide" },
     ],
   },
