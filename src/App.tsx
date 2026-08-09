@@ -143,7 +143,7 @@ const App = () => (
               {/* Backward compatibility redirects */}
               <Route path="/enterprise" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/enterprise/expert-services" element={<Navigate to="/elsa-plus/expert-services" replace />} />
-              <Route path="/enterprise/docker-images" element={<Navigate to="/elsa-plus/docker-images" replace />} />
+              <Route path="/enterprise/docker-images" element={<Navigate to="/elsa-plus/valence-runtime/images" replace />} />
               <Route path="/enterprise/cloud-services" element={<Navigate to="/elsa-plus/cloud-services" replace />} />
               <Route path="/enterprise/training" element={<Navigate to="/elsa-plus/training" replace />} />
               <Route path="/marketplace" element={<Navigate to="/elsa-plus" replace />} />
@@ -229,3 +229,8 @@ function OrgRedirect() {
 }
 
 export default App;
+
+function LegacyImageRedirect() {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/elsa-plus/valence-runtime/images/${slug ?? ""}`} replace />;
+}
