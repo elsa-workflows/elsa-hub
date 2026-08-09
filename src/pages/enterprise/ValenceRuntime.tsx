@@ -251,19 +251,74 @@ export default function ValenceRuntime() {
         </div>
       </section>
 
-      {/* Response, not resolution */}
+      {/* What each tier is */}
       <section className="py-12 md:py-16 bg-surface-subtle">
-        <div className="container max-w-4xl space-y-4">
-          <h2 className="text-3xl font-bold">Response, not resolution</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Response times are guaranteed. Resolution times are not, at any tier. Resolution time
-            for an arbitrary defect depends on its cause, your environment, and third-party
-            components. A guarantee that can't be honoured is worse than none. What is committed:
-            a reply within the stated window, working the issue in good faith, and being straight
-            when something can't be fixed quickly.
+        <div className="container max-w-4xl space-y-6">
+          <h2 className="text-3xl font-bold">What each tier is</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {tierDetails.map((tier) => (
+              <div key={tier.name} className="rounded-xl border bg-card p-5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold">{tier.name}</h3>
+                  {tier.badge && (
+                    <Badge variant="outline" className="text-[10px] font-normal">
+                      {tier.badge}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{tier.body}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-muted-foreground">
+            Project work — implementation, architecture review, migrations, training — isn't
+            bundled into any tier. That's{" "}
+            <Link to="/elsa-plus/expert-services" className="text-primary hover:underline">
+              Expert Services
+            </Link>
+            , quoted per engagement.
           </p>
         </div>
       </section>
+
+      {/* Triage */}
+      <section className="py-12 md:py-16">
+        <div className="container max-w-4xl space-y-4">
+          <h2 className="text-3xl font-bold">Triage is committed. Fixing is not.</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Every bug report gets a written answer within your tier's window. No tier promises a
+            fix, or a date — time to fix an arbitrary defect depends on its cause, your
+            environment, and third-party components, and a promise that can't be honoured is worse
+            than none.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            What is committed: every report receives one of four written outcomes.
+          </p>
+          <div className="overflow-hidden rounded-xl border">
+            <table className="w-full text-sm">
+              <tbody>
+                {outcomes.map((o, i) => (
+                  <tr key={o.label} className={i > 0 ? "border-t" : undefined}>
+                    <th
+                      scope="row"
+                      className="text-left font-medium px-4 py-3 align-top w-48 whitespace-nowrap"
+                    >
+                      {o.label}
+                    </th>
+                    <td className="px-4 py-3 text-muted-foreground">{o.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-muted-foreground leading-relaxed">
+            Your reports are weighted above community reports in the work queue. On Runtime
+            Priority and above, accepted fixes are backported to the version line you actually run
+            — so you get the fix without taking a whole new minor.
+          </p>
+        </div>
+      </section>
+
 
       {/* Not included */}
       <section className="py-12 md:py-16">
