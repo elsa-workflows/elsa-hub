@@ -21,9 +21,14 @@ const servicesAndSupport = [
   {
     title: "Expert Advisory, Engineering & Support",
     description:
-      "Architecture review, workflow design, production troubleshooting, priority support, and hands-on pairing with Elsa experts.",
+      "Architecture review, workflow design, migration and upgrade assistance, training, and hands-on pairing — scoped and quoted per engagement.",
     icon: Users,
     href: "/elsa-plus/expert-services",
+    note: {
+      text: "Looking for ongoing support with a guaranteed response time instead of a project engagement? That's part of a",
+      linkLabel: "Valence Runtime subscription.",
+      linkHref: "/elsa-plus/valence-runtime",
+    },
   },
 ];
 
@@ -37,12 +42,13 @@ const runtimeAndOperations = [
     badge: "Preview",
   },
   {
-    title: "Docker Images",
+    title: "Valence Runtime",
     description:
-      "Production-oriented Elsa containers from Valence Works — server, studio, and combined images. Free to try; not yet a supported distribution.",
+      "Production-ready Elsa container images — server, Studio, and combined — built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and direct access to the maintainer.",
     icon: Container,
-    href: "/elsa-plus/docker-images",
+    href: "/elsa-plus/valence-runtime",
     badge: "Early Preview",
+    docHref: "https://github.com/valence-works/runtime",
   },
   {
     title: "Cloud & Managed Services",
