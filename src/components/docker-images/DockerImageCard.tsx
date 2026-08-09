@@ -48,8 +48,8 @@ export function DockerImageCard({ image }: DockerImageCardProps) {
             <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
-        <Button asChild variant="outline" size="icon" title="Docker Hub">
-          <a href={image.dockerHubUrl} target="_blank" rel="noopener noreferrer" aria-label="Docker Hub">
+        <Button asChild variant="outline" size="icon" title="Documentation & issue tracking">
+          <a href={image.registryUrl} target="_blank" rel="noopener noreferrer" aria-label="Documentation & issue tracking">
             <ExternalLink className="h-4 w-4" />
           </a>
         </Button>
