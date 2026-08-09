@@ -25,7 +25,7 @@ export interface BuilderImage {
     required: boolean;
     description?: string;
   }[];
-  dockerHubUrl: string;
+  registryUrl: string;
 }
 
 function roleFromSlug(slug: string): BuilderImageRole {
@@ -66,7 +66,7 @@ function toBuilderImage(src: DockerImage): BuilderImage {
       required: Boolean(e.required),
       description: e.description,
     })),
-    dockerHubUrl: src.dockerHubUrl,
+    registryUrl: src.registryUrl,
   };
 }
 
