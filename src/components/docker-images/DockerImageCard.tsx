@@ -43,7 +43,7 @@ export function DockerImageCard({ image }: DockerImageCardProps) {
 
       <div className="mt-auto flex items-center gap-2">
         <Button asChild className="gap-2 flex-1">
-          <Link to={`/elsa-plus/docker-images/${image.slug}`}>
+          <Link to={`/elsa-plus/valence-runtime/images/${image.slug}`}>
             View instructions
             <ArrowRight className="h-4 w-4" />
           </Link>

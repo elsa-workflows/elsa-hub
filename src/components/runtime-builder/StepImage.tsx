@@ -107,12 +107,12 @@ export function StepImage() {
               <>
                 {" "}
                 <a
-                  href={current.dockerHubUrl}
+                  href={current.registryUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-primary hover:underline"
                 >
-                  Docker Hub <ExternalLink className="h-3 w-3" />
+                  Documentation <ExternalLink className="h-3 w-3" />
                 </a>
               </>
             )}
@@ -147,7 +147,7 @@ export function StepImage() {
             <p className="font-medium">Studio needs a running Elsa Server.</p>
             <p className="text-xs text-muted-foreground">
               The generated bundle will include both the Studio and an
-              accompanying Elsa Pro Server service so it boots out of the box.
+              accompanying Valence Runtime Server service so it boots out of the box.
               Adjust env vars in <code>.env.example</code> before deploying.
             </p>
           </div>

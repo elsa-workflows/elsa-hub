@@ -29,7 +29,7 @@ export default function DockerImageDetail() {
   const image = slug ? getDockerImage(slug) : undefined;
 
   if (!image) {
-    return <Navigate to="/elsa-plus/docker-images" replace />;
+    return <Navigate to="/elsa-plus/valence-runtime/images" replace />;
   }
 
   const Icon = image.icon;
@@ -46,7 +46,7 @@ networks:
   return (
     <Layout>
       <Seo
-        path={`/elsa-plus/docker-images/${image.slug}`}
+        path={`/elsa-plus/valence-runtime/images/${image.slug}`}
         title={`${image.name} Docker image — Elsa+`}
         description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works. Configuration, environment variables, docker run and Docker Compose snippets. Free to try; not yet a supported distribution.`}
       />
@@ -62,7 +62,7 @@ networks:
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/elsa-plus/docker-images">Docker Images</Link>
+                  <Link to="/elsa-plus/valence-runtime/images">Docker Images</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -139,15 +139,15 @@ networks:
           <div className="container max-w-4xl">
             <Alert className="border-warning/40 bg-warning/5">
               <AlertCircle className="h-4 w-4 text-warning" />
-              <AlertTitle>Requires a running Elsa Pro Server</AlertTitle>
+              <AlertTitle>Requires a running Valence Runtime Server</AlertTitle>
               <AlertDescription className="text-muted-foreground">
                 Studio is a UI only — it cannot execute or persist workflows on its own. You need a reachable{" "}
-                <Link to="/elsa-plus/docker-images/elsa-pro-server" className="text-primary hover:underline">
-                  Elsa Pro Server
+                <Link to="/elsa-plus/valence-runtime/images/elsa-pro-server" className="text-primary hover:underline">
+                  Valence Runtime Server
                 </Link>{" "}
                 (or the all-in-one{" "}
-                <Link to="/elsa-plus/docker-images/elsa-pro-combined" className="text-primary hover:underline">
-                  Elsa Pro Combined
+                <Link to="/elsa-plus/valence-runtime/images/elsa-pro-combined" className="text-primary hover:underline">
+                  Valence Runtime Combined
                 </Link>{" "}
                 image) before Studio is useful. Sample commands for running the server are included below.
               </AlertDescription>
@@ -168,7 +168,7 @@ networks:
               "Docker 20.10 or later",
               `Free local port ${image.hostPort}`,
               ...(image.needsSharedNetwork ? ["A shared Docker network named 'elsa'"] : []),
-              ...(image.requiresServer ? ["A running Elsa Pro Server reachable from this container"] : []),
+              ...(image.requiresServer ? ["A running Valence Runtime Server reachable from this container"] : []),
             ]}
           />
 
@@ -182,7 +182,7 @@ networks:
           {serverImage && (
             <div>
               <h3 className="font-semibold mb-2">
-                {image.needsSharedNetwork ? "2." : "1."} Run an Elsa Pro Server (skip if you already have one)
+                {image.needsSharedNetwork ? "2." : "1."} Run an Valence Runtime Server (skip if you already have one)
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
                 Studio will connect to this container. If you already have a server running, skip ahead.
@@ -238,7 +238,7 @@ networks:
           <h2 className="text-3xl font-bold">Quick start with Docker Compose</h2>
           <p className="text-muted-foreground">
             Drop this service into your <code className="font-mono">docker-compose.yml</code>. If you also run other
-            Elsa Pro images, add their service blocks alongside this one and keep them on the same{" "}
+            Valence Runtime images, add their service blocks alongside this one and keep them on the same{" "}
             <code className="font-mono">elsa</code> network.
           </p>
           <CodeBlock code={composeFile} language="yaml" title="docker-compose.yml" />
@@ -368,7 +368,7 @@ networks:
               </a>
             </li>
             <li>
-              <Link to="/elsa-plus/docker-images" className="inline-flex items-center gap-2 text-primary hover:underline">
+              <Link to="/elsa-plus/valence-runtime/images" className="inline-flex items-center gap-2 text-primary hover:underline">
                 ← Back to all Docker images
               </Link>
             </li>
