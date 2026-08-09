@@ -187,7 +187,7 @@ volumes:
 
 export const dockerImages: DockerImage[] = [
   {
-    slug: "elsa-pro-server",
+    slug: "runtime-server",
     name: "Valence Runtime Server",
     tagline: "Backend-only Elsa workflow runtime and management API.",
     description:
@@ -220,7 +220,7 @@ export const dockerImages: DockerImage[] = [
     showNuplane: true,
   },
   {
-    slug: "elsa-pro-studio",
+    slug: "runtime-studio",
     name: "Valence Runtime Studio",
     tagline: "Visual workflow designer — requires a running Valence Runtime Server.",
     description:
@@ -268,7 +268,7 @@ export const dockerImages: DockerImage[] = [
     requiresServer: true,
   },
   {
-    slug: "elsa-pro-combined",
+    slug: "runtime-combined",
     name: "Valence Runtime Combined",
     tagline: "Server + Studio in a single container, served from one origin.",
     description:

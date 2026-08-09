@@ -34,7 +34,7 @@ export default function DockerImageDetail() {
 
   const Icon = image.icon;
   const serverImage = image.requiresServer
-    ? dockerImages.find((i) => i.slug === "elsa-pro-server")
+    ? dockerImages.find((i) => i.slug === "runtime-server")
     : undefined;
 
   const composeFile = `services:
@@ -150,11 +150,11 @@ networks:
               <AlertTitle>Requires a running Valence Runtime Server</AlertTitle>
               <AlertDescription className="text-muted-foreground">
                 Studio is a UI only — it cannot execute or persist workflows on its own. You need a reachable{" "}
-                <Link to="/elsa-plus/valence-runtime/images/elsa-pro-server" className="text-primary hover:underline">
+                <Link to="/elsa-plus/valence-runtime/images/runtime-server" className="text-primary hover:underline">
                   Valence Runtime Server
                 </Link>{" "}
                 (or the all-in-one{" "}
-                <Link to="/elsa-plus/valence-runtime/images/elsa-pro-combined" className="text-primary hover:underline">
+                <Link to="/elsa-plus/valence-runtime/images/runtime-combined" className="text-primary hover:underline">
                   Valence Runtime Combined
                 </Link>{" "}
                 image) before Studio is useful. Sample commands for running the server are included below.

@@ -449,7 +449,7 @@ function buildDockerCompose(ctx: Ctx): {
 
   // Studio needs a Server companion to be runnable.
   if (selected.role === "studio") {
-    const server = findBuilderImage("elsa-pro-server");
+    const server = findBuilderImage("runtime-server");
     if (server) {
       const companion = {
         slug: server.slug,

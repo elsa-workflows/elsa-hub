@@ -10,7 +10,7 @@ export interface BuilderImage {
   slug: string;
   name: string;
   tagline: string;
-  /** Docker image name without tag (e.g. `valenceworks/elsa-pro-server`). */
+  /** Docker image name without tag (e.g. `ghcr.io/valence-works/runtime-server`). */
   image: string;
   role: BuilderImageRole;
   defaultHostPort: number;
@@ -74,7 +74,7 @@ export const RUNTIME_BUILDER_IMAGES: BuilderImage[] = dockerImages.map(
   toBuilderImage,
 );
 
-export const DEFAULT_IMAGE_SLUG = "elsa-pro-combined";
+export const DEFAULT_IMAGE_SLUG = "runtime-combined";
 
 export function findBuilderImage(slug: string): BuilderImage | undefined {
   return RUNTIME_BUILDER_IMAGES.find((i) => i.slug === slug);
@@ -83,5 +83,5 @@ export function findBuilderImage(slug: string): BuilderImage | undefined {
 /** Server companion used when the user picks Studio alone. */
 export function serverCompanionFor(image: BuilderImage): BuilderImage | null {
   if (image.role !== "studio") return null;
-  return findBuilderImage("elsa-pro-server") ?? null;
+  return findBuilderImage("runtime-server") ?? null;
 }
