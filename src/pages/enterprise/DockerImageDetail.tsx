@@ -174,11 +174,28 @@ networks:
           <PrerequisitesBox
             items={[
               "Docker 20.10 or later",
+              "Approved Early Preview access to the private ghcr.io registry",
               `Free local port ${image.hostPort}`,
               ...(image.needsSharedNetwork ? ["A shared Docker network named 'elsa'"] : []),
               ...(image.requiresServer ? ["A running Valence Runtime Server reachable from this container"] : []),
             ]}
           />
+
+          <div>
+            <h3 className="font-semibold mb-2">Authenticate against the private registry</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Valence Runtime images are hosted on GitHub Container Registry and are not publicly pullable. Use a
+              GitHub token with <code className="font-mono">read:packages</code> on an account that has been granted
+              Early Preview access.
+            </p>
+            <CodeBlock
+              code={`echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+docker pull ${image.image}:3.8.0-preview.5413`}
+              language="bash"
+            />
+          </div>
+
+
 
           {image.needsSharedNetwork && (
             <div>
