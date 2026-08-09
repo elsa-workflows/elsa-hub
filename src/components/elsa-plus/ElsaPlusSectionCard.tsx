@@ -12,6 +12,12 @@ interface ElsaPlusCardItem {
   href?: string;
   comingSoon?: boolean;
   badge?: string;
+  docHref?: string;
+  note?: {
+    text: string;
+    linkLabel: string;
+    linkHref: string;
+  };
 }
 
 interface ElsaPlusSectionCardProps {
