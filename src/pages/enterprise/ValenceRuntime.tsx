@@ -155,8 +155,9 @@ export default function ValenceRuntime() {
             <p className="text-xl text-muted-foreground">
               Production-ready Elsa container images — server, Studio, and combined — built,
               hardened and patched by the maintainer of Elsa. Subscriptions add a committed
-              security-patch cadence and direct access to the maintainer.
+              security-patch cadence and a bug queue he actually works.
             </p>
+
             <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
               <Button asChild>
                 <Link to="/elsa-plus/expert-services/valence-works">
