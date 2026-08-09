@@ -130,7 +130,7 @@ const App = () => (
               <Route path="/elsa-plus/valence-runtime" element={<ValenceRuntime />} />
               <Route path="/elsa-plus/valence-runtime/images" element={<DockerImages />} />
               <Route path="/elsa-plus/valence-runtime/images/:slug" element={<DockerImageDetail />} />
-              <Route path="/elsa-plus/docker-images" element={<Navigate to="/elsa-plus/valence-runtime/images" replace />} />
+              <Route path="/elsa-plus/docker-images" element={<Navigate to="/elsa-plus/valence-runtime" replace />} />
               <Route path="/elsa-plus/docker-images/elsa-pro-studio-blazorserver" element={<Navigate to="/elsa-plus/valence-runtime/images/elsa-pro-studio" replace />} />
               <Route path="/elsa-plus/docker-images/:slug" element={<LegacyImageRedirect />} />
               <Route path="/elsa-plus/production-docker" element={<Navigate to="/elsa-plus/valence-runtime/images" replace />} />
