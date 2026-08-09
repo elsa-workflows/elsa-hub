@@ -26,8 +26,8 @@ const rows: { label: string; values: (string | boolean)[] }[] = [
   { label: "Price / year", values: ["Free", "€1,500", "€4,500", "€25,000"] },
   { label: "Availability", values: ["Open", "Open", "Open", "3 slots"] },
   { label: "Registry", values: ["Public", "Private", "Private", "Private"] },
-  { label: "Hardened, signed, SBOM", values: [false, true, true, true] },
-  { label: "Security patch cadence", values: [false, true, true, true] },
+  { label: "Hardened, signed, SBOM", values: ["Yes — same build", true, true, true] },
+  { label: "Security patch commitment", values: [false, true, true, true] },
   { label: "Immutable version tags", values: [false, true, true, true] },
   {
     label: "Bug reports triaged",
@@ -70,7 +70,7 @@ const tierDetails: { name: string; badge?: string; body: string; extra?: string 
   {
     name: "Community",
     badge: "Free",
-    body: "Public images, the open source engine, a public issue tracker. No hardening, no patch commitment, no triage commitment. These images are currently frozen while publishing moves to the private registry.",
+    body: "The same build the paid tiers get — same layers, same digest, nothing stripped out or deliberately degraded. Public on ghcr.io, pullable with no account and no login. What it does not include: any patch commitment, any triage commitment, backports, or immutable version tags. It publishes only moving tags (latest and the Elsa version), so a Community deployment cannot be pinned to an exact build. That is the line between evaluating freely and depending on it commercially.",
   },
   {
     name: "Runtime",
@@ -224,16 +224,77 @@ export default function ValenceRuntime() {
       </section>
 
 
-      {/* Tiers */}
+      {/* Try it — free images */}
       <section className="py-12 md:py-16">
+        <div className="container max-w-4xl space-y-4">
+          <h2 className="text-3xl font-bold">Try it</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            The Community images are public on GitHub Container Registry. No account, no login —
+            just pull:
+          </p>
+          <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
+{`docker pull ghcr.io/valence-works/runtime-ce-combined:latest
+
+docker run -it -p 13000:8080 \\
+  -e ASPNETCORE_ENVIRONMENT=Development \\
+  ghcr.io/valence-works/runtime-ce-combined:latest`}
+          </pre>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <h3 className="font-semibold">Free — public, no account</h3>
+              <ul className="text-muted-foreground font-mono text-xs space-y-1">
+                <li>ghcr.io/valence-works/runtime-ce-server</li>
+                <li>ghcr.io/valence-works/runtime-ce-studio</li>
+                <li>ghcr.io/valence-works/runtime-ce-combined</li>
+              </ul>
+            </div>
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <h3 className="font-semibold">Paid — private, requires a subscription</h3>
+              <ul className="text-muted-foreground font-mono text-xs space-y-1">
+                <li>ghcr.io/valence-works/runtime-server</li>
+                <li>ghcr.io/valence-works/runtime-studio</li>
+                <li>ghcr.io/valence-works/runtime-combined</li>
+              </ul>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
+            still work for anyone who already pulled them, but they are no longer updated. New
+            builds are published to ghcr.io only.
+          </p>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <a
+              href="https://github.com/valence-works/runtime"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Documentation &amp; issue tracking
+            </a>
+            <a
+              href="https://github.com/valence-works/runtime/wiki"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Setup guide
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Tiers */}
+      <section className="py-12 md:py-16 bg-surface-subtle">
         <div className="container max-w-5xl space-y-6">
           <div>
             <h2 className="text-3xl font-bold mb-2">Tiers</h2>
             <p className="text-muted-foreground">
-              The Community tier is Early Preview: its images are currently frozen while
-              publishing moves to a private registry.
+              The paid tiers are not different software. Community runs the same build; what a
+              subscription adds is commitments about it — patches, triage windows, backports and
+              immutable tags.
             </p>
           </div>
+
 
           <div className="overflow-x-auto rounded-xl border">
             <table className="w-full text-sm min-w-[720px]">
@@ -298,7 +359,8 @@ export default function ValenceRuntime() {
       </section>
 
       {/* What each tier is */}
-      <section className="py-12 md:py-16 bg-surface-subtle">
+      <section className="py-12 md:py-16">
+
         <div className="container max-w-4xl space-y-6">
           <h2 className="text-3xl font-bold">What each tier is</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
