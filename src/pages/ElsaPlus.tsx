@@ -45,7 +45,8 @@ const runtimeAndOperations = [
   {
     title: "Valence Runtime",
     description:
-      "Production-ready Elsa container images — server, Studio, and combined — built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and direct access to the maintainer.",
+      "Production-ready Elsa container images — server, Studio, and combined — built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug queue he actually works.",
+
     icon: Container,
     href: "/elsa-plus/valence-runtime",
     badge: "Early Preview",
