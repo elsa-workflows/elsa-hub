@@ -607,7 +607,7 @@ function buildReadme(ctx: Ctx): string {
   const selected = getSelectedImage(ctx);
   const studioNote =
     selected.role === "studio"
-      ? "\n> **Note:** Studio requires a running Elsa Server. This bundle also includes the `elsa-pro-server` service so it boots out of the box.\n"
+      ? "\n> **Note:** Studio requires a running Elsa Server. This bundle also includes the `runtime-server` service so it boots out of the box.\n"
       : "";
 
   return `# Elsa deployment bundle (preview)
