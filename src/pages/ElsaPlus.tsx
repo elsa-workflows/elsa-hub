@@ -25,12 +25,13 @@ const servicesAndSupport = [
     icon: Users,
     href: "/elsa-plus/expert-services",
     note: {
-      text: "Looking for ongoing support with a guaranteed response time instead of a project engagement? That's part of a",
+      text: "Looking for ongoing support with a committed triage window instead of a project engagement? That's part of a",
       linkLabel: "Valence Runtime subscription.",
       linkHref: "/elsa-plus/valence-runtime",
     },
   },
 ];
+
 
 const runtimeAndOperations = [
   {
