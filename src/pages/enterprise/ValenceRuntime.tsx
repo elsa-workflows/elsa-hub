@@ -23,7 +23,7 @@ import { ArrowRight, Check, ExternalLink, Minus } from "lucide-react";
 const tiers = ["Community", "Runtime", "Runtime Priority", "Maintainer Access"] as const;
 
 const rows: { label: string; values: (string | boolean)[] }[] = [
-  { label: "Price", values: ["Free", "Contact us", "Contact us", "Contact us"] },
+  { label: "Price / year", values: ["Free", "€1,500", "€4,500", "€25,000"] },
   { label: "Availability", values: ["Open", "Open", "Open", "3 slots"] },
   { label: "Registry", values: ["Public", "Private", "Private", "Private"] },
   { label: "Hardened, signed, SBOM", values: [false, true, true, true] },
@@ -74,17 +74,19 @@ const tierDetails: { name: string; badge?: string; body: string; extra?: string 
   },
   {
     name: "Runtime",
+    badge: "€1,500 / year",
     body: "Hardened images, committed security-patch cadence, immutable tags, private registry — plus bug reports triaged within five business days and weighted above the community queue.",
   },
   {
     name: "Runtime Priority",
+    badge: "€4,500 / year",
     body: "Everything above, with two-business-day triage, higher queue priority, advance notice of security fixes, and backports to the minor version you run. For anyone pinned to a specific version in production.",
     extra:
       "Backports cover the current minor and the one before it, for 12 months from the release of its successor. Security fixes and defects causing data loss, incorrect execution or unavailability are backported; cosmetic fixes wait for the next minor, so your pinned line isn't churned with unnecessary changes.",
   },
   {
     name: "Maintainer Access",
-    badge: "3 slots",
+    badge: "€25,000 / year — 3 slots",
     body: "Everything above, with one-business-day triage, top queue priority, a direct channel to Sipke Schoorstra, and a quarterly check-in call. Deliberately capped at three subscribers so the attention stays real — when all three are taken, you can join the waitlist.",
   },
 ];
@@ -123,8 +125,8 @@ export default function ValenceRuntime() {
     <Layout>
       <Seo
         path="/elsa-plus/valence-runtime"
-        title="Valence Runtime — production Elsa container images"
-        description="Valence Runtime is the production distribution of Elsa Workflows: pre-built server, Studio and combined container images with a committed security-patch cadence and committed bug triage windows on paid tiers."
+        title="Valence Runtime — an Elsa distribution from Valence Works"
+        description="Valence Runtime is an Elsa distribution from Valence Works: production-ready server, Studio and combined container images with a committed security-patch cadence and committed bug triage windows on paid tiers."
       />
 
       <section className="pt-8 pb-4">
@@ -155,9 +157,15 @@ export default function ValenceRuntime() {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Valence Runtime</h1>
             <p className="text-xl text-muted-foreground">
-              Production-ready Elsa container images — server, Studio, and combined — built,
-              hardened and patched by the maintainer of Elsa. Subscriptions add a committed
-              security-patch cadence and a bug queue he actually works.
+              An Elsa distribution from Valence Works — production-ready container images for
+              server, Studio and combined deployments, built, hardened and patched by the
+              maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug
+              queue he actually works.
+            </p>
+            <p className="text-sm text-muted-foreground mt-3">
+              <Link to="/elsa-plus/distributions" className="text-primary hover:underline">
+                What is an Elsa distribution?
+              </Link>
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
@@ -249,9 +257,27 @@ export default function ValenceRuntime() {
             </table>
           </div>
 
-          <p className="text-muted-foreground">
-            Pricing is not published yet. The tier structure is settled; the numbers are not. Get
-            in touch if you'd like to discuss a tier before then.
+          <p className="text-muted-foreground leading-relaxed">
+            All prices are per year, in EUR, excluding VAT. Valence Works is based in the
+            Netherlands: EU reverse charge applies for business customers outside NL, Dutch VAT
+            within.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
+            published so you can plan and budget. Get in touch to discuss a tier or request
+            preview access.
+          </p>
+          <div className="rounded-xl border bg-card p-5">
+            <p className="text-sm leading-relaxed">
+              Prices may change. If they do, existing subscribers keep their rate through at least
+              their following renewal, and will be told before any change takes effect.
+            </p>
+          </div>
+          <p className="text-muted-foreground leading-relaxed">
+            Not sure which tier? Most teams running Elsa in production want Runtime. Move up to
+            Runtime Priority if you pin to a specific version and cannot take a whole new minor to
+            get a fix — that is what backports solve, and it is the only reason to pay the
+            difference.
           </p>
           <Button asChild variant="outline">
             <Link to="/elsa-plus/expert-services/valence-works">Contact us</Link>

@@ -45,12 +45,17 @@ const runtimeAndOperations = [
   {
     title: "Valence Runtime",
     description:
-      "Production-ready Elsa container images — server, Studio, and combined — built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug queue he actually works.",
+      "An Elsa distribution from Valence Works — production-ready container images for server, Studio and combined deployments, built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug queue he actually works.",
 
     icon: Container,
     href: "/elsa-plus/valence-runtime",
     badge: "Early Preview",
     docHref: "https://github.com/valence-works/runtime",
+    note: {
+      text: "New to the term?",
+      linkLabel: "What is an Elsa distribution?",
+      linkHref: "/elsa-plus/distributions",
+    },
   },
   {
     title: "Cloud & Managed Services",

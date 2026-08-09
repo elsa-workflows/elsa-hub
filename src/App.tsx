@@ -28,6 +28,7 @@ const ExpertServicesProviders = lazy(() => import("./pages/enterprise/ExpertServ
 const ExpertServiceProvider = lazy(() => import("./pages/enterprise/ExpertServiceProvider"));
 const DockerImages = lazy(() => import("./pages/enterprise/DockerImages"));
 const ValenceRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
+const Distributions = lazy(() => import("./pages/enterprise/Distributions"));
 const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
 const Training = lazy(() => import("./pages/enterprise/Training"));
@@ -125,6 +126,7 @@ const App = () => (
               <Route path="/get-started/elsa-studio" element={<ElsaStudio />} />
               <Route path="/get-started/elsa-server-and-studio" element={<ElsaServerAndStudio />} />
               <Route path="/elsa-plus" element={<ElsaPlus />} />
+              <Route path="/elsa-plus/distributions" element={<Distributions />} />
               <Route path="/elsa-plus/expert-services" element={<ExpertServicesProviders />} />
               <Route path="/elsa-plus/expert-services/:slug" element={<ExpertServiceProvider />} />
               <Route path="/elsa-plus/valence-runtime" element={<ValenceRuntime />} />
