@@ -116,6 +116,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/blog/elsa-output-converters-binding-boundary</loc>
+    <lastmod>2026-08-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/blog/why-elsa-4-http-endpoints-fall-back-to-202</loc>
     <lastmod>2026-07-20</lastmod>
     <changefreq>monthly</changefreq>

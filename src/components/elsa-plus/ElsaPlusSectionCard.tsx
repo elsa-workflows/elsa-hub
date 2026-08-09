@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LucideIcon, ArrowRight } from "lucide-react";
+import { LucideIcon, ArrowRight, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,12 @@ interface ElsaPlusCardItem {
   href?: string;
   comingSoon?: boolean;
   badge?: string;
+  docHref?: string;
+  note?: {
+    text: string;
+    linkLabel: string;
+    linkHref: string;
+  };
 }
 
 interface ElsaPlusSectionCardProps {
@@ -67,11 +73,34 @@ function ItemCard({ item }: { item: ElsaPlusCardItem }) {
     </Card>
   );
 
-  if (item.href) {
-    return <Link to={item.href}>{cardContent}</Link>;
-  }
+  const body = item.href ? <Link to={item.href}>{cardContent}</Link> : cardContent;
 
-  return cardContent;
+  if (!item.note && !item.docHref) return body;
+
+  return (
+    <div className="h-full flex flex-col">
+      {body}
+      {item.docHref && (
+        <a
+          href={item.docHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary"
+        >
+          Documentation
+          <ExternalLink className="h-3 w-3" />
+        </a>
+      )}
+      {item.note && (
+        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+          {item.note.text}{" "}
+          <Link to={item.note.linkHref} className="text-primary hover:underline">
+            {item.note.linkLabel}
+          </Link>
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function ElsaPlusSectionCard({
