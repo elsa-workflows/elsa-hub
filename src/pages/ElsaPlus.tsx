@@ -25,12 +25,13 @@ const servicesAndSupport = [
     icon: Users,
     href: "/elsa-plus/expert-services",
     note: {
-      text: "Looking for ongoing support with a guaranteed response time instead of a project engagement? That's part of a",
+      text: "Looking for ongoing support with a committed triage window instead of a project engagement? That's part of a",
       linkLabel: "Valence Runtime subscription.",
       linkHref: "/elsa-plus/valence-runtime",
     },
   },
 ];
+
 
 const runtimeAndOperations = [
   {
@@ -44,7 +45,8 @@ const runtimeAndOperations = [
   {
     title: "Valence Runtime",
     description:
-      "Production-ready Elsa container images — server, Studio, and combined — built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and direct access to the maintainer.",
+      "Production-ready Elsa container images — server, Studio, and combined — built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug queue he actually works.",
+
     icon: Container,
     href: "/elsa-plus/valence-runtime",
     badge: "Early Preview",
