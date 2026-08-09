@@ -48,7 +48,7 @@ const groups: NavGroup[] = [
     label: "Elsa+",
     items: [
       { label: "Overview", to: "/elsa-plus" },
-      { label: "Docker Images", to: "/elsa-plus/docker-images", badge: "Early Preview" },
+      { label: "Valence Runtime", to: "/elsa-plus/valence-runtime", badge: "Early Preview" },
       { label: "Runtime Builder", to: "/elsa-plus/runtime-builder", badge: "Preview" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
