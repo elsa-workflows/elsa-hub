@@ -347,32 +347,33 @@ networks:
           <ul className="space-y-2">
             <li>
               <a
-                href={image.dockerHubUrl}
+                href="https://github.com/valence-works/runtime"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-primary hover:underline"
               >
-                {image.image} on Docker Hub
+                Documentation &amp; issue tracking
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </li>
             <li>
               <a
-                href="https://github.com/valence-works/elsa-pro-docker"
+                href="https://github.com/valence-works/runtime/wiki"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-primary hover:underline"
               >
-                Source repository
+                Setup and configuration guide
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </li>
             <li>
               <Link to="/elsa-plus/valence-runtime/images" className="inline-flex items-center gap-2 text-primary hover:underline">
-                ← Back to all Docker images
+                ← Back to all Valence Runtime images
               </Link>
             </li>
           </ul>
+
         </div>
       </section>
 
