@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/breadcrumb";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { DockerImageCard } from "@/components/docker-images";
+import { CodeBlock } from "@/components/get-started";
 import { dockerImages } from "@/data/dockerImages";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Boxes, ExternalLink } from "lucide-react";
+import { ArrowRight, Boxes, ExternalLink, Lock } from "lucide-react";
 
 const roadmap = [
   "Observability (structured logs, console logs, OpenTelemetry)",
@@ -31,16 +32,18 @@ const roadmap = [
 ];
 
 const links = [
-  { label: "valenceworks on Docker Hub", href: "https://hub.docker.com/u/valenceworks" },
-  { label: "Source repository — valence-works/elsa-pro-docker", href: "https://github.com/valence-works/elsa-pro-docker" },
-  { label: "Issues — bug reports and feature requests", href: "https://github.com/valence-works/elsa-pro-docker/issues" },
-  { label: "Discussions — questions and community help", href: "https://github.com/valence-works/elsa-pro-docker/discussions" },
+  { label: "Documentation & issue tracking", href: "https://github.com/valence-works/runtime" },
+  { label: "Setup and configuration guide", href: "https://github.com/valence-works/runtime/wiki" },
 ];
 
 export default function DockerImages() {
   return (
     <Layout>
-      <Seo path="/elsa-plus/docker-images" title="Production-oriented Docker images for Elsa — Early Preview" description="Early Preview Elsa containers provided by Valence Works: server, studio, and combined images on .NET 10 with Elsa 3.8 preview. Configure via mounted config.json and Nuplane. Free to try, MIT-licensed source." />
+      <Seo
+        path="/elsa-plus/valence-runtime/images"
+        title="Valence Runtime — production Elsa container images"
+        description="Early Preview Elsa container images provided by Valence Works: server, studio, and combined, built on .NET 10 with Elsa 3.8 preview. Published to a private registry — access on request."
+      />
       <section className="pt-8 pb-4">
         <div className="container">
           <Breadcrumb>
@@ -52,7 +55,13 @@ export default function DockerImages() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Docker Images</BreadcrumbPage>
+                <BreadcrumbLink asChild>
+                  <Link to="/elsa-plus/valence-runtime">Valence Runtime</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Images</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -66,16 +75,29 @@ export default function DockerImages() {
             <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
               <Badge variant="secondary">Provided by Valence Works</Badge>
               <Badge variant="outline">Early Preview</Badge>
-              <Badge variant="outline">Free to try</Badge>
-              <Badge variant="outline">MIT-licensed source</Badge>
+              <Badge variant="outline">Private registry (ghcr.io)</Badge>
+              <Badge variant="outline">Access on request</Badge>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Production-oriented Docker Images</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              Valence Runtime — production Elsa container images
+            </h1>
             <p className="text-xl text-muted-foreground">
               Early Preview Elsa containers built on .NET 10 with Elsa 3.8 preview. Configure with a mounted{" "}
               <code className="font-mono text-base bg-muted px-1.5 py-0.5 rounded">config.json</code>, load NuGet
               packages at runtime via Nuplane, and compose features per shell with CShells. Not yet a supported
               distribution — production hardening, container scanning, and stable release guarantees are on the roadmap.
             </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button asChild size="lg">
+                <Link to="/elsa-plus/valence-runtime">Request access</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="gap-2">
+                <a href="https://github.com/valence-works/runtime" target="_blank" rel="noopener noreferrer">
+                  Documentation &amp; issue tracking
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -83,13 +105,35 @@ export default function DockerImages() {
       {/* Catalog */}
       <section className="py-16 md:py-20">
         <div className="container max-w-5xl">
-          <div className="mb-10">
+          <div className="mb-8">
             <h2 className="text-3xl font-bold mb-3">Available images</h2>
             <p className="text-muted-foreground">
               Pick an image to see prerequisites, environment variables, <code className="font-mono">docker run</code>{" "}
               and Docker Compose snippets, and configuration details.
             </p>
           </div>
+
+          <div className="mb-10 rounded-xl border bg-card p-5 md:p-6 flex gap-4">
+            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <Lock className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Valence Runtime images are published to a private registry. During Early Preview, access is granted on
+                request. Previously published images on Docker Hub are no longer updated.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">Registry:</span> GitHub Container Registry (ghcr.io) —
+                private · <span className="font-medium text-foreground">Access:</span> Early Preview — request access
+              </p>
+              <CodeBlock
+                code={`echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+docker pull ghcr.io/valence-works/runtime-server:3.8.0-preview.5413`}
+                language="bash"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dockerImages.map((img) => (
               <DockerImageCard key={img.slug} image={img} />
@@ -119,6 +163,17 @@ export default function DockerImages() {
               </Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* Licensing */}
+      <section className="py-12">
+        <div className="container max-w-4xl space-y-4">
+          <h2 className="text-3xl font-bold">Licensing</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Elsa Workflows itself is open source under the MIT License and always will be. The Valence Runtime
+            container images and their packaging are licensed commercially and require a subscription.
+          </p>
         </div>
       </section>
 
