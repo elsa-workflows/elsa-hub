@@ -20,32 +20,72 @@ import {
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { ArrowRight, Check, ExternalLink, Minus } from "lucide-react";
 
-const tiers = ["Community", "Self-Serve", "Supported", "Partner"] as const;
+const tiers = ["Community", "Runtime", "Runtime Priority", "Maintainer Access"] as const;
 
 const rows: { label: string; values: (string | boolean)[] }[] = [
   { label: "Price", values: ["Free", "Contact us", "Contact us", "Contact us"] },
-  {
-    label: "Container images",
-    values: ["Public", "Private registry", "Private registry", "Private registry"],
-  },
-  { label: "Security patch commitment", values: [false, true, true, true] },
+  { label: "Availability", values: ["Open", "Open", "Open", "3 slots"] },
+  { label: "Registry", values: ["Public", "Private", "Private", "Private"] },
+  { label: "Hardened, signed, SBOM", values: [false, true, true, true] },
+  { label: "Security patch cadence", values: [false, true, true, true] },
   { label: "Immutable version tags", values: [false, true, true, true] },
-  { label: "Direct maintainer access", values: [false, false, true, true] },
   {
-    label: "Response guarantee",
-    values: [false, false, "2 business days", "Next business day"],
+    label: "Bug reports triaged",
+    values: ["Public queue", "5 business days", "2 business days", "1 business day"],
   },
-  { label: "Fair-use cap", values: [false, false, "~10 issues/quarter", "By agreement"] },
-  { label: "Scheduled check-in calls", values: [false, false, false, true] },
-  { label: "Included consulting hours", values: [false, false, false, true] },
+  { label: "Queue priority", values: ["Lowest", "Standard", "High", "Top"] },
+  { label: "Backports to your pinned minor", values: [false, false, true, true] },
+  { label: "Advance security notice", values: [false, false, true, true] },
+  { label: "Direct channel to the maintainer", values: [false, false, false, true] },
+  { label: "Quarterly check-in call", values: [false, false, false, true] },
 ];
 
 function Cell({ value }: { value: string | boolean }) {
-  if (value === true) return <Check className="h-4 w-4 text-primary mx-auto" aria-label="Included" />;
+  if (value === true) return <Check className="h-4 w-4 text-primary mx-auto" aria-label="Yes" />;
   if (value === false)
     return <Minus className="h-4 w-4 text-muted-foreground/60 mx-auto" aria-label="Not included" />;
   return <span>{value}</span>;
 }
+
+const outcomes: { label: string; description: string }[] = [
+  {
+    label: "Accepted",
+    description: "Confirmed as a defect, placed on the roadmap against a target release",
+  },
+  {
+    label: "Needs information",
+    description: "Can't reproduce it as submitted — here's what's needed",
+  },
+  {
+    label: "Won't fix",
+    description: "Not a defect, or out of scope — with the reason stated",
+  },
+  {
+    label: "Already fixed",
+    description: "Resolved in a release, which is named",
+  },
+];
+
+const tierDetails: { name: string; badge?: string; body: string }[] = [
+  {
+    name: "Community",
+    badge: "Free",
+    body: "Public images, the open source engine, a public issue tracker. No hardening, no patch commitment, no triage commitment. These images are currently frozen while publishing moves to the private registry.",
+  },
+  {
+    name: "Runtime",
+    body: "Hardened images, committed security-patch cadence, immutable tags, private registry — plus bug reports triaged within five business days and weighted above the community queue.",
+  },
+  {
+    name: "Runtime Priority",
+    body: "Everything above, with two-business-day triage, higher queue priority, advance notice of security fixes, and backports to the minor version you run. For anyone pinned to a specific version in production.",
+  },
+  {
+    name: "Maintainer Access",
+    badge: "3 slots",
+    body: "Everything above, with one-business-day triage, top queue priority, a direct channel to Sipke Schoorstra, and a quarterly check-in call. Deliberately capped at three subscribers so the attention stays real — when all three are taken, you can join the waitlist.",
+  },
+];
 
 const notIncluded = [
   "Custom feature work",
@@ -59,7 +99,7 @@ const notIncluded = [
 const faq = [
   {
     q: "It's open source — why would I pay?",
-    a: "You're not paying for the software; it stays MIT and free forever. You're paying for the production build — hardened, patched on a committed cadence — and a contractual line to the person who wrote it.",
+    a: "You're not paying for the software; it stays MIT and free forever. You're paying for the production build — hardened, patched on a committed cadence — and a committed triage window from the person who wrote it.",
   },
   {
     q: "What if you get hit by a bus?",
@@ -67,9 +107,14 @@ const faq = [
   },
   {
     q: "Can I buy support without the images?",
-    a: "Not as a subscription — support is scoped to builds whose contents are known. Expert Advisory covers self-built deployments instead.",
+    a: "Not as a subscription — support is scoped to builds whose contents are known. Expert Services covers self-built deployments instead.",
+  },
+  {
+    q: "Maintainer Access is full — now what?",
+    a: "You can join the waitlist and start on Runtime Priority, which already includes two-business-day triage and backports. Get in touch and you'll be told where the queue stands.",
   },
 ];
+
 
 export default function ValenceRuntime() {
   return (
