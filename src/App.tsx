@@ -126,6 +126,7 @@ const App = () => (
               <Route path="/get-started/elsa-studio" element={<ElsaStudio />} />
               <Route path="/get-started/elsa-server-and-studio" element={<ElsaServerAndStudio />} />
               <Route path="/elsa-plus" element={<ElsaPlus />} />
+              <Route path="/elsa-plus/distributions" element={<Distributions />} />
               <Route path="/elsa-plus/expert-services" element={<ExpertServicesProviders />} />
               <Route path="/elsa-plus/expert-services/:slug" element={<ExpertServiceProvider />} />
               <Route path="/elsa-plus/valence-runtime" element={<ValenceRuntime />} />
