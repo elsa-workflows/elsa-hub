@@ -102,6 +102,18 @@ const notIncluded = [
 
 const faq = [
   {
+    q: "What is an Elsa distribution?",
+    a: (
+      <>
+        A packaged, versioned assembly of the open-source engine, built and maintained by a vendor. It tracks Elsa Workflows without forking it.{" "}
+        <Link to="/elsa-plus/distributions" className="text-primary hover:underline">
+          Read the full explanation
+        </Link>
+        .
+      </>
+    ),
+  },
+  {
     q: "It's open source — why would I pay?",
     a: "You're not paying for the software; it stays MIT and free forever. You're paying for the production build — hardened, patched on a committed cadence — and a committed triage window from the person who wrote it.",
   },
