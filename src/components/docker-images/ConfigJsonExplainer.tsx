@@ -7,7 +7,7 @@ export function ConfigJsonExplainer({ image }: { image: string }) {
         Configuration via mounted <code className="font-mono">config.json</code>
       </h2>
       <p className="text-muted-foreground">
-        Both Elsa Pro services load an optional JSON file from{" "}
+        Both Valence Runtime services load an optional JSON file from{" "}
         <code className="font-mono">/config/config.json</code> inside the container. This avoids long lists of{" "}
         <code className="font-mono">-e</code> flags and keeps secrets out of the process environment.
       </p>

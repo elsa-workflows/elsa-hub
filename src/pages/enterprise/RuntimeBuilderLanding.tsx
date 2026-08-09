@@ -82,7 +82,7 @@ export default function RuntimeBuilderLanding() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link to="/elsa-plus/docker-images">Browse runtime images</Link>
+                <Link to="/elsa-plus/valence-runtime/images">Browse runtime images</Link>
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">

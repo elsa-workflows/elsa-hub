@@ -29,7 +29,7 @@ export default function DockerImageDetail() {
   const image = slug ? getDockerImage(slug) : undefined;
 
   if (!image) {
-    return <Navigate to="/elsa-plus/docker-images" replace />;
+    return <Navigate to="/elsa-plus/valence-runtime/images" replace />;
   }
 
   const Icon = image.icon;
@@ -46,9 +46,9 @@ networks:
   return (
     <Layout>
       <Seo
-        path={`/elsa-plus/docker-images/${image.slug}`}
-        title={`${image.name} Docker image — Elsa+`}
-        description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works. Configuration, environment variables, docker run and Docker Compose snippets. Free to try; not yet a supported distribution.`}
+        path={`/elsa-plus/valence-runtime/images/${image.slug}`}
+        title={`${image.name} — Valence Runtime container image`}
+        description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works, published to a private registry. Configuration, environment variables, docker run and Docker Compose snippets. Access on request; not yet a supported distribution.`}
       />
       <section className="pt-8 pb-4">
         <div className="container">
@@ -62,7 +62,7 @@ networks:
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/elsa-plus/docker-images">Docker Images</Link>
+                  <Link to="/elsa-plus/valence-runtime/images">Valence Runtime images</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -94,14 +94,22 @@ networks:
             </div>
           </div>
           <p className="text-lg text-muted-foreground">{renderInlineCode(image.description)}</p>
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button asChild className="gap-2">
+              <Link to="/elsa-plus/valence-runtime#contact">Request access</Link>
+            </Button>
             <Button asChild variant="outline" className="gap-2">
-              <a href={image.dockerHubUrl} target="_blank" rel="noopener noreferrer">
-                View on Docker Hub
+              <a href="https://github.com/valence-works/runtime" target="_blank" rel="noopener noreferrer">
+                Documentation &amp; issue tracking
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
           </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Valence Runtime images are published to a private registry (GitHub Container Registry). During Early
+            Preview, access is granted on request. Previously published images on Docker Hub are no longer updated.
+          </p>
+
         </div>
       </section>
 
@@ -139,15 +147,15 @@ networks:
           <div className="container max-w-4xl">
             <Alert className="border-warning/40 bg-warning/5">
               <AlertCircle className="h-4 w-4 text-warning" />
-              <AlertTitle>Requires a running Elsa Pro Server</AlertTitle>
+              <AlertTitle>Requires a running Valence Runtime Server</AlertTitle>
               <AlertDescription className="text-muted-foreground">
                 Studio is a UI only — it cannot execute or persist workflows on its own. You need a reachable{" "}
-                <Link to="/elsa-plus/docker-images/elsa-pro-server" className="text-primary hover:underline">
-                  Elsa Pro Server
+                <Link to="/elsa-plus/valence-runtime/images/elsa-pro-server" className="text-primary hover:underline">
+                  Valence Runtime Server
                 </Link>{" "}
                 (or the all-in-one{" "}
-                <Link to="/elsa-plus/docker-images/elsa-pro-combined" className="text-primary hover:underline">
-                  Elsa Pro Combined
+                <Link to="/elsa-plus/valence-runtime/images/elsa-pro-combined" className="text-primary hover:underline">
+                  Valence Runtime Combined
                 </Link>{" "}
                 image) before Studio is useful. Sample commands for running the server are included below.
               </AlertDescription>
@@ -166,11 +174,28 @@ networks:
           <PrerequisitesBox
             items={[
               "Docker 20.10 or later",
+              "Approved Early Preview access to the private ghcr.io registry",
               `Free local port ${image.hostPort}`,
               ...(image.needsSharedNetwork ? ["A shared Docker network named 'elsa'"] : []),
-              ...(image.requiresServer ? ["A running Elsa Pro Server reachable from this container"] : []),
+              ...(image.requiresServer ? ["A running Valence Runtime Server reachable from this container"] : []),
             ]}
           />
+
+          <div>
+            <h3 className="font-semibold mb-2">Authenticate against the private registry</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Valence Runtime images are hosted on GitHub Container Registry and are not publicly pullable. Use a
+              GitHub token with <code className="font-mono">read:packages</code> on an account that has been granted
+              Early Preview access.
+            </p>
+            <CodeBlock
+              code={`echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+docker pull ${image.image}:3.8.0-preview.5413`}
+              language="bash"
+            />
+          </div>
+
+
 
           {image.needsSharedNetwork && (
             <div>
@@ -182,7 +207,7 @@ networks:
           {serverImage && (
             <div>
               <h3 className="font-semibold mb-2">
-                {image.needsSharedNetwork ? "2." : "1."} Run an Elsa Pro Server (skip if you already have one)
+                {image.needsSharedNetwork ? "2." : "1."} Run a Valence Runtime Server (skip if you already have one)
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
                 Studio will connect to this container. If you already have a server running, skip ahead.
@@ -238,7 +263,7 @@ networks:
           <h2 className="text-3xl font-bold">Quick start with Docker Compose</h2>
           <p className="text-muted-foreground">
             Drop this service into your <code className="font-mono">docker-compose.yml</code>. If you also run other
-            Elsa Pro images, add their service blocks alongside this one and keep them on the same{" "}
+            Valence Runtime images, add their service blocks alongside this one and keep them on the same{" "}
             <code className="font-mono">elsa</code> network.
           </p>
           <CodeBlock code={composeFile} language="yaml" title="docker-compose.yml" />
@@ -347,32 +372,33 @@ networks:
           <ul className="space-y-2">
             <li>
               <a
-                href={image.dockerHubUrl}
+                href="https://github.com/valence-works/runtime"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-primary hover:underline"
               >
-                {image.image} on Docker Hub
+                Documentation &amp; issue tracking
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </li>
             <li>
               <a
-                href="https://github.com/valence-works/elsa-pro-docker"
+                href="https://github.com/valence-works/runtime/wiki"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-primary hover:underline"
               >
-                Source repository
+                Setup and configuration guide
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </li>
             <li>
-              <Link to="/elsa-plus/docker-images" className="inline-flex items-center gap-2 text-primary hover:underline">
-                ← Back to all Docker images
+              <Link to="/elsa-plus/valence-runtime/images" className="inline-flex items-center gap-2 text-primary hover:underline">
+                ← Back to all Valence Runtime images
               </Link>
             </li>
           </ul>
+
         </div>
       </section>
 

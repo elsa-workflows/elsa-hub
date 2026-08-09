@@ -26,7 +26,7 @@ export type DockerImage = {
   runCommand: string;
   composeService: string;
   notes?: string[];
-  dockerHubUrl: string;
+  registryUrl: string;
   // Concept blocks to include on the detail page:
   showPerShellAdmin?: boolean;
   showNuplane?: boolean;
@@ -45,10 +45,10 @@ const serverRunCommand = `docker run -d \\
   -e CShells__Shells__Default__Features__Identity__SigningKey=replace-with-256-bit-key \\
   -e Elsa__Cors__AllowedOrigins__0=http://localhost:8081 \\
   --name elsa-server \\
-  valenceworks/elsa-pro-server:latest`;
+  ghcr.io/valence-works/runtime-server:latest`;
 
 const serverComposeService = `  elsa-server:
-    image: valenceworks/elsa-pro-server:latest
+    image: ghcr.io/valence-works/runtime-server:latest
     ports:
       - "8080:8080"
     environment:
@@ -66,10 +66,10 @@ const studioRunCommand = `docker run -d \\
   -e Studio__HostingModel=WebAssembly \\
   -e Studio__Client__Backend__Url=http://localhost:8080/elsa/api \\
   --name elsa-studio \\
-  valenceworks/elsa-pro-studio:latest`;
+  ghcr.io/valence-works/runtime-studio:latest`;
 
 const studioComposeService = `  elsa-studio:
-    image: valenceworks/elsa-pro-studio:latest
+    image: ghcr.io/valence-works/runtime-studio:latest
     ports:
       - "8081:8080"
     environment:
@@ -86,10 +86,10 @@ const combinedRunCommand = `docker run -d \\
   -e CShells__Shells__Default__Features__DefaultAdminUser__AdminPassword=YourSecurePassword123! \\
   -e CShells__Shells__Default__Features__Identity__SigningKey=replace-with-256-bit-key \\
   --name elsa-pro \\
-  valenceworks/elsa-pro-combined:latest`;
+  ghcr.io/valence-works/runtime-combined:latest`;
 
 const combinedComposeService = `  elsa-pro:
-    image: valenceworks/elsa-pro-combined:latest
+    image: ghcr.io/valence-works/runtime-combined:latest
     ports:
       - "8080:8080"
     environment:
@@ -133,7 +133,7 @@ const serverFullStackCompose = `services:
 ${infraComposeServices}
 
   elsa-server:
-    image: valenceworks/elsa-pro-server:latest
+    image: ghcr.io/valence-works/runtime-server:latest
     ports:
       - "8080:8080"
     environment:
@@ -164,7 +164,7 @@ const combinedFullStackCompose = `services:
 ${infraComposeServices}
 
   elsa-pro:
-    image: valenceworks/elsa-pro-combined:latest
+    image: ghcr.io/valence-works/runtime-combined:latest
     ports:
       - "8080:8080"
     environment:
@@ -188,13 +188,13 @@ volumes:
 export const dockerImages: DockerImage[] = [
   {
     slug: "elsa-pro-server",
-    name: "Elsa Pro Server",
+    name: "Valence Runtime Server",
     tagline: "Backend-only Elsa workflow runtime and management API.",
     description:
       "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with `CShells`, load NuGet packages at startup with `Nuplane`, and supply settings via a mounted `config.json`.",
-    image: "valenceworks/elsa-pro-server",
+    image: "ghcr.io/valence-works/runtime-server",
     icon: Container,
-    tags: ["Server", "Early Preview", "Free"],
+    tags: ["Server", "Early Preview", "Private registry"],
     highlights: [
       "Workflow runtime + management APIs",
       "CShells multi-shell architecture",
@@ -214,24 +214,24 @@ export const dockerImages: DockerImage[] = [
     ],
     runCommand: serverRunCommand,
     composeService: serverComposeService,
-    dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-server",
+    registryUrl: "https://github.com/valence-works/runtime",
     fullStackComposeFile: serverFullStackCompose,
     showPerShellAdmin: true,
     showNuplane: true,
   },
   {
     slug: "elsa-pro-studio",
-    name: "Elsa Pro Studio",
-    tagline: "Visual workflow designer — requires a running Elsa Pro Server.",
+    name: "Valence Runtime Studio",
+    tagline: "Visual workflow designer — requires a running Valence Runtime Server.",
     description:
       "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the `Studio__HostingModel` environment variable. Point it at your server via `Studio__Client__Backend__Url` (WebAssembly) or `Backend__Url` (Blazor Server).",
-    image: "valenceworks/elsa-pro-studio",
+    image: "ghcr.io/valence-works/runtime-studio",
     icon: LayoutDashboard,
-    tags: ["Studio", "WebAssembly / Server", "Early Preview", "Free"],
+    tags: ["Studio", "WebAssembly / Server", "Early Preview", "Private registry"],
     highlights: [
       "Browser-based visual designer",
       "Blazor WebAssembly or Blazor Server via one config flag",
-      "Connects to any Elsa Pro Server",
+      "Connects to any Valence Runtime Server",
     ],
     defaultPort: 8080,
     hostPort: 8081,
@@ -264,18 +264,18 @@ export const dockerImages: DockerImage[] = [
       "Blazor Server mode: the Studio container calls the API from inside the Docker network, so Backend__Url should use the server container name (e.g. http://elsa-server:8080/elsa/api).",
       "Open Studio from the host at http://localhost:8081.",
     ],
-    dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-studio",
+    registryUrl: "https://github.com/valence-works/runtime",
     requiresServer: true,
   },
   {
     slug: "elsa-pro-combined",
-    name: "Elsa Pro Combined",
+    name: "Valence Runtime Combined",
     tagline: "Server + Studio in a single container, served from one origin.",
     description:
       "A single-container deployment that hosts both the Elsa workflow API and the Studio UI in one process. Studio is served at the root and the API at `/elsa/api` on the same origin — ideal for single-host deployments, demos, and self-contained appliances. Studio defaults to Blazor WebAssembly and can be switched to Blazor Server via `Studio__HostingModel`.",
-    image: "valenceworks/elsa-pro-combined",
+    image: "ghcr.io/valence-works/runtime-combined",
     icon: Boxes,
-    tags: ["Server + Studio", "Single container", "Early Preview", "Free"],
+    tags: ["Server + Studio", "Single container", "Early Preview", "Private registry"],
     highlights: [
       "API + Studio in one image",
       "One origin, no CORS to configure",
@@ -311,7 +311,7 @@ export const dockerImages: DockerImage[] = [
       "Open Studio at http://localhost:8080 — the API is available at http://localhost:8080/elsa/api on the same origin.",
       "Because Studio and API share an origin, no CORS configuration is required.",
     ],
-    dockerHubUrl: "https://hub.docker.com/r/valenceworks/elsa-pro-combined",
+    registryUrl: "https://github.com/valence-works/runtime",
     fullStackComposeFile: combinedFullStackCompose,
     showPerShellAdmin: true,
     showNuplane: true,
