@@ -125,8 +125,8 @@ export default function ValenceRuntime() {
     <Layout>
       <Seo
         path="/elsa-plus/valence-runtime"
-        title="Valence Runtime — production Elsa container images"
-        description="Valence Runtime is the production distribution of Elsa Workflows: pre-built server, Studio and combined container images with a committed security-patch cadence and committed bug triage windows on paid tiers."
+        title="Valence Runtime — an Elsa distribution from Valence Works"
+        description="Valence Runtime is an Elsa distribution from Valence Works: production-ready server, Studio and combined container images with a committed security-patch cadence and committed bug triage windows on paid tiers."
       />
 
       <section className="pt-8 pb-4">
@@ -157,9 +157,15 @@ export default function ValenceRuntime() {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Valence Runtime</h1>
             <p className="text-xl text-muted-foreground">
-              Production-ready Elsa container images — server, Studio, and combined — built,
-              hardened and patched by the maintainer of Elsa. Subscriptions add a committed
-              security-patch cadence and a bug queue he actually works.
+              An Elsa distribution from Valence Works — production-ready container images for
+              server, Studio and combined deployments, built, hardened and patched by the
+              maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug
+              queue he actually works.
+            </p>
+            <p className="text-sm text-muted-foreground mt-3">
+              <Link to="/elsa-plus/distributions" className="text-primary hover:underline">
+                What is an Elsa distribution?
+              </Link>
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
@@ -251,9 +257,27 @@ export default function ValenceRuntime() {
             </table>
           </div>
 
-          <p className="text-muted-foreground">
-            Pricing is not published yet. The tier structure is settled; the numbers are not. Get
-            in touch if you'd like to discuss a tier before then.
+          <p className="text-muted-foreground leading-relaxed">
+            All prices are per year, in EUR, excluding VAT. Valence Works is based in the
+            Netherlands: EU reverse charge applies for business customers outside NL, Dutch VAT
+            within.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
+            published so you can plan and budget. Get in touch to discuss a tier or request
+            preview access.
+          </p>
+          <div className="rounded-xl border bg-card p-5">
+            <p className="text-sm leading-relaxed">
+              Prices may change. If they do, existing subscribers keep their rate through at least
+              their following renewal, and will be told before any change takes effect.
+            </p>
+          </div>
+          <p className="text-muted-foreground leading-relaxed">
+            Not sure which tier? Most teams running Elsa in production want Runtime. Move up to
+            Runtime Priority if you pin to a specific version and cannot take a whole new minor to
+            get a fix — that is what backports solve, and it is the only reason to pay the
+            difference.
           </p>
           <Button asChild variant="outline">
             <Link to="/elsa-plus/expert-services/valence-works">Contact us</Link>
