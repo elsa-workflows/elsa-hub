@@ -275,6 +275,11 @@ export default function ValenceRuntime() {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">{tier.body}</p>
+                {tier.extra && (
+                  <p className="text-sm text-muted-foreground leading-relaxed border-t pt-2">
+                    {tier.extra}
+                  </p>
+                )}
               </div>
             ))}
           </div>
