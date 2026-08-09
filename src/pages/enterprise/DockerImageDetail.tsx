@@ -94,14 +94,22 @@ networks:
             </div>
           </div>
           <p className="text-lg text-muted-foreground">{renderInlineCode(image.description)}</p>
-          <div className="mt-5">
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button asChild className="gap-2">
+              <Link to="/elsa-plus/valence-runtime#contact">Request access</Link>
+            </Button>
             <Button asChild variant="outline" className="gap-2">
-              <a href={image.dockerHubUrl} target="_blank" rel="noopener noreferrer">
-                View on Docker Hub
+              <a href="https://github.com/valence-works/runtime" target="_blank" rel="noopener noreferrer">
+                Documentation &amp; issue tracking
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
           </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Valence Runtime images are published to a private registry (GitHub Container Registry). During Early
+            Preview, access is granted on request. Previously published images on Docker Hub are no longer updated.
+          </p>
+
         </div>
       </section>
 
