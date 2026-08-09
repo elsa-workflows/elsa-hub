@@ -12,7 +12,7 @@
 - [Get started with Docker](/get-started/docker): Containerized Elsa setup.
 - [Elsa+](/elsa-plus): Commercial ecosystem of Docker images, services, training, and hosting.
 - [Expert services](/elsa-plus/expert-services): Vetted independent providers offering Elsa expert services.
-- [Production Docker images](/elsa-plus/docker-images): Production-oriented Elsa containers from Valence Works.
+- [Valence Runtime images](/elsa-plus/valence-runtime/images): Production-oriented Elsa container images from Valence Works, published to a private registry.
 - [Cloud services](/elsa-plus/cloud-services): Managed Elsa hosting providers.
 - [Training](/elsa-plus/training): Elsa training programs.
 - [Resources](/resources): Documentation, samples, community content, and governance links.

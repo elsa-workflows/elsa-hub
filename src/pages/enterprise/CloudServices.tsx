@@ -129,7 +129,7 @@ const relatedOfferings = [
     title: "Production Docker Images",
     description:
       "Production-ready container images for organizations running their own container platforms.",
-    href: "/elsa-plus/docker-images",
+    href: "/elsa-plus/valence-runtime/images",
     icon: Container,
   },
   {

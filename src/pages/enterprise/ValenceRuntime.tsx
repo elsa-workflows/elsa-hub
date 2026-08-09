@@ -130,7 +130,7 @@ export default function ValenceRuntime() {
                 </a>
               </Button>
               <Button asChild variant="ghost">
-                <Link to="/elsa-plus/docker-images">Browse images</Link>
+                <Link to="/elsa-plus/valence-runtime/images">Browse images</Link>
               </Button>
             </div>
           </div>
