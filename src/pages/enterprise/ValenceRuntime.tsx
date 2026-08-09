@@ -66,7 +66,7 @@ const outcomes: { label: string; description: string }[] = [
   },
 ];
 
-const tierDetails: { name: string; badge?: string; body: string }[] = [
+const tierDetails: { name: string; badge?: string; body: string; extra?: string }[] = [
   {
     name: "Community",
     badge: "Free",
@@ -79,6 +79,8 @@ const tierDetails: { name: string; badge?: string; body: string }[] = [
   {
     name: "Runtime Priority",
     body: "Everything above, with two-business-day triage, higher queue priority, advance notice of security fixes, and backports to the minor version you run. For anyone pinned to a specific version in production.",
+    extra:
+      "Backports cover the current minor and the one before it, for 12 months from the release of its successor. Security fixes and defects causing data loss, incorrect execution or unavailability are backported; cosmetic fixes wait for the next minor, so your pinned line isn't churned with unnecessary changes.",
   },
   {
     name: "Maintainer Access",
