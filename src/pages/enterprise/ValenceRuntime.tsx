@@ -26,8 +26,8 @@ const rows: { label: string; values: (string | boolean)[] }[] = [
   { label: "Price / year", values: ["Free", "€1,500", "€4,500", "€25,000"] },
   { label: "Availability", values: ["Open", "Open", "Open", "3 slots"] },
   { label: "Registry", values: ["Public", "Private", "Private", "Private"] },
-  { label: "Hardened, signed, SBOM", values: [false, true, true, true] },
-  { label: "Security patch cadence", values: [false, true, true, true] },
+  { label: "Hardened, signed, SBOM", values: ["Yes — same build", true, true, true] },
+  { label: "Security patch commitment", values: [false, true, true, true] },
   { label: "Immutable version tags", values: [false, true, true, true] },
   {
     label: "Bug reports triaged",
