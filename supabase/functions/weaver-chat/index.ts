@@ -353,9 +353,9 @@ function buildRuntimeBuilderTools() {
     }),
     rb_selectImage: tool({
       description:
-        "Select the Docker image used at the top of the generated bundle. Slugs come from the curated image catalog: 'elsa-pro-server', 'elsa-pro-studio', 'elsa-pro-combined'. Optionally override the tag and host port. Picking Studio alone will auto-emit a Server companion service in the bundle.",
+        "Select the Docker image used at the top of the generated bundle. Slugs come from the curated image catalog: 'runtime-server', 'runtime-studio', 'runtime-combined'. Optionally override the tag and host port. Picking Studio alone will auto-emit a Server companion service in the bundle.",
       inputSchema: z.object({
-        slug: z.enum(["elsa-pro-server", "elsa-pro-studio", "elsa-pro-combined"]),
+        slug: z.enum(["runtime-server", "runtime-studio", "runtime-combined"]),
         tag: z.string().min(1).optional(),
         hostPort: z.number().int().min(1).max(65535).optional(),
         reason: z.string().optional(),

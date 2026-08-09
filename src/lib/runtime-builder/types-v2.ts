@@ -126,7 +126,7 @@ export interface InfrastructureSelection {
 }
 
 export interface ImageSelection {
-  /** Slug from src/data/dockerImages.ts (e.g. "elsa-pro-combined"). */
+  /** Slug from src/data/dockerImages.ts (e.g. "runtime-combined"). */
   slug: string;
   /** Docker tag (e.g. "latest", "3.8.0-preview"). */
   tag: string;
@@ -206,7 +206,7 @@ export const DEFAULT_PACKAGE_SOURCES: PackageSource[] = [
 ];
 
 export const DEFAULT_IMAGE_SELECTION: ImageSelection = {
-  slug: "elsa-pro-combined",
+  slug: "runtime-combined",
   tag: "latest",
   hostPort: 8080,
 };
