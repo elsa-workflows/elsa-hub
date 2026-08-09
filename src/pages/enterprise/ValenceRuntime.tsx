@@ -70,7 +70,7 @@ const tierDetails: { name: string; badge?: string; body: string; extra?: string 
   {
     name: "Community",
     badge: "Free",
-    body: "Public images, the open source engine, a public issue tracker. No hardening, no patch commitment, no triage commitment. These images are currently frozen while publishing moves to the private registry.",
+    body: "The same build the paid tiers get — same layers, same digest, nothing stripped out or deliberately degraded. Public on ghcr.io, pullable with no account and no login. What it does not include: any patch commitment, any triage commitment, backports, or immutable version tags. It publishes only moving tags (latest and the Elsa version), so a Community deployment cannot be pinned to an exact build. That is the line between evaluating freely and depending on it commercially.",
   },
   {
     name: "Runtime",
