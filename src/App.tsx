@@ -127,6 +127,7 @@ const App = () => (
               <Route path="/elsa-plus" element={<ElsaPlus />} />
               <Route path="/elsa-plus/expert-services" element={<ExpertServicesProviders />} />
               <Route path="/elsa-plus/expert-services/:slug" element={<ExpertServiceProvider />} />
+              <Route path="/elsa-plus/valence-runtime" element={<ValenceRuntime />} />
               <Route path="/elsa-plus/docker-images" element={<DockerImages />} />
               <Route path="/elsa-plus/docker-images/:slug" element={<DockerImageDetail />} />
               <Route path="/elsa-plus/production-docker" element={<Navigate to="/elsa-plus/docker-images" replace />} />
