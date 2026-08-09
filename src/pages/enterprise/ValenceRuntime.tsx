@@ -121,8 +121,8 @@ export default function ValenceRuntime() {
     <Layout>
       <Seo
         path="/elsa-plus/valence-runtime"
-        title="Valence Runtime — production-ready Elsa container images"
-        description="Valence Runtime is the assembled, production-ready distribution of Elsa Workflows: pre-built server, Studio and combined container images with a committed security-patch cadence and direct maintainer access on paid tiers."
+        title="Valence Runtime — production Elsa container images"
+        description="Valence Runtime is the production distribution of Elsa Workflows: pre-built server, Studio and combined container images with a committed security-patch cadence and committed bug triage windows on paid tiers."
       />
 
       <section className="pt-8 pb-4">
@@ -334,7 +334,7 @@ export default function ValenceRuntime() {
           <p className="text-muted-foreground">
             All of the above is available through{" "}
             <Link to="/elsa-plus/expert-services" className="text-primary hover:underline">
-              Expert Advisory
+              Expert Services
             </Link>{" "}
             instead.
           </p>
