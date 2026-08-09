@@ -190,13 +190,19 @@ export default function ValenceRuntime() {
         <div className="container max-w-4xl space-y-4">
           <h2 className="text-3xl font-bold">What it is</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Elsa Workflows is open source under the MIT License and always will be. Nothing has
-            moved behind a paywall. Valence Runtime is the assembled, production-ready
-            distribution of it — pre-built container images, a committed security-patch cadence,
-            and, on paid tiers, direct access to the person who wrote Elsa.
+            Elsa Workflows itself is open source under the MIT License and always will be. The
+            Valence Runtime container images and their packaging are licensed commercially and
+            require a subscription. Nothing has moved behind a paywall: Valence Runtime is the
+            assembled, production-ready distribution — pre-built container images, a committed
+            security-patch cadence, and, on paid tiers, direct access to the person who wrote Elsa.
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Not yet a supported distribution — production hardening, container scanning, and stable
+            release guarantees are on the roadmap. Elsa 3.8 remains in preview.
           </p>
         </div>
       </section>
+
 
       {/* Tiers */}
       <section className="py-12 md:py-16">
