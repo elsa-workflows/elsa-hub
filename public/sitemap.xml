@@ -51,6 +51,16 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/elsa-plus/distributions</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/elsa-plus/valence-runtime</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/elsa-plus/valence-runtime/images</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
