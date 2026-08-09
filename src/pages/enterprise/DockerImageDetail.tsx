@@ -47,8 +47,8 @@ networks:
     <Layout>
       <Seo
         path={`/elsa-plus/valence-runtime/images/${image.slug}`}
-        title={`${image.name} Docker image — Elsa+`}
-        description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works. Configuration, environment variables, docker run and Docker Compose snippets. Free to try; not yet a supported distribution.`}
+        title={`${image.name} — Valence Runtime container image`}
+        description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works, published to a private registry. Configuration, environment variables, docker run and Docker Compose snippets. Access on request; not yet a supported distribution.`}
       />
       <section className="pt-8 pb-4">
         <div className="container">
@@ -62,7 +62,7 @@ networks:
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/elsa-plus/valence-runtime/images">Docker Images</Link>
+                  <Link to="/elsa-plus/valence-runtime/images">Valence Runtime images</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -207,7 +207,7 @@ docker pull ${image.image}:3.8.0-preview.5413`}
           {serverImage && (
             <div>
               <h3 className="font-semibold mb-2">
-                {image.needsSharedNetwork ? "2." : "1."} Run an Valence Runtime Server (skip if you already have one)
+                {image.needsSharedNetwork ? "2." : "1."} Run a Valence Runtime Server (skip if you already have one)
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
                 Studio will connect to this container. If you already have a server running, skip ahead.
