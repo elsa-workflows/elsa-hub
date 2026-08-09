@@ -28,6 +28,7 @@ const ExpertServicesProviders = lazy(() => import("./pages/enterprise/ExpertServ
 const ExpertServiceProvider = lazy(() => import("./pages/enterprise/ExpertServiceProvider"));
 const DockerImages = lazy(() => import("./pages/enterprise/DockerImages"));
 const ValenceRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
+const Distributions = lazy(() => import("./pages/enterprise/Distributions"));
 const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
 const Training = lazy(() => import("./pages/enterprise/Training"));
