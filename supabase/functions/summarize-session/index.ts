@@ -1,7 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.93.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const MAX_INPUT_CHARS = 40_000;
+const MAX_INPUT_CHARS = 16_000;
+const AI_TIMEOUT_MS = 24_000;
 
 // Transcripts (.vtt/.srt) are mostly timestamps and cue numbers. Strip them so the
 // model receives dialogue only — this cuts token count (and latency) by a large factor.
@@ -104,12 +105,16 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are a senior consultant reviewing a client session (call, workshop, or async review).
 Produce a tight, factual summary, the key points, and concrete action items.
-Owner hints should be names or roles mentioned in the source. Due hints should be relative phrases ("next week") or explicit dates.`;
+Owner hints should be names or roles mentioned in the source. Due hints should be relative phrases ("next week") or explicit dates.
+Return only valid JSON with this exact shape: {"summary":"...","key_points":["..."],"action_items":[{"title":"...","owner_hint":"...","due_hint":"..."}]}.`;
 
-    const aiResponse = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
@@ -125,9 +130,17 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
             },
           ],
           response_format: { type: "json_object" },
+          max_tokens: 1800,
         }),
-      },
-    );
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return json({ error: "Summary generation timed out. Please try again." }, 504);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (aiResponse.status === 429) return json({ error: "Rate limited. Try again shortly." }, 429);
     if (aiResponse.status === 402) {
