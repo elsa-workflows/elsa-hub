@@ -110,7 +110,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="min-w-0">
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-brand mb-4">
-                Open-source workflow infrastructure for .NET
+                THE WORKFLOW ENGINE FOR .NET
               </p>
               <h1 className="font-display text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.05] font-semibold tracking-tight mb-6">
                 Build, run, and operate workflows in your .NET stack.
