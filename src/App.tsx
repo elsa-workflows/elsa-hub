@@ -85,7 +85,15 @@ const OrgWorkspace = lazy(() => import("./pages/dashboard/org/OrgWorkspace"));
 const ProviderWorkspaces = lazy(() => import("./pages/dashboard/provider/ProviderWorkspaces"));
 const ProviderWorkspace = lazy(() => import("./pages/dashboard/provider/ProviderWorkspace"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Refetching on every tab focus caused visible loading states that
+      // remounted content and closed open dialogs.
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Sends browser visitors of the prerendered /blog/<slug>.html download URL
 // back to the clean SPA route, so React Router doesn't render NotFound on
