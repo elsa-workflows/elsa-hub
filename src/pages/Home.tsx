@@ -99,8 +99,8 @@ export default function Home() {
     <Layout>
       <Seo
         path="/"
-        title="Elsa Workflows — Open-source workflow infrastructure for .NET"
-        description="Elsa gives .NET teams an embeddable workflow engine and a deployable Server and Studio for building long-running, event-driven, and scheduled processes."
+        title="The Workflow Engine for .NET"
+        description="Build workflow-driven .NET apps with Elsa: visual designer, C# code, and scale from small apps to enterprise systems. Open source."
         jsonLd={jsonLd}
       />
 
