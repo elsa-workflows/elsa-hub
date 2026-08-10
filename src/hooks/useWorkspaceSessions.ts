@@ -122,9 +122,23 @@ export function useWorkspaceSessions(workspaceId: string | undefined) {
       const { data, error } = await supabase.functions.invoke("summarize-session", {
         body: { sessionId },
       });
-      if (error) throw error;
+      if (error) {
+        // Surface the function's own error message when it returned a JSON body.
+        const ctx = (error as any).context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            const body = await ctx.json();
+            if (body?.error) throw new Error(body.error);
+          } catch (e: any) {
+            if (e?.message) throw e;
+          }
+        }
+        throw error;
+      }
+      if ((data as any)?.error) throw new Error((data as any).error);
       return data;
     },
+
     onSuccess: (_d, sessionId) => {
       qc.invalidateQueries({ queryKey: ["workspace-sessions", workspaceId] });
       qc.invalidateQueries({ queryKey: ["workspace-session", sessionId] });
