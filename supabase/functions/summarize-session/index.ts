@@ -6,7 +6,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_INPUT_CHARS = 80_000;
+const MAX_INPUT_CHARS = 40_000;
+
+// Transcripts (.vtt/.srt) are mostly timestamps and cue numbers. Strip them so the
+// model receives dialogue only — this cuts token count (and latency) by a large factor.
+function cleanTranscript(name: string, raw: string) {
+  if (!/\.(vtt|srt)$/i.test(name)) return raw;
+  const lines = raw.split(/\r?\n/);
+  const out: string[] = [];
+  let last = "";
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t === "WEBVTT" || /^\d+$/.test(t)) continue;
+    if (t.includes("-->")) continue;
+    if (/^(NOTE|STYLE|REGION)\b/.test(t)) continue;
+    const text = t.replace(/<[^>]+>/g, "").trim();
+    if (!text || text === last) continue;
+    last = text;
+    out.push(text);
+  }
+  return out.join("\n");
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -57,14 +79,20 @@ Deno.serve(async (req) => {
         (f.mime_type || "").startsWith("text/") ||
         /\.(vtt|srt|txt|md)$/i.test(f.file_name);
       if (!isText) continue;
-      const { data: blob } = await serviceClient.storage
+      const { data: blob, error: dlErr } = await serviceClient.storage
         .from("engagement-files")
         .download(f.storage_path);
-      if (!blob) continue;
+      if (dlErr || !blob) {
+        console.error("download failed", f.file_name, dlErr?.message);
+        continue;
+      }
       try {
-        const t = await blob.text();
+        const t = cleanTranscript(f.file_name, await blob.text());
         if (t.trim()) textParts.push(`# ${f.file_name}\n${t.trim()}`);
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.error("read failed", f.file_name, (e as Error).message);
+      }
+
     }
 
     if (textParts.length === 0) {
@@ -93,7 +121,10 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
+          // Streaming keeps bytes flowing so the platform never severs a long request.
+          stream: true,
           messages: [
+
             { role: "system", content: systemPrompt },
             {
               role: "user",
@@ -147,12 +178,44 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
       return json({ error: `AI gateway error: ${errText}` }, 502);
     }
 
-    const aiJson = await aiResponse.json();
-    const toolCall = aiJson?.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
+    // Accumulate the streamed tool-call arguments.
+    let argsText = "";
+    let contentText = "";
+    const reader = aiResponse.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t.startsWith("data:")) continue;
+        const payload = t.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const chunk = JSON.parse(payload);
+          const delta = chunk?.choices?.[0]?.delta;
+          const call = delta?.tool_calls?.[0];
+          if (call?.function?.arguments) argsText += call.function.arguments;
+          if (typeof delta?.content === "string") contentText += delta.content;
+        } catch { /* partial frame */ }
+      }
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(argsText || contentText.replace(/^```json\s*|\s*```$/g, ""));
+    } catch {
+      console.error("unparsable AI output", argsText.slice(0, 500), contentText.slice(0, 500));
       return json({ error: "AI did not return a structured summary" }, 502);
     }
-    const parsed = JSON.parse(toolCall.function.arguments);
+    if (!parsed?.summary) {
+      return json({ error: "AI did not return a structured summary" }, 502);
+    }
+
 
     // Persist on the session row
     const { error: updateErr } = await serviceClient
