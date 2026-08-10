@@ -178,12 +178,44 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
       return json({ error: `AI gateway error: ${errText}` }, 502);
     }
 
-    const aiJson = await aiResponse.json();
-    const toolCall = aiJson?.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
+    // Accumulate the streamed tool-call arguments.
+    let argsText = "";
+    let contentText = "";
+    const reader = aiResponse.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t.startsWith("data:")) continue;
+        const payload = t.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const chunk = JSON.parse(payload);
+          const delta = chunk?.choices?.[0]?.delta;
+          const call = delta?.tool_calls?.[0];
+          if (call?.function?.arguments) argsText += call.function.arguments;
+          if (typeof delta?.content === "string") contentText += delta.content;
+        } catch { /* partial frame */ }
+      }
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(argsText || contentText.replace(/^```json\s*|\s*```$/g, ""));
+    } catch {
+      console.error("unparsable AI output", argsText.slice(0, 500), contentText.slice(0, 500));
       return json({ error: "AI did not return a structured summary" }, 502);
     }
-    const parsed = JSON.parse(toolCall.function.arguments);
+    if (!parsed?.summary) {
+      return json({ error: "AI did not return a structured summary" }, 502);
+    }
+
 
     // Persist on the session row
     const { error: updateErr } = await serviceClient
