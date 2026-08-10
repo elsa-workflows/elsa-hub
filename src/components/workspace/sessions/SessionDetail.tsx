@@ -57,6 +57,8 @@ export function SessionDetail({ workspaceId, session, onBack, onLogWork }: Sessi
   const { update, remove, summarize } = useWorkspaceSessions(workspaceId);
   const [notes, setNotes] = useState(session.notes_markdown);
   const [dirty, setDirty] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
 
   useEffect(() => {
     setNotes(session.notes_markdown);
