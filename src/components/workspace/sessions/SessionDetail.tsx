@@ -162,9 +162,28 @@ export function SessionDetail({ workspaceId, session, onBack, onLogWork }: Sessi
               )}
             </div>
           </div>
-          <Badge variant="secondary">{TYPE_LABEL[session.session_type] ?? session.session_type}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{TYPE_LABEL[session.session_type] ?? session.session_type}</Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Edit session details"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </Card>
+
+      <EditSessionDialog
+        workspaceId={workspaceId}
+        session={session}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
+
+
 
       <Card className="p-5 space-y-3">
         <div className="flex items-center justify-between">
