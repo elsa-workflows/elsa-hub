@@ -121,7 +121,10 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
+          // Streaming keeps bytes flowing so the platform never severs a long request.
+          stream: true,
           messages: [
+
             { role: "system", content: systemPrompt },
             {
               role: "user",
