@@ -1,12 +1,8 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { createClient } from "npm:@supabase/supabase-js@2.93.1";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const MAX_INPUT_CHARS = 40_000;
+const MAX_INPUT_CHARS = 16_000;
+const AI_TIMEOUT_MS = 24_000;
 
 // Transcripts (.vtt/.srt) are mostly timestamps and cue numbers. Strip them so the
 // model receives dialogue only — this cuts token count (and latency) by a large factor.
@@ -109,20 +105,22 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are a senior consultant reviewing a client session (call, workshop, or async review).
 Produce a tight, factual summary, the key points, and concrete action items.
-Owner hints should be names or roles mentioned in the source. Due hints should be relative phrases ("next week") or explicit dates.`;
+Owner hints should be names or roles mentioned in the source. Due hints should be relative phrases ("next week") or explicit dates.
+Return only valid JSON with this exact shape: {"summary":"...","key_points":["..."],"action_items":[{"title":"...","owner_hint":"...","due_hint":"..."}]}.`;
 
-    const aiResponse = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
-          // Streaming keeps bytes flowing so the platform never severs a long request.
-          stream: true,
           messages: [
 
             { role: "system", content: systemPrompt },
@@ -131,43 +129,18 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
               content: `Session: ${session.title} (${session.session_type})\nWhen: ${session.occurred_at}\nParticipants: ${(session.participants as any[] | null)?.join(", ") || "n/a"}\n\n---\n${combined}`,
             },
           ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "return_summary",
-                description: "Return the structured summary of the session.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    summary: { type: "string", description: "2-4 sentence factual summary." },
-                    key_points: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "5-10 short bullet-style key points.",
-                    },
-                    action_items: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          title: { type: "string" },
-                          owner_hint: { type: "string" },
-                          due_hint: { type: "string" },
-                        },
-                        required: ["title"],
-                      },
-                    },
-                  },
-                  required: ["summary", "key_points", "action_items"],
-                },
-              },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: "return_summary" } },
+          response_format: { type: "json_object" },
+          max_tokens: 1800,
         }),
-      },
-    );
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return json({ error: "Summary generation timed out. Please try again." }, 504);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (aiResponse.status === 429) return json({ error: "Rate limited. Try again shortly." }, 429);
     if (aiResponse.status === 402) {
@@ -178,38 +151,13 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
       return json({ error: `AI gateway error: ${errText}` }, 502);
     }
 
-    // Accumulate the streamed tool-call arguments.
-    let argsText = "";
-    let contentText = "";
-    const reader = aiResponse.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-      for (const line of lines) {
-        const t = line.trim();
-        if (!t.startsWith("data:")) continue;
-        const payload = t.slice(5).trim();
-        if (!payload || payload === "[DONE]") continue;
-        try {
-          const chunk = JSON.parse(payload);
-          const delta = chunk?.choices?.[0]?.delta;
-          const call = delta?.tool_calls?.[0];
-          if (call?.function?.arguments) argsText += call.function.arguments;
-          if (typeof delta?.content === "string") contentText += delta.content;
-        } catch { /* partial frame */ }
-      }
-    }
-
+    const completion = await aiResponse.json();
+    const contentText = completion?.choices?.[0]?.message?.content;
     let parsed: any;
     try {
-      parsed = JSON.parse(argsText || contentText.replace(/^```json\s*|\s*```$/g, ""));
+      parsed = JSON.parse(contentText || "");
     } catch {
-      console.error("unparsable AI output", argsText.slice(0, 500), contentText.slice(0, 500));
+      console.error("unparsable AI output", String(contentText).slice(0, 500));
       return json({ error: "AI did not return a structured summary" }, 502);
     }
     if (!parsed?.summary) {
