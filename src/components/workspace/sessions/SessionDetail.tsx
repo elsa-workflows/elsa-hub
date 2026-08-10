@@ -9,8 +9,10 @@ import {
   Loader2,
   Save,
   Trash2,
+  Pencil,
   Clock as ClockIcon,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,8 @@ import {
 } from "@/hooks/useWorkspaceSessions";
 import { FileUploader } from "../FileUploader";
 import { FileList } from "../FileList";
+import { EditSessionDialog } from "./EditSessionDialog";
+
 
 const TYPE_LABEL: Record<string, string> = {
   call: "Call",
