@@ -112,6 +112,11 @@ export function SessionDetail({ workspaceId, session, onBack, onLogWork }: Sessi
               Log work
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit details
+          </Button>
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="icon" title="Delete session">
