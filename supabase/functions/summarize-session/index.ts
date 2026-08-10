@@ -1,10 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { createClient } from "npm:@supabase/supabase-js@2.93.1";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const MAX_INPUT_CHARS = 40_000;
 
@@ -121,8 +116,6 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
-          // Streaming keeps bytes flowing so the platform never severs a long request.
-          stream: true,
           messages: [
 
             { role: "system", content: systemPrompt },
@@ -131,40 +124,7 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
               content: `Session: ${session.title} (${session.session_type})\nWhen: ${session.occurred_at}\nParticipants: ${(session.participants as any[] | null)?.join(", ") || "n/a"}\n\n---\n${combined}`,
             },
           ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "return_summary",
-                description: "Return the structured summary of the session.",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    summary: { type: "string", description: "2-4 sentence factual summary." },
-                    key_points: {
-                      type: "array",
-                      items: { type: "string" },
-                      description: "5-10 short bullet-style key points.",
-                    },
-                    action_items: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          title: { type: "string" },
-                          owner_hint: { type: "string" },
-                          due_hint: { type: "string" },
-                        },
-                        required: ["title"],
-                      },
-                    },
-                  },
-                  required: ["summary", "key_points", "action_items"],
-                },
-              },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: "return_summary" } },
+          response_format: { type: "json_object" },
         }),
       },
     );
@@ -178,38 +138,13 @@ Owner hints should be names or roles mentioned in the source. Due hints should b
       return json({ error: `AI gateway error: ${errText}` }, 502);
     }
 
-    // Accumulate the streamed tool-call arguments.
-    let argsText = "";
-    let contentText = "";
-    const reader = aiResponse.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-      for (const line of lines) {
-        const t = line.trim();
-        if (!t.startsWith("data:")) continue;
-        const payload = t.slice(5).trim();
-        if (!payload || payload === "[DONE]") continue;
-        try {
-          const chunk = JSON.parse(payload);
-          const delta = chunk?.choices?.[0]?.delta;
-          const call = delta?.tool_calls?.[0];
-          if (call?.function?.arguments) argsText += call.function.arguments;
-          if (typeof delta?.content === "string") contentText += delta.content;
-        } catch { /* partial frame */ }
-      }
-    }
-
+    const completion = await aiResponse.json();
+    const contentText = completion?.choices?.[0]?.message?.content;
     let parsed: any;
     try {
-      parsed = JSON.parse(argsText || contentText.replace(/^```json\s*|\s*```$/g, ""));
+      parsed = JSON.parse(contentText || "");
     } catch {
-      console.error("unparsable AI output", argsText.slice(0, 500), contentText.slice(0, 500));
+      console.error("unparsable AI output", String(contentText).slice(0, 500));
       return json({ error: "AI did not return a structured summary" }, 502);
     }
     if (!parsed?.summary) {
