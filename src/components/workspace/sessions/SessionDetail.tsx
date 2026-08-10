@@ -9,8 +9,10 @@ import {
   Loader2,
   Save,
   Trash2,
+  Pencil,
   Clock as ClockIcon,
 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,8 @@ import {
 } from "@/hooks/useWorkspaceSessions";
 import { FileUploader } from "../FileUploader";
 import { FileList } from "../FileList";
+import { EditSessionDialog } from "./EditSessionDialog";
+
 
 const TYPE_LABEL: Record<string, string> = {
   call: "Call",
@@ -53,6 +57,8 @@ export function SessionDetail({ workspaceId, session, onBack, onLogWork }: Sessi
   const { update, remove, summarize } = useWorkspaceSessions(workspaceId);
   const [notes, setNotes] = useState(session.notes_markdown);
   const [dirty, setDirty] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
 
   useEffect(() => {
     setNotes(session.notes_markdown);
@@ -106,6 +112,11 @@ export function SessionDetail({ workspaceId, session, onBack, onLogWork }: Sessi
               Log work
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit details
+          </Button>
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="icon" title="Delete session">
@@ -151,9 +162,28 @@ export function SessionDetail({ workspaceId, session, onBack, onLogWork }: Sessi
               )}
             </div>
           </div>
-          <Badge variant="secondary">{TYPE_LABEL[session.session_type] ?? session.session_type}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{TYPE_LABEL[session.session_type] ?? session.session_type}</Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Edit session details"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </Card>
+
+      <EditSessionDialog
+        workspaceId={workspaceId}
+        session={session}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
+
+
 
       <Card className="p-5 space-y-3">
         <div className="flex items-center justify-between">
