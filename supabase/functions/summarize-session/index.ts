@@ -79,14 +79,20 @@ Deno.serve(async (req) => {
         (f.mime_type || "").startsWith("text/") ||
         /\.(vtt|srt|txt|md)$/i.test(f.file_name);
       if (!isText) continue;
-      const { data: blob } = await serviceClient.storage
+      const { data: blob, error: dlErr } = await serviceClient.storage
         .from("engagement-files")
         .download(f.storage_path);
-      if (!blob) continue;
+      if (dlErr || !blob) {
+        console.error("download failed", f.file_name, dlErr?.message);
+        continue;
+      }
       try {
-        const t = await blob.text();
+        const t = cleanTranscript(f.file_name, await blob.text());
         if (t.trim()) textParts.push(`# ${f.file_name}\n${t.trim()}`);
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.error("read failed", f.file_name, (e as Error).message);
+      }
+
     }
 
     if (textParts.length === 0) {
