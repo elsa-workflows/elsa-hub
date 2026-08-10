@@ -71,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (currentUserIdRef.current === undefined) {
+        currentUserIdRef.current = session?.user?.id ?? null;
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
