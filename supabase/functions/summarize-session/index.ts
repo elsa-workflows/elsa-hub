@@ -6,7 +6,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const MAX_INPUT_CHARS = 80_000;
+const MAX_INPUT_CHARS = 40_000;
+
+// Transcripts (.vtt/.srt) are mostly timestamps and cue numbers. Strip them so the
+// model receives dialogue only — this cuts token count (and latency) by a large factor.
+function cleanTranscript(name: string, raw: string) {
+  if (!/\.(vtt|srt)$/i.test(name)) return raw;
+  const lines = raw.split(/\r?\n/);
+  const out: string[] = [];
+  let last = "";
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (t === "WEBVTT" || /^\d+$/.test(t)) continue;
+    if (t.includes("-->")) continue;
+    if (/^(NOTE|STYLE|REGION)\b/.test(t)) continue;
+    const text = t.replace(/<[^>]+>/g, "").trim();
+    if (!text || text === last) continue;
+    last = text;
+    out.push(text);
+  }
+  return out.join("\n");
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
