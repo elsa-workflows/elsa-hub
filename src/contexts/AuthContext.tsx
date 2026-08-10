@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const hasHandledRedirect = useRef(false);
+  const currentUserIdRef = useRef<string | null | undefined>(undefined);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -31,13 +32,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Clear ALL cached data to prevent stale user-specific data across account switches
-        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        // Only react to an actual identity change. Supabase re-emits SIGNED_IN on
+        // tab focus / token refresh; clearing the cache there remounts the page and
+        // closes open dialogs, losing user input.
+        const nextUserId = session?.user?.id ?? null;
+        const previousUserId = currentUserIdRef.current;
+        const identityChanged =
+          previousUserId !== undefined && previousUserId !== nextUserId;
+        currentUserIdRef.current = nextUserId;
+
+        if (identityChanged && (event === "SIGNED_IN" || event === "SIGNED_OUT")) {
+          // Clear ALL cached data to prevent stale user-specific data across account switches
           queryClient.clear();
-          
+
           // Clear stale organization context from localStorage
           localStorage.removeItem("selected_organization");
-          
+
           // Force refresh session to ensure the Supabase client has the latest token
           if (event === "SIGNED_IN" && session) {
             supabase.auth.refreshSession();
