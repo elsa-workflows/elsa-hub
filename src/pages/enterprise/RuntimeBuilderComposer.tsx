@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
@@ -18,6 +18,7 @@ import {
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import { useCatalogQuery } from "@/lib/runtime-builder/catalog-client";
+import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { Stepper } from "@/components/runtime-builder/Stepper";
 import { BuildSummary } from "@/components/runtime-builder/BuildSummary";
 import { StepSources } from "@/components/runtime-builder/StepSources";
@@ -78,7 +79,14 @@ const ADVANCED_STEPS: StepDef[] = [
 
 export default function RuntimeBuilderComposer() {
   const [params, setParams] = useSearchParams();
-  const { state, setAdvancedMode, reset, togglePackage } = useRuntimeBuilder();
+  const {
+    state,
+    setAdvancedMode,
+    reset,
+    togglePackage,
+    setImageSlug,
+    setImageHostPort,
+  } = useRuntimeBuilder();
   const { data: catalog } = useCatalogQuery();
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -89,6 +97,18 @@ export default function RuntimeBuilderComposer() {
   const step = clamp(Number(params.get("step") ?? "1"), 1, maxStep);
   const activeKey = steps[step - 1]?.key ?? steps[0].key;
 
+  // Pre-select the runtime image from `?image=<slug>` (once, on first load).
+  const appliedImageRef = useRef<string | null>(null);
+  useEffect(() => {
+    const requested = params.get("image");
+    if (!requested || appliedImageRef.current === requested) return;
+    const img = findBuilderImage(requested);
+    if (!img) return;
+    appliedImageRef.current = requested;
+    setImageSlug(img.slug);
+    setImageHostPort(img.defaultHostPort);
+  }, [params, setImageSlug, setImageHostPort]);
+
   // Pre-select a package from `?package=<id>` if recognized and none chosen.
   useEffect(() => {
     const requested = params.get("package");
@@ -97,6 +117,7 @@ export default function RuntimeBuilderComposer() {
     const pkg = catalog.packages.find((p) => p.id === requested);
     if (pkg) togglePackage(pkg.id, pkg.version, catalog);
   }, [params, catalog, state.selectedPackages, togglePackage]);
+
 
   const hasPackages = state.selectedPackages.length > 0;
   const hasFeatures = state.selectedPackages.some(
