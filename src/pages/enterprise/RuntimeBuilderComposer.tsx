@@ -18,6 +18,7 @@ import {
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
 import { useCatalogQuery } from "@/lib/runtime-builder/catalog-client";
+import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { Stepper } from "@/components/runtime-builder/Stepper";
 import { BuildSummary } from "@/components/runtime-builder/BuildSummary";
 import { StepSources } from "@/components/runtime-builder/StepSources";
