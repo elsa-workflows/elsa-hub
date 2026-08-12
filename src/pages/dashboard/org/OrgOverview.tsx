@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
-import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder } from "@/components/organization";
+import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder, PurchaseBundleDialog } from "@/components/organization";
+import { useOrganization } from "@/contexts/OrganizationContext";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { useTidyCalBookingTypes } from "@/hooks/useTidyCalBookingTypes";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,8 @@ export default function OrgOverview() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [copiedId, setCopiedId] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const { selectOrganization } = useOrganization();
   const { 
     organization, 
     creditBalances, 
@@ -29,6 +32,13 @@ export default function OrgOverview() {
     notFound,
     refetchInvitations,
   } = useOrganizationDashboard(slug);
+
+  const handleOpenPurchase = () => {
+    if (organization) {
+      selectOrganization({ id: organization.id, name: organization.name, slug: organization.slug });
+    }
+    setPurchaseOpen(true);
+  };
 
   // Fetch subscriptions
   const { data: subscriptions, isLoading: subscriptionsLoading } = useSubscriptions(organization?.id);
@@ -136,11 +146,19 @@ export default function OrgOverview() {
       )}
 
       {/* Quick Links */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <QuickLinkCard title="Orders" description="View purchase history" href={`/dashboard/org/${slug}/orders`} />
         <QuickLinkCard title="Credits" description="Track usage & expiration" href={`/dashboard/org/${slug}/credits`} />
         <QuickLinkCard title="Team" description="Manage members" href={`/dashboard/org/${slug}/team`} />
         <QuickLinkCard title="Settings" description="Organization settings" href={`/dashboard/org/${slug}/settings`} />
+        {isAdmin && (
+          <ActionCard
+            title="Purchase"
+            description="Credits or subscriptions"
+            icon={DollarSign}
+            onClick={handleOpenPurchase}
+          />
+        )}
       </div>
 
       {/* Dashboard Grid */}
@@ -185,6 +203,8 @@ export default function OrgOverview() {
           </Button>
         </div>
       )}
+
+      <PurchaseBundleDialog open={purchaseOpen} onOpenChange={setPurchaseOpen} />
     </div>
   );
 }
@@ -203,6 +223,38 @@ function QuickLinkCard({ title, description, href }: { title: string; descriptio
           <p className="text-xs text-muted-foreground">{description}</p>
         </CardContent>
       </Link>
+    </Card>
+  );
+}
+
+function ActionCard({
+  title,
+  description,
+  icon: Icon,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      className="group hover:border-primary/50 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Icon className="h-4 w-4 text-primary" />
+            {title}
+          </span>
+          <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
     </Card>
   );
 }
