@@ -5,7 +5,8 @@ export interface Subscription {
   id: string;
   organization_id: string;
   service_provider_id: string;
-  credit_bundle_id: string;
+  credit_bundle_id: string | null;
+  product_id: string | null;
   stripe_subscription_id: string;
   stripe_customer_id: string;
   status: string;
@@ -14,8 +15,10 @@ export interface Subscription {
   cancel_at_period_end: boolean;
   created_at: string;
   updated_at: string;
+  /** Display name: credit bundle name or product name */
   bundle_name: string;
-  monthly_hours: number;
+  /** Null for product subscriptions (e.g. Valence Runtime) which grant no hours */
+  monthly_hours: number | null;
 }
 
 export function useSubscriptions(organizationId: string | undefined) {
@@ -34,20 +37,34 @@ export function useSubscriptions(organizationId: string | undefined) {
       if (!subscriptions || subscriptions.length === 0) return [];
 
       // Fetch bundle info
-      const bundleIds = [...new Set(subscriptions.map(s => s.credit_bundle_id))];
-      const { data: bundles } = await supabase
-        .from("credit_bundles")
-        .select("id, name, monthly_hours")
-        .in("id", bundleIds);
-      
-      const bundleMap = new Map(bundles?.map(b => [b.id, { name: b.name, monthly_hours: b.monthly_hours }]) || []);
+      const bundleIds = [...new Set(subscriptions.map(s => s.credit_bundle_id).filter(Boolean))] as string[];
+      const productIds = [...new Set(subscriptions.map(s => s.product_id).filter(Boolean))] as string[];
 
-      return subscriptions.map(sub => ({
-        ...sub,
-        bundle_name: bundleMap.get(sub.credit_bundle_id)?.name || "Unknown",
-        monthly_hours: bundleMap.get(sub.credit_bundle_id)?.monthly_hours || 0,
-      })) as Subscription[];
+      const [bundlesRes, productsRes] = await Promise.all([
+        bundleIds.length
+          ? supabase.from("credit_bundles").select("id, name, monthly_hours").in("id", bundleIds)
+          : Promise.resolve({ data: [] as { id: string; name: string; monthly_hours: number | null }[] }),
+        productIds.length
+          ? supabase.from("products").select("id, name").in("id", productIds)
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      ]);
+
+      const bundleMap = new Map(
+        (bundlesRes.data || []).map(b => [b.id, { name: b.name, monthly_hours: b.monthly_hours }])
+      );
+      const productMap = new Map((productsRes.data || []).map(p => [p.id, p.name]));
+
+      return subscriptions.map(sub => {
+        const bundle = sub.credit_bundle_id ? bundleMap.get(sub.credit_bundle_id) : undefined;
+        const productName = sub.product_id ? productMap.get(sub.product_id) : undefined;
+        return {
+          ...sub,
+          bundle_name: bundle?.name ?? productName ?? "Unknown",
+          monthly_hours: bundle ? bundle.monthly_hours ?? 0 : null,
+        };
+      }) as Subscription[];
     },
     enabled: !!organizationId,
   });
 }
+
