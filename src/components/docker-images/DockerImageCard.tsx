@@ -33,7 +33,10 @@ export function DockerImageCard({ image }: DockerImageCardProps) {
       </div>
 
 
-      <p className="text-sm text-muted-foreground mb-4">{image.tagline}</p>
+      <p className="text-sm text-muted-foreground mb-2">{image.tagline}</p>
+
+      <p className="text-xs text-muted-foreground/80 mb-4">Included with every subscription.</p>
+
 
       <ul className="space-y-1.5 text-sm mb-4">
         {image.highlights.map((h) => (
