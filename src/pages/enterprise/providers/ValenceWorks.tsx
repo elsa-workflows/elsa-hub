@@ -967,6 +967,7 @@ export default function ValenceWorks() {
         open={purchaseDialogOpen}
         onOpenChange={setPurchaseDialogOpen}
         preSelectedBundleId={selectedBundleId}
+        showProducts={false}
       />
 
 
