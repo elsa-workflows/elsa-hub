@@ -26,7 +26,6 @@ const entries: SitemapEntry[] = [
   { path: "/elsa-plus/expert-services/valence-works", changefreq: "monthly", priority: "0.7" },
   { path: "/elsa-plus/distributions", changefreq: "monthly", priority: "0.8" },
   { path: "/elsa-plus/valence-runtime", changefreq: "weekly", priority: "0.8" },
-  { path: "/elsa-plus/valence-runtime/images", changefreq: "weekly", priority: "0.8" },
   { path: "/elsa-plus/valence-runtime/images/runtime-server", changefreq: "monthly", priority: "0.7" },
   { path: "/elsa-plus/valence-runtime/images/runtime-studio", changefreq: "monthly", priority: "0.7" },
   { path: "/elsa-plus/valence-runtime/images/runtime-combined", changefreq: "monthly", priority: "0.7" },

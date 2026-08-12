@@ -29,7 +29,7 @@ export default function DockerImageDetail() {
   const image = slug ? getDockerImage(slug) : undefined;
 
   if (!image) {
-    return <Navigate to="/elsa-plus/valence-runtime/images" replace />;
+    return <Navigate to="/elsa-plus/valence-runtime#images" replace />;
   }
 
   const Icon = image.icon;
@@ -62,7 +62,7 @@ networks:
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/elsa-plus/valence-runtime/images">Valence Runtime images</Link>
+                  <Link to="/elsa-plus/valence-runtime#images">Valence Runtime images</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -393,7 +393,7 @@ docker pull ${image.image}:3.8.0-preview.5413`}
               </a>
             </li>
             <li>
-              <Link to="/elsa-plus/valence-runtime/images" className="inline-flex items-center gap-2 text-primary hover:underline">
+              <Link to="/elsa-plus/valence-runtime#images" className="inline-flex items-center gap-2 text-primary hover:underline">
                 ← Back to all Valence Runtime images
               </Link>
             </li>
