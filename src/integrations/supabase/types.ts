@@ -909,6 +909,74 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          includes_backports: boolean
+          is_active: boolean
+          kind: Database["public"]["Enums"]["product_kind"]
+          name: string
+          price_cents: number
+          recurring_interval: string
+          service_provider_id: string
+          slot_limit: number | null
+          slug: string
+          stripe_price_id: string | null
+          tier: string
+          triage_response_business_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          includes_backports?: boolean
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["product_kind"]
+          name: string
+          price_cents: number
+          recurring_interval?: string
+          service_provider_id: string
+          slot_limit?: number | null
+          slug: string
+          stripe_price_id?: string | null
+          tier: string
+          triage_response_business_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          includes_backports?: boolean
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["product_kind"]
+          name?: string
+          price_cents?: number
+          recurring_interval?: string
+          service_provider_id?: string
+          slot_limit?: number | null
+          slug?: string
+          stripe_price_id?: string | null
+          tier?: string
+          triage_response_business_days?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1129,6 +1197,82 @@ export type Database = {
         }
         Relationships: []
       }
+      registry_grants: {
+        Row: {
+          created_at: string
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          notes: string | null
+          organization_id: string
+          registry_token_name: string
+          revoked_at: string | null
+          revoked_reason: string | null
+          scope_map_name: string
+          service_provider_id: string
+          status: Database["public"]["Enums"]["registry_grant_status"]
+          subscription_id: string
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          notes?: string | null
+          organization_id: string
+          registry_token_name: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          scope_map_name: string
+          service_provider_id: string
+          status?: Database["public"]["Enums"]["registry_grant_status"]
+          subscription_id: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          notes?: string | null
+          organization_id?: string
+          registry_token_name?: string
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          scope_map_name?: string
+          service_provider_id?: string
+          status?: Database["public"]["Enums"]["registry_grant_status"]
+          subscription_id?: string
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registry_grants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registry_grants_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registry_grants_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: true
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roadmap_snapshots: {
         Row: {
           created_at: string
@@ -1229,11 +1373,12 @@ export type Database = {
         Row: {
           cancel_at_period_end: boolean
           created_at: string
-          credit_bundle_id: string
+          credit_bundle_id: string | null
           current_period_end: string | null
           current_period_start: string | null
           id: string
           organization_id: string
+          product_id: string | null
           service_provider_id: string
           status: string
           stripe_customer_id: string
@@ -1243,11 +1388,12 @@ export type Database = {
         Insert: {
           cancel_at_period_end?: boolean
           created_at?: string
-          credit_bundle_id: string
+          credit_bundle_id?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           organization_id: string
+          product_id?: string | null
           service_provider_id: string
           status?: string
           stripe_customer_id: string
@@ -1257,11 +1403,12 @@ export type Database = {
         Update: {
           cancel_at_period_end?: boolean
           created_at?: string
-          credit_bundle_id?: string
+          credit_bundle_id?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           organization_id?: string
+          product_id?: string | null
           service_provider_id?: string
           status?: string
           stripe_customer_id?: string
@@ -1288,6 +1435,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
@@ -1793,6 +1947,27 @@ export type Database = {
           },
         ]
       }
+      runtime_grant_reconciliation: {
+        Row: {
+          current_period_end: string | null
+          grant_status:
+            | Database["public"]["Enums"]["registry_grant_status"]
+            | null
+          organization_id: string | null
+          organization_name: string | null
+          product_id: string | null
+          product_name: string | null
+          reason: string | null
+          registry_grant_id: string | null
+          registry_token_name: string | null
+          service_provider_id: string | null
+          subscription_id: string | null
+          subscription_status: string | null
+          tier: string | null
+          token_expires_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
@@ -2072,6 +2247,7 @@ export type Database = {
         | "radar_submission"
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
+      product_kind: "runtime_subscription"
       provider_role: "owner" | "admin" | "member"
       radar_region:
         | "Europe"
@@ -2080,6 +2256,7 @@ export type Database = {
         | "Asia"
         | "Africa"
         | "Oceania"
+      registry_grant_status: "pending" | "active" | "revoked" | "expired"
       session_type: "call" | "workshop" | "async_review" | "other"
       work_category:
         | "development"
@@ -2246,6 +2423,7 @@ export const Constants = {
       ],
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],
+      product_kind: ["runtime_subscription"],
       provider_role: ["owner", "admin", "member"],
       radar_region: [
         "Europe",
@@ -2255,6 +2433,7 @@ export const Constants = {
         "Africa",
         "Oceania",
       ],
+      registry_grant_status: ["pending", "active", "revoked", "expired"],
       session_type: ["call", "workshop", "async_review", "other"],
       work_category: [
         "development",
