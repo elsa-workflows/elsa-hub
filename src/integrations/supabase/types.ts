@@ -462,6 +462,7 @@ export type Database = {
           status: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id: string | null
           stripe_receipt_url: string | null
+          subscription_id: string | null
           total_cents: number
         }
         Insert: {
@@ -479,6 +480,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id?: string | null
           stripe_receipt_url?: string | null
+          subscription_id?: string | null
           total_cents: number
         }
         Update: {
@@ -496,6 +498,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id?: string | null
           stripe_receipt_url?: string | null
+          subscription_id?: string | null
           total_cents?: number
         }
         Relationships: [
@@ -518,6 +521,13 @@ export type Database = {
             columns: ["service_provider_id"]
             isOneToOne: false
             referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]

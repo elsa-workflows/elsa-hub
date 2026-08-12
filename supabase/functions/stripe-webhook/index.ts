@@ -471,6 +471,7 @@ async function handleSubscriptionCheckout(
     } else {
       const { error: invoiceError } = await supabase.from("invoices").insert({
         organization_id: organizationId,
+        subscription_id: subRecord.id,
         service_provider_id: serviceProviderId,
         total_cents: openingInvoice.amount_paid ?? openingInvoice.total ?? 0,
         currency: openingInvoice.currency || "eur",
@@ -586,6 +587,7 @@ async function handleInvoicePaid(
     if (!existingInvoice) {
       await supabase.from("invoices").insert({
         organization_id: subscription.organization_id,
+        subscription_id: subscription.id,
         service_provider_id: subscription.service_provider_id,
         total_cents: invoice.amount_paid ?? invoice.total ?? 0,
         currency: invoice.currency || "usd",
