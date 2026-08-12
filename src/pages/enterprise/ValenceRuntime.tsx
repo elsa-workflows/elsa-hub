@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,12 @@ import {
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { ArrowRight, Check, ExternalLink, Minus } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
+import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
+
+const PROVIDER_SLUG = "valence-works";
+const RUNTIME_PAGE_PATH = "/elsa-plus/valence-runtime";
 
 const tiers = ["Community", "Runtime", "Runtime Priority", "Maintainer Access"] as const;
 
