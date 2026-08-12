@@ -79,7 +79,14 @@ const ADVANCED_STEPS: StepDef[] = [
 
 export default function RuntimeBuilderComposer() {
   const [params, setParams] = useSearchParams();
-  const { state, setAdvancedMode, reset, togglePackage } = useRuntimeBuilder();
+  const {
+    state,
+    setAdvancedMode,
+    reset,
+    togglePackage,
+    setImageSlug,
+    setImageHostPort,
+  } = useRuntimeBuilder();
   const { data: catalog } = useCatalogQuery();
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
