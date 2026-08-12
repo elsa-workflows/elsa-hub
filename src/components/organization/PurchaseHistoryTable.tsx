@@ -171,17 +171,24 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
                         )}
                         <div>
                           <p className="font-medium">{purchase.bundle_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
-                          </p>
+                          {purchase.bundle_hours != null && (
+                            <p className="text-sm text-muted-foreground">
+                              {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {purchase.type === "subscription" ? (
-                        <span className="text-muted-foreground text-sm">Recurring</span>
-                      ) : (
+                      {purchase.type === "one_time" ? (
                         formatCurrency(purchase.amount_cents, purchase.currency)
+                      ) : purchase.amount_cents > 0 ? (
+                        <span>
+                          {formatCurrency(purchase.amount_cents, purchase.currency)}
+                          {purchase.recurring_interval ? ` / ${purchase.recurring_interval}` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Recurring</span>
                       )}
                     </TableCell>
                     <TableCell>
