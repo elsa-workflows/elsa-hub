@@ -17,6 +17,7 @@ export function DockerImageCard({ image }: DockerImageCardProps) {
         src={image.artwork}
         alt={image.artworkAlt ?? `${image.name} container image`}
         label={image.artworkLabel ?? image.name.toUpperCase()}
+        accent={image.artworkVariant === "studio" ? "cyan" : "magenta"}
         placeholderIcon={Icon}
         className="mb-5"
       />
