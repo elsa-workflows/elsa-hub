@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, CreditCard, Loader2, AlertCircle, Check, RefreshCw, Info } from "lucide-react";
+import { Building2, CreditCard, Loader2, AlertCircle, Check, RefreshCw, Info, Package } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,12 +27,34 @@ interface PurchaseBundleDialogProps {
   preSelectedBundleId?: string | null;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  tier: string;
+  description: string | null;
+  price_cents: number;
+  currency: string;
+  recurring_interval: string;
+  stripe_price_id: string | null;
+  is_active: boolean;
+  triage_response_business_days: number | null;
+  includes_backports: boolean;
+  service_provider_id: string;
+}
+
+type SelectedItem =
+  | { type: "bundle"; item: CreditBundleFull }
+  | { type: "product"; item: Product };
+
 export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }: PurchaseBundleDialogProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { selectedOrganization, organizations, isAdmin } = useOrganization();
   const { data: bundles, isLoading: bundlesLoading } = useCreditBundlesFull();
-  const [selectedBundle, setSelectedBundle] = useState<CreditBundleFull | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,23 +63,50 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
     if (open && preSelectedBundleId && bundles) {
       const bundle = bundles.find(b => b.id === preSelectedBundleId);
       if (bundle) {
-        setSelectedBundle(bundle);
+        setSelectedItem({ type: "bundle", item: bundle });
       }
     }
   }, [open, preSelectedBundleId, bundles]);
 
+  // Load active products for the same service providers represented by the bundles
+  useEffect(() => {
+    if (!bundles || bundles.length === 0) return;
+    const providerIds = [...new Set(bundles.map(b => b.service_provider_id))];
+    if (providerIds.length === 0) return;
+
+    setProductsLoading(true);
+    supabase
+      .from("products")
+      .select(
+        "id, name, slug, tier, description, price_cents, currency, recurring_interval, stripe_price_id, is_active, triage_response_business_days, includes_backports, service_provider_id"
+      )
+      .eq("is_active", true)
+      .in("service_provider_id", providerIds)
+      .order("price_cents", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Failed to load products", error);
+        } else {
+          setProducts(data || []);
+        }
+      })
+      .finally(() => setProductsLoading(false));
+  }, [bundles]);
+
   const handlePurchase = async () => {
-    if (!selectedBundle || !selectedOrganization) return;
+    if (!selectedItem || !selectedOrganization) return;
 
     setIsProcessing(true);
     setError(null);
 
     try {
+      const payload =
+        selectedItem.type === "bundle"
+          ? { bundleId: selectedItem.item.id, organizationId: selectedOrganization.id }
+          : { productId: selectedItem.item.id, organizationId: selectedOrganization.id };
+
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout-session", {
-        body: {
-          bundleId: selectedBundle.id,
-          organizationId: selectedOrganization.id,
-        },
+        body: payload,
       });
 
       if (fnError) throw fnError;
@@ -79,16 +128,29 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
       currency: currency.toUpperCase(),
       minimumFractionDigits: 0,
     }).format(cents / 100);
-    
+
     if (isRecurring && interval) {
       return `${formatted}/${interval}`;
     }
     return formatted;
   };
 
+  const formatCommitments = (product: Product) => {
+    const parts: string[] = [];
+    if (typeof product.triage_response_business_days === "number") {
+      parts.push(
+        `Triage: ${product.triage_response_business_days} business day${product.triage_response_business_days === 1 ? "" : "s"}`
+      );
+    }
+    if (product.includes_backports) {
+      parts.push("Backports included");
+    }
+    return parts.join(" · ");
+  };
+
   // Not logged in - redirect to login with return URL
   const handleSignInRedirect = () => {
-    const returnUrl = `/elsa-plus/expert-services/valence-works${preSelectedBundleId ? `?bundleId=${preSelectedBundleId}` : ''}`;
+    const returnUrl = `/elsa-plus/expert-services/valence-works${preSelectedBundleId ? `?bundleId=${preSelectedBundleId}` : ""}`;
     navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
   };
 
@@ -135,7 +197,11 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
     );
   }
 
-  const isSubscription = selectedBundle?.billing_type === "recurring";
+  const isSubscription =
+    selectedItem?.type === "product" ||
+    (selectedItem?.type === "bundle" && selectedItem.item.billing_type === "recurring");
+
+  const hasProducts = products.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,8 +211,8 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
             {isSubscription ? "Subscribe to Service" : "Purchase Service Credits"}
           </DialogTitle>
           <DialogDescription>
-            {isSubscription 
-              ? "Select a subscription plan and complete your signup."
+            {isSubscription
+              ? "Select a subscription plan or credit bundle and complete your signup."
               : "Select a bundle and complete your purchase to get started."
             }
           </DialogDescription>
@@ -171,79 +237,156 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
             )}
           </div>
 
-          {/* Bundle selection */}
           {selectedOrganization && isAdmin && (
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Select a bundle</label>
-              {bundlesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {bundles?.map((bundle) => {
-                    const isConfigured = !!bundle.stripe_price_id;
-                    const isRecurring = bundle.billing_type === "recurring";
-                    const hours = isRecurring ? bundle.monthly_hours : bundle.hours;
-                    
-                    return (
-                      <Card
-                        key={bundle.id}
-                        className={cn(
-                          "cursor-pointer transition-all",
-                          selectedBundle?.id === bundle.id
-                            ? "border-primary ring-1 ring-primary"
-                            : "hover:border-primary/50",
-                          !isConfigured && "opacity-50 cursor-not-allowed"
-                        )}
-                        onClick={() => isConfigured && setSelectedBundle(bundle)}
-                      >
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={cn(
-                                "flex h-10 w-10 items-center justify-center rounded-full border-2",
-                                selectedBundle?.id === bundle.id
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-muted"
-                              )}
-                            >
-                              {selectedBundle?.id === bundle.id ? (
-                                <Check className="h-5 w-5" />
-                              ) : isRecurring ? (
-                                <RefreshCw className="h-5 w-5 text-muted-foreground" />
-                              ) : (
-                                <CreditCard className="h-5 w-5 text-muted-foreground" />
+            <div className="space-y-6">
+              {/* Credit bundles */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Service credits</label>
+                {bundlesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {bundles?.map((bundle) => {
+                      const isConfigured = !!bundle.stripe_price_id;
+                      const isRecurring = bundle.billing_type === "recurring";
+                      const hours = isRecurring ? bundle.monthly_hours : bundle.hours;
+                      const isSelected = selectedItem?.type === "bundle" && selectedItem.item.id === bundle.id;
+
+                      return (
+                        <Card
+                          key={bundle.id}
+                          className={cn(
+                            "cursor-pointer transition-all",
+                            isSelected
+                              ? "border-primary ring-1 ring-primary"
+                              : "hover:border-primary/50",
+                            !isConfigured && "opacity-50 cursor-not-allowed"
+                          )}
+                          onClick={() => isConfigured && setSelectedItem({ type: "bundle", item: bundle })}
+                        >
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div
+                                className={cn(
+                                  "flex h-10 w-10 items-center justify-center rounded-full border-2",
+                                  isSelected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-muted"
+                                )}
+                              >
+                                {isSelected ? (
+                                  <Check className="h-5 w-5" />
+                                ) : isRecurring ? (
+                                  <RefreshCw className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-medium flex items-center gap-2">
+                                  {bundle.name}
+                                  {isRecurring && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Subscription
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {hours} hours{isRecurring ? " per month" : " of expert time"}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold">
+                                {formatPrice(bundle.price_cents, bundle.currency, isRecurring, bundle.recurring_interval)}
+                              </div>
+                              {!isConfigured && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Coming soon
+                                </Badge>
                               )}
                             </div>
-                            <div>
-                              <div className="font-medium flex items-center gap-2">
-                                {bundle.name}
-                                {isRecurring && (
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Runtime products */}
+              {hasProducts && (
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Subscriptions</label>
+                  {productsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="grid gap-3">
+                      {products.map((product) => {
+                        const isConfigured = !!product.stripe_price_id;
+                        const isSelected = selectedItem?.type === "product" && selectedItem.item.id === product.id;
+                        const commitments = formatCommitments(product);
+
+                        return (
+                          <Card
+                            key={product.id}
+                            className={cn(
+                              "cursor-pointer transition-all",
+                              isSelected
+                                ? "border-primary ring-1 ring-primary"
+                                : "hover:border-primary/50",
+                              !isConfigured && "opacity-50 cursor-not-allowed"
+                            )}
+                            onClick={() => isConfigured && setSelectedItem({ type: "product", item: product })}
+                          >
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div
+                                  className={cn(
+                                    "flex h-10 w-10 items-center justify-center rounded-full border-2",
+                                    isSelected
+                                      ? "border-primary bg-primary text-primary-foreground"
+                                      : "border-muted"
+                                  )}
+                                >
+                                  {isSelected ? (
+                                    <Check className="h-5 w-5" />
+                                  ) : (
+                                    <Package className="h-5 w-5 text-muted-foreground" />
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-medium flex items-center gap-2">
+                                    {product.name}
+                                    <Badge variant="secondary" className="text-xs">
+                                      Subscription
+                                    </Badge>
+                                  </div>
+                                  {commitments && (
+                                    <div className="text-sm text-muted-foreground">{commitments}</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-lg font-bold">
+                                  {formatPrice(product.price_cents, product.currency, true, product.recurring_interval)}
+                                </div>
+                                {!isConfigured && (
                                   <Badge variant="secondary" className="text-xs">
-                                    Subscription
+                                    Coming soon
                                   </Badge>
                                 )}
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                {hours} hours{isRecurring ? " per month" : " of expert time"}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold">
-                              {formatPrice(bundle.price_cents, bundle.currency, isRecurring, bundle.recurring_interval)}
-                            </div>
-                            {!isConfigured && (
-                              <Badge variant="secondary" className="text-xs">
-                                Coming soon
-                              </Badge>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -258,7 +401,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
         </div>
 
         {/* Billing details reminder + availability disclaimer before checkout */}
-        {selectedBundle && selectedOrganization && isAdmin && (
+        {selectedItem && selectedOrganization && isAdmin && (
           <div className="mt-2 space-y-2">
             <BillingDetailsReminder
               organizationId={selectedOrganization.id}
@@ -276,7 +419,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
           </Button>
           <Button
             onClick={handlePurchase}
-            disabled={!selectedBundle || !selectedOrganization || !isAdmin || isProcessing}
+            disabled={!selectedItem || !selectedOrganization || !isAdmin || isProcessing}
           >
             {isProcessing ? (
               <>
