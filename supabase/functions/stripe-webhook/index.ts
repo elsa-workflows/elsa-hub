@@ -344,8 +344,10 @@ async function handleSubscriptionCheckout(
     return;
   }
 
-  // Fetch subscription details from Stripe
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  // Fetch subscription details from Stripe (expand the opening invoice so we can persist it)
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ["latest_invoice"],
+  });
 
   // Resolve the purchased item: either a credit bundle (support hours) or a product
   // (e.g. a Valence Runtime tier, which grants no hours at all).
@@ -451,6 +453,49 @@ async function handleSubscriptionCheckout(
         },
   });
 
+  // Persist the opening invoice. handleInvoicePaid deliberately skips
+  // billing_reason === "subscription_create", so it is our responsibility here.
+  const latestInvoice = subscription.latest_invoice;
+  const openingInvoice: Stripe.Invoice | null =
+    latestInvoice && typeof latestInvoice !== "string" ? latestInvoice : null;
+
+  if (openingInvoice?.id) {
+    const { data: existingInvoice } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("stripe_invoice_id", openingInvoice.id)
+      .maybeSingle();
+
+    if (existingInvoice) {
+      console.log("Opening invoice already recorded:", openingInvoice.id);
+    } else {
+      const { error: invoiceError } = await supabase.from("invoices").insert({
+        organization_id: organizationId,
+        service_provider_id: serviceProviderId,
+        total_cents: openingInvoice.amount_paid ?? openingInvoice.total ?? 0,
+        currency: openingInvoice.currency || "eur",
+        status: openingInvoice.status === "paid" ? "paid" : "issued",
+        issued_at: new Date(
+          (openingInvoice.status_transitions?.finalized_at || openingInvoice.created) * 1000
+        ).toISOString(),
+        paid_at: openingInvoice.status_transitions?.paid_at
+          ? new Date(openingInvoice.status_transitions.paid_at * 1000).toISOString()
+          : null,
+        stripe_invoice_id: openingInvoice.id,
+        invoice_number: openingInvoice.number ?? null,
+        hosted_invoice_url: openingInvoice.hosted_invoice_url ?? null,
+        invoice_pdf_url: openingInvoice.invoice_pdf ?? null,
+      });
+
+      if (invoiceError && invoiceError.code !== "23505") {
+        console.error("Failed to record opening invoice:", invoiceError);
+      } else {
+        console.log("Opening invoice recorded:", openingInvoice.number ?? openingInvoice.id);
+      }
+    }
+  } else {
+    console.warn("No expandable latest_invoice on subscription", subscriptionId);
+  }
 
   console.log(`Subscription ${subscriptionId} created successfully`);
 }
