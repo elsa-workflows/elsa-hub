@@ -89,6 +89,18 @@ export default function RuntimeBuilderComposer() {
   const step = clamp(Number(params.get("step") ?? "1"), 1, maxStep);
   const activeKey = steps[step - 1]?.key ?? steps[0].key;
 
+  // Pre-select the runtime image from `?image=<slug>` (once, on first load).
+  const appliedImageRef = useRef<string | null>(null);
+  useEffect(() => {
+    const requested = params.get("image");
+    if (!requested || appliedImageRef.current === requested) return;
+    const img = findBuilderImage(requested);
+    if (!img) return;
+    appliedImageRef.current = requested;
+    setImageSlug(img.slug);
+    setImageHostPort(img.defaultHostPort);
+  }, [params, setImageSlug, setImageHostPort]);
+
   // Pre-select a package from `?package=<id>` if recognized and none chosen.
   useEffect(() => {
     const requested = params.get("package");
@@ -97,6 +109,7 @@ export default function RuntimeBuilderComposer() {
     const pkg = catalog.packages.find((p) => p.id === requested);
     if (pkg) togglePackage(pkg.id, pkg.version, catalog);
   }, [params, catalog, state.selectedPackages, togglePackage]);
+
 
   const hasPackages = state.selectedPackages.length > 0;
   const hasFeatures = state.selectedPackages.some(
