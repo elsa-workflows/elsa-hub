@@ -19,6 +19,12 @@ export interface Subscription {
   bundle_name: string;
   /** Null for product subscriptions (e.g. Valence Runtime) which grant no hours */
   monthly_hours: number | null;
+  /** True when backed by a product rather than a credit bundle */
+  is_product: boolean;
+  /** Recurring price for product subscriptions */
+  price_cents: number | null;
+  price_currency: string | null;
+  recurring_interval: string | null;
 }
 
 export function useSubscriptions(organizationId: string | undefined) {
@@ -45,22 +51,37 @@ export function useSubscriptions(organizationId: string | undefined) {
           ? supabase.from("credit_bundles").select("id, name, monthly_hours").in("id", bundleIds)
           : Promise.resolve({ data: [] as { id: string; name: string; monthly_hours: number | null }[] }),
         productIds.length
-          ? supabase.from("products").select("id, name").in("id", productIds)
-          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+          ? supabase
+              .from("products")
+              .select("id, name, price_cents, currency, recurring_interval")
+              .in("id", productIds)
+          : Promise.resolve({
+              data: [] as {
+                id: string;
+                name: string;
+                price_cents: number;
+                currency: string;
+                recurring_interval: string;
+              }[],
+            }),
       ]);
 
       const bundleMap = new Map(
         (bundlesRes.data || []).map(b => [b.id, { name: b.name, monthly_hours: b.monthly_hours }])
       );
-      const productMap = new Map((productsRes.data || []).map(p => [p.id, p.name]));
+      const productMap = new Map((productsRes.data || []).map(p => [p.id, p]));
 
       return subscriptions.map(sub => {
         const bundle = sub.credit_bundle_id ? bundleMap.get(sub.credit_bundle_id) : undefined;
-        const productName = sub.product_id ? productMap.get(sub.product_id) : undefined;
+        const product = sub.product_id ? productMap.get(sub.product_id) : undefined;
         return {
           ...sub,
-          bundle_name: bundle?.name ?? productName ?? "Unknown",
+          bundle_name: bundle?.name ?? product?.name ?? "Unknown",
           monthly_hours: bundle ? bundle.monthly_hours ?? 0 : null,
+          is_product: !!product,
+          price_cents: product?.price_cents ?? null,
+          price_currency: product?.currency ?? null,
+          recurring_interval: product?.recurring_interval ?? null,
         };
       }) as Subscription[];
     },

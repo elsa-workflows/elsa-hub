@@ -12,7 +12,11 @@ interface SubscriptionData {
   created_at: string;
   status: string;
   bundle_name: string;
-  monthly_hours: number;
+  monthly_hours: number | null;
+  is_product?: boolean;
+  price_cents?: number | null;
+  price_currency?: string | null;
+  recurring_interval?: string | null;
 }
 
 interface PurchaseHistoryTableProps {
@@ -28,12 +32,13 @@ interface UnifiedPurchase {
   amount_cents: number;
   currency: string;
   bundle_name: string;
-  bundle_hours: number;
+  bundle_hours: number | null;
   receipt_url: string | null;
   invoice_number: string | null;
   hosted_invoice_url: string | null;
   invoice_pdf_url: string | null;
   type: "one_time" | "subscription";
+  recurring_interval?: string | null;
 }
 
 const statusVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -74,10 +79,11 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
       id: sub.id,
       created_at: sub.created_at,
       status: sub.status,
-      amount_cents: 0,
-      currency: "eur",
+      amount_cents: sub.price_cents ?? 0,
+      currency: sub.price_currency ?? "eur",
       bundle_name: sub.bundle_name,
-      bundle_hours: sub.monthly_hours,
+      bundle_hours: sub.is_product ? null : sub.monthly_hours,
+      recurring_interval: sub.recurring_interval ?? null,
       receipt_url: null,
       invoice_number: null,
       hosted_invoice_url: null,
@@ -165,17 +171,24 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
                         )}
                         <div>
                           <p className="font-medium">{purchase.bundle_name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
-                          </p>
+                          {purchase.bundle_hours != null && (
+                            <p className="text-sm text-muted-foreground">
+                              {purchase.bundle_hours}h{purchase.type === "subscription" ? "/mo" : ""}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {purchase.type === "subscription" ? (
-                        <span className="text-muted-foreground text-sm">Recurring</span>
-                      ) : (
+                      {purchase.type === "one_time" ? (
                         formatCurrency(purchase.amount_cents, purchase.currency)
+                      ) : purchase.amount_cents > 0 ? (
+                        <span>
+                          {formatCurrency(purchase.amount_cents, purchase.currency)}
+                          {purchase.recurring_interval ? ` / ${purchase.recurring_interval}` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Recurring</span>
                       )}
                     </TableCell>
                     <TableCell>
