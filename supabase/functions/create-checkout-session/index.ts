@@ -464,7 +464,23 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Checkout session error:", error);
+
+    // Stripe Tax cannot compute tax when the saved customer address is incomplete
+    // or malformed. Point the buyer at their organisation's billing details.
+    const stripeCode = (error as { code?: string } | null)?.code;
+    if (stripeCode === "customer_tax_location_invalid") {
+      return new Response(
+        JSON.stringify({
+          error:
+            "We couldn't determine your tax location. Please complete your organisation's billing address (including country and postal code) in Settings → Billing, then try again.",
+          code: "customer_tax_location_invalid",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const message = error instanceof Error ? error.message : "Internal server error";
+
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
