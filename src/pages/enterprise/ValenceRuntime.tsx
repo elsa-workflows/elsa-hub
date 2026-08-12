@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,12 @@ import {
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { ArrowRight, Check, ExternalLink, Minus } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
+import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
+
+const PROVIDER_SLUG = "valence-works";
+const RUNTIME_PAGE_PATH = "/elsa-plus/valence-runtime";
 
 const tiers = ["Community", "Runtime", "Runtime Priority", "Maintainer Access"] as const;
 
@@ -132,7 +139,61 @@ const faq = [
 ];
 
 
+/** Maps the display tier names in the comparison table to `products.tier` values. */
+const tierKeyByName: Record<string, string> = {
+  Runtime: "runtime",
+  "Runtime Priority": "runtime_priority",
+  "Maintainer Access": "maintainer_access",
+};
+
+function formatPrice(cents: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+/** Sold through a conversation, never a self-serve button (marked by slot_limit). */
+const isConversationOnly = (p: PublicProduct) => p.slot_limit !== null;
+const isSubscribable = (p: PublicProduct) => p.is_purchasable && !isConversationOnly(p);
+
 export default function ValenceRuntime() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: products } = useRuntimeProducts(PROVIDER_SLUG);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
+  const productByTier = new Map((products ?? []).map((p) => [p.tier, p]));
+  const subscribableProducts = (products ?? []).filter(isSubscribable);
+  const anySubscribable = subscribableProducts.length > 0;
+
+  const startSubscribe = (product: PublicProduct) => {
+    if (!user) {
+      const returnUrl = `${RUNTIME_PAGE_PATH}?tier=${encodeURIComponent(product.slug)}`;
+      navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+    setSelectedProductId(product.id);
+    setPurchaseOpen(true);
+  };
+
+  // Returning from sign-in with a tier still selected: reopen the purchase dialog.
+  useEffect(() => {
+    const tierSlug = searchParams.get("tier");
+    if (!tierSlug || !user || !products) return;
+    const product = products.find((p) => p.slug === tierSlug);
+    if (product && isSubscribable(product)) {
+      setSelectedProductId(product.id);
+      setPurchaseOpen(true);
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("tier");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, user, products, setSearchParams]);
+
   return (
     <Layout>
       <Seo
@@ -397,11 +458,46 @@ docker run -it -p 13000:8080 \\
             Netherlands: EU reverse charge applies for business customers outside NL, Dutch VAT
             within.
           </p>
-          <p className="text-muted-foreground leading-relaxed">
-            Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
-            published so you can plan and budget. Get in touch to discuss a tier or request
-            preview access.
-          </p>
+
+          {anySubscribable ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(["Runtime", "Runtime Priority", "Maintainer Access"] as const).map((name) => {
+                const product = productByTier.get(tierKeyByName[name]);
+                if (!product) return null;
+                const conversationOnly = isConversationOnly(product);
+
+                return (
+                  <div
+                    key={name}
+                    className="flex items-center justify-between gap-4 rounded-xl border bg-card p-4"
+                  >
+                    <div>
+                      <div className="font-medium">{name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatPrice(product.price_cents, product.currency)} / year
+                      </div>
+                    </div>
+                    {conversationOnly || !product.is_purchasable ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link to="/elsa-plus/expert-services/valence-works">Get in touch</Link>
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => startSubscribe(product)}>
+                        Subscribe
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground leading-relaxed">
+              Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
+              published so you can plan and budget. Get in touch to discuss a tier or request
+              preview access.
+            </p>
+          )}
+
           <div className="rounded-xl border bg-card p-5">
             <p className="text-sm leading-relaxed">
               Prices may change. If they do, existing subscribers keep their rate through at least
@@ -538,6 +634,12 @@ docker run -it -p 13000:8080 \\
           <NeutralityDisclaimer />
         </div>
       </section>
+
+      <PurchaseBundleDialog
+        open={purchaseOpen}
+        onOpenChange={setPurchaseOpen}
+        preSelectedProductId={selectedProductId}
+      />
     </Layout>
   );
 }

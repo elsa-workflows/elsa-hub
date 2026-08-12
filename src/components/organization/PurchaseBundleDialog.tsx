@@ -25,6 +25,8 @@ interface PurchaseBundleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preSelectedBundleId?: string | null;
+  /** Preselect a Runtime product subscription by id. */
+  preSelectedProductId?: string | null;
   /** Show Runtime product subscriptions alongside credit bundles. Default true. */
   showProducts?: boolean;
 }
@@ -49,7 +51,7 @@ type SelectedItem =
   | { type: "bundle"; item: CreditBundleFull }
   | { type: "product"; item: Product };
 
-export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, showProducts = true }: PurchaseBundleDialogProps) {
+export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, preSelectedProductId, showProducts = true }: PurchaseBundleDialogProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { selectedOrganization, organizations, isAdmin } = useOrganization();
@@ -69,6 +71,16 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
       }
     }
   }, [open, preSelectedBundleId, bundles]);
+
+  // Auto-select product when dialog opens with a pre-selected product
+  useEffect(() => {
+    if (open && preSelectedProductId && products.length > 0) {
+      const product = products.find(p => p.id === preSelectedProductId);
+      if (product) {
+        setSelectedItem({ type: "product", item: product });
+      }
+    }
+  }, [open, preSelectedProductId, products]);
 
   // Load active products for the same service providers represented by the bundles
   useEffect(() => {
