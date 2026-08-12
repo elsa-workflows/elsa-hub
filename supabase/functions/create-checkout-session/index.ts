@@ -132,6 +132,7 @@ serve(async (req) => {
       service_provider_id: string;
       is_active: boolean;
       recurring_interval: string | null;
+      internal_only: boolean;
     };
 
     let bundle: BundleRow | null = null;
@@ -165,7 +166,7 @@ serve(async (req) => {
     } else {
       const { data, error } = await userClient
         .from("products")
-        .select("id, name, price_cents, currency, stripe_price_id, service_provider_id, is_active, recurring_interval")
+        .select("id, name, price_cents, currency, stripe_price_id, service_provider_id, is_active, recurring_interval, internal_only")
         .eq("id", productId)
         .single();
       if (error || !data) {
@@ -187,6 +188,18 @@ serve(async (req) => {
         );
       }
       product = data as ProductRow;
+
+      // Internal products are never sellable to anyone but platform admins.
+      // The UI hides them, but the client can send any productId — so verify here.
+      if (product.internal_only) {
+        const { data: isPlatformAdmin } = await userClient.rpc("is_platform_admin");
+        if (isPlatformAdmin !== true) {
+          return new Response(
+            JSON.stringify({ error: "This product is not available for purchase" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
     }
 
     const serviceProviderId = (bundle ?? product)!.service_provider_id;
