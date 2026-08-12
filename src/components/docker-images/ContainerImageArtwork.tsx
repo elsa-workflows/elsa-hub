@@ -69,30 +69,28 @@ export function ContainerImageArtwork({
         </div>
       )}
 
-      {/* Identification overlay: radial index band + label, ~10 o'clock. */}
+      {/* Identification overlay: label + radial index band running inward to the disc, ~10 o'clock. */}
       <div
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute flex flex-col items-start",
-          isLeft ? "left-[19%] top-[14%]" : "right-[19%] top-[14%] items-end",
+          "pointer-events-none absolute flex flex-col",
+          isLeft ? "left-[7%] top-[13%] items-start" : "right-[7%] top-[13%] items-end",
         )}
       >
         <span
-          className={cn(
-            "block h-[1.5px] w-[26px] origin-left rounded-full opacity-90 transition-opacity duration-200 motion-reduce:transition-none group-hover:opacity-100",
-            accentClass,
-            isLeft ? "rotate-[45deg]" : "-rotate-[45deg] origin-right",
-          )}
-        />
-        <span
-          className={cn(
-            "mt-[13px] rounded-[3px] border border-white/10 bg-[hsl(30_5%_13%)]/95 px-1.5 py-[3px] font-sans text-[8px] font-semibold uppercase leading-none tracking-[0.14em] text-[hsl(40_20%_92%)] sm:text-[9px]",
-            isLeft ? "-ml-[2px]" : "-mr-[2px]",
-          )}
+          className="rounded-[3px] border border-white/10 bg-[hsl(30_5%_13%)]/95 px-1.5 py-[3px] font-sans text-[8px] font-semibold uppercase leading-none tracking-[0.14em] text-[hsl(40_20%_92%)] sm:text-[9px]"
         >
           {label}
         </span>
+        <span
+          className={cn(
+            "mt-[6px] block h-[1.5px] w-[34px] rounded-full opacity-80 transition-opacity duration-200 motion-reduce:transition-none group-hover:opacity-100",
+            accentClass,
+            isLeft ? "ml-[10px] origin-left rotate-[45deg]" : "mr-[10px] origin-right -rotate-[45deg]",
+          )}
+        />
       </div>
+
     </div>
   );
 }
