@@ -444,9 +444,9 @@ docker run -it -p 13000:8080 \\
             <h2 className="text-3xl font-bold">Security posture</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Runtime */}
-            <div className="space-y-4">
+            <div className="rounded-xl border bg-card p-6 space-y-4">
               <h3 className="text-lg font-semibold">Runtime</h3>
               <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
                 <p>
@@ -470,7 +470,7 @@ docker run -it -p 13000:8080 \\
             </div>
 
             {/* Supply chain */}
-            <div className="space-y-4">
+            <div className="rounded-xl border bg-card p-6 space-y-4">
               <h3 className="text-lg font-semibold">Supply chain</h3>
               <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
                 <p>
@@ -486,7 +486,7 @@ docker run -it -p 13000:8080 \\
             </div>
 
             {/* Verification */}
-            <div className="space-y-4">
+            <div className="rounded-xl border bg-card p-6 space-y-4">
               <h3 className="text-lg font-semibold">Verification</h3>
               <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
                 <p>
