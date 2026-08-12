@@ -249,13 +249,17 @@ docker run -it -p 13000:8080 \\
               </ul>
             </div>
             <div className="rounded-xl border bg-card p-5 space-y-2">
-              <h3 className="font-semibold">Paid — private, requires a subscription</h3>
-              <ul className="text-muted-foreground font-mono text-xs space-y-1">
-                <li>ghcr.io/valence-works/runtime-server</li>
-                <li>ghcr.io/valence-works/runtime-studio</li>
-                <li>ghcr.io/valence-works/runtime-combined</li>
+              <h3 className="font-semibold">Paid — private registry, requires a subscription</h3>
+              <ul className="text-muted-foreground text-xs space-y-1">
+                <li>Valence Runtime Server</li>
+                <li>Valence Runtime Studio</li>
+                <li>Valence Runtime Combined</li>
               </ul>
+              <p className="text-muted-foreground text-xs">
+                Registry address and pull commands ship with your credentials.
+              </p>
             </div>
+
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
@@ -282,6 +286,63 @@ docker run -it -p 13000:8080 \\
           </div>
         </div>
       </section>
+
+      {/* How access works */}
+      <section className="py-12 md:py-16 bg-surface-subtle">
+        <div className="container max-w-4xl space-y-4">
+          <h2 className="text-3xl font-bold">How access works</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Paid images come from a private registry. When your subscription starts we issue you a
+            registry token: a username and password that work with{" "}
+            <span className="font-mono text-sm">docker login</span>, your CI, and a Kubernetes image
+            pull secret.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            You do not need a GitHub account, a Microsoft account, or an Azure account. You do not
+            need to join an organisation. The token is pull-only, scoped to the three Valence
+            Runtime images, and carries an expiry date aligned to your subscription period.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            There are no licence keys and no activation in the software itself. Your registry
+            credentials are the licence. Images you have already pulled keep working — there is no
+            phone-home, no kill switch and no telemetry.
+          </p>
+        </div>
+      </section>
+
+      {/* Security posture */}
+      <section className="py-12 md:py-16">
+        <div className="container max-w-4xl space-y-4">
+          <h2 className="text-3xl font-bold">Security posture</h2>
+          <ul className="space-y-3 text-muted-foreground leading-relaxed">
+            <li>
+              Runs with a read-only root filesystem. Nothing is written into the image at runtime;
+              the paths that must be writable are declared and mountable.
+            </li>
+            <li>
+              Starts with no network access at all. Given a package directory populated in advance,
+              a container boots without reaching any package feed — so air-gapped deployment works,
+              and your deployment does not depend on our supply chain being reachable at the moment
+              you scale up.
+            </li>
+            <li>Non-root by default (UID 1654).</li>
+            <li>
+              Minimal chiselled base: 11 OS packages, not 112 — no shell, no package manager.
+            </li>
+            <li>
+              Vulnerability scan runs before publication and fails the build on any fixable CRITICAL
+              or HIGH finding.
+            </li>
+            <li>Every image signed; SBOM and build provenance published alongside.</li>
+            <li>
+              Signatures are verifiable by anyone with the image, using only their own subscription
+              credentials.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+
 
       {/* Tiers */}
       <section className="py-12 md:py-16 bg-surface-subtle">
