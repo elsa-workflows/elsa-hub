@@ -481,21 +481,27 @@ async function handleInvoicePaid(
     return;
   }
 
-  // Check if we already granted credits for this period (idempotency)
-  // Add null check for period dates
+  // Credit-bundle subscriptions grant monthly hours; product subscriptions
+  // (e.g. Valence Runtime tiers) grant none — they only advance their period.
+  const isCreditBundleSubscription = !!subscription.credit_bundle_id && !!subscription.credit_bundles;
+
   const periodStart = invoice.period_start 
     ? new Date(invoice.period_start * 1000).toISOString() 
     : new Date().toISOString();
-  const { data: existingLot } = await supabase
-    .from("credit_lots")
-    .select("id")
-    .eq("subscription_id", subscription.id)
-    .eq("billing_period_start", periodStart)
-    .single();
 
-  if (existingLot) {
-    console.log("Credits already granted for this period");
-    return;
+  if (isCreditBundleSubscription) {
+    // Check if we already granted credits for this period (idempotency)
+    const { data: existingLot } = await supabase
+      .from("credit_lots")
+      .select("id")
+      .eq("subscription_id", subscription.id)
+      .eq("billing_period_start", periodStart)
+      .single();
+
+    if (existingLot) {
+      console.log("Credits already granted for this period");
+      return;
+    }
   }
 
   // Update subscription period dates
@@ -511,15 +517,18 @@ async function handleInvoicePaid(
     })
     .eq("id", subscription.id);
 
-  // Grant monthly credits
-  await grantSubscriptionCredits(supabase, {
-    organizationId: subscription.organization_id,
-    serviceProviderId: subscription.service_provider_id,
-    subscriptionId: subscription.id,
-    bundleName: subscription.credit_bundles.name,
-    monthlyHours: subscription.credit_bundles.monthly_hours,
-    periodStart,
-  });
+  // Grant monthly credits — credit-bundle subscriptions only
+  if (isCreditBundleSubscription) {
+    await grantSubscriptionCredits(supabase, {
+      organizationId: subscription.organization_id,
+      serviceProviderId: subscription.service_provider_id,
+      subscriptionId: subscription.id,
+      bundleName: subscription.credit_bundles.name,
+      monthlyHours: subscription.credit_bundles.monthly_hours,
+      periodStart,
+    });
+  }
+
 
   // Persist the Stripe-issued invoice (PDF + hosted page) so org admins can download it
   if (invoice.id) {
