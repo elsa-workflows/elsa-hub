@@ -84,7 +84,7 @@ export function ContainerImageArtwork({
         </span>
         <span
           className={cn(
-            "mt-[6px] block h-[1.5px] w-[34px] rounded-full opacity-80 transition-opacity duration-200 motion-reduce:transition-none group-hover:opacity-100",
+            "mt-[6px] block h-[1.5px] w-[50px] rounded-full opacity-80 transition-opacity duration-200 motion-reduce:transition-none group-hover:opacity-100",
             accentClass,
             isLeft ? "ml-[10px] origin-left rotate-[45deg]" : "mr-[10px] origin-right -rotate-[45deg]",
           )}
