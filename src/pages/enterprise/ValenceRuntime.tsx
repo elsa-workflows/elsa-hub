@@ -458,11 +458,46 @@ docker run -it -p 13000:8080 \\
             Netherlands: EU reverse charge applies for business customers outside NL, Dutch VAT
             within.
           </p>
-          <p className="text-muted-foreground leading-relaxed">
-            Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
-            published so you can plan and budget. Get in touch to discuss a tier or request
-            preview access.
-          </p>
+
+          {anySubscribable ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(["Runtime", "Runtime Priority", "Maintainer Access"] as const).map((name) => {
+                const product = productByTier.get(tierKeyByName[name]);
+                if (!product) return null;
+                const conversationOnly = isConversationOnly(product);
+
+                return (
+                  <div
+                    key={name}
+                    className="flex items-center justify-between gap-4 rounded-xl border bg-card p-4"
+                  >
+                    <div>
+                      <div className="font-medium">{name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatPrice(product.price_cents, product.currency)} / year
+                      </div>
+                    </div>
+                    {conversationOnly || !product.is_purchasable ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link to="/elsa-plus/expert-services/valence-works">Get in touch</Link>
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={() => startSubscribe(product)}>
+                        Subscribe
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground leading-relaxed">
+              Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
+              published so you can plan and budget. Get in touch to discuss a tier or request
+              preview access.
+            </p>
+          )}
+
           <div className="rounded-xl border bg-card p-5">
             <p className="text-sm leading-relaxed">
               Prices may change. If they do, existing subscribers keep their rate through at least
