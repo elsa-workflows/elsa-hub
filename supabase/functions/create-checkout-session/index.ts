@@ -64,13 +64,26 @@ serve(async (req) => {
     const userEmail = user.email;
 
     // Parse request body
-    const { bundleId, organizationId } = await req.json();
-    if (!bundleId || !organizationId) {
+    const { bundleId, productId, organizationId } = await req.json();
+    if (!organizationId) {
       return new Response(
-        JSON.stringify({ error: "bundleId and organizationId are required" }),
+        JSON.stringify({ error: "organizationId is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    if (bundleId && productId) {
+      return new Response(
+        JSON.stringify({ error: "Provide either bundleId or productId, not both" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!bundleId && !productId) {
+      return new Response(
+        JSON.stringify({ error: "Either bundleId or productId is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
 
     // Check if user is org admin
     const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
@@ -96,30 +109,88 @@ serve(async (req) => {
       );
     }
 
-    // Fetch bundle details including billing_type and monthly_hours
-    const { data: bundle, error: bundleError } = await userClient
-      .from("credit_bundles")
-      .select("id, name, hours, monthly_hours, price_cents, currency, stripe_price_id, service_provider_id, is_active, billing_type, recurring_interval")
-      .eq("id", bundleId)
-      .single();
-    if (bundleError || !bundle) {
-      return new Response(
-        JSON.stringify({ error: "Bundle not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Fetch bundle or product details
+    type BundleRow = {
+      id: string;
+      name: string;
+      hours: number | null;
+      monthly_hours: number | null;
+      price_cents: number;
+      currency: string;
+      stripe_price_id: string | null;
+      service_provider_id: string;
+      is_active: boolean;
+      billing_type: string | null;
+      recurring_interval: string | null;
+    };
+    type ProductRow = {
+      id: string;
+      name: string;
+      price_cents: number;
+      currency: string;
+      stripe_price_id: string | null;
+      service_provider_id: string;
+      is_active: boolean;
+      recurring_interval: string | null;
+    };
+
+    let bundle: BundleRow | null = null;
+    let product: ProductRow | null = null;
+
+    if (bundleId) {
+      const { data, error } = await userClient
+        .from("credit_bundles")
+        .select("id, name, hours, monthly_hours, price_cents, currency, stripe_price_id, service_provider_id, is_active, billing_type, recurring_interval")
+        .eq("id", bundleId)
+        .single();
+      if (error || !data) {
+        return new Response(
+          JSON.stringify({ error: "Bundle not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!data.is_active) {
+        return new Response(
+          JSON.stringify({ error: "This bundle is no longer available" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!data.stripe_price_id) {
+        return new Response(
+          JSON.stringify({ error: "This bundle is not configured for purchase yet" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      bundle = data as BundleRow;
+    } else {
+      const { data, error } = await userClient
+        .from("products")
+        .select("id, name, price_cents, currency, stripe_price_id, service_provider_id, is_active, recurring_interval")
+        .eq("id", productId)
+        .single();
+      if (error || !data) {
+        return new Response(
+          JSON.stringify({ error: "Product not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!data.is_active) {
+        return new Response(
+          JSON.stringify({ error: "This product is no longer available" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!data.stripe_price_id) {
+        return new Response(
+          JSON.stringify({ error: "This product is not configured for purchase yet" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      product = data as ProductRow;
     }
-    if (!bundle.is_active) {
-      return new Response(
-        JSON.stringify({ error: "This bundle is no longer available" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    if (!bundle.stripe_price_id) {
-      return new Response(
-        JSON.stringify({ error: "This bundle is not configured for purchase yet" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+
+    const serviceProviderId = (bundle ?? product)!.service_provider_id;
+    const stripePriceId = (bundle ?? product)!.stripe_price_id!;
 
     // =============================================
     // PHASE 1: Check if provider is accepting new purchases (intake pause)
@@ -127,7 +198,7 @@ serve(async (req) => {
     const { data: providerSettings, error: providerError } = await userClient
       .from("service_providers")
       .select("accepting_new_purchases, purchase_pause_message, enforce_capacity_gating, total_available_minutes_per_month, capacity_threshold_percent")
-      .eq("id", bundle.service_provider_id)
+      .eq("id", serviceProviderId)
       .single();
 
     if (providerError) {
@@ -147,19 +218,20 @@ serve(async (req) => {
       );
     }
 
-    // Determine checkout mode based on billing type
-    const isSubscription = bundle.billing_type === "recurring";
+    // Determine checkout mode. Products are always recurring subscriptions.
+    const isSubscription = product ? true : bundle!.billing_type === "recurring";
     const mode = isSubscription ? "subscription" : "payment";
 
     // Note: serviceClient already created above for auth verification
 
     // =============================================
     // PHASE 3: Capacity-aware checkout guard (only if enabled)
+    // Skipped for products — container-image subscriptions consume no support minutes.
     // =============================================
-    if (providerSettings?.enforce_capacity_gating && providerSettings?.total_available_minutes_per_month) {
+    if (!product && providerSettings?.enforce_capacity_gating && providerSettings?.total_available_minutes_per_month) {
       const { data: capacityMetrics, error: capacityError } = await serviceClient.rpc(
         "get_provider_capacity_metrics",
-        { p_provider_id: bundle.service_provider_id }
+        { p_provider_id: serviceProviderId }
       );
 
       if (!capacityError && capacityMetrics && capacityMetrics.length > 0) {
@@ -176,6 +248,7 @@ serve(async (req) => {
         }
       }
     }
+
 
     // =============================================
     // PHASE 4: Fetch billing profile for invoice details
@@ -257,7 +330,7 @@ serve(async (req) => {
     // For one-time payments, create pending order
     // For subscriptions, we don't create an order until the subscription is confirmed
     let orderId: string | undefined;
-    if (!isSubscription) {
+    if (!isSubscription && bundle) {
       const { data: order, error: orderError } = await serviceClient
         .from("orders")
         .insert({
@@ -304,20 +377,31 @@ serve(async (req) => {
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode,
-      line_items: [{ price: bundle.stripe_price_id, quantity: 1 }],
+      line_items: [{ price: stripePriceId, quantity: 1 }],
       metadata: {
         organization_id: organizationId,
-        service_provider_id: bundle.service_provider_id,
-        bundle_id: bundle.id,
-        billing_type: bundle.billing_type || "one_time",
+        service_provider_id: serviceProviderId,
+        ...(bundle
+          ? {
+              bundle_id: bundle.id,
+              billing_type: bundle.billing_type || "one_time",
+            }
+          : {
+              product_id: product!.id,
+              billing_type: "recurring",
+            }),
         ...(orderId && { order_id: orderId }),
       },
+      // Stripe Tax must be enabled per-session; dashboard settings alone are not enough.
+      automatic_tax: { enabled: true },
+      // Lets business customers enter a VAT number so EU reverse charge applies.
+      tax_id_collection: { enabled: true },
       success_url: `${origin}/org/${org.slug}?payment=success`,
       cancel_url: `${origin}/enterprise/expert-services?payment=cancelled`,
     };
 
     // For one-time payments, ask Stripe to issue a real Invoice (PDF + hosted page)
-    if (!isSubscription) {
+    if (!isSubscription && bundle) {
       sessionConfig.invoice_creation = {
         enabled: true,
         invoice_data: {
@@ -331,8 +415,8 @@ serve(async (req) => {
           ...(invoiceCustomFields.length > 0 && { custom_fields: invoiceCustomFields }),
         },
       };
-    } else {
-      // Label renewal invoices for recurring purchases
+    } else if (bundle) {
+      // Label renewal invoices for recurring bundle purchases
       sessionConfig.subscription_data = {
         description: `${bundle.name} — ${bundle.monthly_hours ?? bundle.hours} hours/month`,
         metadata: {
@@ -341,7 +425,18 @@ serve(async (req) => {
           bundle_id: bundle.id,
         },
       };
+    } else {
+      // Runtime product subscription — no support hours are granted.
+      sessionConfig.subscription_data = {
+        description: product!.name,
+        metadata: {
+          organization_id: organizationId,
+          service_provider_id: product!.service_provider_id,
+          product_id: product!.id,
+        },
+      };
     }
+
 
     // Attach the resolved Stripe customer so address + tax_id flow onto the invoice.
     // When a customer is attached, Stripe needs explicit permission to keep it in
@@ -369,7 +464,23 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Checkout session error:", error);
+
+    // Stripe Tax cannot compute tax when the saved customer address is incomplete
+    // or malformed. Point the buyer at their organisation's billing details.
+    const stripeCode = (error as { code?: string } | null)?.code;
+    if (stripeCode === "customer_tax_location_invalid") {
+      return new Response(
+        JSON.stringify({
+          error:
+            "We couldn't determine your tax location. Please complete your organisation's billing address (including country and postal code) in Settings → Billing, then try again.",
+          code: "customer_tax_location_invalid",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const message = error instanceof Error ? error.message : "Internal server error";
+
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
