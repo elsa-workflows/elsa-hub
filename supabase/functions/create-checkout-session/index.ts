@@ -330,7 +330,7 @@ serve(async (req) => {
     // For one-time payments, create pending order
     // For subscriptions, we don't create an order until the subscription is confirmed
     let orderId: string | undefined;
-    if (!isSubscription) {
+    if (!isSubscription && bundle) {
       const { data: order, error: orderError } = await serviceClient
         .from("orders")
         .insert({
@@ -377,20 +377,31 @@ serve(async (req) => {
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode,
-      line_items: [{ price: bundle.stripe_price_id, quantity: 1 }],
+      line_items: [{ price: stripePriceId, quantity: 1 }],
       metadata: {
         organization_id: organizationId,
-        service_provider_id: bundle.service_provider_id,
-        bundle_id: bundle.id,
-        billing_type: bundle.billing_type || "one_time",
+        service_provider_id: serviceProviderId,
+        ...(bundle
+          ? {
+              bundle_id: bundle.id,
+              billing_type: bundle.billing_type || "one_time",
+            }
+          : {
+              product_id: product!.id,
+              billing_type: "recurring",
+            }),
         ...(orderId && { order_id: orderId }),
       },
+      // Stripe Tax must be enabled per-session; dashboard settings alone are not enough.
+      automatic_tax: { enabled: true },
+      // Lets business customers enter a VAT number so EU reverse charge applies.
+      tax_id_collection: { enabled: true },
       success_url: `${origin}/org/${org.slug}?payment=success`,
       cancel_url: `${origin}/enterprise/expert-services?payment=cancelled`,
     };
 
     // For one-time payments, ask Stripe to issue a real Invoice (PDF + hosted page)
-    if (!isSubscription) {
+    if (!isSubscription && bundle) {
       sessionConfig.invoice_creation = {
         enabled: true,
         invoice_data: {
@@ -404,8 +415,8 @@ serve(async (req) => {
           ...(invoiceCustomFields.length > 0 && { custom_fields: invoiceCustomFields }),
         },
       };
-    } else {
-      // Label renewal invoices for recurring purchases
+    } else if (bundle) {
+      // Label renewal invoices for recurring bundle purchases
       sessionConfig.subscription_data = {
         description: `${bundle.name} — ${bundle.monthly_hours ?? bundle.hours} hours/month`,
         metadata: {
@@ -414,7 +425,18 @@ serve(async (req) => {
           bundle_id: bundle.id,
         },
       };
+    } else {
+      // Runtime product subscription — no support hours are granted.
+      sessionConfig.subscription_data = {
+        description: product!.name,
+        metadata: {
+          organization_id: organizationId,
+          service_provider_id: product!.service_provider_id,
+          product_id: product!.id,
+        },
+      };
     }
+
 
     // Attach the resolved Stripe customer so address + tax_id flow onto the invoice.
     // When a customer is attached, Stripe needs explicit permission to keep it in
