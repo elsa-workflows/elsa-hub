@@ -287,6 +287,63 @@ docker run -it -p 13000:8080 \\
         </div>
       </section>
 
+      {/* How access works */}
+      <section className="py-12 md:py-16 bg-surface-subtle">
+        <div className="container max-w-4xl space-y-4">
+          <h2 className="text-3xl font-bold">How access works</h2>
+          <p className="text-muted-foreground leading-relaxed">
+            Paid images come from a private registry. When your subscription starts we issue you a
+            registry token: a username and password that work with{" "}
+            <span className="font-mono text-sm">docker login</span>, your CI, and a Kubernetes image
+            pull secret.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            You do not need a GitHub account, a Microsoft account, or an Azure account. You do not
+            need to join an organisation. The token is pull-only, scoped to the three Valence
+            Runtime images, and carries an expiry date aligned to your subscription period.
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            There are no licence keys and no activation in the software itself. Your registry
+            credentials are the licence. Images you have already pulled keep working — there is no
+            phone-home, no kill switch and no telemetry.
+          </p>
+        </div>
+      </section>
+
+      {/* Security posture */}
+      <section className="py-12 md:py-16">
+        <div className="container max-w-4xl space-y-4">
+          <h2 className="text-3xl font-bold">Security posture</h2>
+          <ul className="space-y-3 text-muted-foreground leading-relaxed">
+            <li>
+              Runs with a read-only root filesystem. Nothing is written into the image at runtime;
+              the paths that must be writable are declared and mountable.
+            </li>
+            <li>
+              Starts with no network access at all. Given a package directory populated in advance,
+              a container boots without reaching any package feed — so air-gapped deployment works,
+              and your deployment does not depend on our supply chain being reachable at the moment
+              you scale up.
+            </li>
+            <li>Non-root by default (UID 1654).</li>
+            <li>
+              Minimal chiselled base: 11 OS packages, not 112 — no shell, no package manager.
+            </li>
+            <li>
+              Vulnerability scan runs before publication and fails the build on any fixable CRITICAL
+              or HIGH finding.
+            </li>
+            <li>Every image signed; SBOM and build provenance published alongside.</li>
+            <li>
+              Signatures are verifiable by anyone with the image, using only their own subscription
+              credentials.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+
+
       {/* Tiers */}
       <section className="py-12 md:py-16 bg-surface-subtle">
         <div className="container max-w-5xl space-y-6">
