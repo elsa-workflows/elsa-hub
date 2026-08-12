@@ -565,8 +565,13 @@ docker run -it -p 13000:8080 \\
             <div className="grid gap-3 sm:grid-cols-2">
               {(["Runtime", "Runtime Priority", "Maintainer Access"] as const).map((name) => {
                 const product = productByTier.get(tierKeyByName[name]);
-                if (!product) return null;
-                const conversationOnly = isConversationOnly(product);
+                const isMaintainer = name === "Maintainer Access";
+
+                // Maintainer Access is deliberately not a self-serve product row;
+                // still render its conversation-only CTA so the difference looks deliberate.
+                if (!product && !isMaintainer) return null;
+
+                const conversationOnly = product ? isConversationOnly(product) : true;
 
                 return (
                   <div
@@ -576,15 +581,21 @@ docker run -it -p 13000:8080 \\
                     <div>
                       <div className="font-medium">{name}</div>
                       <div className="text-sm text-muted-foreground">
-                        {formatPrice(product.price_cents, product.currency)} / year
+                        {isMaintainer
+                          ? "€25,000 / year — 3 slots"
+                          : product
+                            ? `${formatPrice(product.price_cents, product.currency)} / year`
+                            : null}
                       </div>
                     </div>
-                    {conversationOnly || !product.is_purchasable ? (
+                    {isMaintainer || conversationOnly || !product?.is_purchasable ? (
                       <Button asChild variant="outline" size="sm">
-                        <Link to="/elsa-plus/expert-services/valence-works">Get in touch</Link>
+                        <Link to="/elsa-plus/expert-services/valence-works">
+                          {isMaintainer ? "Contact us" : "Get in touch"}
+                        </Link>
                       </Button>
                     ) : (
-                      <Button size="sm" onClick={() => startSubscribe(product)}>
+                      <Button size="sm" onClick={() => startSubscribe(product!)}>
                         Subscribe
                       </Button>
                     )}
