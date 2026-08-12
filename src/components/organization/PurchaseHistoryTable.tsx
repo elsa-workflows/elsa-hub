@@ -12,7 +12,11 @@ interface SubscriptionData {
   created_at: string;
   status: string;
   bundle_name: string;
-  monthly_hours: number;
+  monthly_hours: number | null;
+  is_product?: boolean;
+  price_cents?: number | null;
+  price_currency?: string | null;
+  recurring_interval?: string | null;
 }
 
 interface PurchaseHistoryTableProps {
