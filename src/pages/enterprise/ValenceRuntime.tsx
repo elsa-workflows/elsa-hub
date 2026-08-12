@@ -19,7 +19,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer } from "@/components/enterprise";
-import { ArrowRight, Check, ExternalLink, Minus } from "lucide-react";
+import { DockerImageCard } from "@/components/docker-images";
+import { dockerImages, internalSmokeTestImage } from "@/data/dockerImages";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { ArrowRight, Boxes, Check, ExternalLink, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
@@ -163,6 +166,7 @@ export default function ValenceRuntime() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: products } = useRuntimeProducts(PROVIDER_SLUG);
+  const { data: isPlatformAdmin } = useIsAdmin();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
