@@ -551,6 +551,42 @@ docker run -it -p 13000:8080 \\
                     ))}
                   </tr>
                 ))}
+                {anySubscribable && (
+                  <tr className="border-t">
+                    <th scope="row" className="text-left font-medium px-4 py-3 text-muted-foreground">
+                      Get started
+                    </th>
+                    {tiers.map((tier) => {
+                      if (tier === "Community") {
+                        return <td key={tier} className="px-4 py-3 text-center" />;
+                      }
+
+                      const product = productByTier.get(tierKeyByName[tier]);
+                      const isMaintainer = tier === "Maintainer Access";
+                      if (!product && !isMaintainer) {
+                        return <td key={tier} className="px-4 py-3 text-center" />;
+                      }
+
+                      const conversationOnly = product ? isConversationOnly(product) : true;
+
+                      return (
+                        <td key={tier} className="px-4 py-3 text-center">
+                          {isMaintainer || conversationOnly || !product?.is_purchasable ? (
+                            <Button asChild variant="outline" size="sm">
+                              <Link to="/elsa-plus/expert-services/valence-works">
+                                {isMaintainer ? "Contact us" : "Get in touch"}
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button size="sm" onClick={() => startSubscribe(product!)}>
+                              Subscribe
+                            </Button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
