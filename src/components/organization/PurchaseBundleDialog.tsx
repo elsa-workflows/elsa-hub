@@ -25,6 +25,8 @@ interface PurchaseBundleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preSelectedBundleId?: string | null;
+  /** Show Runtime product subscriptions alongside credit bundles. Default true. */
+  showProducts?: boolean;
 }
 
 interface Product {
