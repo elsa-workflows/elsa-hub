@@ -139,7 +139,61 @@ const faq = [
 ];
 
 
+/** Maps the display tier names in the comparison table to `products.tier` values. */
+const tierKeyByName: Record<string, string> = {
+  Runtime: "runtime",
+  "Runtime Priority": "runtime_priority",
+  "Maintainer Access": "maintainer_access",
+};
+
+function formatPrice(cents: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+/** Sold through a conversation, never a self-serve button (marked by slot_limit). */
+const isConversationOnly = (p: PublicProduct) => p.slot_limit !== null;
+const isSubscribable = (p: PublicProduct) => p.is_purchasable && !isConversationOnly(p);
+
 export default function ValenceRuntime() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: products } = useRuntimeProducts(PROVIDER_SLUG);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
+  const productByTier = new Map((products ?? []).map((p) => [p.tier, p]));
+  const subscribableProducts = (products ?? []).filter(isSubscribable);
+  const anySubscribable = subscribableProducts.length > 0;
+
+  const startSubscribe = (product: PublicProduct) => {
+    if (!user) {
+      const returnUrl = `${RUNTIME_PAGE_PATH}?tier=${encodeURIComponent(product.slug)}`;
+      navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+    setSelectedProductId(product.id);
+    setPurchaseOpen(true);
+  };
+
+  // Returning from sign-in with a tier still selected: reopen the purchase dialog.
+  useEffect(() => {
+    const tierSlug = searchParams.get("tier");
+    if (!tierSlug || !user || !products) return;
+    const product = products.find((p) => p.slug === tierSlug);
+    if (product && isSubscribable(product)) {
+      setSelectedProductId(product.id);
+      setPurchaseOpen(true);
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("tier");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, user, products, setSearchParams]);
+
   return (
     <Layout>
       <Seo
