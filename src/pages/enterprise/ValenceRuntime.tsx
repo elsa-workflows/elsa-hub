@@ -249,13 +249,17 @@ docker run -it -p 13000:8080 \\
               </ul>
             </div>
             <div className="rounded-xl border bg-card p-5 space-y-2">
-              <h3 className="font-semibold">Paid — private, requires a subscription</h3>
-              <ul className="text-muted-foreground font-mono text-xs space-y-1">
-                <li>ghcr.io/valence-works/runtime-server</li>
-                <li>ghcr.io/valence-works/runtime-studio</li>
-                <li>ghcr.io/valence-works/runtime-combined</li>
+              <h3 className="font-semibold">Paid — private registry, requires a subscription</h3>
+              <ul className="text-muted-foreground text-xs space-y-1">
+                <li>Valence Runtime Server</li>
+                <li>Valence Runtime Studio</li>
+                <li>Valence Runtime Combined</li>
               </ul>
+              <p className="text-muted-foreground text-xs">
+                Registry address and pull commands ship with your credentials.
+              </p>
             </div>
+
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
             The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
