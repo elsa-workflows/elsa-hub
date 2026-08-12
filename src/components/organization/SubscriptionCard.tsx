@@ -127,10 +127,12 @@ export function SubscriptionCard({ subscriptions, loading, isAdmin, organization
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>{subscription.monthly_hours} hours/month</span>
-                </div>
+                {subscription.monthly_hours != null && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{subscription.monthly_hours} hours/month</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Calendar className="h-4 w-4" />
                   <span>
@@ -138,6 +140,7 @@ export function SubscriptionCard({ subscriptions, loading, isAdmin, organization
                   </span>
                 </div>
               </div>
+
             </div>
           );
         })}
