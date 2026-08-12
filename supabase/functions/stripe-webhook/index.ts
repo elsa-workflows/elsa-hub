@@ -344,8 +344,10 @@ async function handleSubscriptionCheckout(
     return;
   }
 
-  // Fetch subscription details from Stripe
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  // Fetch subscription details from Stripe (expand the opening invoice so we can persist it)
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ["latest_invoice"],
+  });
 
   // Resolve the purchased item: either a credit bundle (support hours) or a product
   // (e.g. a Valence Runtime tier, which grants no hours at all).
