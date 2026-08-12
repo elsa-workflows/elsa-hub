@@ -227,6 +227,38 @@ function QuickLinkCard({ title, description, href }: { title: string; descriptio
   );
 }
 
+function ActionCard({
+  title,
+  description,
+  icon: Icon,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      className="group hover:border-primary/50 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Icon className="h-4 w-4 text-primary" />
+            {title}
+          </span>
+          <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 function useOrgProviders(orgId: string | undefined) {
   return useQuery({
     queryKey: ["org-providers", orgId],
