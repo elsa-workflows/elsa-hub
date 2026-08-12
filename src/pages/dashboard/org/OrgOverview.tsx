@@ -203,6 +203,8 @@ export default function OrgOverview() {
           </Button>
         </div>
       )}
+
+      <PurchaseBundleDialog open={purchaseOpen} onOpenChange={setPurchaseOpen} />
     </div>
   );
 }
