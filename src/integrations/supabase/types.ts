@@ -1445,6 +1445,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "subscriptions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subscriptions_service_provider_id_fkey"
             columns: ["service_provider_id"]
             isOneToOne: false
@@ -1943,6 +1950,62 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products_public: {
+        Row: {
+          currency: string | null
+          description: string | null
+          id: string | null
+          includes_backports: boolean | null
+          is_purchasable: boolean | null
+          name: string | null
+          price_cents: number | null
+          recurring_interval: string | null
+          service_provider_id: string | null
+          slot_limit: number | null
+          slug: string | null
+          tier: string | null
+          triage_response_business_days: number | null
+        }
+        Insert: {
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          includes_backports?: boolean | null
+          is_purchasable?: never
+          name?: string | null
+          price_cents?: number | null
+          recurring_interval?: string | null
+          service_provider_id?: string | null
+          slot_limit?: number | null
+          slug?: string | null
+          tier?: string | null
+          triage_response_business_days?: number | null
+        }
+        Update: {
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          includes_backports?: boolean | null
+          is_purchasable?: never
+          name?: string | null
+          price_cents?: number | null
+          recurring_interval?: string | null
+          service_provider_id?: string | null
+          slot_limit?: number | null
+          slug?: string | null
+          tier?: string | null
+          triage_response_business_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
             referencedColumns: ["id"]
           },
         ]
