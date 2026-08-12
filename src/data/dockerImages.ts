@@ -14,7 +14,13 @@ export type DockerImage = {
   description: string;
   image: string;
   icon: LucideIcon;
+  /** Cassette product artwork (CDN url). Omit until the asset is available. */
+  artwork?: string;
+  artworkAlt?: string;
+  artworkLabel?: string;
+  artworkVariant?: string;
   tags: string[];
+
   highlights: string[];
   defaultPort: number;
   hostPort: number;
