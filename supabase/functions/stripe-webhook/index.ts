@@ -347,16 +347,35 @@ async function handleSubscriptionCheckout(
   // Fetch subscription details from Stripe
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-  // Fetch bundle details
-  const { data: bundle, error: bundleError } = await supabase
-    .from("credit_bundles")
-    .select("id, name, monthly_hours, price_cents, currency")
-    .eq("id", bundleId)
-    .single();
+  // Resolve the purchased item: either a credit bundle (support hours) or a product
+  // (e.g. a Valence Runtime tier, which grants no hours at all).
+  let bundle: { id: string; name: string; monthly_hours: number } | null = null;
+  let product: { id: string; name: string } | null = null;
 
-  if (bundleError || !bundle) {
-    console.error("Bundle not found:", bundleError);
-    return;
+  if (bundleId) {
+    const { data, error: bundleError } = await supabase
+      .from("credit_bundles")
+      .select("id, name, monthly_hours, price_cents, currency")
+      .eq("id", bundleId)
+      .single();
+
+    if (bundleError || !data) {
+      console.error("Bundle not found:", bundleError);
+      return;
+    }
+    bundle = data;
+  } else {
+    const { data, error: productError } = await supabase
+      .from("products")
+      .select("id, name, tier, kind")
+      .eq("id", productId)
+      .single();
+
+    if (productError || !data) {
+      console.error("Product not found:", productError);
+      return;
+    }
+    product = data;
   }
 
   const now = new Date().toISOString();
@@ -368,7 +387,8 @@ async function handleSubscriptionCheckout(
     .insert({
       organization_id: organizationId,
       service_provider_id: serviceProviderId,
-      credit_bundle_id: bundleId,
+      credit_bundle_id: bundle ? bundle.id : null,
+      product_id: product ? product.id : null,
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
       status: subscription.status,
@@ -399,15 +419,17 @@ async function handleSubscriptionCheckout(
       { onConflict: "organization_id,service_provider_id", ignoreDuplicates: true }
     );
 
-  // Grant first month's credits
-  await grantSubscriptionCredits(supabase, {
-    organizationId,
-    serviceProviderId,
-    subscriptionId: subRecord.id,
-    bundleName: bundle.name,
-    monthlyHours: bundle.monthly_hours,
-    periodStart,
-  });
+  // Grant first month's credits — credit-bundle subscriptions only.
+  if (bundle) {
+    await grantSubscriptionCredits(supabase, {
+      organizationId,
+      serviceProviderId,
+      subscriptionId: subRecord.id,
+      bundleName: bundle.name,
+      monthlyHours: bundle.monthly_hours,
+      periodStart,
+    });
+  }
 
   // Create audit event
   await supabase.from("audit_events").insert({
@@ -417,12 +439,18 @@ async function handleSubscriptionCheckout(
     entity_type: "subscription",
     entity_id: subRecord.id,
     action: "created",
-    after_json: {
-      bundle_name: bundle.name,
-      monthly_hours: bundle.monthly_hours,
-      status: subscription.status,
-    },
+    after_json: bundle
+      ? {
+          bundle_name: bundle.name,
+          monthly_hours: bundle.monthly_hours,
+          status: subscription.status,
+        }
+      : {
+          product_name: product!.name,
+          status: subscription.status,
+        },
   });
+
 
   console.log(`Subscription ${subscriptionId} created successfully`);
 }
