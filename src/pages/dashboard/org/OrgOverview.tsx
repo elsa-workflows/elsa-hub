@@ -146,11 +146,19 @@ export default function OrgOverview() {
       )}
 
       {/* Quick Links */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <QuickLinkCard title="Orders" description="View purchase history" href={`/dashboard/org/${slug}/orders`} />
         <QuickLinkCard title="Credits" description="Track usage & expiration" href={`/dashboard/org/${slug}/credits`} />
         <QuickLinkCard title="Team" description="Manage members" href={`/dashboard/org/${slug}/team`} />
         <QuickLinkCard title="Settings" description="Organization settings" href={`/dashboard/org/${slug}/settings`} />
+        {isAdmin && (
+          <ActionCard
+            title="Purchase"
+            description="Credits or subscriptions"
+            icon={DollarSign}
+            onClick={handleOpenPurchase}
+          />
+        )}
       </div>
 
       {/* Dashboard Grid */}
