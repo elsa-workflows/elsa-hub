@@ -64,13 +64,26 @@ serve(async (req) => {
     const userEmail = user.email;
 
     // Parse request body
-    const { bundleId, organizationId } = await req.json();
-    if (!bundleId || !organizationId) {
+    const { bundleId, productId, organizationId } = await req.json();
+    if (!organizationId) {
       return new Response(
-        JSON.stringify({ error: "bundleId and organizationId are required" }),
+        JSON.stringify({ error: "organizationId is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    if (bundleId && productId) {
+      return new Response(
+        JSON.stringify({ error: "Provide either bundleId or productId, not both" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (!bundleId && !productId) {
+      return new Response(
+        JSON.stringify({ error: "Either bundleId or productId is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
 
     // Check if user is org admin
     const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
