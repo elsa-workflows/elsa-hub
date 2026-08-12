@@ -17,6 +17,9 @@ interface SubscriptionData {
   price_cents?: number | null;
   price_currency?: string | null;
   recurring_interval?: string | null;
+  invoice_number?: string | null;
+  hosted_invoice_url?: string | null;
+  invoice_pdf_url?: string | null;
 }
 
 interface PurchaseHistoryTableProps {
@@ -85,9 +88,9 @@ export function PurchaseHistoryTable({ orders, subscriptions = [], loading }: Pu
       bundle_hours: sub.is_product ? null : sub.monthly_hours,
       recurring_interval: sub.recurring_interval ?? null,
       receipt_url: null,
-      invoice_number: null,
-      hosted_invoice_url: null,
-      invoice_pdf_url: null,
+      invoice_number: sub.invoice_number ?? null,
+      hosted_invoice_url: sub.hosted_invoice_url ?? null,
+      invoice_pdf_url: sub.invoice_pdf_url ?? null,
       type: "subscription" as const,
     }));
 
