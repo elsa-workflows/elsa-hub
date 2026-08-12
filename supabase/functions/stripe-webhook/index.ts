@@ -322,13 +322,15 @@ async function handleSubscriptionCheckout(
   const organizationId = session.metadata?.organization_id;
   const serviceProviderId = session.metadata?.service_provider_id;
   const bundleId = session.metadata?.bundle_id;
+  const productId = session.metadata?.product_id;
   const subscriptionId = session.subscription as string;
   const customerId = session.customer as string;
 
-  if (!organizationId || !serviceProviderId || !bundleId || !subscriptionId) {
+  if (!organizationId || !serviceProviderId || !subscriptionId || (!bundleId && !productId)) {
     console.error("Missing required metadata for subscription checkout");
     return;
   }
+
 
   // Check if subscription already exists (idempotency)
   const { data: existingSub } = await supabase
