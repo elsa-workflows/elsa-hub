@@ -18,6 +18,7 @@ import {
   CalendarDays,
   Layers,
   Radar,
+  KeyRound,
 } from "lucide-react";
 import {
   Sidebar,
@@ -58,6 +59,7 @@ const providerNavItems = [
   { label: "Messages", icon: MessageSquare, path: "messages" },
   { label: "Hours", icon: Clock, path: "work-logs" },
   { label: "Bundles", icon: Package, path: "bundles" },
+  { label: "Registry access", icon: KeyRound, path: "registry-access" },
   { label: "Settings", icon: Settings, path: "settings" },
 ];
 
