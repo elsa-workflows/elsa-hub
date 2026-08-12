@@ -1,5 +1,7 @@
 import { Container, LayoutDashboard, Boxes, type LucideIcon } from "lucide-react";
 import runtimeServerArtwork from "@/assets/runtime-server-artwork.png.asset.json";
+import runtimeStudioArtwork from "@/assets/runtime-studio-artwork.png.asset.json";
+import runtimeCombinedArtwork from "@/assets/runtime-combined-artwork.png.asset.json";
 
 
 export type DockerImageEnvVar = {
@@ -240,7 +242,7 @@ export const dockerImages: DockerImage[] = [
       "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the `Studio__HostingModel` environment variable. Point it at your server via `Studio__Client__Backend__Url` (WebAssembly) or `Backend__Url` (Blazor Server).",
     image: "ghcr.io/valence-works/runtime-studio",
     icon: LayoutDashboard,
-    artwork: runtimeServerArtwork.url,
+    artwork: runtimeStudioArtwork.url,
     artworkAlt: "Valence Runtime Studio container image",
     artworkLabel: "RUNTIME STUDIO",
     artworkVariant: "studio",
@@ -293,7 +295,7 @@ export const dockerImages: DockerImage[] = [
       "A single-container deployment that hosts both the Elsa workflow API and the Studio UI in one process. Studio is served at the root and the API at `/elsa/api` on the same origin — ideal for single-host deployments, demos, and self-contained appliances. Studio defaults to Blazor WebAssembly and can be switched to Blazor Server via `Studio__HostingModel`.",
     image: "ghcr.io/valence-works/runtime-combined",
     icon: Boxes,
-    artwork: runtimeServerArtwork.url,
+    artwork: runtimeCombinedArtwork.url,
     artworkAlt: "Valence Runtime Combined container image",
     artworkLabel: "RUNTIME COMBINED",
     artworkVariant: "combined",
