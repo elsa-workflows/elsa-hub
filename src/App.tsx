@@ -26,7 +26,6 @@ const Docker = lazy(() => import("./pages/get-started/Docker"));
 const ElsaPlus = lazy(() => import("./pages/ElsaPlus"));
 const ExpertServicesProviders = lazy(() => import("./pages/enterprise/ExpertServicesProviders"));
 const ExpertServiceProvider = lazy(() => import("./pages/enterprise/ExpertServiceProvider"));
-const DockerImages = lazy(() => import("./pages/enterprise/DockerImages"));
 const ValenceRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
 const Distributions = lazy(() => import("./pages/enterprise/Distributions"));
 const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
@@ -139,7 +138,7 @@ const App = () => (
               <Route path="/elsa-plus/expert-services" element={<ExpertServicesProviders />} />
               <Route path="/elsa-plus/expert-services/:slug" element={<ExpertServiceProvider />} />
               <Route path="/elsa-plus/valence-runtime" element={<ValenceRuntime />} />
-              <Route path="/elsa-plus/valence-runtime/images" element={<DockerImages />} />
+              <Route path="/elsa-plus/valence-runtime/images" element={<Navigate to="/elsa-plus/valence-runtime#images" replace />} />
               <Route path="/elsa-plus/valence-runtime/images/:slug" element={<DockerImageDetail />} />
               <Route path="/elsa-plus/docker-images" element={<Navigate to="/elsa-plus/valence-runtime" replace />} />
               <Route path="/elsa-plus/docker-images/elsa-pro-studio-blazorserver" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-studio" replace />} />
@@ -147,7 +146,7 @@ const App = () => (
               <Route path="/elsa-plus/valence-runtime/images/elsa-pro-server" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-server" replace />} />
               <Route path="/elsa-plus/valence-runtime/images/elsa-pro-studio" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-studio" replace />} />
               <Route path="/elsa-plus/valence-runtime/images/elsa-pro-combined" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-combined" replace />} />
-              <Route path="/elsa-plus/production-docker" element={<Navigate to="/elsa-plus/valence-runtime/images" replace />} />
+              <Route path="/elsa-plus/production-docker" element={<Navigate to="/elsa-plus/valence-runtime#images" replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
@@ -157,7 +156,7 @@ const App = () => (
               {/* Backward compatibility redirects */}
               <Route path="/enterprise" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/enterprise/expert-services" element={<Navigate to="/elsa-plus/expert-services" replace />} />
-              <Route path="/enterprise/docker-images" element={<Navigate to="/elsa-plus/valence-runtime/images" replace />} />
+              <Route path="/enterprise/docker-images" element={<Navigate to="/elsa-plus/valence-runtime#images" replace />} />
               <Route path="/enterprise/cloud-services" element={<Navigate to="/elsa-plus/cloud-services" replace />} />
               <Route path="/enterprise/training" element={<Navigate to="/elsa-plus/training" replace />} />
               <Route path="/marketplace" element={<Navigate to="/elsa-plus" replace />} />
