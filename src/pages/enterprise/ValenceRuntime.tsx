@@ -597,49 +597,7 @@ docker run -it -p 13000:8080 \\
             within.
           </p>
 
-          {anySubscribable ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(["Runtime", "Runtime Priority", "Maintainer Access"] as const).map((name) => {
-                const product = productByTier.get(tierKeyByName[name]);
-                const isMaintainer = name === "Maintainer Access";
-
-                // Maintainer Access is deliberately not a self-serve product row;
-                // still render its conversation-only CTA so the difference looks deliberate.
-                if (!product && !isMaintainer) return null;
-
-                const conversationOnly = product ? isConversationOnly(product) : true;
-
-                return (
-                  <div
-                    key={name}
-                    className="flex items-center justify-between gap-4 rounded-xl border bg-card p-4"
-                  >
-                    <div>
-                      <div className="font-medium">{name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {isMaintainer
-                          ? "€25,000 / year — 3 slots"
-                          : product
-                            ? `${formatPrice(product.price_cents, product.currency)} / year`
-                            : null}
-                      </div>
-                    </div>
-                    {isMaintainer || conversationOnly || !product?.is_purchasable ? (
-                      <Button asChild variant="outline" size="sm">
-                        <Link to="/elsa-plus/expert-services/valence-works">
-                          {isMaintainer ? "Contact us" : "Get in touch"}
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button size="sm" onClick={() => startSubscribe(product!)}>
-                        Subscribe
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
+          {!anySubscribable && (
             <p className="text-muted-foreground leading-relaxed">
               Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
               published so you can plan and budget. Get in touch to discuss a tier or request
