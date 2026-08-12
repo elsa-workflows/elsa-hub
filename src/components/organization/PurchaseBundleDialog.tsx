@@ -49,7 +49,7 @@ type SelectedItem =
   | { type: "bundle"; item: CreditBundleFull }
   | { type: "product"; item: Product };
 
-export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }: PurchaseBundleDialogProps) {
+export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, showProducts = true }: PurchaseBundleDialogProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { selectedOrganization, organizations, isAdmin } = useOrganization();
@@ -72,7 +72,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
 
   // Load active products for the same service providers represented by the bundles
   useEffect(() => {
-    if (!bundles || bundles.length === 0) return;
+    if (!showProducts || !bundles || bundles.length === 0) return;
     const providerIds = [...new Set(bundles.map(b => b.service_provider_id))];
     if (providerIds.length === 0) return;
 
@@ -101,7 +101,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
     return () => {
       cancelled = true;
     };
-  }, [bundles]);
+  }, [showProducts, bundles]);
 
   const handlePurchase = async () => {
     if (!selectedItem || !selectedOrganization) return;
