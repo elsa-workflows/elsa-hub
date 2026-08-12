@@ -634,6 +634,12 @@ docker run -it -p 13000:8080 \\
           <NeutralityDisclaimer />
         </div>
       </section>
+
+      <PurchaseBundleDialog
+        open={purchaseOpen}
+        onOpenChange={setPurchaseOpen}
+        preSelectedProductId={selectedProductId}
+      />
     </Layout>
   );
 }
