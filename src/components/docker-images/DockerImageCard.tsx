@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ContainerImageArtwork } from "./ContainerImageArtwork";
 import type { DockerImage } from "@/data/dockerImages";
 
 interface DockerImageCardProps {
@@ -12,6 +13,14 @@ export function DockerImageCard({ image }: DockerImageCardProps) {
   const Icon = image.icon;
   return (
     <div className="group rounded-lg border bg-card p-6 flex flex-col h-full hover:border-primary/50 hover:shadow-lg transition-all">
+      <ContainerImageArtwork
+        src={image.artwork}
+        alt={image.artworkAlt ?? `${image.name} container image`}
+        label={image.artworkLabel ?? image.name.toUpperCase()}
+        placeholderIcon={Icon}
+        className="mb-5"
+      />
+
       <div className="flex items-start gap-4 mb-4">
         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
           <Icon className="h-6 w-6 text-primary" />
@@ -21,6 +30,7 @@ export function DockerImageCard({ image }: DockerImageCardProps) {
           <p className="text-xs font-mono text-muted-foreground mt-1 truncate">{image.image}</p>
         </div>
       </div>
+
 
       <p className="text-sm text-muted-foreground mb-4">{image.tagline}</p>
 
