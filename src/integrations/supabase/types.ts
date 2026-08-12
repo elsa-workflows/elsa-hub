@@ -916,6 +916,7 @@ export type Database = {
           description: string | null
           id: string
           includes_backports: boolean
+          internal_only: boolean
           is_active: boolean
           kind: Database["public"]["Enums"]["product_kind"]
           name: string
@@ -935,6 +936,7 @@ export type Database = {
           description?: string | null
           id?: string
           includes_backports?: boolean
+          internal_only?: boolean
           is_active?: boolean
           kind?: Database["public"]["Enums"]["product_kind"]
           name: string
@@ -954,6 +956,7 @@ export type Database = {
           description?: string | null
           id?: string
           includes_backports?: boolean
+          internal_only?: boolean
           is_active?: boolean
           kind?: Database["public"]["Enums"]["product_kind"]
           name?: string
