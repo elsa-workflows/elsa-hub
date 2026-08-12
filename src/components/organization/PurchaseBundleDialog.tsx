@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AvailabilityDisclaimer } from "@/components/enterprise";
 import { BillingDetailsReminder } from "./BillingDetailsReminder";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 interface PurchaseBundleDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ interface Product {
   triage_response_business_days: number | null;
   includes_backports: boolean;
   service_provider_id: string;
+  internal_only: boolean;
 }
 
 type SelectedItem =
@@ -56,6 +58,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
   const navigate = useNavigate();
   const { selectedOrganization, organizations, isAdmin } = useOrganization();
   const { data: bundles, isLoading: bundlesLoading } = useCreditBundlesFull();
+  const { data: isPlatformAdmin } = useIsAdmin();
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -95,7 +98,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, slug, tier, description, price_cents, currency, recurring_interval, stripe_price_id, is_active, triage_response_business_days, includes_backports, service_provider_id"
+          "id, name, slug, tier, description, price_cents, currency, recurring_interval, stripe_price_id, is_active, triage_response_business_days, includes_backports, service_provider_id, internal_only"
         )
         .eq("is_active", true)
         .in("service_provider_id", providerIds)
@@ -105,7 +108,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
       if (error) {
         console.error("Failed to load products", error);
       } else {
-        setProducts(data || []);
+        setProducts((data || []).filter((p) => !p.internal_only || isPlatformAdmin === true));
       }
       setProductsLoading(false);
     })();
@@ -113,7 +116,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
     return () => {
       cancelled = true;
     };
-  }, [showProducts, bundles]);
+  }, [showProducts, bundles, isPlatformAdmin]);
 
   const extractInvokeError = async (err: unknown): Promise<string | null> => {
     const ctx = (err as { context?: unknown })?.context;
@@ -409,6 +412,11 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
                                     <Badge variant="secondary" className="text-xs">
                                       Subscription
                                     </Badge>
+                                    {product.internal_only && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Internal — not for sale
+                                      </Badge>
+                                    )}
                                   </div>
                                   {commitments && (
                                     <div className="text-sm text-muted-foreground">{commitments}</div>

@@ -343,6 +343,18 @@ export const dockerImages: DockerImage[] = [
   },
 ];
 
+/**
+ * Placeholder image entry used only to smoke-test the purchase flow end to end.
+ * Never rendered to anyone but platform admins, and deliberately not part of
+ * `dockerImages` so no public listing or detail route can pick it up.
+ */
+export const internalSmokeTestImage = {
+  slug: "internal-webhook-smoke-test",
+  name: "Webhook smoke test — internal, not for sale",
+  tagline: "Placeholder listing for the internal €1 webhook smoke-test product. Not a real image.",
+  image: "ghcr.io/valence-works/internal-webhook-smoke-test",
+} as const;
+
 export function getDockerImage(slug: string): DockerImage | undefined {
   return dockerImages.find((img) => img.slug === slug);
 }
