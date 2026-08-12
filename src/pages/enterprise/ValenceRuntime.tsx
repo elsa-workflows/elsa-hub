@@ -286,68 +286,129 @@ export default function ValenceRuntime() {
       </section>
 
 
-      {/* Try it — free images */}
-      <section className="py-12 md:py-16">
-        <div className="container max-w-4xl space-y-4">
-          <h2 className="text-3xl font-bold">Try it</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            The Community images are public on GitHub Container Registry. No account, no login —
-            just pull:
-          </p>
-          <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
+      {/* Images */}
+      <section id="images" className="py-12 md:py-16 scroll-mt-20">
+        <div className="container max-w-5xl space-y-6">
+          <div className="space-y-3">
+            <h2 className="text-3xl font-bold">Images</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Three images — server, Studio, and a combined single-container deployment. Every
+              subscription includes all three; you pick per deployment, not per licence. Open one
+              for prerequisites, environment variables,{" "}
+              <span className="font-mono text-sm">docker run</span> and Docker Compose snippets, and
+              configuration details.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {dockerImages.map((img) => (
+              <DockerImageCard key={img.slug} image={img} />
+            ))}
+
+            {isPlatformAdmin === true && (
+              <div className="rounded-lg border border-dashed border-destructive/40 bg-destructive/5 p-6 flex flex-col h-full">
+                <Badge variant="destructive" className="w-fit mb-3">
+                  Internal — not for sale
+                </Badge>
+                <h3 className="text-lg font-semibold leading-tight">{internalSmokeTestImage.name}</h3>
+                <p className="text-xs font-mono text-muted-foreground mt-1 break-all">
+                  {internalSmokeTestImage.image}
+                </p>
+                <p className="text-sm text-muted-foreground mt-4">{internalSmokeTestImage.tagline}</p>
+                <p className="text-xs text-muted-foreground mt-auto pt-4">
+                  Visible to platform admins only. Placeholder for the €1 webhook smoke-test product.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Runtime Builder CTA */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-5 md:gap-6">
+            <div className="h-12 w-12 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <Boxes className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-lg font-semibold">Not sure which image you need?</h3>
+                <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-600 dark:text-amber-300">
+                  Preview
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Compose your runtime visually — pick an image, enable capabilities, and preview a
+                complete Docker deployment bundle. Concept build on sample data.
+              </p>
+            </div>
+            <Button asChild className="gap-2 shrink-0">
+              <Link to="/elsa-plus/runtime-builder">
+                Open Runtime Builder
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* Try it */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-2xl font-bold">Try it</h3>
+            <p className="text-muted-foreground leading-relaxed">
+              The Community images are public on GitHub Container Registry. No account, no login —
+              just pull:
+            </p>
+            <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
 {`docker pull ghcr.io/valence-works/runtime-ce-combined:latest
 
 docker run -it -p 13000:8080 \\
   -e ASPNETCORE_ENVIRONMENT=Development \\
   ghcr.io/valence-works/runtime-ce-combined:latest`}
-          </pre>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="rounded-xl border bg-card p-5 space-y-2">
-              <h3 className="font-semibold">Free — public, no account</h3>
-              <ul className="text-muted-foreground font-mono text-xs space-y-1">
-                <li>ghcr.io/valence-works/runtime-ce-server</li>
-                <li>ghcr.io/valence-works/runtime-ce-studio</li>
-                <li>ghcr.io/valence-works/runtime-ce-combined</li>
-              </ul>
+            </pre>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="rounded-xl border bg-card p-5 space-y-2">
+                <h4 className="font-semibold">Free — public, no account</h4>
+                <ul className="text-muted-foreground font-mono text-xs space-y-1">
+                  <li>ghcr.io/valence-works/runtime-ce-server</li>
+                  <li>ghcr.io/valence-works/runtime-ce-studio</li>
+                  <li>ghcr.io/valence-works/runtime-ce-combined</li>
+                </ul>
+              </div>
+              <div className="rounded-xl border bg-card p-5 space-y-2">
+                <h4 className="font-semibold">Paid — private registry, requires a subscription</h4>
+                <ul className="text-muted-foreground text-xs space-y-1">
+                  <li>Valence Runtime Server</li>
+                  <li>Valence Runtime Studio</li>
+                  <li>Valence Runtime Combined</li>
+                </ul>
+                <p className="text-muted-foreground text-xs">
+                  Registry address and pull commands ship with your credentials.
+                </p>
+              </div>
             </div>
-            <div className="rounded-xl border bg-card p-5 space-y-2">
-              <h3 className="font-semibold">Paid — private registry, requires a subscription</h3>
-              <ul className="text-muted-foreground text-xs space-y-1">
-                <li>Valence Runtime Server</li>
-                <li>Valence Runtime Studio</li>
-                <li>Valence Runtime Combined</li>
-              </ul>
-              <p className="text-muted-foreground text-xs">
-                Registry address and pull commands ship with your credentials.
-              </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
+              still work for anyone who already pulled them, but they are no longer updated. New
+              Community builds publish to ghcr.io; new paid builds publish to the private registry.
+            </p>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <a
+                href="https://github.com/valence-works/runtime"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Documentation &amp; issue tracking
+              </a>
+              <a
+                href="https://github.com/valence-works/runtime/wiki"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Setup guide
+              </a>
             </div>
-
-          </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
-            still work for anyone who already pulled them, but they are no longer updated. New
-            Community builds publish to ghcr.io; new paid builds publish to the private registry.
-          </p>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <a
-              href="https://github.com/valence-works/runtime"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Documentation &amp; issue tracking
-            </a>
-            <a
-              href="https://github.com/valence-works/runtime/wiki"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Setup guide
-            </a>
           </div>
         </div>
       </section>
+
 
       {/* How access works */}
       <section className="py-12 md:py-16 bg-surface-subtle">
