@@ -19,6 +19,8 @@ export default function OrgOverview() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [copiedId, setCopiedId] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const { selectOrganization } = useOrganization();
   const { 
     organization, 
     creditBalances, 
@@ -30,6 +32,13 @@ export default function OrgOverview() {
     notFound,
     refetchInvitations,
   } = useOrganizationDashboard(slug);
+
+  const handleOpenPurchase = () => {
+    if (organization) {
+      selectOrganization({ id: organization.id, name: organization.name, slug: organization.slug });
+    }
+    setPurchaseOpen(true);
+  };
 
   // Fetch subscriptions
   const { data: subscriptions, isLoading: subscriptionsLoading } = useSubscriptions(organization?.id);
