@@ -74,23 +74,31 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId }
     const providerIds = [...new Set(bundles.map(b => b.service_provider_id))];
     if (providerIds.length === 0) return;
 
+    let cancelled = false;
     setProductsLoading(true);
-    supabase
-      .from("products")
-      .select(
-        "id, name, slug, tier, description, price_cents, currency, recurring_interval, stripe_price_id, is_active, triage_response_business_days, includes_backports, service_provider_id"
-      )
-      .eq("is_active", true)
-      .in("service_provider_id", providerIds)
-      .order("price_cents", { ascending: true })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Failed to load products", error);
-        } else {
-          setProducts(data || []);
-        }
-      })
-      .finally(() => setProductsLoading(false));
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          "id, name, slug, tier, description, price_cents, currency, recurring_interval, stripe_price_id, is_active, triage_response_business_days, includes_backports, service_provider_id"
+        )
+        .eq("is_active", true)
+        .in("service_provider_id", providerIds)
+        .order("price_cents", { ascending: true });
+
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to load products", error);
+      } else {
+        setProducts(data || []);
+      }
+      setProductsLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [bundles]);
 
   const handlePurchase = async () => {
