@@ -437,79 +437,8 @@ docker run -it -p 13000:8080 \\
         </div>
       </section>
 
-      {/* Security posture */}
-      <section className="py-12 md:py-16">
-        <div className="container max-w-5xl space-y-8">
-          <div className="max-w-4xl">
-            <h2 className="text-3xl font-bold">Security posture</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Runtime */}
-            <div className="rounded-xl border bg-card p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Runtime</h3>
-              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  <span className="font-semibold text-foreground">Read-only root filesystem.</span>{" "}
-                  Nothing is written into the image at runtime; the paths that must be writable are
-                  declared and mountable.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">Non-root by default.</span> UID
-                  1654.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">
-                    Starts with no network access at all.
-                  </span>{" "}
-                  Given a package directory populated in advance, a container boots without reaching
-                  any package feed — so air-gapped deployment works, and your deployment does not
-                  depend on our supply chain being reachable at the moment you scale up.
-                </p>
-              </div>
-            </div>
-
-            {/* Supply chain */}
-            <div className="rounded-xl border bg-card p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Supply chain</h3>
-              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  <span className="font-semibold text-foreground">Minimal chiselled base.</span> 11
-                  OS packages, not 112 — no shell, no package manager.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">Scanned before publication.</span>{" "}
-                  Vulnerability scan runs before publication and fails the build on any fixable
-                  CRITICAL or HIGH finding.
-                </p>
-              </div>
-            </div>
-
-            {/* Verification */}
-            <div className="rounded-xl border bg-card p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Verification</h3>
-              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  <span className="font-semibold text-foreground">Every image signed.</span> SBOM
-                  and build provenance published alongside.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">
-                    Signatures verifiable by anyone.
-                  </span>{" "}
-                  Signatures are verifiable by anyone with the image, using only their own
-                  subscription credentials.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
-
       {/* Tiers */}
-      <section className="py-12 md:py-16 bg-surface-subtle">
+      <section className="py-12 md:py-16">
         <div className="container max-w-5xl space-y-6">
           <div>
             <h2 className="text-3xl font-bold mb-2">Tiers</h2>
@@ -658,6 +587,77 @@ docker run -it -p 13000:8080 \\
           </p>
         </div>
       </section>
+
+      {/* Security posture */}
+      <section className="py-12 md:py-16 bg-surface-subtle">
+        <div className="container max-w-5xl space-y-8">
+          <div className="max-w-4xl">
+            <h2 className="text-3xl font-bold">Security posture</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Runtime */}
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Runtime</h3>
+              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  <span className="font-semibold text-foreground">Read-only root filesystem.</span>{" "}
+                  Nothing is written into the image at runtime; the paths that must be writable are
+                  declared and mountable.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Non-root by default.</span> UID
+                  1654.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">
+                    Starts with no network access at all.
+                  </span>{" "}
+                  Given a package directory populated in advance, a container boots without reaching
+                  any package feed — so air-gapped deployment works, and your deployment does not
+                  depend on our supply chain being reachable at the moment you scale up.
+                </p>
+              </div>
+            </div>
+
+            {/* Supply chain */}
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Supply chain</h3>
+              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  <span className="font-semibold text-foreground">Minimal chiselled base.</span> 11
+                  OS packages, not 112 — no shell, no package manager.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Scanned before publication.</span>{" "}
+                  Vulnerability scan runs before publication and fails the build on any fixable
+                  CRITICAL or HIGH finding.
+                </p>
+              </div>
+            </div>
+
+            {/* Verification */}
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Verification</h3>
+              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  <span className="font-semibold text-foreground">Every image signed.</span> SBOM
+                  and build provenance published alongside.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">
+                    Signatures verifiable by anyone.
+                  </span>{" "}
+                  Signatures are verifiable by anyone with the image, using only their own
+                  subscription credentials.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
 
       {/* Triage */}
       <section className="py-12 md:py-16">
