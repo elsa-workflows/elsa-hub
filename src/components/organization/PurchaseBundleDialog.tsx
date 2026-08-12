@@ -103,6 +103,24 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
     };
   }, [showProducts, bundles]);
 
+  const extractInvokeError = async (err: unknown): Promise<string | null> => {
+    const ctx = (err as { context?: unknown })?.context;
+    if (ctx && typeof (ctx as Response).json === "function") {
+      try {
+        const body = await (ctx as Response).clone().json();
+        if (body?.error) return String(body.error);
+      } catch {
+        try {
+          const text = await (ctx as Response).clone().text();
+          if (text) return text;
+        } catch {
+          /* no body */
+        }
+      }
+    }
+    return null;
+  };
+
   const handlePurchase = async () => {
     if (!selectedItem || !selectedOrganization) return;
 
@@ -119,7 +137,10 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
         body: payload,
       });
 
-      if (fnError) throw fnError;
+      if (fnError) {
+        const serverMessage = await extractInvokeError(fnError);
+        throw new Error(serverMessage || fnError.message || "Failed to start checkout");
+      }
       if (data?.error) throw new Error(data.error);
       if (!data?.checkoutUrl) throw new Error("No checkout URL returned");
 
@@ -131,6 +152,7 @@ export function PurchaseBundleDialog({ open, onOpenChange, preSelectedBundleId, 
       setIsProcessing(false);
     }
   };
+
 
   const formatPrice = (cents: number, currency: string, isRecurring?: boolean, interval?: string | null) => {
     const formatted = new Intl.NumberFormat("en-US", {
