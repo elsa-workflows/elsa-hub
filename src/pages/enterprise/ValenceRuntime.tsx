@@ -217,8 +217,9 @@ export default function ValenceRuntime() {
             security-patch cadence, and, on paid tiers, direct access to the person who wrote Elsa.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Not yet a supported distribution — production hardening, container scanning, and stable
-            release guarantees are on the roadmap. Elsa 3.8 remains in preview.
+            Not yet a supported distribution — stable release guarantees are on the roadmap.
+            Production hardening, container scanning, and image signing are already in place.
+            Elsa 3.8 remains in preview.
           </p>
         </div>
       </section>
@@ -264,7 +265,7 @@ docker run -it -p 13000:8080 \\
           <p className="text-sm text-muted-foreground leading-relaxed">
             The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
             still work for anyone who already pulled them, but they are no longer updated. New
-            builds are published to ghcr.io only.
+            Community builds publish to ghcr.io; new paid builds publish to the private registry.
           </p>
           <div className="flex flex-wrap gap-4 text-sm">
             <a
