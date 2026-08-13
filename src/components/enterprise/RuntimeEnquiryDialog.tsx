@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useOrganizations } from "@/hooks/useOrganizations";
@@ -120,14 +121,31 @@ export function RuntimeEnquiryDialog({
 
       if (error) throw error;
 
-      // Notifying must never fail the lead.
+      // Notifying must never fail the lead. invoke() returns { error } on a
+      // non-2xx instead of throwing, so check it explicitly — otherwise a
+      // failed notification is silent and the lead sits unread.
       try {
-        await supabase.functions.invoke("notify-runtime-enquiry", {
-          body: { enquiryId: data.id },
-        });
+        const { error: notifyError } = await supabase.functions.invoke(
+          "notify-runtime-enquiry",
+          { body: { enquiryId: data.id } },
+        );
+        if (notifyError) {
+          const details =
+            notifyError instanceof FunctionsHttpError
+              ? await notifyError.context.text()
+              : notifyError.message;
+          console.error(
+            `Enquiry ${data.id} saved, but notifying the provider failed:`,
+            details,
+          );
+        }
       } catch (notifyError) {
-        console.error("Enquiry notification failed:", notifyError);
+        console.error(
+          `Enquiry ${data.id} saved, but notifying the provider threw:`,
+          notifyError,
+        );
       }
+
 
       setSubmitted(true);
     } catch (err) {
