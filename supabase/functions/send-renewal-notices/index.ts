@@ -65,19 +65,46 @@ serve(async (req) => {
 
   try {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    // Newer projects expose comma-separated key lists instead of a single key.
+    const keyLists = [
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "",
+      Deno.env.get("SUPABASE_SECRET_KEYS") ?? "",
+    ]
+      .flatMap((v) => v.split(","))
+      .map((v) => v.trim())
+      .filter(Boolean);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
-    // Same auth posture as send-work-digest: cron secret or a valid project key.
-    const cronSecret = Deno.env.get("WORK_DIGEST_CRON_SECRET");
+    // Cron secret (used by the pg_cron schedule) or a valid project key.
+    const cronSecret = Deno.env.get("RENEWAL_NOTICE_CRON_SECRET");
     const providedSecret =
       req.headers.get("x-cron-secret") ?? new URL(req.url).searchParams.get("secret");
     const authHeader = req.headers.get("Authorization") ?? "";
-    const authorized =
-      (cronSecret && providedSecret === cronSecret) ||
-      authHeader === `Bearer ${serviceKey}` ||
-      authHeader === `Bearer ${anonKey}`;
+    const bearer = authHeader.replace(/^Bearer\s+/i, "");
+    const apiKeyHeader = req.headers.get("apikey") ?? "";
+    const projectKeys = [serviceKey, anonKey, ...keyLists].filter(Boolean);
+    let authorized =
+      (!!cronSecret && providedSecret === cronSecret) ||
+      projectKeys.includes(bearer) ||
+      projectKeys.includes(apiKeyHeader);
+
+    // Manual trigger: also allow a signed-in platform admin.
+    if (!authorized && bearer) {
+      const admin = createClient(supabaseUrl, serviceKey);
+      const { data: userData } = await admin.auth.getUser(bearer);
+      if (userData?.user) {
+        const { data: isAdmin } = await admin
+          .from("platform_admins")
+          .select("id")
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
+        authorized = !!isAdmin;
+      }
+    }
+
     if (!authorized) {
+      console.warn("send-renewal-notices unauthorized call");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
