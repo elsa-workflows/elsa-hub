@@ -48,8 +48,9 @@ networks:
       <Seo
         path={`/elsa-plus/valence-runtime/images/${image.slug}`}
         title={`${image.name} — Valence Runtime container image`}
-        description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works, published to a private registry. Configuration, environment variables, docker run and Docker Compose snippets. Access on request; not yet a supported distribution.`}
+        description={`${image.name}: pull the free Community image (${image.image}) from GitHub Container Registry with no account and no login. Configuration, environment variables, docker run and Docker Compose snippets. The paid image is the same build with a subscription attached.`}
       />
+
       <section className="pt-8 pb-4">
         <div className="container">
           <Breadcrumb>
@@ -96,7 +97,7 @@ networks:
           <p className="text-lg text-muted-foreground">{renderInlineCode(image.description)}</p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Button asChild className="gap-2">
-              <Link to="/elsa-plus/valence-runtime#contact">Request access</Link>
+              <Link to="/elsa-plus/valence-runtime#tiers">Subscribe</Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
               <a href="https://github.com/valence-works/runtime" target="_blank" rel="noopener noreferrer">
@@ -106,9 +107,13 @@ networks:
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Valence Runtime images are published to a private registry (GitHub Container Registry). During Early
-            Preview, access is granted on request. Previously published images on Docker Hub are no longer updated.
+            The Community image above is public on GitHub Container Registry — no account, no login,
+            nothing to request. The paid image is the same build, down to the manifest digest, with a
+            subscription attached; it ships from a private registry using a registry token issued when
+            your subscription starts. Previously published images on Docker Hub still work but are no
+            longer updated.
           </p>
+
 
         </div>
       </section>
@@ -174,7 +179,6 @@ networks:
           <PrerequisitesBox
             items={[
               "Docker 20.10 or later",
-              "Approved Early Preview access to the private ghcr.io registry",
               `Free local port ${image.hostPort}`,
               ...(image.needsSharedNetwork ? ["A shared Docker network named 'elsa'"] : []),
               ...(image.requiresServer ? ["A running Valence Runtime Server reachable from this container"] : []),
@@ -182,18 +186,15 @@ networks:
           />
 
           <div>
-            <h3 className="font-semibold mb-2">Authenticate against the private registry</h3>
+            <h3 className="font-semibold mb-2">Pull the image</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              Valence Runtime images are hosted on GitHub Container Registry and are not publicly pullable. Use a
-              GitHub token with <code className="font-mono">read:packages</code> on an account that has been granted
-              Early Preview access.
+              The Community image is public on GitHub Container Registry. No account, no login, no
+              request — pull it and run it now. Paid subscribers run the same build from the private
+              registry; the registry address and pull commands ship with your credentials.
             </p>
-            <CodeBlock
-              code={`echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
-docker pull ${image.image}:3.8.0-preview.5413`}
-              language="bash"
-            />
+            <CodeBlock code={`docker pull ${image.image}:latest`} language="bash" />
           </div>
+
 
 
 
