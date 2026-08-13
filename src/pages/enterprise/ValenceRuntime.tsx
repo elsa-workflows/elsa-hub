@@ -23,6 +23,8 @@ import { DockerImageCard } from "@/components/docker-images";
 import { dockerImages } from "@/data/dockerImages";
 import { ArrowRight, Boxes, Check, ExternalLink, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { RuntimeEnquiryDialog, type EnquiryTier } from "@/components/enterprise/RuntimeEnquiryDialog";
 import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
