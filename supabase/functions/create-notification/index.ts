@@ -15,7 +15,8 @@ type NotificationType =
   | "purchase_completed"
   | "subscription_renewed"
   | "intro_call_submitted"
-  | "new_message";
+  | "new_message"
+  | "runtime_enquiry";
 
 interface CreateNotificationRequest {
   recipientUserIds: string[];
@@ -81,6 +82,8 @@ function getPreferenceColumn(type: NotificationType): string | null {
     subscription_renewed: "notify_subscription",
     intro_call_submitted: "notify_intro_call",
     new_message: "notify_new_message",
+    // No dedicated preference column yet; reuse the inbound-lead preference.
+    runtime_enquiry: "notify_intro_call",
   };
   return map[type] || null;
 }

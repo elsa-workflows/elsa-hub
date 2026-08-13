@@ -68,6 +68,7 @@ const ProviderCustomers = lazy(() => import("./pages/dashboard/provider/Provider
 const ProviderWorkLogs = lazy(() => import("./pages/dashboard/provider/ProviderWorkLogs"));
 const ProviderBundles = lazy(() => import("./pages/dashboard/provider/ProviderBundles"));
 const ProviderRegistryAccess = lazy(() => import("./pages/dashboard/provider/ProviderRegistryAccess"));
+const ProviderEnquiries = lazy(() => import("./pages/dashboard/provider/ProviderEnquiries"));
 const ProviderSettings = lazy(() => import("./pages/dashboard/provider/ProviderSettings"));
 const OrgMessages = lazy(() => import("./pages/dashboard/org/OrgMessages"));
 const OrgBookings = lazy(() => import("./pages/dashboard/org/OrgBookings"));
@@ -200,6 +201,7 @@ const App = () => (
                 <Route path="provider/:slug/work-logs" element={<ProviderWorkLogs />} />
                 <Route path="provider/:slug/bundles" element={<ProviderBundles />} />
                 <Route path="provider/:slug/registry-access" element={<ProviderRegistryAccess />} />
+                <Route path="provider/:slug/enquiries" element={<ProviderEnquiries />} />
                 <Route path="provider/:slug/settings" element={<ProviderSettings />} />
                 <Route path="provider/:slug/messages" element={<ProviderMessages />} />
                 <Route path="provider/:slug/messages/:conversationId" element={<ProviderMessages />} />
