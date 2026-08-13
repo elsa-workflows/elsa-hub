@@ -48,8 +48,9 @@ networks:
       <Seo
         path={`/elsa-plus/valence-runtime/images/${image.slug}`}
         title={`${image.name} — Valence Runtime container image`}
-        description={`${image.name} (${image.image}): Early Preview Elsa container from Valence Works, published to a private registry. Configuration, environment variables, docker run and Docker Compose snippets. Access on request; not yet a supported distribution.`}
+        description={`${image.name}: pull the free Community image (${image.image}) from GitHub Container Registry with no account and no login. Configuration, environment variables, docker run and Docker Compose snippets. The paid image is the same build with a subscription attached.`}
       />
+
       <section className="pt-8 pb-4">
         <div className="container">
           <Breadcrumb>
