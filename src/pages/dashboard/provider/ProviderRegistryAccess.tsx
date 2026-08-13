@@ -70,6 +70,7 @@ export default function ProviderRegistryAccess() {
       needs_issue: reconciliation.filter((r) => r.reason === "needs_issue"),
       needs_revoke: reconciliation.filter((r) => r.reason === "needs_revoke"),
       expiry_drift: reconciliation.filter((r) => r.reason === "expiry_drift"),
+      needs_reissue: reconciliation.filter((r) => r.reason === "needs_reissue"),
     }),
     [reconciliation]
   );
