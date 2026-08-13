@@ -111,7 +111,8 @@ export default function ProviderRegistryAccess() {
     !isLoading &&
     groups.needs_issue.length === 0 &&
     groups.needs_revoke.length === 0 &&
-    groups.expiry_drift.length === 0;
+    groups.expiry_drift.length === 0 &&
+    groups.needs_reissue.length === 0;
 
   const tierLabel = (row: ReconciliationRow) => row.tier ?? "—";
 
