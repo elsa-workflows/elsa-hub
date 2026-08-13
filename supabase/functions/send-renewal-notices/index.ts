@@ -65,7 +65,8 @@ serve(async (req) => {
 
   try {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const publishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
     // Same auth posture as send-work-digest: cron secret or a valid project key.
@@ -73,10 +74,11 @@ serve(async (req) => {
     const providedSecret =
       req.headers.get("x-cron-secret") ?? new URL(req.url).searchParams.get("secret");
     const authHeader = req.headers.get("Authorization") ?? "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "");
+    const projectKeys = [serviceKey, anonKey, publishableKey].filter(Boolean);
     const authorized =
       (cronSecret && providedSecret === cronSecret) ||
-      authHeader === `Bearer ${serviceKey}` ||
-      authHeader === `Bearer ${anonKey}`;
+      projectKeys.includes(bearer);
     if (!authorized) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
