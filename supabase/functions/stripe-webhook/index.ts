@@ -529,7 +529,7 @@ async function handleInvoicePaid(
   // Fetch our subscription record
   const { data: subscription, error: subError } = await supabase
     .from("subscriptions")
-    .select("*, credit_bundles(name, monthly_hours)")
+    .select("*, credit_bundles(name, monthly_hours), products(name, tier)")
     .eq("stripe_subscription_id", stripeSubscriptionId)
     .single();
 
