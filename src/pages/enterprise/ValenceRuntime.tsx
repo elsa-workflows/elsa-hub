@@ -745,6 +745,14 @@ docker run -it -p 13000:8080 \\
         onOpenChange={setPurchaseOpen}
         preSelectedProductId={selectedProductId}
       />
+
+      <RuntimeEnquiryDialog
+        open={enquiryOpen}
+        onOpenChange={setEnquiryOpen}
+        providerId={providerId}
+        initialTier={enquiryTier}
+        sourcePage={RUNTIME_PAGE_PATH}
+      />
     </Layout>
   );
 }
