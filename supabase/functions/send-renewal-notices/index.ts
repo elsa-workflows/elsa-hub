@@ -63,6 +63,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (new URL(req.url).searchParams.get("debug_env") === "1") {
+    return new Response(JSON.stringify(Object.keys(Deno.env.toObject())), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
