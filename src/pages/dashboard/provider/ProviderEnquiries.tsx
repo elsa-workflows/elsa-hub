@@ -146,10 +146,18 @@ export default function ProviderEnquiries() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   if (providerLoading) {
-    return <p className="text-muted-foreground">Loading…</p>;
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
   }
   if (notFound) {
-    return <p className="text-muted-foreground">Provider not found.</p>;
+    return (
+      <div className="p-6">
+        <p className="text-muted-foreground">Provider not found.</p>
+      </div>
+    );
   }
 
   const visible =
@@ -157,7 +165,7 @@ export default function ProviderEnquiries() {
   const newCount = enquiries.filter((e) => e.status === "new").length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Enquiries</h1>
