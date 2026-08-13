@@ -445,7 +445,8 @@ docker run -it -p 13000:8080 \\
       </section>
 
       {/* Tiers */}
-      <section className="py-12 md:py-16">
+      <section id="tiers" className="py-12 md:py-16 scroll-mt-20">
+
         <div className="container max-w-5xl space-y-6">
           <div>
             <h2 className="text-3xl font-bold mb-2">Tiers</h2>
