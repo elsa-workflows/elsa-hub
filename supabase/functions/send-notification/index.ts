@@ -192,6 +192,83 @@ function generateEmailContent(
       };
     }
 
+    // Customer-facing courtesy notice sent ~30 days before an auto-renewal.
+    // Deliberate policy decision: although a renewal notice is arguably
+    // transactional, we DO respect the `notify_subscription` preference (see
+    // getPreferenceField below). A customer who explicitly turned subscription
+    // mail off should not receive it; the renewal terms and the cancellation
+    // path remain available in the dashboard and in Stripe's own mail.
+    case "subscription_renewal_upcoming": {
+      const itemName = String(data.itemName ?? "your subscription");
+      const renewalDate = String(data.renewalDate ?? "");
+      const amount = String(data.amountFormatted ?? "");
+      const intervalLabel = String(data.intervalLabel ?? "year");
+      const orgName = String(data.organizationName ?? "your organization");
+      const manageUrl = String(data.manageUrl ?? getProviderDashboardUrl());
+      const isRuntime = Boolean(data.isRuntimeSubscription);
+
+      const runtimeBlock = isRuntime
+        ? `
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fef9c3; border-radius: 12px; margin: 20px 0;">
+            <tr>
+              <td style="padding: 18px 20px;">
+                <p style="margin: 0 0 8px; font-weight: 600; color: #713f12;">Registry access changes at renewal</p>
+                <p style="margin: 0; color: #713f12; font-size: 14px; line-height: 1.6;">
+                  When this Valence Runtime subscription renews, a <strong>new registry token</strong> is issued
+                  for your organization. The current token password stops working once the new one is issued,
+                  so update any CI pipelines, Kubernetes pull secrets, or local Docker logins that use it.
+                </p>
+              </td>
+            </tr>
+          </table>`
+        : "";
+
+      return {
+        subject: `Upcoming renewal: ${itemName} on ${renewalDate}`,
+        preheader: `${itemName} renews on ${renewalDate} for ${amount} (excl. VAT)`,
+        title: "Your subscription renews soon",
+        content: `
+          <p style="margin: 0 0 16px;">
+            This is a courtesy heads-up: the subscription for <strong>${orgName}</strong> renews automatically
+            in about 30 days. No action is needed if you want it to continue.
+          </p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f5; border-radius: 12px; margin: 20px 0;">
+            <tr>
+              <td style="padding: 20px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding: 8px 0; color: #71717a; font-size: 14px;">What renews</td>
+                    <td align="right" style="padding: 8px 0; font-weight: 600; color: #18181b;">${itemName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #71717a; font-size: 14px;">Renewal date</td>
+                    <td align="right" style="padding: 8px 0; font-weight: 600; color: #18181b;">${renewalDate}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #71717a; font-size: 14px;">Amount (excl. VAT)</td>
+                    <td align="right" style="padding: 8px 0; font-weight: 700; font-size: 18px; color: #18181b;">${amount} / ${intervalLabel}</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 0 0 16px; color: #52525b; font-size: 14px; line-height: 1.6;">
+            <strong>VAT is added on top of this amount.</strong> All prices are quoted excluding VAT; the applicable
+            VAT rate is determined at checkout by your billing country and VAT status. For a Dutch business, for
+            example, €1,500.00 becomes €1,815.00 including 21% VAT.
+          </p>
+          ${runtimeBlock}
+          <p style="margin: 0; color: #52525b; font-size: 14px; line-height: 1.6;">
+            To change or cancel before the renewal, open your billing portal from the organization dashboard.
+            Cancelling keeps the subscription active until the end of the current period.
+          </p>
+        `,
+        ctaText: "Manage subscription",
+        ctaUrl: manageUrl,
+        unsubscribeType: "subscription",
+      };
+    }
+
     default:
       return {
         subject: "Notification from Elsa Hub",
@@ -209,6 +286,10 @@ function getPreferenceField(type: NotificationType): string {
     case "work_logged":
       return "notify_work_logged";
     case "subscription_renewed":
+      return "notify_subscription";
+    // Renewal notices are gated on notify_subscription by deliberate choice,
+    // not by omission: opting out of subscription mail opts out of these too.
+    case "subscription_renewal_upcoming":
       return "notify_subscription";
     default:
       return "email_enabled";
