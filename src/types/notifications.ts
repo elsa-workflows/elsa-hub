@@ -7,7 +7,8 @@ export type NotificationType =
   | "purchase_completed"
   | "subscription_renewed"
   | "intro_call_submitted"
-  | "new_message";
+  | "new_message"
+  | "runtime_enquiry";
 
 export interface Notification {
   id: string;

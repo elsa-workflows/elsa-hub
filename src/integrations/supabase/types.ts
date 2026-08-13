@@ -1325,6 +1325,62 @@ export type Database = {
         }
         Relationships: []
       }
+      runtime_enquiries: {
+        Row: {
+          contact_email: string
+          contact_name: string
+          created_at: string
+          id: string
+          internal_notes: string | null
+          message: string
+          organization_name: string
+          service_provider_id: string
+          source_page: string | null
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          contact_email: string
+          contact_name: string
+          created_at?: string
+          id?: string
+          internal_notes?: string | null
+          message: string
+          organization_name: string
+          service_provider_id: string
+          source_page?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          contact_email?: string
+          contact_name?: string
+          created_at?: string
+          id?: string
+          internal_notes?: string | null
+          message?: string
+          organization_name?: string
+          service_provider_id?: string
+          source_page?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runtime_enquiries_service_provider_id_fkey"
+            columns: ["service_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_providers: {
         Row: {
           accepting_new_purchases: boolean
@@ -2321,6 +2377,7 @@ export type Database = {
         | "intro_call_submitted"
         | "new_message"
         | "radar_submission"
+        | "runtime_enquiry"
       order_status: "pending" | "paid" | "cancelled" | "refunded"
       org_role: "owner" | "admin" | "member"
       product_kind: "runtime_subscription"
@@ -2496,6 +2553,7 @@ export const Constants = {
         "intro_call_submitted",
         "new_message",
         "radar_submission",
+        "runtime_enquiry",
       ],
       order_status: ["pending", "paid", "cancelled", "refunded"],
       org_role: ["owner", "admin", "member"],

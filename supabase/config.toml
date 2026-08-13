@@ -70,3 +70,6 @@ verify_jwt = false
 
 [functions.send-work-digest]
 verify_jwt = false
+
+[functions.notify-runtime-enquiry]
+verify_jwt = false

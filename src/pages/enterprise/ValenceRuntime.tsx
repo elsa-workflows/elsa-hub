@@ -23,6 +23,9 @@ import { DockerImageCard } from "@/components/docker-images";
 import { dockerImages } from "@/data/dockerImages";
 import { ArrowRight, Boxes, Check, ExternalLink, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { RuntimeEnquiryDialog, type EnquiryTier } from "@/components/enterprise/RuntimeEnquiryDialog";
 import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
 
@@ -167,6 +170,28 @@ export default function ValenceRuntime() {
   const { data: products } = useRuntimeProducts(PROVIDER_SLUG);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
+  const [enquiryTier, setEnquiryTier] = useState<EnquiryTier>("unsure");
+
+  // Products can be empty (all tiers inactive), so resolve the provider directly too.
+  const { data: providerRow } = useQuery({
+    queryKey: ["service-provider-id", PROVIDER_SLUG],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_providers")
+        .select("id")
+        .eq("slug", PROVIDER_SLUG)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const providerId = (products ?? [])[0]?.service_provider_id ?? providerRow?.id;
+
+  const openEnquiry = (tier: EnquiryTier) => {
+    setEnquiryTier(tier);
+    setEnquiryOpen(true);
+  };
 
   const productByTier = new Map((products ?? []).map((p) => [p.tier, p]));
   const subscribableProducts = (products ?? []).filter(isSubscribable);
@@ -483,10 +508,16 @@ docker run -it -p 13000:8080 \\
                       return (
                         <td key={tier} className="px-4 py-3 text-center">
                           {isMaintainer || conversationOnly || !product?.is_purchasable ? (
-                            <Button asChild variant="outline" size="sm">
-                              <Link to="/elsa-plus/expert-services/valence-works">
-                                {isMaintainer ? "Contact us" : "Get in touch"}
-                              </Link>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                openEnquiry(
+                                  (tierKeyByName[tier] as EnquiryTier | undefined) ?? "unsure"
+                                )
+                              }
+                            >
+                              {isMaintainer ? "Contact us" : "Get in touch"}
                             </Button>
                           ) : (
                             <Button size="sm" onClick={() => startSubscribe(product!)}>
@@ -528,8 +559,8 @@ docker run -it -p 13000:8080 \\
             get a fix — that is what backports solve, and it is the only reason to pay the
             difference.
           </p>
-          <Button asChild variant="outline">
-            <Link to="/elsa-plus/expert-services/valence-works">Contact us</Link>
+          <Button variant="outline" onClick={() => openEnquiry("unsure")}>
+            Contact us
           </Button>
         </div>
       </section>
@@ -728,6 +759,14 @@ docker run -it -p 13000:8080 \\
         open={purchaseOpen}
         onOpenChange={setPurchaseOpen}
         preSelectedProductId={selectedProductId}
+      />
+
+      <RuntimeEnquiryDialog
+        open={enquiryOpen}
+        onOpenChange={setEnquiryOpen}
+        providerId={providerId}
+        initialTier={enquiryTier}
+        sourcePage={RUNTIME_PAGE_PATH}
       />
     </Layout>
   );

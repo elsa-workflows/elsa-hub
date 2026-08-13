@@ -19,6 +19,7 @@ import {
   Layers,
   Radar,
   KeyRound,
+  Inbox,
 } from "lucide-react";
 import {
   Sidebar,
@@ -60,6 +61,7 @@ const providerNavItems = [
   { label: "Hours", icon: Clock, path: "work-logs" },
   { label: "Bundles", icon: Package, path: "bundles" },
   { label: "Registry access", icon: KeyRound, path: "registry-access" },
+  { label: "Enquiries", icon: Inbox, path: "enquiries" },
   { label: "Settings", icon: Settings, path: "settings" },
 ];
 
