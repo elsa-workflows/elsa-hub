@@ -89,10 +89,25 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization") ?? "";
     const bearer = authHeader.replace(/^Bearer\s+/i, "");
     const projectKeys = [serviceKey, anonKey, ...keyLists].filter(Boolean);
-    const authorized =
-      (cronSecret && providedSecret === cronSecret) ||
-      projectKeys.includes(bearer);
+    let authorized =
+      (cronSecret && providedSecret === cronSecret) || projectKeys.includes(bearer);
+
+    // Manual trigger: also allow a signed-in platform admin.
+    if (!authorized && bearer) {
+      const admin = createClient(supabaseUrl, serviceKey);
+      const { data: userData } = await admin.auth.getUser(bearer);
+      if (userData?.user) {
+        const { data: isAdmin } = await admin
+          .from("platform_admins")
+          .select("id")
+          .eq("user_id", userData.user.id)
+          .maybeSingle();
+        authorized = !!isAdmin;
+      }
+    }
+
     if (!authorized) {
+      console.warn("send-renewal-notices unauthorized call");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
