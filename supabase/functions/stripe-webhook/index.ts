@@ -498,6 +498,17 @@ async function handleSubscriptionCheckout(
     console.warn("No expandable latest_invoice on subscription", subscriptionId);
   }
 
+  // Notify provider owners/admins. Never allowed to fail the webhook.
+  await sendSubscriptionNotification(supabase, {
+    providerId: serviceProviderId,
+    organizationId,
+    subscriptionRecordId: subRecord.id,
+    isProduct: !!product,
+    itemName: product ? product.name : bundle!.name,
+    tier: product ? (product as { tier?: string }).tier ?? null : null,
+    periodEnd,
+  });
+
   console.log(`Subscription ${subscriptionId} created successfully`);
 }
 
@@ -849,6 +860,113 @@ async function sendPurchaseNotification(
     console.log("Purchase notification result:", result);
   } catch (error) {
     console.error("Failed to send purchase notification:", error);
+    // Don't throw - notification failure shouldn't fail the webhook
+  }
+}
+
+// Notify provider owners/admins when a subscription is created.
+// Product (Runtime) subscriptions are an action item: registry access must be issued by hand.
+async function sendSubscriptionNotification(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  params: {
+    providerId: string;
+    organizationId: string;
+    subscriptionRecordId: string;
+    isProduct: boolean;
+    itemName: string;
+    tier: string | null;
+    periodEnd: string | null;
+  }
+) {
+  const { providerId, organizationId, subscriptionRecordId, isProduct, itemName, tier, periodEnd } =
+    params;
+
+  try {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("name")
+      .eq("id", organizationId)
+      .single();
+
+    const { data: provider } = await supabase
+      .from("service_providers")
+      .select("slug")
+      .eq("id", providerId)
+      .single();
+
+    const { data: admins } = await supabase
+      .from("provider_members")
+      .select("user_id")
+      .eq("service_provider_id", providerId)
+      .in("role", ["owner", "admin"]);
+
+    if (!admins || admins.length === 0) {
+      console.log("No provider admins to notify about subscription");
+      return;
+    }
+
+    const orgName = org?.name || "A customer";
+    const providerPath = provider?.slug || providerId;
+    const periodEndLabel = periodEnd ? new Date(periodEnd).toISOString().slice(0, 10) : "unknown";
+
+    const title = isProduct
+      ? "New subscription — registry access needed"
+      : "New Subscription";
+    const message = isProduct
+      ? `${orgName} subscribed to ${itemName}${tier ? ` (${tier})` : ""}. Registry access must be issued. Current period ends ${periodEndLabel}.`
+      : `${orgName} subscribed to ${itemName}.`;
+    const actionUrl = isProduct
+      ? `/dashboard/provider/${providerPath}/registry-access`
+      : `/dashboard/provider/${providerPath}/orders`;
+
+    const payload = {
+      organization_name: orgName,
+      subscription_id: subscriptionRecordId,
+      product_name: itemName,
+      tier,
+      period_end: periodEnd,
+      registry_access_needed: isProduct,
+    };
+
+    const { error: notifError } = await supabase.from("notifications").insert(
+      admins.map((admin: { user_id: string }) => ({
+        user_id: admin.user_id,
+        type: "subscription_renewed",
+        title,
+        message,
+        payload,
+        action_url: actionUrl,
+      }))
+    );
+
+    if (notifError) {
+      console.error("Failed to create subscription notifications:", notifError);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/create-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        type: "subscription_renewed",
+        recipientUserIds: admins.map((a: { user_id: string }) => a.user_id),
+        title,
+        message,
+        payload,
+        actionUrl,
+      }),
+    });
+
+    const result = await response.json();
+    console.log("Subscription notification result:", result);
+  } catch (error) {
+    console.error("Failed to send subscription notification:", error);
     // Don't throw - notification failure shouldn't fail the webhook
   }
 }
