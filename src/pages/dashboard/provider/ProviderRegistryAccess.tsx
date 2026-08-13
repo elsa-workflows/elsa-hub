@@ -70,6 +70,7 @@ export default function ProviderRegistryAccess() {
       needs_issue: reconciliation.filter((r) => r.reason === "needs_issue"),
       needs_revoke: reconciliation.filter((r) => r.reason === "needs_revoke"),
       expiry_drift: reconciliation.filter((r) => r.reason === "expiry_drift"),
+      needs_reissue: reconciliation.filter((r) => r.reason === "needs_reissue"),
     }),
     [reconciliation]
   );
@@ -110,7 +111,8 @@ export default function ProviderRegistryAccess() {
     !isLoading &&
     groups.needs_issue.length === 0 &&
     groups.needs_revoke.length === 0 &&
-    groups.expiry_drift.length === 0;
+    groups.expiry_drift.length === 0 &&
+    groups.needs_reissue.length === 0;
 
   const tierLabel = (row: ReconciliationRow) => row.tier ?? "—";
 
@@ -271,6 +273,66 @@ export default function ProviderRegistryAccess() {
                           <TableCell className="text-destructive">
                             {formatDate(row.token_expires_at)}
                           </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={!row.registry_grant_id}
+                              onClick={() =>
+                                setExpiryTarget({
+                                  id: row.registry_grant_id!,
+                                  current: row.token_expires_at,
+                                  suggested: row.current_period_end,
+                                })
+                              }
+                            >
+                              <CalendarClock className="h-4 w-4 mr-2" />
+                              Update expiry
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </section>
+              )}
+
+              {groups.needs_reissue.length > 0 && (
+                <section className="space-y-3">
+                  <div>
+                    <h2 className="font-semibold flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      Token expires before period end — reissue due
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      The subscription renewed and now runs past the token's expiry. Reissue the
+                      token in the registry, then record the new expiry here — pulls will start
+                      failing on the token expiry date otherwise.
+                    </p>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Organisation</TableHead>
+                        <TableHead>Tier</TableHead>
+                        <TableHead>Token name</TableHead>
+                        <TableHead>Token expiry</TableHead>
+                        <TableHead>Period end</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {groups.needs_reissue.map((row) => (
+                        <TableRow key={row.registry_grant_id ?? row.subscription_id}>
+                          <TableCell className="font-medium">{row.organization_name}</TableCell>
+                          <TableCell>{tierLabel(row)}</TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {row.registry_token_name ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-destructive font-medium">
+                            {formatDate(row.token_expires_at)}
+                          </TableCell>
+                          <TableCell>{formatDate(row.current_period_end)}</TableCell>
                           <TableCell className="text-right">
                             <Button
                               size="sm"

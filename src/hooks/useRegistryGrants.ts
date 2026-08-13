@@ -3,7 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export type ReconciliationReason = "needs_issue" | "needs_revoke" | "expiry_drift";
+export type ReconciliationReason =
+  | "needs_issue"
+  | "needs_revoke"
+  | "expiry_drift"
+  | "needs_reissue";
 
 export interface ReconciliationRow {
   subscription_id: string | null;

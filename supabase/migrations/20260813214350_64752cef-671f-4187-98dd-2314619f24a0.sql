@@ -1,0 +1,5 @@
+INSERT INTO public.subscriptions (id, organization_id, service_provider_id, product_id, stripe_subscription_id, stripe_customer_id, status, current_period_start, current_period_end)
+VALUES ('dddddddd-0000-4000-8000-000000000001', '431f02b6-9831-4e5e-8ecf-bdead6c9aab0', '11111111-1111-1111-1111-111111111111', 'ba7ef86c-c23d-4f74-bd03-37588bc64b39', 'sub_test_reissue_check', 'cus_test_reissue_check', 'active', now() - interval '5 days', now() + interval '360 days');
+
+INSERT INTO public.registry_grants (id, organization_id, service_provider_id, subscription_id, registry_token_name, scope_map_name, status, issued_at, token_expires_at)
+VALUES ('dddddddd-0000-4000-8000-000000000002', '431f02b6-9831-4e5e-8ecf-bdead6c9aab0', '11111111-1111-1111-1111-111111111111', 'dddddddd-0000-4000-8000-000000000001', 'test-reissue-check', 'test-scope', 'active', now() - interval '370 days', now() + interval '5 days');
