@@ -1438,6 +1438,45 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_renewal_notices: {
+        Row: {
+          id: string
+          organization_id: string
+          period_end: string
+          sent_at: string
+          subscription_id: string
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          period_end: string
+          sent_at?: string
+          subscription_id: string
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          period_end?: string
+          sent_at?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_renewal_notices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_renewal_notices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
