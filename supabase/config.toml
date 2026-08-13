@@ -73,3 +73,6 @@ verify_jwt = false
 
 [functions.notify-runtime-enquiry]
 verify_jwt = false
+
+[functions.send-renewal-notices]
+verify_jwt = false
