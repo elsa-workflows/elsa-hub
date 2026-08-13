@@ -21,7 +21,6 @@ import {
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { DockerImageCard } from "@/components/docker-images";
 import { dockerImages } from "@/data/dockerImages";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { ArrowRight, Boxes, Check, ExternalLink, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
@@ -166,7 +165,6 @@ export default function ValenceRuntime() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: products } = useRuntimeProducts(PROVIDER_SLUG);
-  const { data: isPlatformAdmin } = useIsAdmin();
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
