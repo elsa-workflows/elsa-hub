@@ -960,7 +960,7 @@ async function sendSubscriptionNotification(
         Authorization: `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({
-        type: "subscription_renewed",
+        type: "purchase_completed",
         recipientUserIds: admins.map((a: { user_id: string }) => a.user_id),
         title,
         message,
