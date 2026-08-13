@@ -14,7 +14,8 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 type NotificationType = 
   | "purchase_completed" 
   | "work_logged" 
-  | "subscription_renewed";
+  | "subscription_renewed"
+  | "subscription_renewal_upcoming";
 
 interface NotificationRequest {
   type: NotificationType;
