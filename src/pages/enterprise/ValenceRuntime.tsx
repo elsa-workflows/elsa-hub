@@ -23,6 +23,7 @@ import { DockerImageCard } from "@/components/docker-images";
 import { dockerImages } from "@/data/dockerImages";
 import { ArrowRight, Boxes, Check, ExternalLink, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { RuntimeEnquiryDialog, type EnquiryTier } from "@/components/enterprise/RuntimeEnquiryDialog";
 import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
 
@@ -167,6 +168,15 @@ export default function ValenceRuntime() {
   const { data: products } = useRuntimeProducts(PROVIDER_SLUG);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
+  const [enquiryTier, setEnquiryTier] = useState<EnquiryTier>("unsure");
+
+  const providerId = (products ?? [])[0]?.service_provider_id;
+
+  const openEnquiry = (tier: EnquiryTier) => {
+    setEnquiryTier(tier);
+    setEnquiryOpen(true);
+  };
 
   const productByTier = new Map((products ?? []).map((p) => [p.tier, p]));
   const subscribableProducts = (products ?? []).filter(isSubscribable);
@@ -483,10 +493,16 @@ docker run -it -p 13000:8080 \\
                       return (
                         <td key={tier} className="px-4 py-3 text-center">
                           {isMaintainer || conversationOnly || !product?.is_purchasable ? (
-                            <Button asChild variant="outline" size="sm">
-                              <Link to="/elsa-plus/expert-services/valence-works">
-                                {isMaintainer ? "Contact us" : "Get in touch"}
-                              </Link>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                openEnquiry(
+                                  (tierKeyByName[tier] as EnquiryTier | undefined) ?? "unsure"
+                                )
+                              }
+                            >
+                              {isMaintainer ? "Contact us" : "Get in touch"}
                             </Button>
                           ) : (
                             <Button size="sm" onClick={() => startSubscribe(product!)}>
@@ -528,8 +544,8 @@ docker run -it -p 13000:8080 \\
             get a fix — that is what backports solve, and it is the only reason to pay the
             difference.
           </p>
-          <Button asChild variant="outline">
-            <Link to="/elsa-plus/expert-services/valence-works">Contact us</Link>
+          <Button variant="outline" onClick={() => openEnquiry("unsure")}>
+            Contact us
           </Button>
         </div>
       </section>
