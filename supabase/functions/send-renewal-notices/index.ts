@@ -65,29 +65,27 @@ serve(async (req) => {
 
   try {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    // Newer projects expose comma-separated key lists instead of a single key.
-    const keyLists = [
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "",
-      Deno.env.get("SUPABASE_SECRET_KEYS") ?? "",
-    ]
-      .flatMap((v) => v.split(","))
+    // Secret (server-only) keys. Publishable/anon keys are deliberately NOT
+    // accepted: they are public, and this function sends customer emails.
+    const secretKeys = (Deno.env.get("SUPABASE_SECRET_KEYS") ?? "")
+      .split(",")
       .map((v) => v.trim())
       .filter(Boolean);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
-    // Cron secret (used by the pg_cron schedule) or a valid project key.
+    // Cron secret (used by the pg_cron schedule) or a service-role key.
     const cronSecret = Deno.env.get("RENEWAL_NOTICE_CRON_SECRET");
     const providedSecret =
       req.headers.get("x-cron-secret") ?? new URL(req.url).searchParams.get("secret");
     const authHeader = req.headers.get("Authorization") ?? "";
     const bearer = authHeader.replace(/^Bearer\s+/i, "");
     const apiKeyHeader = req.headers.get("apikey") ?? "";
-    const projectKeys = [serviceKey, anonKey, ...keyLists].filter(Boolean);
+    const privilegedKeys = [serviceKey, ...secretKeys].filter(Boolean);
     let authorized =
       (!!cronSecret && providedSecret === cronSecret) ||
-      projectKeys.includes(bearer) ||
-      projectKeys.includes(apiKeyHeader);
+      privilegedKeys.includes(bearer) ||
+      privilegedKeys.includes(apiKeyHeader);
+
 
     // Manual trigger: also allow a signed-in platform admin.
     if (!authorized && bearer) {
