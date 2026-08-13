@@ -171,7 +171,20 @@ export default function ValenceRuntime() {
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [enquiryTier, setEnquiryTier] = useState<EnquiryTier>("unsure");
 
-  const providerId = (products ?? [])[0]?.service_provider_id;
+  // Products can be empty (all tiers inactive), so resolve the provider directly too.
+  const { data: providerRow } = useQuery({
+    queryKey: ["service-provider-id", PROVIDER_SLUG],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_providers")
+        .select("id")
+        .eq("slug", PROVIDER_SLUG)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const providerId = (products ?? [])[0]?.service_provider_id ?? providerRow?.id;
 
   const openEnquiry = (tier: EnquiryTier) => {
     setEnquiryTier(tier);
