@@ -63,12 +63,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (new URL(req.url).searchParams.get("debug_env") === "1") {
-    return new Response(JSON.stringify(Object.keys(Deno.env.toObject())), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   try {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -82,8 +76,8 @@ serve(async (req) => {
       .filter(Boolean);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
-    // Same auth posture as send-work-digest: cron secret or a valid project key.
-    const cronSecret = Deno.env.get("WORK_DIGEST_CRON_SECRET");
+    // Cron secret (used by the pg_cron schedule) or a valid project key.
+    const cronSecret = Deno.env.get("RENEWAL_NOTICE_CRON_SECRET");
     const providedSecret =
       req.headers.get("x-cron-secret") ?? new URL(req.url).searchParams.get("secret");
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -91,7 +85,7 @@ serve(async (req) => {
     const apiKeyHeader = req.headers.get("apikey") ?? "";
     const projectKeys = [serviceKey, anonKey, ...keyLists].filter(Boolean);
     let authorized =
-      (cronSecret && providedSecret === cronSecret) ||
+      (!!cronSecret && providedSecret === cronSecret) ||
       projectKeys.includes(bearer) ||
       projectKeys.includes(apiKeyHeader);
 
@@ -107,19 +101,6 @@ serve(async (req) => {
           .maybeSingle();
         authorized = !!isAdmin;
       }
-    }
-
-    if (new URL(req.url).searchParams.get("debug_auth") === "1") {
-      return new Response(JSON.stringify({
-        authorized,
-        bearerPrefix: bearer.slice(0, 12),
-        bearerLen: bearer.length,
-        anonLen: anonKey.length,
-        anonPrefix: anonKey.slice(0, 12),
-        keyListsCount: keyLists.length,
-        apiKeyLen: apiKeyHeader.length,
-        apiKeyPrefix: apiKeyHeader.slice(0, 12),
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (!authorized) {
