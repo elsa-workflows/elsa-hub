@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
-import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder, PurchaseBundleDialog } from "@/components/organization";
+import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder, PurchaseBundleDialog, RegistryAccessCard } from "@/components/organization";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { useTidyCalBookingTypes } from "@/hooks/useTidyCalBookingTypes";
@@ -185,6 +185,9 @@ export default function OrgOverview() {
         isAdmin={isAdmin}
         organizationId={organization?.id}
       />
+
+      {/* Registry access (runtime subscriptions only) */}
+      <RegistryAccessCard organizationId={organization?.id} />
 
       {/* Recent Purchases - Preview */}
       <PurchaseHistoryTable 
