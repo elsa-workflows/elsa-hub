@@ -106,6 +106,17 @@ serve(async (req) => {
       }
     }
 
+    if (new URL(req.url).searchParams.get("debug_auth") === "1") {
+      return new Response(JSON.stringify({
+        authorized,
+        bearerPrefix: bearer.slice(0, 12),
+        bearerLen: bearer.length,
+        anonLen: anonKey.length,
+        anonPrefix: anonKey.slice(0, 12),
+        keyListsCount: keyLists.length,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (!authorized) {
       console.warn("send-renewal-notices unauthorized call");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
