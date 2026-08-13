@@ -616,6 +616,20 @@ async function handleInvoicePaid(
   }
 
   console.log(`Subscription ${stripeSubscriptionId} renewed, credits granted`);
+
+  // Notify provider admins that a registry token reissue is due for product
+  // subscriptions (the token was issued with an expiry tied to the original
+  // period end, so renewal leaves it expiring before the new period end).
+  if (!subscription.credit_bundle_id && subscription.product_id) {
+    await sendSubscriptionReissueNotification(supabase, {
+      providerId: subscription.service_provider_id,
+      organizationId: subscription.organization_id,
+      subscriptionRecordId: subscription.id,
+      productName: subscription.products?.name || "Valence Runtime",
+      tier: subscription.products?.tier || null,
+      currentPeriodEnd: periodEnd,
+    });
+  }
 }
 
 // Handle subscription status updates
