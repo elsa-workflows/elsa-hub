@@ -308,22 +308,6 @@ export default function ValenceRuntime() {
             {dockerImages.map((img) => (
               <DockerImageCard key={img.slug} image={img} />
             ))}
-
-            {isPlatformAdmin === true && (
-              <div className="rounded-lg border border-dashed border-destructive/40 bg-destructive/5 p-6 flex flex-col h-full">
-                <Badge variant="destructive" className="w-fit mb-3">
-                  Internal — not for sale
-                </Badge>
-                <h3 className="text-lg font-semibold leading-tight">{internalSmokeTestImage.name}</h3>
-                <p className="text-xs font-mono text-muted-foreground mt-1 break-all">
-                  {internalSmokeTestImage.image}
-                </p>
-                <p className="text-sm text-muted-foreground mt-4">{internalSmokeTestImage.tagline}</p>
-                <p className="text-xs text-muted-foreground mt-auto pt-4">
-                  Visible to platform admins only. Placeholder for the €1 webhook smoke-test product.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Runtime Builder CTA */}
