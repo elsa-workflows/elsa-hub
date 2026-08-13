@@ -72,7 +72,14 @@ serve(async (req) => {
   try {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const publishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+    // Newer projects expose comma-separated key lists instead of a single key.
+    const keyLists = [
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "",
+      Deno.env.get("SUPABASE_SECRET_KEYS") ?? "",
+    ]
+      .flatMap((v) => v.split(","))
+      .map((v) => v.trim())
+      .filter(Boolean);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
     // Same auth posture as send-work-digest: cron secret or a valid project key.
@@ -81,7 +88,7 @@ serve(async (req) => {
       req.headers.get("x-cron-secret") ?? new URL(req.url).searchParams.get("secret");
     const authHeader = req.headers.get("Authorization") ?? "";
     const bearer = authHeader.replace(/^Bearer\s+/i, "");
-    const projectKeys = [serviceKey, anonKey, publishableKey].filter(Boolean);
+    const projectKeys = [serviceKey, anonKey, ...keyLists].filter(Boolean);
     const authorized =
       (cronSecret && providedSecret === cronSecret) ||
       projectKeys.includes(bearer);
