@@ -922,17 +922,23 @@ async function sendSubscriptionNotification(
 
     const payload = {
       organization_name: orgName,
+      organizationName: orgName,
       subscription_id: subscriptionRecordId,
       product_name: itemName,
+      productName: itemName,
+      bundleName: itemName,
+      isSubscriptionStart: true,
       tier,
       period_end: periodEnd,
+      periodEnd,
       registry_access_needed: isProduct,
+      registryAccessNeeded: isProduct,
     };
 
     const { error: notifError } = await supabase.from("notifications").insert(
       admins.map((admin: { user_id: string }) => ({
         user_id: admin.user_id,
-        type: "subscription_renewed",
+        type: "purchase_completed",
         title,
         message,
         payload,
@@ -954,7 +960,7 @@ async function sendSubscriptionNotification(
         Authorization: `Bearer ${serviceRoleKey}`,
       },
       body: JSON.stringify({
-        type: "subscription_renewed",
+        type: "purchase_completed",
         recipientUserIds: admins.map((a: { user_id: string }) => a.user_id),
         title,
         message,

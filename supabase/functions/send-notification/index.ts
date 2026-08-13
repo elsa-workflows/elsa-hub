@@ -61,6 +61,32 @@ function generateEmailContent(
     case "purchase_completed": {
       const hours = data.hours as number;
       const amount = data.amountFormatted as string || formatCurrency(data.amountCents as number || 0, data.currency as string);
+
+      // A newly started subscription is also a purchase, but has no credit hours.
+      if (data.isSubscriptionStart) {
+        const registryLine = data.registryAccessNeeded
+          ? `<p style="margin: 16px 0 0; color: #52525b;">Registry access must be issued for this subscription.</p>`
+          : "";
+        const periodEnd = data.periodEnd
+          ? new Date(data.periodEnd as string).toISOString().slice(0, 10)
+          : null;
+        return {
+          subject: `🆕 New subscription from ${data.organizationName}`,
+          preheader: `${data.organizationName} subscribed to ${data.productName}`,
+          title: "New Subscription",
+          content: `
+            <p style="margin: 0 0 16px;">
+              <strong>${data.organizationName}</strong> subscribed to <strong>${data.productName}</strong>.
+            </p>
+            ${periodEnd ? `<p style="margin: 0; color: #52525b;">Current period ends ${periodEnd}.</p>` : ""}
+            ${registryLine}
+          `,
+          ctaText: "View in Dashboard",
+          ctaUrl: getProviderDashboardUrl(),
+          unsubscribeType: "purchase",
+        };
+      }
+      
       
       return {
         subject: `💰 New credit purchase from ${data.organizationName}`,
