@@ -991,6 +991,112 @@ async function sendSubscriptionNotification(
   }
 }
 
+// Notify provider owners/admins when a product subscription renews and the
+// registry token expires before the new paid period end.
+async function sendSubscriptionReissueNotification(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  params: {
+    providerId: string;
+    organizationId: string;
+    subscriptionRecordId: string;
+    productName: string;
+    tier: string | null;
+    currentPeriodEnd: string | null;
+  }
+) {
+  const { providerId, organizationId, subscriptionRecordId, productName, tier, currentPeriodEnd } =
+    params;
+
+  try {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("name")
+      .eq("id", organizationId)
+      .single();
+
+    const { data: provider } = await supabase
+      .from("service_providers")
+      .select("slug")
+      .eq("id", providerId)
+      .single();
+
+    const { data: admins } = await supabase
+      .from("provider_members")
+      .select("user_id")
+      .eq("service_provider_id", providerId)
+      .in("role", ["owner", "admin"]);
+
+    if (!admins || admins.length === 0) {
+      console.log("No provider admins to notify about subscription reissue");
+      return;
+    }
+
+    const orgName = org?.name || "A customer";
+    const providerPath = provider?.slug || providerId;
+    const periodEndLabel = currentPeriodEnd
+      ? new Date(currentPeriodEnd).toISOString().slice(0, 10)
+      : "unknown";
+
+    const title = "Subscription renewed — registry token reissue needed";
+    const message = `${orgName} renewed ${productName}${tier ? ` (${tier})` : ""}. The registry token expires before the new period end ${periodEndLabel} and must be reissued.`;
+    const actionUrl = `/dashboard/provider/${providerPath}/registry-access`;
+
+    const payload = {
+      organization_name: orgName,
+      organizationName: orgName,
+      subscription_id: subscriptionRecordId,
+      product_name: productName,
+      productName: productName,
+      tier,
+      period_end: currentPeriodEnd,
+      periodEnd: currentPeriodEnd,
+      registry_reissue_needed: true,
+      registryReissueNeeded: true,
+    };
+
+    const { error: notifError } = await supabase.from("notifications").insert(
+      admins.map((admin: { user_id: string }) => ({
+        user_id: admin.user_id,
+        type: "purchase_completed",
+        title,
+        message,
+        payload,
+        action_url: actionUrl,
+      }))
+    );
+
+    if (notifError) {
+      console.error("Failed to create subscription reissue notifications:", notifError);
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/create-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        type: "purchase_completed",
+        recipientUserIds: admins.map((a: { user_id: string }) => a.user_id),
+        title,
+        message,
+        payload,
+        actionUrl,
+      }),
+    });
+
+    const result = await response.json();
+    console.log("Subscription reissue notification result:", result);
+  } catch (error) {
+    console.error("Failed to send subscription reissue notification:", error);
+    // Don't throw - notification failure shouldn't fail the webhook
+  }
+}
+
 // Sync billing information from Stripe checkout session to our database
 async function syncBillingInfoFromSession(
   // deno-lint-ignore no-explicit-any
