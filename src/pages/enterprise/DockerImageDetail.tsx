@@ -97,7 +97,7 @@ networks:
           <p className="text-lg text-muted-foreground">{renderInlineCode(image.description)}</p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Button asChild className="gap-2">
-              <Link to="/elsa-plus/valence-runtime#contact">Request access</Link>
+              <Link to="/elsa-plus/valence-runtime#tiers">Subscribe</Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
               <a href="https://github.com/valence-works/runtime" target="_blank" rel="noopener noreferrer">
@@ -107,9 +107,13 @@ networks:
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Valence Runtime images are published to a private registry (GitHub Container Registry). During Early
-            Preview, access is granted on request. Previously published images on Docker Hub are no longer updated.
+            The Community image above is public on GitHub Container Registry — no account, no login,
+            nothing to request. The paid image is the same build, down to the manifest digest, with a
+            subscription attached; it ships from a private registry using a registry token issued when
+            your subscription starts. Previously published images on Docker Hub still work but are no
+            longer updated.
           </p>
+
 
         </div>
       </section>
