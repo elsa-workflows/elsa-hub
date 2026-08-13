@@ -88,9 +88,12 @@ serve(async (req) => {
       req.headers.get("x-cron-secret") ?? new URL(req.url).searchParams.get("secret");
     const authHeader = req.headers.get("Authorization") ?? "";
     const bearer = authHeader.replace(/^Bearer\s+/i, "");
+    const apiKeyHeader = req.headers.get("apikey") ?? "";
     const projectKeys = [serviceKey, anonKey, ...keyLists].filter(Boolean);
     let authorized =
-      (cronSecret && providedSecret === cronSecret) || projectKeys.includes(bearer);
+      (cronSecret && providedSecret === cronSecret) ||
+      projectKeys.includes(bearer) ||
+      projectKeys.includes(apiKeyHeader);
 
     // Manual trigger: also allow a signed-in platform admin.
     if (!authorized && bearer) {
@@ -114,6 +117,8 @@ serve(async (req) => {
         anonLen: anonKey.length,
         anonPrefix: anonKey.slice(0, 12),
         keyListsCount: keyLists.length,
+        apiKeyLen: apiKeyHeader.length,
+        apiKeyPrefix: apiKeyHeader.slice(0, 12),
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
