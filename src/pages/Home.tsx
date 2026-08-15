@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
 import { track } from "@/lib/analytics";
+import { HomeCodeSample } from "@/components/home";
 import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
 import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
 import {
