@@ -109,6 +109,18 @@ export default function Docker() {
         </div>
       </section>
 
+      {/* Docker Options */}
+      <section className="py-8 md:py-12">
+        <div className="container max-w-4xl">
+          <h2 className="text-2xl font-bold mb-6">Choose a Container</h2>
+          <div className="space-y-6">
+            {dockerOptions.map((option) => (
+              <DockerSection key={option.title} {...option} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Prerequisites */}
       <section className="py-8">
         <div className="container max-w-4xl">
@@ -121,17 +133,6 @@ export default function Docker() {
         </div>
       </section>
 
-      {/* Docker Options */}
-      <section className="py-8 md:py-12">
-        <div className="container max-w-4xl">
-          <h2 className="text-2xl font-bold mb-6">Choose a Container</h2>
-          <div className="space-y-6">
-            {dockerOptions.map((option) => (
-              <DockerSection key={option.title} {...option} />
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Runtime Builder tip */}
       <section className="py-8">
