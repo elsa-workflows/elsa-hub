@@ -14,6 +14,7 @@ export type AnalyticsEvent =
   // Hero / homepage
   | "hero_cta_click"
   | "hero_secondary_click"
+  | "home_cta_click"
   // Weaver
   | "weaver_open"
   | "weaver_close"
