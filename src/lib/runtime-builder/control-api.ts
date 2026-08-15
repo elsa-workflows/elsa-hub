@@ -274,7 +274,7 @@ function normalizeCatalog(raw: Record<string, unknown>): ControlCatalog {
       const packageId = typeof p.packageId === "string" ? p.packageId : null;
       if (!packageId) return null;
       const source = (p.source as CatalogSource) ?? { id: "" };
-      const versions = asArray<Record<string, unknown>>(p.versions).map((v) => ({
+      const versions: CatalogVersion[] = asArray<Record<string, unknown>>(p.versions).map((v) => ({
         packageId,
         version: String(v.version ?? ""),
         source: (v.source as CatalogSource) ?? source,
