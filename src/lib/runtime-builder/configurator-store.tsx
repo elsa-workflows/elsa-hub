@@ -178,9 +178,27 @@ export function buildIntent(
       settings: {} as Record<string, unknown>,
     }));
 
+  // Collect full source metadata so the upstream bundle/planner can bind
+  // the request even when it validates `name`, `url` and `kind`.
+  const sourceById = new Map<string, CatalogSource>();
+  for (const pkg of catalog?.packages ?? []) {
+    if (pkg.source?.id) sourceById.set(pkg.source.id, pkg.source);
+    for (const v of pkg.versions) {
+      if (v.source?.id) sourceById.set(v.source.id, v.source);
+    }
+  }
+
   const sources = [...new Set([...byPackage.values()].map((p) => p.sourceId))]
     .filter(Boolean)
-    .map((sourceId) => ({ sourceId }));
+    .map((sourceId) => {
+      const source = sourceById.get(sourceId);
+      return {
+        sourceId,
+        name: source?.name ?? null,
+        url: source?.url ?? null,
+        kind: source?.kind ?? null,
+      };
+    });
 
   return {
     image: {
@@ -192,6 +210,7 @@ export function buildIntent(
     packages: [...byPackage.values()],
     packageSources: sources,
     infrastructure,
+    localPackages: { enabled: false, directoryPath: null },
   };
 }
 
