@@ -221,7 +221,8 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground mb-5">
                   Run Elsa Server and Studio as a separately deployed workflow
                   system using the canonical quick-start image from the
-                  release/3.7.0 branch.
+                  release/3.7.0 branch. A production-grade image is also available
+                  as part of Valence Runtime.
                 </p>
                 <pre
                   tabIndex={0}
