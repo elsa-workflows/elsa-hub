@@ -183,16 +183,24 @@ Deno.serve(async (req) => {
       const ctrl = new AbortController();
       const timeout = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
       try {
-        const res = await fetch(`${baseUrl}/api/builder/bundle`, {
-          method: "POST",
-          headers: {
-            "X-Api-Key": apiKey,
-            "Content-Type": "application/json",
-            Accept: "application/json, application/zip, application/octet-stream",
-          },
-          body: JSON.stringify(payload.body ?? {}),
-          signal: ctrl.signal,
-        });
+        const attempt = (headers: Record<string, string>) =>
+          fetch(`${baseUrl}/api/builder/bundle`, {
+            method: "POST",
+            headers: {
+              ...headers,
+              "Content-Type": "application/json",
+              Accept: "application/json, application/zip, application/octet-stream",
+            },
+            body: JSON.stringify(payload.body ?? {}),
+            signal: ctrl.signal,
+          });
+
+        let res = await attempt({ "X-Api-Key": apiKey });
+        if (res.status === 401 || res.status === 403) {
+          console.error("bundle auth failed with X-Api-Key, retrying with Bearer");
+          res = await attempt({ Authorization: `Bearer ${apiKey}` });
+        }
+
         const contentType = res.headers.get("content-type") ?? "";
         if (contentType.includes("application/json")) {
           const text = await res.text();
