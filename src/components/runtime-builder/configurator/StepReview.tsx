@@ -97,7 +97,10 @@ export function StepReview() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <Button onClick={download} disabled={!intent || downloading || errors.length > 0}>
+          <Button
+            onClick={download}
+            disabled={!intent || !plan.isSuccess || plan.isLoading || downloading || errors.length > 0}
+          >
             {downloading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating…
