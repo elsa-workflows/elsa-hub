@@ -367,7 +367,9 @@ export async function planBuild(intent: PlanIntent): Promise<PlanResponse> {
 }
 
 export async function generateBundle(intent: PlanIntent): Promise<BundleResult> {
-  const data = await invoke<Record<string, unknown>>("bundle", { intent });
+  // The upstream bundle endpoint expects the intent directly, not wrapped in
+  // { intent }, unlike the plan/resolve endpoints.
+  const data = await invoke<Record<string, unknown>>("bundle", intent);
   if (data?.binary) return { files: [], binary: data.binary as BundleResult["binary"] };
 
   const rawFiles = Array.isArray(data?.files)
