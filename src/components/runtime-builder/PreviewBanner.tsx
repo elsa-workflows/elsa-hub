@@ -14,7 +14,7 @@ interface Props {
 const DEFAULT_KEY = "elsa-runtime-builder/preview-banner-dismissed";
 
 /**
- * Calls out the Runtime Builder as a public preview running on sample
+ * Calls out the Runtime Builder as a public preview backed by real
  * catalog data. Dismissible per browser session (sessionStorage) so it
  * doesn't nag returning visitors but still surfaces on a new session.
  */
@@ -54,14 +54,12 @@ export function PreviewBanner({
         </div>
         <div className="min-w-0 flex-1 text-sm leading-relaxed">
           <p className="font-semibold text-foreground">
-            Preview — concept build
+            Preview
           </p>
           <p className="mt-0.5 text-muted-foreground">
-            The Runtime Builder is an early prototype showcasing where Elsa+ is
-            heading. The image catalog, capabilities, and generated bundle are{" "}
-            <span className="text-foreground/90">illustrative samples</span> —
-            not yet wired to real registries. Explore the flow to get a feel for
-            what's coming.
+            The Runtime Builder is a public preview that composes real Docker
+            images and capabilities into a ready-to-run deployment bundle.
+            Explore the flow and export your configuration.
           </p>
         </div>
       </div>

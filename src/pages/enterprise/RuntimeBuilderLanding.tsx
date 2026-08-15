@@ -53,7 +53,7 @@ export default function RuntimeBuilderLanding() {
       <Seo
         path="/elsa-plus/runtime-builder"
         title="Elsa Runtime Builder (Preview) — compose your Docker deployment"
-        description="An early concept of the Elsa Runtime Builder: visually compose a runtime, enable capabilities, and preview a deployment bundle. Public preview running on sample catalog data."
+        description="Visually compose an Elsa runtime, enable capabilities, and preview a Docker deployment bundle. The catalog is backed by real data."
       />
 
       <section className="container mx-auto px-4 pt-6">
@@ -63,7 +63,7 @@ export default function RuntimeBuilderLanding() {
       <section className="border-b border-border/50">
         <div className="container mx-auto px-4 py-16">
           <div className="mx-auto max-w-3xl text-center">
-            <PreviewBadge className="mb-5" label="Public preview · Concept" />
+            <PreviewBadge className="mb-5" label="Public preview" />
             <h1 className="font-display text-4xl font-semibold tracking-tight md:text-6xl">
               Compose your Elsa runtime
               <br />
@@ -101,6 +101,7 @@ export default function RuntimeBuilderLanding() {
             </h3>
             <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
               <li>• Walk through the full 5-step composer flow</li>
+              <li>• Pick from a catalog of real, versioned Docker images</li>
               <li>• Toggle capabilities and see compatibility validation</li>
               <li>• Preview every file in the generated bundle</li>
               <li>• Export and re-import your build configuration as JSON</li>
@@ -111,7 +112,6 @@ export default function RuntimeBuilderLanding() {
               What's coming next
             </h3>
             <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-              <li>• Catalog backed by real, versioned Docker images</li>
               <li>• Single-click <code className="font-mono">deployment.zip</code> download</li>
               <li>• Saved builds for teams and shareable links</li>
               <li>• Direct push to your registry of choice</li>
@@ -143,11 +143,11 @@ export default function RuntimeBuilderLanding() {
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-10">
           <div>
             <h2 className="font-display text-xl font-semibold">
-              Try the concept
+              Try it now
             </h2>
             <p className="text-sm text-muted-foreground">
-              The composer is a public preview running on sample data. Real
-              bundle generation and saved builds ship next.
+              The composer is a public preview backed by real catalog data.
+              Saved builds and single-click downloads ship next.
             </p>
           </div>
           <Button asChild size="lg">
