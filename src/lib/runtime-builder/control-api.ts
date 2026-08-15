@@ -140,7 +140,7 @@ export interface PlanIntentPackage {
   packageId: string;
   version: string;
   selectedFeatures: string[];
-  settings: Record<string, unknown>;
+  settings: Record<string, unknown> | null;
 }
 
 export interface PlanIntent {
@@ -168,7 +168,7 @@ export interface PlanIntent {
 }
 
 export interface PlanResponse {
-  resolved?: unknown;
+  resolved?: PlanIntent;
   autoAdded?: {
     packages?: PlanIntentPackage[];
     features?: string[];
