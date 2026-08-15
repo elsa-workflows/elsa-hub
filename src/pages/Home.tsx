@@ -197,13 +197,11 @@ export default function Home() {
                   keeping control over hosting, persistence, authentication, UI,
                   and domain integrations.
                 </p>
-                <pre
-                  tabIndex={0}
-                  aria-label="C# code sample: embedding Elsa in a .NET application"
-                  className="flex-1 min-w-0 max-w-full text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <code>{ELSA_EMBED_SNIPPET}</code>
-                </pre>
+                <HomeCodeSample
+                  code={ELSA_EMBED_SNIPPET}
+                  language="csharp"
+                  ariaLabel="C# code sample: embedding Elsa in a .NET application"
+                />
                 <div className="mt-5">
                   <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent" asChild>
                     <Link to="/get-started">
