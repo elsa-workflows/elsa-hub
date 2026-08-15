@@ -355,8 +355,9 @@ function normalizeFindings(raw: unknown): PlanFinding[] {
 
 export async function planBuild(intent: PlanIntent): Promise<PlanResponse> {
   const data = await invoke<Record<string, unknown>>("plan", { intent });
+  const resolved = (data?.resolved as PlanIntent | undefined) ?? undefined;
   return {
-    resolved: data?.resolved,
+    resolved,
     autoAdded: (data?.autoAdded as PlanResponse["autoAdded"]) ?? {
       packages: [],
       features: [],
