@@ -151,13 +151,20 @@ export interface PlanIntent {
     envOverrides: Record<string, string>;
   };
   packages: PlanIntentPackage[];
-  packageSources: { sourceId: string }[];
+  packageSources: {
+    sourceId: string;
+    name?: string | null;
+    url?: string | null;
+    kind?: string | null;
+  }[];
   infrastructure: {
     kind: string;
     providerId: string;
     strategy: string;
     settings: Record<string, unknown>;
   }[];
+  localPackages?: { enabled: boolean; directoryPath: string | null } | null;
+  target?: string | null;
 }
 
 export interface PlanResponse {
