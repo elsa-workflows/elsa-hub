@@ -234,10 +234,16 @@ export default function Home() {
                 <p className="mt-3 text-xs text-muted-foreground">
                   {ELSA_DOCKER_QUICKSTART_NOTE}
                 </p>
-                <div className="mt-5">
-                  <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent" asChild>
+                <div className="mt-5 flex flex-col gap-1">
+                  <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent justify-start" asChild>
                     <Link to="/get-started/docker">
                       Deploy with Docker
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent justify-start" asChild>
+                    <Link to="/elsa-plus/valence-runtime" onClick={() => track("home_cta_click", { cta: "valence_runtime" })}>
+                      Production-grade images
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>
