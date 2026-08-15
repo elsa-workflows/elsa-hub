@@ -1,6 +1,14 @@
-// Proxy for the Elsa Package Catalog API.
+// Proxy for the Valence Control builder API.
 // Keeps the X-Api-Key strictly server-side. Browser must call this function via
 // supabase.functions.invoke() — never call the upstream URL directly.
+//
+// Actions:
+//   catalog   GET  /api/builder/catalog                  (anonymous upstream)
+//   providers GET  /api/builder/infrastructure/providers (anonymous upstream)
+//   resolve   POST /api/builder/resolve                  (anonymous upstream)
+//   plan      POST /api/builder/plan                     (anonymous upstream)
+//   bundle    POST /api/builder/bundle                   (requires X-Api-Key)
+//   health    GET  /health
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,8 +24,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
 
-const DEFAULT_BASE_URL = "https://api-k35qdj734hds2.azurewebsites.net";
-const TIMEOUT_MS = 30_000;
+const DEFAULT_BASE_URL = "https://api-m5uymkuaf222o.azurewebsites.net";
+const TIMEOUT_MS = 60_000;
 
 // Tiny in-memory cache for the catalog response. Lives only for the function
 // instance lifetime (good enough to absorb burst traffic from a single user
@@ -55,18 +63,33 @@ async function proxyJson(
   }
 }
 
+function base64FromBytes(bytes: Uint8Array): string {
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+const UNAVAILABLE_FINDING = {
+  level: "warning",
+  code: "upstream_unavailable",
+  message:
+    "The compatibility checker is temporarily unavailable. Your selection has not been validated against the upstream resolver.",
+  scope: { kind: "global" },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const apiKey = Deno.env.get("ELSA_PACKAGE_CATALOG_API_KEY");
-  if (!apiKey) {
-    return jsonResponse(500, {
-      error: "ELSA_PACKAGE_CATALOG_API_KEY is not configured.",
-    });
-  }
-  const baseUrl = (Deno.env.get("ELSA_PACKAGE_CATALOG_API_BASE_URL") ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const apiKey = Deno.env.get("ELSA_PACKAGE_CATALOG_API_KEY") ?? "";
+  const baseUrl = (Deno.env.get("ELSA_PACKAGE_CATALOG_API_BASE_URL") ?? DEFAULT_BASE_URL).replace(
+    /\/+$/,
+    "",
+  );
 
   let payload: { action?: string; body?: unknown } = {};
   if (req.method === "POST") {
@@ -92,19 +115,19 @@ Deno.serve(async (req) => {
       try {
         const { status, body } = await proxyJson(`${baseUrl}/api/builder/catalog`, {
           method: "GET",
-          headers: { "X-Api-Key": apiKey, Accept: "application/json" },
+          headers: { Accept: "application/json" },
         });
         if (status >= 200 && status < 300) {
           catalogCache = { key: cacheKey, expiresAt: now + CATALOG_TTL_MS, payload: body };
           return jsonResponse(status, body);
         }
-        // Serve stale cache on upstream error if available
         if (catalogCache && catalogCache.key === cacheKey) {
           console.error("catalog upstream error, serving stale cache", status);
           return jsonResponse(200, catalogCache.payload);
         }
         console.error("catalog upstream error", status, JSON.stringify(body).slice(0, 500));
         return jsonResponse(200, {
+          images: [],
           packages: [],
           infrastructureProviders: [],
           _degraded: true,
@@ -118,6 +141,7 @@ Deno.serve(async (req) => {
         }
         console.error("catalog fetch failed:", message);
         return jsonResponse(200, {
+          images: [],
           packages: [],
           infrastructureProviders: [],
           _degraded: true,
@@ -126,70 +150,97 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (action === "resolve") {
-      const incoming = (payload.body ?? {}) as {
-        packages?: Array<{ id?: string; packageId?: string; version?: string; features?: string[] }>;
-        infrastructure?: unknown[];
-      };
-      const upstreamBody = {
-        packages: (incoming.packages ?? []).map((p) => ({
-          packageId: p.packageId ?? p.id,
-          id: p.id ?? p.packageId,
-          version: p.version,
-          features: p.features ?? [],
-          selectedFeatures: p.features ?? [],
-        })),
-        infrastructure: incoming.infrastructure ?? [],
-      };
+    if (action === "providers") {
+      const { status, body } = await proxyJson(
+        `${baseUrl}/api/builder/infrastructure/providers`,
+        { method: "GET", headers: { Accept: "application/json" } },
+      );
+      return jsonResponse(status >= 500 ? 200 : status, body);
+    }
+
+    if (action === "resolve" || action === "plan") {
       try {
-        const { status, body: respBody } = await proxyJson(`${baseUrl}/api/builder/resolve`, {
+        const { status, body } = await proxyJson(`${baseUrl}/api/builder/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(payload.body ?? {}),
+        });
+        if (status >= 500) {
+          console.error(`${action} upstream error`, status, JSON.stringify(body).slice(0, 500));
+          return jsonResponse(200, { compatible: true, findings: [UNAVAILABLE_FINDING] });
+        }
+        return jsonResponse(status, body);
+      } catch (err) {
+        console.error(`${action} fetch failed:`, err instanceof Error ? err.message : err);
+        return jsonResponse(200, { compatible: true, findings: [UNAVAILABLE_FINDING] });
+      }
+    }
+
+    if (action === "bundle") {
+      if (!apiKey) {
+        return jsonResponse(500, { error: "ELSA_PACKAGE_CATALOG_API_KEY is not configured." });
+      }
+      const ctrl = new AbortController();
+      const timeout = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+      try {
+        const res = await fetch(`${baseUrl}/api/builder/bundle`, {
           method: "POST",
           headers: {
             "X-Api-Key": apiKey,
             "Content-Type": "application/json",
-            Accept: "application/json",
+            Accept: "application/json, application/zip, application/octet-stream",
           },
-          body: JSON.stringify(upstreamBody),
+          body: JSON.stringify(payload.body ?? {}),
+          signal: ctrl.signal,
         });
-        if (status >= 500) {
-          console.error("resolve upstream error", status, JSON.stringify(respBody).slice(0, 500));
-          return jsonResponse(200, {
-            compatible: true,
-            findings: [
-              {
-                level: "warning",
-                code: "upstream_unavailable",
-                message:
-                  "The compatibility checker is temporarily unavailable. Your selection has not been validated against the upstream resolver.",
-                scope: { kind: "global" },
-              },
-            ],
+        const contentType = res.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const text = await res.text();
+          let body: unknown = null;
+          try {
+            body = text ? JSON.parse(text) : null;
+          } catch {
+            body = { error: "Upstream returned malformed JSON.", raw: text.slice(0, 500) };
+          }
+          if (!res.ok) {
+            console.error("bundle upstream error", res.status, JSON.stringify(body).slice(0, 500));
+            return jsonResponse(res.status, {
+              error: `Bundle generation failed (HTTP ${res.status}).`,
+              details: body,
+            });
+          }
+          return jsonResponse(200, body);
+        }
+
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (!res.ok) {
+          const text = new TextDecoder().decode(bytes).slice(0, 500);
+          console.error("bundle upstream error", res.status, text);
+          return jsonResponse(res.status, {
+            error: `Bundle generation failed (HTTP ${res.status}).`,
+            details: text,
           });
         }
-        return jsonResponse(status, respBody);
+        const disposition = res.headers.get("content-disposition") ?? "";
+        const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+        return jsonResponse(200, {
+          binary: {
+            contentType: contentType || "application/octet-stream",
+            fileName: match?.[1] ?? "deployment.zip",
+            base64: base64FromBytes(bytes),
+          },
+        });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        console.error("resolve fetch failed:", message);
-        return jsonResponse(200, {
-          compatible: true,
-          findings: [
-            {
-              level: "warning",
-              code: "upstream_unavailable",
-              message:
-                "The compatibility checker is temporarily unavailable. Your selection has not been validated against the upstream resolver.",
-              scope: { kind: "global" },
-            },
-          ],
-        });
+        console.error("bundle fetch failed:", message);
+        return jsonResponse(502, { error: `Bundle generation failed: ${message}` });
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
     if (action === "health") {
-      const { status, body } = await proxyJson(`${baseUrl}/health`, {
-        method: "GET",
-        headers: { "X-Api-Key": apiKey },
-      });
+      const { status, body } = await proxyJson(`${baseUrl}/health`, { method: "GET" });
       return jsonResponse(status, body);
     }
 
@@ -198,6 +249,7 @@ Deno.serve(async (req) => {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("runtime-builder-catalog proxy error", message);
     return jsonResponse(200, {
+      images: [],
       packages: [],
       infrastructureProviders: [],
       _degraded: true,
@@ -205,4 +257,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
