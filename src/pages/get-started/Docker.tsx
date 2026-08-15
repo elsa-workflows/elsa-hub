@@ -93,15 +93,16 @@ export default function Docker() {
                 <p className="text-muted-foreground">
                   These containers are built from our workbench projects and are
                   intended for exploration and demonstrations. For production
-                  deployments, build your own application using our{" "}
+                  deployments, use the{" "}
                   <Link
-                    to="/get-started"
+                    to="/elsa-plus/valence-runtime"
                     className="text-primary hover:underline font-medium"
                   >
-                    setup guides
+                    Valence Runtime production-grade images from Valence Works
                   </Link>
                   .
                 </p>
+
               </div>
             </div>
           </div>
