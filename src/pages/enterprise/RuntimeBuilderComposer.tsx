@@ -3,8 +3,6 @@ import { useSearchParams, Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,124 +14,61 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
-import { useRuntimeBuilder } from "@/lib/runtime-builder/store";
-import { useCatalogQuery } from "@/lib/runtime-builder/catalog-client";
-import { findBuilderImage } from "@/lib/runtime-builder/images";
 import { Stepper } from "@/components/runtime-builder/Stepper";
-import { BuildSummary } from "@/components/runtime-builder/BuildSummary";
-import { StepSources } from "@/components/runtime-builder/StepSources";
-import { StepPackages } from "@/components/runtime-builder/StepPackages";
-import { StepFeatures } from "@/components/runtime-builder/StepFeatures";
-import { StepCapabilities } from "@/components/runtime-builder/StepCapabilities";
-import { StepInfrastructure } from "@/components/runtime-builder/StepInfrastructure";
-import { StepConfigure } from "@/components/runtime-builder/StepConfigure";
-import { StepValidate } from "@/components/runtime-builder/StepValidate";
-import { StepBundle } from "@/components/runtime-builder/StepBundle";
-import { StepImage } from "@/components/runtime-builder/StepImage";
-import { StepImageConfig } from "@/components/runtime-builder/StepImageConfig";
-import { ImportDialog } from "@/components/runtime-builder/ImportDialog";
-import { ExportDialog } from "@/components/runtime-builder/ExportDialog";
 import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
 import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
+import {
+  ConfiguratorProvider,
+  useConfigurator,
+} from "@/lib/runtime-builder/configurator-store";
+import { useControlCatalog } from "@/lib/runtime-builder/control-api";
+import { StepRuntime } from "@/components/runtime-builder/configurator/StepRuntime";
+import { StepFeatures } from "@/components/runtime-builder/configurator/StepFeatures";
+import { StepSettings } from "@/components/runtime-builder/configurator/StepSettings";
+import { StepInfrastructure } from "@/components/runtime-builder/configurator/StepInfrastructure";
+import { StepReview } from "@/components/runtime-builder/configurator/StepReview";
+import { ConfiguratorSummary } from "@/components/runtime-builder/configurator/ConfiguratorSummary";
 
-type StepKey =
-  | "image"
-  | "image-config"
-  | "sources"
-  | "packages"
-  | "features"
-  | "capabilities"
-  | "infrastructure"
-  | "configure"
-  | "validate"
-  | "bundle";
-
-interface StepDef {
-  id: number;
-  key: StepKey;
-  label: string;
-  short: string;
-}
-
-const BASIC_STEPS: StepDef[] = [
-  { id: 1, key: "image", label: "Image", short: "Image" },
-  { id: 2, key: "image-config", label: "Image config", short: "Config" },
-  { id: 3, key: "capabilities", label: "Capabilities", short: "Pick" },
+const STEPS = [
+  { id: 1, key: "runtime", label: "Runtime", short: "Runtime" },
+  { id: 2, key: "features", label: "Features", short: "Features" },
+  { id: 3, key: "settings", label: "Settings", short: "Settings" },
   { id: 4, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 5, key: "configure", label: "Configure", short: "Configure" },
-  { id: 6, key: "validate", label: "Validate", short: "Validate" },
-  { id: 7, key: "bundle", label: "Bundle", short: "Bundle" },
-];
-
-const ADVANCED_STEPS: StepDef[] = [
-  { id: 1, key: "image", label: "Image", short: "Image" },
-  { id: 2, key: "image-config", label: "Image config", short: "Config" },
-  { id: 3, key: "sources", label: "Sources", short: "Sources" },
-  { id: 4, key: "packages", label: "Packages", short: "Packages" },
-  { id: 5, key: "features", label: "Features", short: "Features" },
-  { id: 6, key: "infrastructure", label: "Infrastructure", short: "Infra" },
-  { id: 7, key: "configure", label: "Configure", short: "Configure" },
-  { id: 8, key: "validate", label: "Validate", short: "Validate" },
-  { id: 9, key: "bundle", label: "Bundle", short: "Bundle" },
-];
+  { id: 5, key: "review", label: "Review", short: "Review" },
+] as const;
 
 export default function RuntimeBuilderComposer() {
+  return (
+    <ConfiguratorProvider>
+      <ComposerInner />
+    </ConfiguratorProvider>
+  );
+}
+
+function ComposerInner() {
   const [params, setParams] = useSearchParams();
-  const {
-    state,
-    setAdvancedMode,
-    reset,
-    togglePackage,
-    setImageSlug,
-    setImageHostPort,
-  } = useRuntimeBuilder();
-  const { data: catalog } = useCatalogQuery();
-  const [importOpen, setImportOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
+  const { state, setImage, reset } = useConfigurator();
+  const { data: catalog } = useControlCatalog();
   const [resetOpen, setResetOpen] = useState(false);
 
-  const steps = state.advancedMode ? ADVANCED_STEPS : BASIC_STEPS;
-  const maxStep = steps.length;
+  const maxStep = STEPS.length;
   const step = clamp(Number(params.get("step") ?? "1"), 1, maxStep);
-  const activeKey = steps[step - 1]?.key ?? steps[0].key;
+  const activeKey = STEPS[step - 1]?.key ?? "runtime";
 
   // Pre-select the runtime image from `?image=<slug>` (once, on first load).
   const appliedImageRef = useRef<string | null>(null);
   useEffect(() => {
     const requested = params.get("image");
-    if (!requested || appliedImageRef.current === requested) return;
-    const img = findBuilderImage(requested);
-    if (!img) return;
+    if (!requested || !catalog || appliedImageRef.current === requested) return;
+    const image = catalog.images.find((i) => i.slug === requested);
+    if (!image) return;
     appliedImageRef.current = requested;
-    setImageSlug(img.slug);
-    setImageHostPort(img.defaultHostPort);
-  }, [params, setImageSlug, setImageHostPort]);
+    setImage(image);
+  }, [params, catalog, setImage]);
 
-  // Pre-select a package from `?package=<id>` if recognized and none chosen.
-  useEffect(() => {
-    const requested = params.get("package");
-    if (!requested || !catalog) return;
-    if (state.selectedPackages.some((p) => p.packageId === requested)) return;
-    const pkg = catalog.packages.find((p) => p.id === requested);
-    if (pkg) togglePackage(pkg.id, pkg.version, catalog);
-  }, [params, catalog, state.selectedPackages, togglePackage]);
-
-
-  const hasPackages = state.selectedPackages.length > 0;
-  const hasFeatures = state.selectedPackages.some(
-    (p) => p.selectedFeatures.length > 0,
-  );
-  // Image (1) and Image config (2) are always unlocked — they have sensible
-  // defaults. Capability/package gating starts after that.
-  const furthestUnlocked = state.advancedMode
-    ? !hasPackages
-      ? 4
-      : !hasFeatures
-        ? 5
-        : maxStep
-    : !hasFeatures
-      ? 3
-      : maxStep;
+  const hasImage = Boolean(state.imageSlug);
+  const hasFeatures = Object.keys(state.features).length > 0;
+  const furthestUnlocked = !hasImage ? 1 : !hasFeatures ? 2 : maxStep;
 
   function goTo(id: number) {
     setParams({ step: String(id) }, { replace: false });
@@ -150,7 +85,7 @@ export default function RuntimeBuilderComposer() {
       <Seo
         path="/elsa-plus/runtime-builder/new"
         title="Elsa Runtime Builder (Preview) — compose & deploy"
-        description="An early concept of the Elsa Runtime Builder composer. Pick packages and infrastructure, validate compatibility, and preview a Docker deployment bundle."
+        description="Compose an Elsa runtime against the live package catalog: pick a runtime image, enable features, configure settings and infrastructure, then download a deployment bundle."
         noIndex
       />
 
@@ -158,12 +93,7 @@ export default function RuntimeBuilderComposer() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-              >
+              <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
                 <Link to="/elsa-plus/runtime-builder">
                   <ArrowLeft className="mr-1.5 h-4 w-4" />
                   Builder
@@ -178,24 +108,11 @@ export default function RuntimeBuilderComposer() {
 
             <div className="flex flex-wrap items-center gap-3">
               <Stepper
-                steps={steps}
+                steps={STEPS as unknown as { id: number; label: string; short: string }[]}
                 active={step}
                 furthestUnlocked={furthestUnlocked}
                 onSelect={goTo}
               />
-              <div className="flex items-center gap-2 rounded-full border border-border/50 px-3 py-1.5">
-                <Switch
-                  id="advanced"
-                  checked={state.advancedMode}
-                  onCheckedChange={setAdvancedMode}
-                />
-                <Label
-                  htmlFor="advanced"
-                  className="cursor-pointer text-xs text-muted-foreground"
-                >
-                  Advanced
-                </Label>
-              </div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -216,23 +133,14 @@ export default function RuntimeBuilderComposer() {
       <section className="container mx-auto px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0">
-            {activeKey === "image" && <StepImage />}
-            {activeKey === "image-config" && <StepImageConfig />}
-            {activeKey === "sources" && <StepSources />}
-            {activeKey === "packages" && <StepPackages />}
+            {activeKey === "runtime" && <StepRuntime />}
             {activeKey === "features" && <StepFeatures />}
-            {activeKey === "capabilities" && <StepCapabilities />}
+            {activeKey === "settings" && <StepSettings />}
             {activeKey === "infrastructure" && <StepInfrastructure />}
-            {activeKey === "configure" && <StepConfigure />}
-            {activeKey === "validate" && <StepValidate />}
-            {activeKey === "bundle" && <StepBundle />}
+            {activeKey === "review" && <StepReview />}
 
             <div className="mt-10 flex items-center justify-between border-t border-border/40 pt-5">
-              <Button
-                variant="outline"
-                disabled={step === 1}
-                onClick={() => goTo(step - 1)}
-              >
+              <Button variant="outline" disabled={step === 1} onClick={() => goTo(step - 1)}>
                 <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
               </Button>
               <Button
@@ -245,28 +153,22 @@ export default function RuntimeBuilderComposer() {
           </div>
 
           <div>
-            <BuildSummary
-              onOpenImport={() => setImportOpen(true)}
-              onOpenExport={() => setExportOpen(true)}
-            />
+            <ConfiguratorSummary />
           </div>
         </div>
       </section>
 
-      <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
-      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
-
       <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset this build?</AlertDialogTitle>
+            <AlertDialogTitle>Reset this configuration?</AlertDialogTitle>
             <AlertDialogDescription>
-              All packages, features, and infrastructure choices will be
-              cleared. This cannot be undone.
+              The runtime, features, settings and infrastructure choices will be cleared.
+              This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep build</AlertDialogCancel>
+            <AlertDialogCancel>Keep it</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 reset();
