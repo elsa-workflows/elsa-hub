@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Consistent "Preview" signal for every Runtime Builder entry point.
- * The Runtime Builder ships as a public preview running on sample
+ * The Runtime Builder ships as a public preview backed by real
  * catalog data — this badge sets that expectation up-front.
  */
 export function PreviewBadge({ className, showIcon = true, label = "Preview" }: Props) {

@@ -147,7 +147,7 @@ export default function Docker() {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Try the Runtime Builder to compose an Elsa runtime visually and preview a tailored docker-compose bundle. Concept build on sample data.
+                Try the Runtime Builder to compose an Elsa runtime visually and preview a tailored docker-compose bundle. Public preview backed by real catalog data.
               </p>
             </div>
             <Button asChild variant="outline" className="gap-2 shrink-0">

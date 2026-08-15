@@ -133,7 +133,7 @@ networks:
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Wire up PostgreSQL, RabbitMQ, Redis and other capabilities visually, then preview a deployment bundle. Public preview running on sample data.
+                Wire up PostgreSQL, RabbitMQ, Redis and other capabilities visually, then preview a deployment bundle. Public preview backed by real catalog data.
               </p>
             </div>
             <Button asChild className="gap-2 shrink-0">

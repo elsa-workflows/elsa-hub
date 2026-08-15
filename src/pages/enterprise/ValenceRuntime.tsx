@@ -347,7 +347,7 @@ export default function ValenceRuntime() {
               </div>
               <p className="text-sm text-muted-foreground">
                 Compose your runtime visually — pick an image, enable capabilities, and preview a
-                complete Docker deployment bundle. Concept build on sample data.
+                complete Docker deployment bundle. Public preview backed by real catalog data.
               </p>
             </div>
             <Button asChild className="gap-2 shrink-0">
