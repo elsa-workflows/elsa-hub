@@ -6,10 +6,11 @@ import {
   useMemo,
   useState,
 } from "react";
-import type {
+import {
   CatalogFeature,
   CatalogImage,
   CatalogPackage,
+  CatalogSource,
   ControlCatalog,
   FeatureInfraRequirement,
   PlanIntent,
