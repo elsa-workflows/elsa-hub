@@ -223,13 +223,11 @@ export default function Home() {
                   release/3.7.0 branch. A production-grade image is also available
                   as part of Valence Runtime.
                 </p>
-                <pre
-                  tabIndex={0}
-                  aria-label="Shell commands: pull and run the Elsa Server + Studio quick-start Docker image"
-                  className="flex-1 min-w-0 max-w-full text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <code>{ELSA_DOCKER_QUICKSTART}</code>
-                </pre>
+                <HomeCodeSample
+                  code={ELSA_DOCKER_QUICKSTART}
+                  language="bash"
+                  ariaLabel="Shell commands: pull and run the Elsa Server + Studio quick-start Docker image"
+                />
                 <p className="mt-3 text-xs text-muted-foreground">
                   {ELSA_DOCKER_QUICKSTART_NOTE}
                 </p>
