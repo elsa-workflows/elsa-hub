@@ -5,3 +5,4 @@ export { Quickstart } from "./Quickstart";
 export { SocialProof } from "./SocialProof";
 export { UseCaseSwitcher } from "./UseCaseSwitcher";
 export { Comparison } from "./Comparison";
+export { HomeCodeSample } from "./HomeCodeSample";

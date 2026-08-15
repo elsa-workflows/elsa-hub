@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
 import { track } from "@/lib/analytics";
+import { HomeCodeSample } from "@/components/home";
 import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
 import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
 import {
@@ -197,13 +198,11 @@ export default function Home() {
                   keeping control over hosting, persistence, authentication, UI,
                   and domain integrations.
                 </p>
-                <pre
-                  tabIndex={0}
-                  aria-label="C# code sample: embedding Elsa in a .NET application"
-                  className="flex-1 min-w-0 max-w-full text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <code>{ELSA_EMBED_SNIPPET}</code>
-                </pre>
+                <HomeCodeSample
+                  code={ELSA_EMBED_SNIPPET}
+                  language="csharp"
+                  ariaLabel="C# code sample: embedding Elsa in a .NET application"
+                />
                 <div className="mt-5">
                   <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent" asChild>
                     <Link to="/get-started">
@@ -224,13 +223,11 @@ export default function Home() {
                   release/3.7.0 branch. A production-grade image is also available
                   as part of Valence Runtime.
                 </p>
-                <pre
-                  tabIndex={0}
-                  aria-label="Shell commands: pull and run the Elsa Server + Studio quick-start Docker image"
-                  className="flex-1 min-w-0 max-w-full text-xs md:text-[13px] leading-relaxed rounded-lg bg-muted/60 border border-border p-4 overflow-x-auto font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <code>{ELSA_DOCKER_QUICKSTART}</code>
-                </pre>
+                <HomeCodeSample
+                  code={ELSA_DOCKER_QUICKSTART}
+                  language="bash"
+                  ariaLabel="Shell commands: pull and run the Elsa Server + Studio quick-start Docker image"
+                />
                 <p className="mt-3 text-xs text-muted-foreground">
                   {ELSA_DOCKER_QUICKSTART_NOTE}
                 </p>
