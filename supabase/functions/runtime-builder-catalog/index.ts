@@ -247,31 +247,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (action === "auth-probe") {
-      // Temporary diagnostic: finds which auth scheme the upstream accepts.
-      // Never returns the key itself.
-      const schemes: Record<string, Record<string, string>> = {
-        "x-api-key": { "X-Api-Key": apiKey },
-        bearer: { Authorization: `Bearer ${apiKey}` },
-        apikey: { Authorization: `ApiKey ${apiKey}` },
-        "x-functions-key": { "x-functions-key": apiKey },
-        "api-key": { "api-key": apiKey },
-      };
-      const results: Record<string, number> = {};
-      for (const [name, headers] of Object.entries(schemes)) {
-        try {
-          const res = await fetch(`${baseUrl}/api/builder/bundle`, {
-            method: "POST",
-            headers: { ...headers, "Content-Type": "application/json" },
-            body: "{}",
-          });
-          results[name] = res.status;
-        } catch {
-          results[name] = -1;
-        }
-      }
-      return jsonResponse(200, { keyConfigured: Boolean(apiKey), keyLength: apiKey.length, results });
-    }
 
     if (action === "health") {
       const { status, body } = await proxyJson(`${baseUrl}/health`, { method: "GET" });
