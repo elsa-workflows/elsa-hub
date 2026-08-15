@@ -51,9 +51,11 @@ export function StepReview() {
 
   async function download() {
     if (!intent || downloading) return;
+    const resolved = plan.data?.resolved;
+    if (!resolved) return;
     setDownloading(true);
     try {
-      const result = await generateBundle(intent);
+      const result = await generateBundle(resolved);
       const name = `elsa-deployment-${timestamp()}.zip`;
       let blob: Blob;
       if (result.binary) {
@@ -62,7 +64,7 @@ export function StepReview() {
       } else {
         const zip = new JSZip();
         for (const f of result.files) zip.file(f.path, f.contents);
-        zip.file("build.json", JSON.stringify(intent, null, 2));
+        zip.file("build.json", JSON.stringify(resolved, null, 2));
         blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
       }
       const url = URL.createObjectURL(blob);
@@ -95,7 +97,10 @@ export function StepReview() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <Button onClick={download} disabled={!intent || downloading || errors.length > 0}>
+          <Button
+            onClick={download}
+            disabled={!intent || !plan.isSuccess || plan.isLoading || downloading || errors.length > 0}
+          >
             {downloading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating…

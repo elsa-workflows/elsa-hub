@@ -140,7 +140,7 @@ export interface PlanIntentPackage {
   packageId: string;
   version: string;
   selectedFeatures: string[];
-  settings: Record<string, unknown>;
+  settings: Record<string, unknown> | null;
 }
 
 export interface PlanIntent {
@@ -151,17 +151,24 @@ export interface PlanIntent {
     envOverrides: Record<string, string>;
   };
   packages: PlanIntentPackage[];
-  packageSources: { sourceId: string }[];
+  packageSources: {
+    sourceId: string;
+    name?: string | null;
+    url?: string | null;
+    kind?: string | null;
+  }[];
   infrastructure: {
     kind: string;
     providerId: string;
     strategy: string;
     settings: Record<string, unknown>;
   }[];
+  localPackages?: { enabled: boolean; directoryPath: string | null } | null;
+  target?: string | null;
 }
 
 export interface PlanResponse {
-  resolved?: unknown;
+  resolved?: PlanIntent;
   autoAdded?: {
     packages?: PlanIntentPackage[];
     features?: string[];
@@ -348,8 +355,9 @@ function normalizeFindings(raw: unknown): PlanFinding[] {
 
 export async function planBuild(intent: PlanIntent): Promise<PlanResponse> {
   const data = await invoke<Record<string, unknown>>("plan", { intent });
+  const resolved = (data?.resolved as PlanIntent | undefined) ?? undefined;
   return {
-    resolved: data?.resolved,
+    resolved,
     autoAdded: (data?.autoAdded as PlanResponse["autoAdded"]) ?? {
       packages: [],
       features: [],
@@ -360,7 +368,9 @@ export async function planBuild(intent: PlanIntent): Promise<PlanResponse> {
 }
 
 export async function generateBundle(intent: PlanIntent): Promise<BundleResult> {
-  const data = await invoke<Record<string, unknown>>("bundle", { intent });
+  // The upstream bundle endpoint expects the intent directly, not wrapped in
+  // { intent }, unlike the plan/resolve endpoints.
+  const data = await invoke<Record<string, unknown>>("bundle", intent);
   if (data?.binary) return { files: [], binary: data.binary as BundleResult["binary"] };
 
   const rawFiles = Array.isArray(data?.files)
