@@ -29,7 +29,7 @@ export interface RuntimeImage {
   stability: Stability;
   audience: string;
   estimatedSizeMb: number;
-  dockerImage: string; // e.g. "ghcr.io/valence-works/runtime-server"
+  dockerImage: string; // e.g. "ghcr.io/valence-works/runtime-ce-server"
   icon?: string; // optional emoji-ish marker
   tags?: string[];
 }
