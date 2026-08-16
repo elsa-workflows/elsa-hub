@@ -19,14 +19,66 @@ services.AddElsa(elsa =>
     elsa.UseScheduling();
 });`;
 
-// Canonical quick-start Docker commands.
-// Source: release/3.7.0/README.md:31-35
-export const ELSA_DOCKER_PULL_COMMAND =
-  "docker pull elsaworkflows/elsa-server-and-studio-v3:latest";
+// Canonical container registries.
+// Community images are public on GHCR (no login). Paid images ship from a
+// private Azure Container Registry and require `docker login`.
+export const COMMUNITY_REGISTRY = "ghcr.io/valence-works";
+export const PAID_REGISTRY = "valenceruntimeimages.azurecr.io";
 
-export const ELSA_DOCKER_RUN_COMMAND = `docker run -t -i -e ASPNETCORE_ENVIRONMENT='Development' -e HTTP_PORTS=8080 -e HTTP__BASEURL=http://localhost:13000 -p 13000:8080 elsaworkflows/elsa-server-and-studio-v3:latest`;
+export const PAID_REGISTRY_LOGIN_COMMAND = `docker login ${PAID_REGISTRY}`;
+
+/** Version placeholders. Studio may track a different Elsa version than the server. */
+export const ELSA_SERVER_VERSION_PLACEHOLDER = "${ELSA_SERVER_VERSION}";
+export const ELSA_STUDIO_VERSION_PLACEHOLDER = "${ELSA_STUDIO_VERSION}";
+
+export const COMMUNITY_IMAGES = {
+  server: `${COMMUNITY_REGISTRY}/runtime-ce-server`,
+  studio: `${COMMUNITY_REGISTRY}/runtime-ce-studio`,
+  combined: `${COMMUNITY_REGISTRY}/runtime-ce-combined`,
+} as const;
+
+export const PAID_IMAGES = {
+  server: `${PAID_REGISTRY}/runtime-server`,
+  studio: `${PAID_REGISTRY}/runtime-studio`,
+  combined: `${PAID_REGISTRY}/runtime-combined`,
+} as const;
+
+// Combined single-container quick start (Community, public, login-free).
+export const ELSA_DOCKER_PULL_COMMAND = `docker pull ${COMMUNITY_IMAGES.combined}:latest`;
+
+export const ELSA_DOCKER_RUN_COMMAND = `docker run -it \\
+  -e ASPNETCORE_ENVIRONMENT=Development \\
+  -p 13000:8080 \\
+  ${COMMUNITY_IMAGES.combined}:latest`;
 
 export const ELSA_DOCKER_QUICKSTART = `${ELSA_DOCKER_PULL_COMMAND}\n${ELSA_DOCKER_RUN_COMMAND}`;
 
 export const ELSA_DOCKER_QUICKSTART_NOTE =
-  "Reference application for evaluation and development. Not a production-supported distribution.";
+  "Community image — public on GitHub Container Registry, no account and no login required.";
+
+// Separate Server + Studio deployment (Community).
+export const ELSA_DOCKER_SERVER_PULL_COMMAND = `docker pull ${COMMUNITY_IMAGES.server}:latest`;
+
+export const ELSA_DOCKER_SERVER_RUN_COMMAND = `docker run -it \\
+  --network elsa \\
+  -e ASPNETCORE_ENVIRONMENT=Development \\
+  -p 13000:8080 \\
+  --name elsa-server \\
+  ${COMMUNITY_IMAGES.server}:latest`;
+
+export const ELSA_DOCKER_STUDIO_PULL_COMMAND = `docker pull ${COMMUNITY_IMAGES.studio}:latest`;
+
+export const ELSA_DOCKER_STUDIO_RUN_COMMAND = `docker run -it \\
+  --network elsa \\
+  -e Studio__HostingModel=WebAssembly \\
+  -e Studio__Client__Backend__Url=http://localhost:13000/elsa/api \\
+  -p 14000:8080 \\
+  --name elsa-studio \\
+  ${COMMUNITY_IMAGES.studio}:latest`;
+
+// Versioned examples. Server/Combined and Studio use separate placeholders
+// because Studio may ship against a different Elsa version.
+export const ELSA_DOCKER_VERSIONED_EXAMPLE = `docker pull ${COMMUNITY_IMAGES.server}:${ELSA_SERVER_VERSION_PLACEHOLDER}
+docker pull ${COMMUNITY_IMAGES.combined}:${ELSA_SERVER_VERSION_PLACEHOLDER}
+docker pull ${COMMUNITY_IMAGES.studio}:${ELSA_STUDIO_VERSION_PLACEHOLDER}`;
+
