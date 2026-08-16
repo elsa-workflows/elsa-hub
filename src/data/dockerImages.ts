@@ -17,6 +17,8 @@ export type DockerImage = {
   tagline: string;
   description: string;
   image: string;
+  /** Paid counterpart in the private Azure Container Registry. */
+  paidImage: string;
   icon: LucideIcon;
   /** Cassette product artwork (CDN url). Omit until the asset is available. */
   artwork?: string;
@@ -203,6 +205,7 @@ export const dockerImages: DockerImage[] = [
     description:
       "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with `CShells`, load NuGet packages at startup with `Nuplane`, and supply settings via a mounted `config.json`.",
     image: "ghcr.io/valence-works/runtime-ce-server",
+    paidImage: "valenceruntimeimages.azurecr.io/runtime-server",
     icon: Container,
     artwork: runtimeServerArtwork.url,
     artworkAlt: "Valence Runtime Server container image",
@@ -241,6 +244,7 @@ export const dockerImages: DockerImage[] = [
     description:
       "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the `Studio__HostingModel` environment variable. Point it at your server via `Studio__Client__Backend__Url` (WebAssembly) or `Backend__Url` (Blazor Server).",
     image: "ghcr.io/valence-works/runtime-ce-studio",
+    paidImage: "valenceruntimeimages.azurecr.io/runtime-studio",
     icon: LayoutDashboard,
     artwork: runtimeStudioArtwork.url,
     artworkAlt: "Valence Runtime Studio container image",
@@ -294,6 +298,7 @@ export const dockerImages: DockerImage[] = [
     description:
       "A single-container deployment that hosts both the Elsa workflow API and the Studio UI in one process. Studio is served at the root and the API at `/elsa/api` on the same origin — ideal for single-host deployments, demos, and self-contained appliances. Studio defaults to Blazor WebAssembly and can be switched to Blazor Server via `Studio__HostingModel`.",
     image: "ghcr.io/valence-works/runtime-ce-combined",
+    paidImage: "valenceruntimeimages.azurecr.io/runtime-combined",
     icon: Boxes,
     artwork: runtimeCombinedArtwork.url,
     artworkAlt: "Valence Runtime Combined container image",

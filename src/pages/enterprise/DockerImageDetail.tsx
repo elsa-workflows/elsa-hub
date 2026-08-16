@@ -20,6 +20,12 @@ import {
 } from "@/components/docker-images";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { getDockerImage, dockerImages } from "@/data/dockerImages";
+import {
+  PAID_REGISTRY_LOGIN_COMMAND,
+  ELSA_SERVER_VERSION_PLACEHOLDER,
+  ELSA_STUDIO_VERSION_PLACEHOLDER,
+} from "@/data/canonicalSamples";
+
 import { renderInlineCode } from "@/lib/renderInlineCode";
 import { AlertCircle, ArrowRight, Boxes, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -186,14 +192,41 @@ networks:
           />
 
           <div>
-            <h3 className="font-semibold mb-2">Pull the image</h3>
+            <h3 className="font-semibold mb-2">Pull the Community image</h3>
             <p className="text-sm text-muted-foreground mb-2">
               The Community image is public on GitHub Container Registry. No account, no login, no
-              request — pull it and run it now. Paid subscribers run the same build from the private
-              registry; the registry address and pull commands ship with your credentials.
+              request — pull it and run it now.
             </p>
             <CodeBlock code={`docker pull ${image.image}:latest`} language="bash" />
           </div>
+
+          <div>
+            <h3 className="font-semibold mb-2">Pull the paid image</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Paid subscribers run the same build from the private registry. Log in first with the
+              registry token issued when your subscription starts.
+            </p>
+            <CodeBlock
+              code={`${PAID_REGISTRY_LOGIN_COMMAND}\n\ndocker pull ${image.paidImage}:latest`}
+              language="bash"
+            />
+          </div>
+
+          <div>
+            <h3 className="font-semibold mb-2">Pin a version</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Studio may target a different Elsa version than the server, so pin them separately.
+            </p>
+            <CodeBlock
+              code={`docker pull ${image.image}:${
+                image.slug === "runtime-studio"
+                  ? ELSA_STUDIO_VERSION_PLACEHOLDER
+                  : ELSA_SERVER_VERSION_PLACEHOLDER
+              }`}
+              language="bash"
+            />
+          </div>
+
 
 
 

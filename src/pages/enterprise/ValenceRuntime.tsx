@@ -363,15 +363,69 @@ export default function ValenceRuntime() {
             <h3 className="text-2xl font-bold">Try it</h3>
             <p className="text-muted-foreground leading-relaxed">
               The Community images are public on GitHub Container Registry. No account, no login —
-              just pull:
+              just pull. Pick the combined single-container deployment, or run server and Studio
+              separately.
             </p>
-            <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
+
+            <div className="space-y-3">
+              <h4 className="font-semibold">Combined — server + Studio in one container</h4>
+              <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
 {`docker pull ghcr.io/valence-works/runtime-ce-combined:latest
 
 docker run -it -p 13000:8080 \\
   -e ASPNETCORE_ENVIRONMENT=Development \\
   ghcr.io/valence-works/runtime-ce-combined:latest`}
-            </pre>
+              </pre>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-semibold">Separate — server + Studio</h4>
+              <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
+{`docker network create elsa
+
+docker pull ghcr.io/valence-works/runtime-ce-server:latest
+docker pull ghcr.io/valence-works/runtime-ce-studio:latest
+
+docker run -d --network elsa -p 13000:8080 \\
+  -e ASPNETCORE_ENVIRONMENT=Development \\
+  --name elsa-server \\
+  ghcr.io/valence-works/runtime-ce-server:latest
+
+docker run -d --network elsa -p 14000:8080 \\
+  -e Studio__HostingModel=WebAssembly \\
+  -e Studio__Client__Backend__Url=http://localhost:13000/elsa/api \\
+  --name elsa-studio \\
+  ghcr.io/valence-works/runtime-ce-studio:latest`}
+              </pre>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-semibold">Paid — private registry</h4>
+              <p className="text-sm text-muted-foreground">
+                Log in with the registry token issued when your subscription starts, then pull the
+                same three variants:
+              </p>
+              <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
+{`docker login valenceruntimeimages.azurecr.io
+
+docker pull valenceruntimeimages.azurecr.io/runtime-server:latest
+docker pull valenceruntimeimages.azurecr.io/runtime-studio:latest
+docker pull valenceruntimeimages.azurecr.io/runtime-combined:latest`}
+              </pre>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-semibold">Pinning versions</h4>
+              <p className="text-sm text-muted-foreground">
+                Studio may target a different Elsa version than the server, so pin them separately:
+              </p>
+              <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
+{`docker pull ghcr.io/valence-works/runtime-ce-server:\${ELSA_SERVER_VERSION}
+docker pull ghcr.io/valence-works/runtime-ce-combined:\${ELSA_SERVER_VERSION}
+docker pull ghcr.io/valence-works/runtime-ce-studio:\${ELSA_STUDIO_VERSION}`}
+              </pre>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="rounded-xl border bg-card p-5 space-y-2">
                 <h4 className="font-semibold">Free — public, no account</h4>
@@ -383,16 +437,18 @@ docker run -it -p 13000:8080 \\
               </div>
               <div className="rounded-xl border bg-card p-5 space-y-2">
                 <h4 className="font-semibold">Paid — private registry, requires a subscription</h4>
-                <ul className="text-muted-foreground text-xs space-y-1">
-                  <li>Valence Runtime Server</li>
-                  <li>Valence Runtime Studio</li>
-                  <li>Valence Runtime Combined</li>
+                <ul className="text-muted-foreground font-mono text-xs space-y-1">
+                  <li>valenceruntimeimages.azurecr.io/runtime-server</li>
+                  <li>valenceruntimeimages.azurecr.io/runtime-studio</li>
+                  <li>valenceruntimeimages.azurecr.io/runtime-combined</li>
                 </ul>
                 <p className="text-muted-foreground text-xs">
-                  Registry address and pull commands ship with your credentials.
+                  Credentials for <span className="font-mono">docker login</span> ship with your
+                  subscription.
                 </p>
               </div>
             </div>
+
             <p className="text-sm text-muted-foreground leading-relaxed">
               The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
               still work for anyone who already pulled them, but they are no longer updated. New

@@ -1,19 +1,26 @@
 import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
-import { GuideBreadcrumb, PrerequisitesBox, DockerSection } from "@/components/get-started";
+import { GuideBreadcrumb, PrerequisitesBox, DockerSection, CodeBlock } from "@/components/get-started";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, AlertTriangle, Boxes } from "lucide-react";
 import {
   ELSA_DOCKER_PULL_COMMAND,
   ELSA_DOCKER_RUN_COMMAND,
+  ELSA_DOCKER_SERVER_PULL_COMMAND,
+  ELSA_DOCKER_SERVER_RUN_COMMAND,
+  ELSA_DOCKER_STUDIO_PULL_COMMAND,
+  ELSA_DOCKER_STUDIO_RUN_COMMAND,
+  ELSA_DOCKER_VERSIONED_EXAMPLE,
+  PAID_REGISTRY_LOGIN_COMMAND,
+  PAID_IMAGES,
 } from "@/data/canonicalSamples";
 
 const dockerOptions = [
   {
-    title: "Elsa Server + Studio",
+    title: "Combined — Server + Studio",
     description:
-      "The complete package — both the workflow engine and visual designer in one container. Canonical quick-start from the release/3.7.0 branch.",
+      "Both the workflow API and the visual designer in one container, served from a single origin. The simplest way to try Elsa.",
     pullCommand: ELSA_DOCKER_PULL_COMMAND,
     runCommand: ELSA_DOCKER_RUN_COMMAND,
     accessUrl: "http://localhost:13000",
@@ -21,43 +28,40 @@ const dockerOptions = [
     badge: "Recommended",
   },
   {
-    title: "Elsa Server",
+    title: "Server — standalone",
     description:
-      "The workflow engine with REST API. View API documentation via Swagger.",
-    pullCommand: "docker pull elsaworkflows/elsa-server-v3-5:latest",
-    runCommand: `docker run -t -i \\
-  -e ASPNETCORE_ENVIRONMENT=Development \\
-  -e HTTP_PORTS=8080 \\
-  -e HTTP__BASEURL=http://localhost:13000 \\
-  -p 13000:8080 \\
-  elsaworkflows/elsa-server-v3-5:latest`,
-    accessUrl: "http://localhost:13000",
+      "The Elsa workflow API and runtime only. Use this when you deploy or scale the API independently of Studio.",
+    pullCommand: ELSA_DOCKER_SERVER_PULL_COMMAND,
+    runCommand: ELSA_DOCKER_SERVER_RUN_COMMAND,
+    accessUrl: "http://localhost:13000/elsa/api",
     swaggerUrl: "http://localhost:13000/swagger",
+    note: (
+      <span>
+        Run <strong>docker network create elsa</strong> once if you plan to pair this with the
+        standalone Studio container.
+      </span>
+    ),
   },
   {
-    title: "Elsa Studio",
+    title: "Studio — standalone",
     description:
-      "The visual workflow designer. Requires a running Elsa Server instance to connect to.",
-    pullCommand: "docker pull elsaworkflows/elsa-studio-v3-5:latest",
-    runCommand: `docker run -t -i \\
-  -e ASPNETCORE_ENVIRONMENT='Development' \\
-  -e HTTP_PORTS=8080 \\
-  -e ELSASERVER__URL=http://localhost:13000/elsa/api \\
-  -p 14000:8080 \\
-  elsaworkflows/elsa-studio-v3-5:latest`,
+      "The visual workflow designer only. Requires a running Elsa server to connect to.",
+    pullCommand: ELSA_DOCKER_STUDIO_PULL_COMMAND,
+    runCommand: ELSA_DOCKER_STUDIO_RUN_COMMAND,
     accessUrl: "http://localhost:14000",
     credentials: { username: "admin", password: "password" },
     note: (
       <span className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
         <span>
-          <strong>Requires Elsa Server</strong> — Start the Elsa Server container
-          first before running Studio.
+          <strong>Requires a server</strong> — start the standalone server container (or use the
+          combined image) before running Studio.
         </span>
       </span>
     ),
   },
 ];
+
 
 export default function Docker() {
   return (
@@ -88,12 +92,12 @@ export default function Docker() {
               <AlertTriangle className="h-6 w-6 text-warning shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-foreground mb-1">
-                  For Exploration Only
+                  Community images — free to explore
                 </h3>
                 <p className="text-muted-foreground">
-                  These containers are built from our workbench projects and are
-                  intended for exploration and demonstrations. For production
-                  deployments, use the{" "}
+                  The commands below use the free Community images, published publicly on GitHub
+                  Container Registry. They are intended for exploration and evaluation. For
+                  production deployments, use the{" "}
                   <Link
                     to="/elsa-plus/valence-runtime"
                     className="text-primary hover:underline font-medium"
@@ -120,6 +124,42 @@ export default function Docker() {
           </div>
         </div>
       </section>
+
+      {/* Registries */}
+      <section className="py-8">
+        <div className="container max-w-4xl space-y-6">
+          <h2 className="text-2xl font-bold">Community and paid registries</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="rounded-lg border bg-card p-6 space-y-2">
+              <h3 className="font-semibold">Community — public, no login</h3>
+              <ul className="text-xs font-mono text-muted-foreground space-y-1">
+                <li>ghcr.io/valence-works/runtime-ce-server</li>
+                <li>ghcr.io/valence-works/runtime-ce-studio</li>
+                <li>ghcr.io/valence-works/runtime-ce-combined</li>
+              </ul>
+            </div>
+            <div className="rounded-lg border bg-card p-6 space-y-2">
+              <h3 className="font-semibold">Paid — private registry, subscription required</h3>
+              <ul className="text-xs font-mono text-muted-foreground space-y-1">
+                <li>{PAID_IMAGES.server}</li>
+                <li>{PAID_IMAGES.studio}</li>
+                <li>{PAID_IMAGES.combined}</li>
+              </ul>
+              <p className="text-sm text-muted-foreground">Log in with your registry token first:</p>
+              <CodeBlock code={PAID_REGISTRY_LOGIN_COMMAND} language="bash" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold">Pinning versions</h3>
+            <p className="text-sm text-muted-foreground">
+              Server, Studio and Combined are versioned independently — Studio may target a
+              different Elsa version than the server.
+            </p>
+            <CodeBlock code={ELSA_DOCKER_VERSIONED_EXAMPLE} language="bash" />
+          </div>
+        </div>
+      </section>
+
 
       {/* Prerequisites */}
       <section className="py-8">

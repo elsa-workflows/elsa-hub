@@ -10,7 +10,7 @@ export interface BuilderImage {
   slug: string;
   name: string;
   tagline: string;
-  /** Docker image name without tag (e.g. `ghcr.io/valence-works/runtime-server`). */
+  /** Docker image name without tag (e.g. `ghcr.io/valence-works/runtime-ce-server`). */
   image: string;
   role: BuilderImageRole;
   defaultHostPort: number;
