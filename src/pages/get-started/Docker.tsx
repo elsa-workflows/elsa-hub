@@ -7,13 +7,20 @@ import { ArrowRight, AlertTriangle, Boxes } from "lucide-react";
 import {
   ELSA_DOCKER_PULL_COMMAND,
   ELSA_DOCKER_RUN_COMMAND,
+  ELSA_DOCKER_SERVER_PULL_COMMAND,
+  ELSA_DOCKER_SERVER_RUN_COMMAND,
+  ELSA_DOCKER_STUDIO_PULL_COMMAND,
+  ELSA_DOCKER_STUDIO_RUN_COMMAND,
+  ELSA_DOCKER_VERSIONED_EXAMPLE,
+  PAID_REGISTRY_LOGIN_COMMAND,
+  PAID_IMAGES,
 } from "@/data/canonicalSamples";
 
 const dockerOptions = [
   {
-    title: "Elsa Server + Studio",
+    title: "Combined — Server + Studio",
     description:
-      "The complete package — both the workflow engine and visual designer in one container. Canonical quick-start from the release/3.7.0 branch.",
+      "Both the workflow API and the visual designer in one container, served from a single origin. The simplest way to try Elsa.",
     pullCommand: ELSA_DOCKER_PULL_COMMAND,
     runCommand: ELSA_DOCKER_RUN_COMMAND,
     accessUrl: "http://localhost:13000",
@@ -21,43 +28,40 @@ const dockerOptions = [
     badge: "Recommended",
   },
   {
-    title: "Elsa Server",
+    title: "Server — standalone",
     description:
-      "The workflow engine with REST API. View API documentation via Swagger.",
-    pullCommand: "docker pull elsaworkflows/elsa-server-v3-5:latest",
-    runCommand: `docker run -t -i \\
-  -e ASPNETCORE_ENVIRONMENT=Development \\
-  -e HTTP_PORTS=8080 \\
-  -e HTTP__BASEURL=http://localhost:13000 \\
-  -p 13000:8080 \\
-  elsaworkflows/elsa-server-v3-5:latest`,
-    accessUrl: "http://localhost:13000",
+      "The Elsa workflow API and runtime only. Use this when you deploy or scale the API independently of Studio.",
+    pullCommand: ELSA_DOCKER_SERVER_PULL_COMMAND,
+    runCommand: ELSA_DOCKER_SERVER_RUN_COMMAND,
+    accessUrl: "http://localhost:13000/elsa/api",
     swaggerUrl: "http://localhost:13000/swagger",
+    note: (
+      <span>
+        Run <strong>docker network create elsa</strong> once if you plan to pair this with the
+        standalone Studio container.
+      </span>
+    ),
   },
   {
-    title: "Elsa Studio",
+    title: "Studio — standalone",
     description:
-      "The visual workflow designer. Requires a running Elsa Server instance to connect to.",
-    pullCommand: "docker pull elsaworkflows/elsa-studio-v3-5:latest",
-    runCommand: `docker run -t -i \\
-  -e ASPNETCORE_ENVIRONMENT='Development' \\
-  -e HTTP_PORTS=8080 \\
-  -e ELSASERVER__URL=http://localhost:13000/elsa/api \\
-  -p 14000:8080 \\
-  elsaworkflows/elsa-studio-v3-5:latest`,
+      "The visual workflow designer only. Requires a running Elsa server to connect to.",
+    pullCommand: ELSA_DOCKER_STUDIO_PULL_COMMAND,
+    runCommand: ELSA_DOCKER_STUDIO_RUN_COMMAND,
     accessUrl: "http://localhost:14000",
     credentials: { username: "admin", password: "password" },
     note: (
       <span className="flex items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
         <span>
-          <strong>Requires Elsa Server</strong> — Start the Elsa Server container
-          first before running Studio.
+          <strong>Requires a server</strong> — start the standalone server container (or use the
+          combined image) before running Studio.
         </span>
       </span>
     ),
   },
 ];
+
 
 export default function Docker() {
   return (
