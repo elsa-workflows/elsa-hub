@@ -91,11 +91,12 @@ export function Quickstart() {
           <CommandCard
             icon={Container}
             label="Docker"
-            command="docker run -it -p 8080:8080 elsaworkflows/elsa-server-and-studio:latest"
-            helper="Spin up Elsa Server and Studio in one container — no .NET install required."
+            command="docker run -it -p 13000:8080 ghcr.io/valence-works/runtime-ce-combined:latest"
+            helper="Server and Studio in one container — no .NET install required. Separate server and Studio images are available too."
             href="/get-started/docker"
             hrefLabel="Docker guide"
           />
+
 
         </div>
 
