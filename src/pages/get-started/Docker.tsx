@@ -1,6 +1,6 @@
 import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
-import { GuideBreadcrumb, PrerequisitesBox, DockerSection } from "@/components/get-started";
+import { GuideBreadcrumb, PrerequisitesBox, DockerSection, CodeBlock } from "@/components/get-started";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, AlertTriangle, Boxes } from "lucide-react";
