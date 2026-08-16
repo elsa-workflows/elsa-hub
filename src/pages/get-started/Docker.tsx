@@ -92,12 +92,12 @@ export default function Docker() {
               <AlertTriangle className="h-6 w-6 text-warning shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-foreground mb-1">
-                  For Exploration Only
+                  Community images — free to explore
                 </h3>
                 <p className="text-muted-foreground">
-                  These containers are built from our workbench projects and are
-                  intended for exploration and demonstrations. For production
-                  deployments, use the{" "}
+                  The commands below use the free Community images, published publicly on GitHub
+                  Container Registry. They are intended for exploration and evaluation. For
+                  production deployments, use the{" "}
                   <Link
                     to="/elsa-plus/valence-runtime"
                     className="text-primary hover:underline font-medium"
@@ -124,6 +124,42 @@ export default function Docker() {
           </div>
         </div>
       </section>
+
+      {/* Registries */}
+      <section className="py-8">
+        <div className="container max-w-4xl space-y-6">
+          <h2 className="text-2xl font-bold">Community and paid registries</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="rounded-lg border bg-card p-6 space-y-2">
+              <h3 className="font-semibold">Community — public, no login</h3>
+              <ul className="text-xs font-mono text-muted-foreground space-y-1">
+                <li>ghcr.io/valence-works/runtime-ce-server</li>
+                <li>ghcr.io/valence-works/runtime-ce-studio</li>
+                <li>ghcr.io/valence-works/runtime-ce-combined</li>
+              </ul>
+            </div>
+            <div className="rounded-lg border bg-card p-6 space-y-2">
+              <h3 className="font-semibold">Paid — private registry, subscription required</h3>
+              <ul className="text-xs font-mono text-muted-foreground space-y-1">
+                <li>{PAID_IMAGES.server}</li>
+                <li>{PAID_IMAGES.studio}</li>
+                <li>{PAID_IMAGES.combined}</li>
+              </ul>
+              <p className="text-sm text-muted-foreground">Log in with your registry token first:</p>
+              <CodeBlock code={PAID_REGISTRY_LOGIN_COMMAND} language="bash" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-semibold">Pinning versions</h3>
+            <p className="text-sm text-muted-foreground">
+              Server, Studio and Combined are versioned independently — Studio may target a
+              different Elsa version than the server.
+            </p>
+            <CodeBlock code={ELSA_DOCKER_VERSIONED_EXAMPLE} language="bash" />
+          </div>
+        </div>
+      </section>
+
 
       {/* Prerequisites */}
       <section className="py-8">
