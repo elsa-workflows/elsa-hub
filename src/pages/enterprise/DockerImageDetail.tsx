@@ -20,6 +20,12 @@ import {
 } from "@/components/docker-images";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { getDockerImage, dockerImages } from "@/data/dockerImages";
+import {
+  PAID_REGISTRY_LOGIN_COMMAND,
+  ELSA_SERVER_VERSION_PLACEHOLDER,
+  ELSA_STUDIO_VERSION_PLACEHOLDER,
+} from "@/data/canonicalSamples";
+
 import { renderInlineCode } from "@/lib/renderInlineCode";
 import { AlertCircle, ArrowRight, Boxes, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
