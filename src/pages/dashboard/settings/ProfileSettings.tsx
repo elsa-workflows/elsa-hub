@@ -11,7 +11,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { ConnectedAccountsCard } from "@/components/settings";
+import { ConnectedAccountsCard, AvatarUploadCard } from "@/components/settings";
 
 const profileSchema = z.object({
   display_name: z.string().max(100, "Display name must be less than 100 characters").optional(),
@@ -23,7 +23,7 @@ export default function ProfileSettings() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { profile, isLoading: isLoadingProfile, updateProfile, isUpdating } = useUserProfile();
+  const { profile, isLoading: isLoadingProfile, updateProfile, isUpdating, uploadAvatar, removeAvatar, isUploadingAvatar, isRemovingAvatar } = useUserProfile();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -74,6 +74,14 @@ export default function ProfileSettings() {
           Manage your personal account settings
         </p>
       </div>
+
+      <AvatarUploadCard
+        avatarUrl={profile?.avatar_url}
+        onUpload={uploadAvatar}
+        onRemove={removeAvatar}
+        isUploading={isUploadingAvatar}
+        isRemoving={isRemovingAvatar}
+      />
 
       {/* Personal Info Card */}
       <Card>

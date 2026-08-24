@@ -121,6 +121,24 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsa-workflows.io/blog/introducing-nativeendpoints</loc>
+    <lastmod>2026-08-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/why-elsa-payloads-change-shape-after-persistence</loc>
+    <lastmod>2026-08-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsa-workflows.io/blog/safer-faster-javascript-expressions-elsa-3-9</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsa-workflows.io/blog/managing-elsa-users-and-roles-in-studio-3-8</loc>
     <lastmod>2026-08-10</lastmod>
     <changefreq>monthly</changefreq>
@@ -170,7 +188,7 @@
   </url>
   <url>
     <loc>https://www.elsa-workflows.io/blog/suspended-workflows-and-elsa-upgrades</loc>
-    <lastmod>2026-07-01</lastmod>
+    <lastmod>2026-08-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
