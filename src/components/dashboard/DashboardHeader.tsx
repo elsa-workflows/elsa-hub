@@ -8,15 +8,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/notifications";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import elsaLogo from "@/assets/elsa-logo.png";
 
 export function DashboardHeader() {
   const { user, signOut } = useAuth();
+  const { profile } = useUserProfile();
 
   const userInitials = user?.email
     ? user.email.substring(0, 2).toUpperCase()
@@ -61,6 +63,11 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
+                <AvatarImage
+                  src={profile?.avatar_url ?? undefined}
+                  alt="Profile picture"
+                  className="object-cover"
+                />
                 <AvatarFallback className="bg-primary/10 text-primary text-sm">
                   {userInitials}
                 </AvatarFallback>
