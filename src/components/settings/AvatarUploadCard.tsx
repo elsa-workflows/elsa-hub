@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Camera, Trash2, User, Loader2 } from "lucide-react";
+import { Camera, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,

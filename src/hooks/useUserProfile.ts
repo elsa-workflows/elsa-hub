@@ -16,10 +16,36 @@ interface UpdateProfileData {
 const AVATAR_BUCKET = "avatars";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const MAX_SIZE_BYTES = 2 * 1024 * 1024;
+// Signed URLs are valid for one year. If the bucket is later made public,
+// existing signed URLs continue to work and new uploads can switch to public URLs.
+const SIGNED_URL_EXPIRY_SECONDS = 365 * 24 * 60 * 60;
 
 function getAvatarPath(userId: string, file: File): string {
   const ext = file.name.split(".").pop()?.toLowerCase() || "png";
   return `${userId}/avatar.${ext}`;
+}
+
+/**
+ * Extract the storage object path from either a signed or public Supabase
+ * Storage URL. Returns null if the URL does not belong to the avatars bucket.
+ */
+function getStoragePathFromUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const signedPrefix = `/object/sign/${AVATAR_BUCKET}/`;
+    const publicPrefix = `/object/public/${AVATAR_BUCKET}/`;
+
+    let path: string | null = null;
+    if (parsed.pathname.includes(signedPrefix)) {
+      path = parsed.pathname.split(signedPrefix)[1];
+    } else if (parsed.pathname.includes(publicPrefix)) {
+      path = parsed.pathname.split(publicPrefix)[1];
+    }
+
+    return path ? decodeURIComponent(path) : null;
+  } catch {
+    return null;
+  }
 }
 
 export function useUserProfile() {
@@ -103,10 +129,10 @@ export function useUserProfile() {
 
       const path = getAvatarPath(user.id, file);
 
-      // Remove any existing avatar first so the folder stays clean and the
-      // public URL cache is invalidated consistently.
+      // Remove any existing avatar object first so the folder stays clean and
+      // we don't leave stale files behind.
       if (profile?.avatar_url) {
-        const existingPath = profile.avatar_url.split("/").slice(-2).join("/");
+        const existingPath = getStoragePathFromUrl(profile.avatar_url);
         if (existingPath) {
           await supabase.storage.from(AVATAR_BUCKET).remove([existingPath]);
         }
@@ -124,12 +150,16 @@ export function useUserProfile() {
         throw new Error(uploadError.message);
       }
 
-      const { data: urlData } = supabase.storage
+      const { data: signedData, error: signedError } = await supabase.storage
         .from(AVATAR_BUCKET)
-        .getPublicUrl(path);
+        .createSignedUrl(path, SIGNED_URL_EXPIRY_SECONDS);
 
-      const publicUrl = urlData.publicUrl;
-      const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`;
+      if (signedError || !signedData?.signedUrl) {
+        console.error("Signed URL error:", signedError);
+        throw new Error(signedError?.message || "Failed to generate avatar URL.");
+      }
+
+      const cacheBustedUrl = `${signedData.signedUrl}&t=${Date.now()}`;
 
       const { error: updateError } = await supabase
         .from("profiles")
@@ -168,7 +198,7 @@ export function useUserProfile() {
       if (!user?.id) throw new Error("Not authenticated");
 
       if (profile?.avatar_url) {
-        const existingPath = profile.avatar_url.split("/").slice(-2).join("/");
+        const existingPath = getStoragePathFromUrl(profile.avatar_url);
         if (existingPath) {
           const { error: removeError } = await supabase.storage
             .from(AVATAR_BUCKET)
