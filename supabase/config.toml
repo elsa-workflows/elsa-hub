@@ -76,3 +76,6 @@ verify_jwt = false
 
 [functions.send-renewal-notices]
 verify_jwt = false
+
+[functions.author-avatar]
+verify_jwt = false
