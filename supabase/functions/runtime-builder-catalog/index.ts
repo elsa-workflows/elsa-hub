@@ -1,4 +1,4 @@
-// Proxy for the Valence Control builder API.
+// Proxy for the Elsa Control builder API.
 // Keeps the X-Api-Key strictly server-side. Browser must call this function via
 // supabase.functions.invoke() — never call the upstream URL directly.
 //
