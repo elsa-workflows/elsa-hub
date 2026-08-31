@@ -1,4 +1,4 @@
-// Client for the live Valence Control builder API.
+// Client for the live Elsa Control builder API.
 // Everything goes through the `runtime-builder-catalog` edge function so the
 // bundle API key never reaches the browser.
 

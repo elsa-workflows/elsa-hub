@@ -92,7 +92,7 @@ export function StepReview() {
         <div className="space-y-2">
           <h2 className="font-display text-2xl font-semibold tracking-tight">Review</h2>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Your configuration is validated by the Valence Control planner. Download the
+            Your configuration is validated by the Elsa Control planner. Download the
             deployment bundle once it comes back clean.
           </p>
         </div>
