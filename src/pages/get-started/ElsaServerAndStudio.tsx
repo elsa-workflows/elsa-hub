@@ -78,6 +78,8 @@ const hostCsproj = `<Project Sdk="Microsoft.NET.Sdk.Web">
     <PackageReference Include="Elsa.Identity" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Scheduling" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Workflows.Api" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Dashboard.Api" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Workflows.Runtime.Dashboard" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Expressions.CSharp" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Expressions.JavaScript" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Expressions.Liquid" Version="${ELSA_VERSION}" />
