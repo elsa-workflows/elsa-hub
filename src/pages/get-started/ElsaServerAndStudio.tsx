@@ -181,6 +181,13 @@ builder.Services.AddElsa(elsa =>
     elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
     elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UseSqlite()));
     elsa.UseWorkflowsApi();
+
+    // Backend for the default Studio dashboard (AddDashboardModule below).
+    // Both extension methods live in Elsa.Extensions; without them the
+    // dashboard's calls return errors.
+    elsa.UseDashboardApi();
+    elsa.UseWorkflowRuntimeDashboard();
+
     elsa.UseScheduling();
     elsa.UseHttp(http => http.ConfigureHttpOptions = options => configuration.GetSection("Http").Bind(options));
 
