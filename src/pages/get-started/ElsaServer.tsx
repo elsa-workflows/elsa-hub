@@ -192,6 +192,41 @@ cd ElsaServer`}
             {/* Step 4 */}
             <StepItem
               number={4}
+              title="Configure identity secrets"
+              description={
+                <p>
+                  Elsa {ELSA_VERSION} ships no usable admin credentials or API keys.
+                  Provide them yourself through configuration or a secret manager. The
+                  signing key must be at least 32 printable ASCII characters with no
+                  surrounding whitespace; known public defaults are accepted only when the
+                  environment is <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Development</code> or{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Demo</code>.
+                </p>
+              }
+            >
+              <CodeBlock code={appSettings} language="json" title="appsettings.json" />
+              <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Localhost requests no longer receive security-root bootstrap permissions.
+                  A development host that relies on that must opt in explicitly with{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
+                    elsa.UseDefaultAuthentication(auth =&gt; auth.EnableLocalHostPermissionGrantForSecurityRoot())
+                  </code>.
+                </p>
+                <p>
+                  C# and Python expressions execute host code. They require{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">AllowHostCodeExecution</code>{" "}
+                  plus the <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">exec:csharp-expressions</code>{" "}
+                  / <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">exec:python-expressions</code>{" "}
+                  permission, and are not sandboxed — enable them only for trusted authors.
+                </p>
+              </div>
+            </StepItem>
+
+
+            {/* Step 4 */}
+            <StepItem
+              number={4}
               title="Run the Server"
               description={
                 <p>
