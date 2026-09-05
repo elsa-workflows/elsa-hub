@@ -251,7 +251,11 @@ export default function GetStarted() {
               </p>
               <p className="text-sm text-muted-foreground mt-4 rounded-md border border-border/70 bg-background p-4">
                 <strong className="text-foreground">Release status:</strong> the {ELSA_TEMPLATES_VERSION} template
-                package is tagged — see{" "}
+                package is published on{" "}
+                <a href={ELSA_TEMPLATES_NUGET_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                  NuGet
+                </a>{" "}
+                and tagged in{" "}
                 <a href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
                   the 3.8.0 release
                 </a>.
