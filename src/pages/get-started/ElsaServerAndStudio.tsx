@@ -126,10 +126,10 @@ ${pkg("Elsa.Studio.Workflows.Dashboard")}
 ${pkg("Elsa.Studio.Workflows.Designer")}`;
 
 
-// Verified by compiling this exact source (plus Host.csproj and
-// Pages/_Host.cshtml below) against the Elsa 3.8.0 packages with .NET SDK
-// 9.0.311: build succeeded, and the host serves Studio on "/" while the Elsa
-// API answers under its configured route prefix.
+// Externally verified by Codex on 2026-09-05: this exact source (plus
+// Host.csproj and Pages/_Host.cshtml below) restores and builds against the
+// Elsa 3.8.0 packages with 0 warnings and 0 errors, and the host serves Studio
+// on "/" while the Elsa API answers under its configured route prefix.
 const programCs = `using Elsa.Extensions;
 using Elsa.Http.Options;
 using Elsa.Persistence.EFCore.Extensions;
