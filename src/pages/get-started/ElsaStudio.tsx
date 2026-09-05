@@ -198,10 +198,28 @@ export default function ElsaStudio() {
               <AlertTitle>Elsa Studio {ELSA_VERSION}: one authentication provider</AlertTitle>
               <AlertDescription>
                 Studio {ELSA_VERSION} consumes Elsa.Api.Client {ELSA_VERSION}, so upgrade the server
-                first and keep both on the same release line. Register exactly one authentication
-                provider — the login module used here, Elsa Identity, direct OIDC, or brokered
-                external authentication. Mixing them is not supported. Diagnostics and dashboard
-                widgets are opt-in and gated by remote features and permissions.
+                first and keep both on the same release line. Select exactly one authentication
+                provider explicitly with{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                  AddStudioAuthenticationMode
+                </code>{" "}
+                — Elsa Identity (used here), direct OIDC, or brokered external authentication.
+                Mixing them is not supported. In {ELSA_VERSION},{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                  AddElsaIdentityUI()
+                </code>{" "}
+                only registers the provider and its redirect: the{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">/login</code>{" "}
+                page ships in{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                  Elsa.Studio.Authentication.UI
+                </code>{" "}
+                and only renders when you also call{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                  AddAuthenticationUI(...)
+                </code>
+                . That applies to direct OIDC too. Diagnostics and dashboard widgets are opt-in and
+                gated by remote features and permissions.
               </AlertDescription>
             </Alert>
 
