@@ -107,6 +107,8 @@ ${pkg("Elsa.Http")}
 ${pkg("Elsa.Identity")}
 ${pkg("Elsa.Scheduling")}
 ${pkg("Elsa.Workflows.Api")}
+${pkg("Elsa.Dashboard.Api")}
+${pkg("Elsa.Workflows.Runtime.Dashboard")}
 ${pkg("Elsa.Expressions.CSharp")}
 ${pkg("Elsa.Expressions.JavaScript")}
 ${pkg("Elsa.Expressions.Liquid")}
