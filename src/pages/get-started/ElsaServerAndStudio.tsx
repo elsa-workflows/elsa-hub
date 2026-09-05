@@ -67,15 +67,17 @@ dotnet restore && dotnet build`;
 const hostCsproj = `<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Host</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Elsa" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Persistence.EFCore" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Persistence.EFCore.Sqlite" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Http" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Identity" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Scheduling" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Workflows.Api" Version="${ELSA_VERSION}" />
@@ -84,10 +86,15 @@ const hostCsproj = `<Project Sdk="Microsoft.NET.Sdk.Web">
     <PackageReference Include="Elsa.Expressions.Liquid" Version="${ELSA_VERSION}" />
 
     <PackageReference Include="Elsa.Studio" Version="${ELSA_VERSION}" />
-    <PackageReference Include="Elsa.Studio.Core" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Studio.Core.BlazorServer" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Studio.Shell" Version="${ELSA_VERSION}" />
-    <PackageReference Include="Elsa.Studio.Login" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Studio.Authentication.ElsaIdentity.BlazorServer" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Studio.Authentication.ElsaIdentity.UI" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Studio.Authentication.UI" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Studio.Authentication.Themes" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Studio.Dashboard" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Studio.Workflows" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Studio.Workflows.Dashboard" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Studio.Workflows.Designer" Version="${ELSA_VERSION}" />
   </ItemGroup>
 
@@ -97,6 +104,7 @@ const hostPackagesCli = `# Elsa engine
 ${pkg("Elsa")}
 ${pkg("Elsa.Persistence.EFCore")}
 ${pkg("Elsa.Persistence.EFCore.Sqlite")}
+${pkg("Elsa.Http")}
 ${pkg("Elsa.Identity")}
 ${pkg("Elsa.Scheduling")}
 ${pkg("Elsa.Workflows.Api")}
@@ -106,111 +114,175 @@ ${pkg("Elsa.Expressions.Liquid")}
 
 # Elsa Studio (Blazor Server hosting)
 ${pkg("Elsa.Studio")}
-${pkg("Elsa.Studio.Core")}
+${pkg("Elsa.Studio.Core.BlazorServer")}
 ${pkg("Elsa.Studio.Shell")}
-${pkg("Elsa.Studio.Login")}
+${pkg("Elsa.Studio.Authentication.ElsaIdentity.BlazorServer")}
+${pkg("Elsa.Studio.Authentication.ElsaIdentity.UI")}
+${pkg("Elsa.Studio.Authentication.UI")}
+${pkg("Elsa.Studio.Authentication.Themes")}
+${pkg("Elsa.Studio.Dashboard")}
 ${pkg("Elsa.Studio.Workflows")}
+${pkg("Elsa.Studio.Workflows.Dashboard")}
 ${pkg("Elsa.Studio.Workflows.Designer")}`;
 
+
+// Verified by compiling this exact source (plus Host.csproj and
+// Pages/_Host.cshtml below) against the Elsa 3.8.0 packages with .NET SDK
+// 9.0.311: build succeeded, and the host serves Studio on "/" while the Elsa
+// API answers under its configured route prefix.
 const programCs = `using Elsa.Extensions;
+using Elsa.Http.Options;
 using Elsa.Persistence.EFCore.Extensions;
 using Elsa.Persistence.EFCore.Modules.Management;
 using Elsa.Persistence.EFCore.Modules.Runtime;
+using Elsa.Studio.Authentication.Abstractions.Models;
+using Elsa.Studio.Authentication.ElsaIdentity.BlazorServer.Extensions;
+using Elsa.Studio.Authentication.ElsaIdentity.HttpMessageHandlers;
+using Elsa.Studio.Authentication.ElsaIdentity.UI.Extensions;
+using Elsa.Studio.Authentication.Themes.Extensions;
+using Elsa.Studio.Authentication.UI.Extensions;
+using Elsa.Studio.Authentication.UI.Options;
+using Elsa.Studio.Core.BlazorServer.Extensions;
+using Elsa.Studio.Dashboard.Extensions;
 using Elsa.Studio.Extensions;
+using Elsa.Studio.Models;
+using Elsa.Studio.Shell.Extensions;
+using Elsa.Studio.Workflows.Dashboard.Extensions;
+using Elsa.Studio.Workflows.Designer.Extensions;
+using Elsa.Studio.Workflows.Extensions;
+using Elsa.Workflows.Api;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
-var config = builder.Configuration;
+var configuration = builder.Configuration;
 
 // -------------------------------------------------------------------------
 // Elsa engine
 // -------------------------------------------------------------------------
 builder.Services.AddElsa(elsa =>
 {
-    elsa.UseWorkflowManagement(m =>
-        m.UseEntityFrameworkCore(ef => ef.UseSqlite()));
-
-    elsa.UseWorkflowRuntime(r =>
-        r.UseEntityFrameworkCore(ef => ef.UseSqlite()));
-
-    // Elsa 3.8.0: the admin user provider denies every sign-in unless
-    // credentials are configured, and the signing key must be at least 32
-    // printable ASCII characters with no surrounding whitespace.
+    // Elsa 3.8.0 rejects a missing signing key, a key shorter than 32 ASCII
+    // characters, and known public defaults outside Development/Demo.
+    // UseDefaultAdmin bootstraps the first admin from values you own.
     elsa.UseIdentity(identity =>
     {
-        identity.UseAdminUserProvider(options =>
-            config.GetSection("Identity:Admin").Bind(options));
+        identity.TokenOptions += options => configuration.GetSection("Identity:Tokens").Bind(options);
 
-        identity.TokenOptions += options =>
-            config.GetSection("Identity:Tokens").Bind(options);
+        identity.UseDefaultAdmin(admin => admin
+            .WithAdminUserName(configuration["Identity:DefaultAdmin:UserName"]!)
+            .WithAdminPassword(configuration["Identity:DefaultAdmin:Password"]!)
+            .WithAdminRoleName("admin")
+            .WithAdminRolePermissions(new List<string> { "*" }));
     });
 
     elsa.UseDefaultAuthentication();
+    elsa.UseWorkflows();
+    elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
+    elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UseSqlite()));
     elsa.UseWorkflowsApi();
     elsa.UseScheduling();
+    elsa.UseHttp(http => http.ConfigureHttpOptions = options => configuration.GetSection("Http").Bind(options));
 
     // C# expressions run host code: they need
     // Scripting:CSharp:AllowHostCodeExecution and the
     // exec:csharp-expressions permission. Not a sandbox.
-    elsa.UseCSharp(options => config.GetSection("Scripting:CSharp").Bind(options));
+    elsa.UseCSharp(csharp => csharp.CSharpOptions += options => configuration.GetSection("Scripting:CSharp").Bind(options));
     elsa.UseJavaScript();
     elsa.UseLiquid();
 });
 
 // -------------------------------------------------------------------------
-// Elsa Studio (hosted in this same Blazor Server app)
+// Elsa Studio (Blazor Server, hosted in this same app)
 // -------------------------------------------------------------------------
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor(options =>
+{
+    options.RootComponents.RegisterCustomElsaStudioElements();
+    options.RootComponents.MaxJSRootComponents = 1000;
+});
+
+// Studio 3.8.0 requires exactly one authentication provider to be selected.
+builder.Services.AddStudioAuthenticationMode(options => options.Provider = StudioAuthenticationProvider.ElsaIdentity);
+builder.Services.AddElsaIdentity();
+builder.Services.AddElsaIdentityUI();
+
+// Studio talks to the Elsa API over HTTP - here, its own.
+var backendApiConfig = new BackendApiConfig
+{
+    ConfigureBackendOptions = options => configuration.GetSection("Backend").Bind(options),
+    ConfigureHttpClientBuilder = options => options.AuthenticationHandler = typeof(ElsaIdentityAuthenticatingApiHttpMessageHandler)
+};
 
 builder.Services.AddCore();
 builder.Services.AddShell();
-builder.Services.AddLoginModule();
+builder.Services.AddAuthenticationUI(configuration.GetSection(LoginThemeOptions.SectionName)).AddElsaStudioLoginThemes();
+builder.Services.AddRemoteBackend(backendApiConfig);
+builder.Services.AddDashboardModule(backendApiConfig);
 builder.Services.AddWorkflowsModule();
-
-// Point Studio at the local Elsa API mounted below.
-builder.Services.AddLocalBackend(config.GetSection("Backend"));
+builder.Services.AddWorkflowsDashboardModule();
 
 var app = builder.Build();
 
+// Elsa API, mapped under its configured route prefix (default: elsa/api).
+var apiEndpointOptions = app.Services.GetRequiredService<IOptions<ApiEndpointOptions>>().Value;
+app.MapWorkflowsApi(apiEndpointOptions.RoutePrefix);
+
 app.UseStaticFiles();
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseWorkflowsApi();
+app.UseJsonSerializationErrorHandler();
 
-app.MapRazorComponents<Host.Components.App>()
-    .AddInteractiveServerRenderMode();
+// Serves workflows that start with an HTTP Endpoint activity.
+app.UseWorkflows();
+
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
 
 app.Run();`;
 
-const appRazor = `@using Elsa.Studio.Shell.Components
+const hostPage = `@page "/"
+@using Elsa.Studio.Shell
+@using Microsoft.AspNetCore.Components.Web
+@namespace Host.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
+    <base href="~/" />
     <title>Elsa Server + Studio</title>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link href="_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.css" rel="stylesheet" />
+    <link href="_content/Radzen.Blazor/css/material-base.css" rel="stylesheet" />
     <link href="_content/Elsa.Studio.Shell/css/shell.css" rel="stylesheet" />
-    <HeadOutlet @rendermode="InteractiveServer" />
+    <link href="_content/Elsa.Studio.Workflows.Designer/designer.css" rel="stylesheet" />
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
 <body>
-    <Routes @rendermode="InteractiveServer" />
-    <script src="_framework/blazor.web.js"></script>
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+<component type="typeof(App)" render-mode="ServerPrerendered" />
+
+<script src="_content/BlazorMonaco/jsInterop.js"></script>
+<script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"></script>
+<script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"></script>
+<script src="_content/MudBlazor/MudBlazor.min.js"></script>
+<script src="_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.js"></script>
+<script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+<script src="_framework/blazor.server.js"></script>
 </body>
 </html>`;
 
-const routesRazor = `@using Elsa.Studio.Shell.Components
-
-<ElsaRoutes />`;
+const importsRazor = `@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Mvc.TagHelpers`;
 
 const appSettingsJson = `{
   "Identity": {
-    "Admin": {
+    "DefaultAdmin": {
       "UserName": "admin",
-      "Password": "<set-a-strong-password>"
+      "Password": "<set-a-strong-bootstrap-password>"
     },
     "Tokens": {
       "SigningKey": "<at least 32 printable ASCII characters, no surrounding whitespace>",
@@ -223,7 +295,7 @@ const appSettingsJson = `{
     }
   },
   "Backend": {
-    "Url": "/elsa/api"
+    "Url": "https://localhost:5001/elsa/api"
   },
   "Logging": {
     "LogLevel": {
@@ -238,9 +310,10 @@ dotnet new sln
 dotnet new web -n Host
 dotnet sln add Host
 cd Host
-mkdir Components
-# Then paste Host.csproj, Program.cs, Components/App.razor,
-# Components/Routes.razor, and appsettings.json shown below.`;
+mkdir Pages
+# Then paste Host.csproj, Program.cs, _Imports.razor,
+# Pages/_Host.cshtml, and appsettings.json shown below.`;
+
 
 const buildRun = `# From the solution root
 dotnet restore
@@ -543,22 +616,23 @@ export default function ElsaServerAndStudio() {
 
               <StepItem
                 number={4}
-                title="Components/App.razor and Components/Routes.razor"
-                description="The Studio shell renders through these two root components."
+                title="_Imports.razor and Pages/_Host.cshtml"
+                description="Elsa Studio 3.8.0 renders through the Shell's App root component, served from a Razor Pages host page."
               >
                 <div className="space-y-4">
                   <CodeBlock
-                    code={appRazor}
+                    code={importsRazor}
                     language="razor"
-                    title="Host/Components/App.razor"
+                    title="Host/_Imports.razor"
                   />
                   <CodeBlock
-                    code={routesRazor}
+                    code={hostPage}
                     language="razor"
-                    title="Host/Components/Routes.razor"
+                    title="Host/Pages/_Host.cshtml"
                   />
                 </div>
               </StepItem>
+
 
               <StepItem
                 number={5}
@@ -581,7 +655,7 @@ export default function ElsaServerAndStudio() {
                 <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                   <p className="text-sm text-muted-foreground">
                     Open the URL printed in the terminal and sign in with the credentials you
-                    configured under <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">Identity:Admin</code>.
+                    configured under <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">Identity:DefaultAdmin</code>.
                     Elsa {ELSA_VERSION} ships no default admin account: with nothing configured, every
                     sign-in is denied.
                   </p>

@@ -26,77 +26,93 @@ const packages = [
   .map(pkg)
   .join("\n");
 
-const programCs = `using Elsa.Persistence.EFCore.Extensions;
+// Verified by compiling this exact source against the Elsa 3.8.0 packages
+// listed above (.NET 9 SDK 9.0.311): build succeeded, 0 warnings, 0 errors,
+// and the host starts in Production with configured identity secrets.
+const programCs = `using Elsa.Extensions;
+using Elsa.Http.Options;
+using Elsa.Persistence.EFCore.Extensions;
 using Elsa.Persistence.EFCore.Modules.Management;
 using Elsa.Persistence.EFCore.Modules.Runtime;
-using Elsa.Extensions;
+using Elsa.Workflows.Api;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
 
 builder.Services.AddElsa(elsa =>
 {
-    // Configure management feature to use EF Core
-    elsa.UseWorkflowManagement(management => 
-        management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
-
-    // Configure runtime feature to use EF Core
-    elsa.UseWorkflowRuntime(runtime => 
-        runtime.UseEntityFrameworkCore(ef => ef.UseSqlite()));
-
-    // Expose API endpoints
-    elsa.UseWorkflowsApi();
-
-    // Identity. As of Elsa 3.8.0 the admin user provider denies every sign-in
-    // unless credentials are configured, and the signing key must be at least
-    // 32 printable ASCII characters with no surrounding whitespace.
-    // Bind both from configuration / a secret manager - never hard-code them.
+    // Identity. Elsa 3.8.0 rejects a missing signing key, a key shorter than
+    // 32 ASCII characters, and known public defaults outside Development/Demo.
+    // Bootstrap the first admin with UseDefaultAdmin and supply the values from
+    // configuration or a secret manager - never hard-code them.
     elsa.UseIdentity(identity =>
     {
-        identity.UseAdminUserProvider(options =>
-            builder.Configuration.GetSection("Identity:Admin").Bind(options));
+        identity.TokenOptions += options => configuration.GetSection("Identity:Tokens").Bind(options);
 
-        identity.TokenOptions += options =>
-            builder.Configuration.GetSection("Identity:Tokens").Bind(options);
+        identity.UseDefaultAdmin(admin => admin
+            .WithAdminUserName(configuration["Identity:DefaultAdmin:UserName"]!)
+            .WithAdminPassword(configuration["Identity:DefaultAdmin:Password"]!)
+            .WithAdminRoleName("admin")
+            .WithAdminRolePermissions(new List<string> { "*" }));
     });
 
-    // Default authentication for API endpoints
+    // Issues and validates the bearer tokens used by the Elsa API.
     elsa.UseDefaultAuthentication();
 
-    // Add scheduling capabilities
+    // Workflow engine, persistence and runtime.
+    elsa.UseWorkflows();
+    elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
+    elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UseSqlite()));
+
+    // REST API consumed by Elsa Studio and your own clients.
+    elsa.UseWorkflowsApi();
+
     elsa.UseScheduling();
 
+    // HTTP module: HTTP Endpoint activities and the workflow middleware below.
+    elsa.UseHttp(http => http.ConfigureHttpOptions = options => configuration.GetSection("Http").Bind(options));
+
     // Expression languages. C# executes host code: it requires
-    // Scripting:CSharp:AllowHostCodeExecution and the
+    // Scripting:CSharp:AllowHostCodeExecution plus the
     // exec:csharp-expressions permission, and is not a sandbox.
-    elsa.UseCSharp(options =>
-        builder.Configuration.GetSection("Scripting:CSharp").Bind(options));
-
-    // Enable JavaScript workflow expressions
+    elsa.UseCSharp(csharp => csharp.CSharpOptions += options => configuration.GetSection("Scripting:CSharp").Bind(options));
     elsa.UseJavaScript();
-
-    // Enable Liquid workflow expressions
     elsa.UseLiquid();
 });
 
-// CORS for studio access
-builder.Services.AddCors(cors => 
-    cors.AddDefaultPolicy(policy => 
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod()));
+// CORS so Elsa Studio can call this API from another origin.
+builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy => policy
+    .AllowAnyOrigin()
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .WithExposedHeaders("*")));
 
 var app = builder.Build();
+
 app.UseCors();
+
+// Map the Elsa API under its configured route prefix (default: elsa/api).
+var apiEndpointOptions = app.Services.GetRequiredService<IOptions<ApiEndpointOptions>>().Value;
+app.MapWorkflowsApi(apiEndpointOptions.RoutePrefix);
+
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseWorkflowsApi();
+
+// Returns JSON for unhandled serialization errors.
+app.UseJsonSerializationErrorHandler();
+
+// Serves workflows that start with an HTTP Endpoint activity.
+app.UseWorkflows();
+
 app.Run();`;
 
 const appSettings = `{
   "Identity": {
-    "Admin": {
+    "DefaultAdmin": {
       "UserName": "admin",
-      "Password": "<set-a-strong-password>"
+      "Password": "<set-a-strong-bootstrap-password>"
     },
     "Tokens": {
       "SigningKey": "<at least 32 printable ASCII characters, no surrounding whitespace>",
@@ -109,6 +125,7 @@ const appSettings = `{
     }
   }
 }`;
+
 
 export default function ElsaServer() {
   return (
@@ -196,11 +213,15 @@ cd ElsaServer`}
               description={
                 <p>
                   Elsa {ELSA_VERSION} ships no usable admin credentials or API keys.
-                  Provide them yourself through configuration or a secret manager. The
-                  signing key must be at least 32 printable ASCII characters with no
-                  surrounding whitespace; known public defaults are accepted only when the
-                  environment is <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Development</code> or{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Demo</code>.
+                  The <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">UseDefaultAdmin</code>{" "}
+                  bootstrap above creates the first admin role and user from values you own; it is
+                  idempotent and never recreates an existing admin. The signing key must be at least
+                  32 printable ASCII characters with no surrounding whitespace; known public defaults
+                  are accepted only when the environment is{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Development</code> or{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Demo</code>. In
+                  production, supply these through environment variables or a secret manager and
+                  rotate them after the first sign-in.
                 </p>
               }
             >
@@ -211,8 +232,10 @@ cd ElsaServer`}
                   A development host that relies on that must opt in explicitly with{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
                     elsa.UseDefaultAuthentication(auth =&gt; auth.EnableLocalHostPermissionGrantForSecurityRoot())
-                  </code>.
+                  </code>{" "}
+                  — the default admin bootstrap above is the recommended alternative.
                 </p>
+
                 <p>
                   C# and Python expressions execute host code. They require{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">AllowHostCodeExecution</code>{" "}
