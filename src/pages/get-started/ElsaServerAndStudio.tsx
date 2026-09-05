@@ -78,6 +78,8 @@ const hostCsproj = `<Project Sdk="Microsoft.NET.Sdk.Web">
     <PackageReference Include="Elsa.Identity" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Scheduling" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Workflows.Api" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Dashboard.Api" Version="${ELSA_VERSION}" />
+    <PackageReference Include="Elsa.Workflows.Runtime.Dashboard" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Expressions.CSharp" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Expressions.JavaScript" Version="${ELSA_VERSION}" />
     <PackageReference Include="Elsa.Expressions.Liquid" Version="${ELSA_VERSION}" />
@@ -105,6 +107,8 @@ ${pkg("Elsa.Http")}
 ${pkg("Elsa.Identity")}
 ${pkg("Elsa.Scheduling")}
 ${pkg("Elsa.Workflows.Api")}
+${pkg("Elsa.Dashboard.Api")}
+${pkg("Elsa.Workflows.Runtime.Dashboard")}
 ${pkg("Elsa.Expressions.CSharp")}
 ${pkg("Elsa.Expressions.JavaScript")}
 ${pkg("Elsa.Expressions.Liquid")}
@@ -177,6 +181,13 @@ builder.Services.AddElsa(elsa =>
     elsa.UseWorkflowManagement(management => management.UseEntityFrameworkCore(ef => ef.UseSqlite()));
     elsa.UseWorkflowRuntime(runtime => runtime.UseEntityFrameworkCore(ef => ef.UseSqlite()));
     elsa.UseWorkflowsApi();
+
+    // Backend for the default Studio dashboard (AddDashboardModule below).
+    // Both extension methods live in Elsa.Extensions; without them the
+    // dashboard's calls return errors.
+    elsa.UseDashboardApi();
+    elsa.UseWorkflowRuntimeDashboard();
+
     elsa.UseScheduling();
     elsa.UseHttp(http => http.ConfigureHttpOptions = options => configuration.GetSection("Http").Bind(options));
 

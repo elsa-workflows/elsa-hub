@@ -19,6 +19,8 @@ const packages = [
   "Elsa.Identity",
   "Elsa.Scheduling",
   "Elsa.Workflows.Api",
+  "Elsa.Dashboard.Api",
+  "Elsa.Workflows.Runtime.Dashboard",
   "Elsa.Expressions.CSharp",
   "Elsa.Expressions.JavaScript",
   "Elsa.Expressions.Liquid",
@@ -67,6 +69,12 @@ builder.Services.AddElsa(elsa =>
 
     // REST API consumed by Elsa Studio and your own clients.
     elsa.UseWorkflowsApi();
+
+    // Backend for Elsa Studio's default dashboard. Both extension methods live
+    // in Elsa.Extensions. If Studio registers AddDashboardModule() and the
+    // server omits these, the dashboard's calls return errors.
+    elsa.UseDashboardApi();
+    elsa.UseWorkflowRuntimeDashboard();
 
     elsa.UseScheduling();
 

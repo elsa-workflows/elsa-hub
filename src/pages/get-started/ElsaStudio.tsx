@@ -188,6 +188,24 @@ export default function ElsaStudio() {
 
             <Alert>
               <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Dashboard backend required on the server</AlertTitle>
+              <AlertDescription>
+                This guide registers{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">AddDashboardModule(...)</code>, so
+                your Elsa Server must reference{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">Elsa.Dashboard.Api</code> {ELSA_VERSION} and{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">Elsa.Workflows.Runtime.Dashboard</code> {ELSA_VERSION},
+                and call{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">elsa.UseDashboardApi()</code> and{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">elsa.UseWorkflowRuntimeDashboard()</code>{" "}
+                inside <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">AddElsa(...)</code> (both live in{" "}
+                <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">Elsa.Extensions</code>). Without them the
+                default dashboard's calls return errors.
+              </AlertDescription>
+            </Alert>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
               <AlertTitle>Server Required</AlertTitle>
               <AlertDescription>
                 Elsa Studio requires a running Elsa Server to connect to. If you
