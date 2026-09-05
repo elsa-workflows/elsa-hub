@@ -120,20 +120,26 @@ builder.Services.AddElsa(elsa =>
     elsa.UseWorkflowRuntime(r =>
         r.UseEntityFrameworkCore(ef => ef.UseSqlite()));
 
+    // Elsa 3.8.0: the admin user provider denies every sign-in unless
+    // credentials are configured, and the signing key must be at least 32
+    // printable ASCII characters with no surrounding whitespace.
     elsa.UseIdentity(identity =>
     {
-        identity.UseAdminUserProvider();
-        identity.TokenOptions = options =>
-        {
-            options.SigningKey = config["Identity:SigningKey"]!;
-            options.AccessTokenLifetime = TimeSpan.FromDays(1);
-        };
+        identity.UseAdminUserProvider(options =>
+            config.GetSection("Identity:Admin").Bind(options));
+
+        identity.TokenOptions += options =>
+            config.GetSection("Identity:Tokens").Bind(options);
     });
 
     elsa.UseDefaultAuthentication();
     elsa.UseWorkflowsApi();
     elsa.UseScheduling();
-    elsa.UseCSharp();
+
+    // C# expressions run host code: they need
+    // Scripting:CSharp:AllowHostCodeExecution and the
+    // exec:csharp-expressions permission. Not a sandbox.
+    elsa.UseCSharp(options => config.GetSection("Scripting:CSharp").Bind(options));
     elsa.UseJavaScript();
     elsa.UseLiquid();
 });
