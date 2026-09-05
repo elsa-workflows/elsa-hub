@@ -136,10 +136,19 @@ const indexHtml = `<!DOCTYPE html>
 </body>
 </html>`;
 
+const csprojGlobalization = `<PropertyGroup>
+  <!-- Required: Elsa Studio switches the culture at startup via
+       UseElsaLocalization. Without the full ICU data, Blazor WebAssembly
+       throws "Blazor detected a change in the application's culture"
+       and the app stops at the loading splash. -->
+  <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+</PropertyGroup>`;
+
 const filesToRemove = `rm -rf Pages
 rm -rf Layout
 rm App.razor
 rm MainLayout.razor`;
+
 
 
 export default function ElsaStudio() {
@@ -246,7 +255,26 @@ cd ElsaStudioBlazorWasm`}
               description="Install the Elsa Studio packages for the workflow designer UI."
             >
               <CodeBlock code={packages} language="bash" title="Terminal" />
+
+              <div className="mt-6 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Elsa Studio calls{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">UseElsaLocalization</code>{" "}
+                  during startup. A default Blazor WebAssembly project ships with trimmed
+                  globalization data, so the app aborts at load with{" "}
+                  <em>"Blazor detected a change in the application's culture"</em> and never leaves
+                  the loading splash. Add the property below to your{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">.csproj</code>{" "}
+                  — the build succeeds without it, so this only shows up at runtime.
+                </p>
+                <CodeBlock
+                  code={csprojGlobalization}
+                  language="xml"
+                  title="ElsaStudioBlazorWasm.csproj"
+                />
+              </div>
             </StepItem>
+
 
             {/* Step 3 */}
             <StepItem
@@ -341,6 +369,26 @@ cd ElsaStudioBlazorWasm`}
               description="Start the Elsa Studio application."
             >
               <CodeBlock code="dotnet run" language="bash" title="Terminal" />
+              <Alert className="mt-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Serving this app from an ASP.NET Core host</AlertTitle>
+                <AlertDescription>
+                  If you host this WebAssembly app from an ASP.NET Core project instead of running
+                  it standalone, call{" "}
+                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                    app.UseBlazorFrameworkFiles()
+                  </code>{" "}
+                  before{" "}
+                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                    app.UseStaticFiles()
+                  </code>
+                  . In the other order the ICU globalization{" "}
+                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">.dat</code>{" "}
+                  files under <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">_framework</code>{" "}
+                  return 404 and the page stays on "Loading…".
+                </AlertDescription>
+              </Alert>
+
               <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                 <p className="text-sm text-muted-foreground">
                   The studio will open in your browser. Login with the default credentials:
