@@ -148,6 +148,20 @@ export default function ElsaStudio() {
               </AlertDescription>
             </Alert>
 
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Elsa Studio {ELSA_VERSION}: one authentication provider</AlertTitle>
+              <AlertDescription>
+                Studio {ELSA_VERSION} consumes Elsa.Api.Client {ELSA_VERSION}, so upgrade the server
+                first and keep both on the same release line. Register exactly one authentication
+                provider — the login module used here, Elsa Identity, direct OIDC, or brokered
+                external authentication. Mixing them is not supported. Diagnostics and dashboard
+                widgets are opt-in and gated by remote features and permissions.
+              </AlertDescription>
+            </Alert>
+
+
+
             {/* Step 1 */}
             <StepItem
               number={1}
