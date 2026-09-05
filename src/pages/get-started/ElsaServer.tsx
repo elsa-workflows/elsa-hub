@@ -19,6 +19,8 @@ const packages = [
   "Elsa.Identity",
   "Elsa.Scheduling",
   "Elsa.Workflows.Api",
+  "Elsa.Dashboard.Api",
+  "Elsa.Workflows.Runtime.Dashboard",
   "Elsa.Expressions.CSharp",
   "Elsa.Expressions.JavaScript",
   "Elsa.Expressions.Liquid",
