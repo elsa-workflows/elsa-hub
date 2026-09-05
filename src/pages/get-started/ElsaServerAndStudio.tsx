@@ -13,22 +13,35 @@ import {
 } from "@/components/get-started";
 import {
   ELSA_VERSION,
+  ELSA_TEMPLATES_VERSION,
+  ELSA_RELEASE_LINKS,
   SUPPORTED_DOTNET_SDKS,
   LAST_VERIFIED_ON,
+  PACKAGES_CHECKED_ON,
   pkg,
 } from "@/data/elsaVersion";
 
 // ---------------------------------------------------------------------------
-// Template-based (recommended) path
+// Template-based path
 // ---------------------------------------------------------------------------
+//
+// Elsa.Templates ships separately from the engine. The latest published
+// version is ELSA_TEMPLATES_VERSION, which is behind ELSA_VERSION, so a
+// scaffolded solution must be moved onto the current release line afterwards.
 
-const installTemplates = `dotnet new install Elsa.Templates::${ELSA_VERSION}`;
+const installTemplates = `dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`;
 
 const scaffoldFromTemplate = `dotnet new elsaserverandstudio -n "ElsaServerAndStudio"
 cd ElsaServerAndStudio
 dotnet restore
 dotnet build
 dotnet run --project Host`;
+
+const upgradeScaffold = `# The template targets Elsa ${ELSA_TEMPLATES_VERSION}. Move every
+# Elsa.* and Elsa.Studio.* reference onto ${ELSA_VERSION}, then rebuild.
+dotnet add Host package Elsa --version ${ELSA_VERSION}
+dotnet restore && dotnet build`;
+
 
 // ---------------------------------------------------------------------------
 // Manual setup — Blazor Server hosting model
@@ -107,20 +120,26 @@ builder.Services.AddElsa(elsa =>
     elsa.UseWorkflowRuntime(r =>
         r.UseEntityFrameworkCore(ef => ef.UseSqlite()));
 
+    // Elsa 3.8.0: the admin user provider denies every sign-in unless
+    // credentials are configured, and the signing key must be at least 32
+    // printable ASCII characters with no surrounding whitespace.
     elsa.UseIdentity(identity =>
     {
-        identity.UseAdminUserProvider();
-        identity.TokenOptions = options =>
-        {
-            options.SigningKey = config["Identity:SigningKey"]!;
-            options.AccessTokenLifetime = TimeSpan.FromDays(1);
-        };
+        identity.UseAdminUserProvider(options =>
+            config.GetSection("Identity:Admin").Bind(options));
+
+        identity.TokenOptions += options =>
+            config.GetSection("Identity:Tokens").Bind(options);
     });
 
     elsa.UseDefaultAuthentication();
     elsa.UseWorkflowsApi();
     elsa.UseScheduling();
-    elsa.UseCSharp();
+
+    // C# expressions run host code: they need
+    // Scripting:CSharp:AllowHostCodeExecution and the
+    // exec:csharp-expressions permission. Not a sandbox.
+    elsa.UseCSharp(options => config.GetSection("Scripting:CSharp").Bind(options));
     elsa.UseJavaScript();
     elsa.UseLiquid();
 });
@@ -177,7 +196,19 @@ const routesRazor = `@using Elsa.Studio.Shell.Components
 
 const appSettingsJson = `{
   "Identity": {
-    "SigningKey": "replace-with-a-long-256-bit-secret"
+    "Admin": {
+      "UserName": "admin",
+      "Password": "<set-a-strong-password>"
+    },
+    "Tokens": {
+      "SigningKey": "<at least 32 printable ASCII characters, no surrounding whitespace>",
+      "AccessTokenLifetime": "1:00:00:00"
+    }
+  },
+  "Scripting": {
+    "CSharp": {
+      "AllowHostCodeExecution": false
+    }
   },
   "Backend": {
     "Url": "/elsa/api"
@@ -300,10 +331,25 @@ export default function ElsaServerAndStudio() {
                   </code>
                   .
                 </li>
-                <li className="text-muted-foreground">
-                  Last verified from a clean checkout on{" "}
-                  <strong>{LAST_VERIFIED_ON}</strong>.
+                <li>
+                  <strong>Template package:</strong> <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.Templates</code>{" "}
+                  ships on its own cadence. The latest version published to NuGet.org is{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code>, so a
+                  scaffolded solution must be moved onto {ELSA_VERSION} afterwards.
                 </li>
+                <li>
+                  <strong>Release notes:</strong>{" "}
+                  <a className="text-primary hover:underline" href={ELSA_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer">Elsa Core {ELSA_VERSION}</a>{" "}
+                  ·{" "}
+                  <a className="text-primary hover:underline" href={ELSA_RELEASE_LINKS.studio} target="_blank" rel="noopener noreferrer">Elsa Studio {ELSA_VERSION}</a>
+                  .
+                </li>
+                <li className="text-muted-foreground">
+                  Package versions and registration APIs checked against the tagged{" "}
+                  {ELSA_VERSION} sources and NuGet.org on <strong>{PACKAGES_CHECKED_ON}</strong>. Last full
+                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa 3.7.1).
+                </li>
+
               </ul>
             </div>
 
@@ -334,8 +380,9 @@ export default function ElsaServerAndStudio() {
                 title="Install the Elsa templates"
                 description={
                   <p>
-                    Pin the template package to the same release as the runtime
-                    packages.
+                    Pin the template package to its latest published version,{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_VERSION}</code>.
+                    There is no {ELSA_VERSION} template package yet.
                   </p>
                 }
               >
@@ -358,24 +405,32 @@ export default function ElsaServerAndStudio() {
                 />
                 <div className="mt-4 p-4 rounded-lg border bg-muted/30 space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Open the URL printed in the terminal and sign in with:
+                    Open the URL printed in the terminal and sign in with the development
+                    credentials the template writes into its own configuration. Treat them as
+                    development-only: replace them before the app leaves your machine.
                   </p>
-                  <ul className="text-sm text-muted-foreground list-disc list-inside">
-                    <li>
-                      Username:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        admin
-                      </code>
-                    </li>
-                    <li>
-                      Password:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        password
-                      </code>
-                    </li>
-                  </ul>
                 </div>
               </StepItem>
+
+              <StepItem
+                number={3}
+                title={`Move the solution to Elsa ${ELSA_VERSION}`}
+                description={
+                  <p>
+                    Raise every <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Elsa.*</code> and{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Elsa.Studio.*</code> reference to{" "}
+                    {ELSA_VERSION}, then apply the identity and scripting changes described below —
+                    the scaffolded configuration predates them.
+                  </p>
+                }
+              >
+                <CodeBlock
+                  code={upgradeScaffold}
+                  language="bash"
+                  title="Terminal"
+                />
+              </StepItem>
+
             </div>
 
             {/* Manual walkthrough */}
@@ -509,23 +564,20 @@ export default function ElsaServerAndStudio() {
                 <CodeBlock code={buildRun} language="bash" title="Terminal" />
                 <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Open the URL printed in the terminal and sign in with:
+                    Open the URL printed in the terminal and sign in with the credentials you
+                    configured under <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">Identity:Admin</code>.
+                    Elsa {ELSA_VERSION} ships no default admin account: with nothing configured, every
+                    sign-in is denied.
                   </p>
-                  <ul className="text-sm text-muted-foreground list-disc list-inside">
-                    <li>
-                      Username:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        admin
-                      </code>
-                    </li>
-                    <li>
-                      Password:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        password
-                      </code>
-                    </li>
-                  </ul>
+                  <p className="text-sm text-muted-foreground">
+                    Localhost requests no longer receive security-root permissions automatically.
+                    A local host that needs that must opt in with{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
+                      EnableLocalHostPermissionGrantForSecurityRoot()
+                    </code>.
+                  </p>
                 </div>
+
               </StepItem>
             </div>
 

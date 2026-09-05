@@ -1,16 +1,16 @@
-// Canonical Elsa 3.7.0 samples shared across the public site.
-// Source of truth: https://github.com/elsa-workflows/elsa-core/tree/release/3.7.0
+// Canonical Elsa 3.8.0 samples shared across the public site.
+// Source of truth: https://github.com/elsa-workflows/elsa-core/tree/3.8.0
 //
 // Do not duplicate these strings inline. Import from here so the homepage
 // and get-started docs stay in lockstep with the release branch.
 
 // Embedding Elsa in a .NET host.
-// Source paths (release/3.7.0):
+// Source paths (tag 3.8.0):
 //   src/modules/Elsa/Extensions/DependencyInjectionExtensions.cs:18   -> AddElsa
 //   src/modules/Elsa.Workflows.Core/Extensions/ModuleExtensions.cs:11 -> UseWorkflows
 //   src/modules/Elsa.Http/Extensions/ModuleExtensions.cs:15           -> UseHttp
 //   src/modules/Elsa.Scheduling/Extensions/ModuleExtensions.cs:18     -> UseScheduling
-//   src/apps/Elsa.Server.Web/Program.cs:46-121                        -> integrated module configuration
+//   src/apps/Elsa.Server.Web/Program.cs                               -> integrated module configuration
 export const ELSA_EMBED_SNIPPET = `// Program.cs — embed Elsa in your .NET app
 services.AddElsa(elsa =>
 {

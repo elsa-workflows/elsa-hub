@@ -46,15 +46,17 @@ builder.Services.AddElsa(elsa =>
     // Expose API endpoints
     elsa.UseWorkflowsApi();
 
-    // Use default authentication (API key based)
+    // Identity. As of Elsa 3.8.0 the admin user provider denies every sign-in
+    // unless credentials are configured, and the signing key must be at least
+    // 32 printable ASCII characters with no surrounding whitespace.
+    // Bind both from configuration / a secret manager - never hard-code them.
     elsa.UseIdentity(identity =>
     {
-        identity.UseAdminUserProvider();
-        identity.TokenOptions = options =>
-        {
-            options.SigningKey = "my-long-256-bit-secret-token-signing-key";
-            options.AccessTokenLifetime = TimeSpan.FromDays(1);
-        };
+        identity.UseAdminUserProvider(options =>
+            builder.Configuration.GetSection("Identity:Admin").Bind(options));
+
+        identity.TokenOptions += options =>
+            builder.Configuration.GetSection("Identity:Tokens").Bind(options);
     });
 
     // Default authentication for API endpoints
@@ -63,8 +65,11 @@ builder.Services.AddElsa(elsa =>
     // Add scheduling capabilities
     elsa.UseScheduling();
 
-    // Enable C# workflow expressions
-    elsa.UseCSharp();
+    // Expression languages. C# executes host code: it requires
+    // Scripting:CSharp:AllowHostCodeExecution and the
+    // exec:csharp-expressions permission, and is not a sandbox.
+    elsa.UseCSharp(options =>
+        builder.Configuration.GetSection("Scripting:CSharp").Bind(options));
 
     // Enable JavaScript workflow expressions
     elsa.UseJavaScript();
@@ -86,6 +91,24 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseWorkflowsApi();
 app.Run();`;
+
+const appSettings = `{
+  "Identity": {
+    "Admin": {
+      "UserName": "admin",
+      "Password": "<set-a-strong-password>"
+    },
+    "Tokens": {
+      "SigningKey": "<at least 32 printable ASCII characters, no surrounding whitespace>",
+      "AccessTokenLifetime": "1:00:00:00"
+    }
+  },
+  "Scripting": {
+    "CSharp": {
+      "AllowHostCodeExecution": false
+    }
+  }
+}`;
 
 export default function ElsaServer() {
   return (
@@ -169,6 +192,41 @@ cd ElsaServer`}
             {/* Step 4 */}
             <StepItem
               number={4}
+              title="Configure identity secrets"
+              description={
+                <p>
+                  Elsa {ELSA_VERSION} ships no usable admin credentials or API keys.
+                  Provide them yourself through configuration or a secret manager. The
+                  signing key must be at least 32 printable ASCII characters with no
+                  surrounding whitespace; known public defaults are accepted only when the
+                  environment is <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Development</code> or{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Demo</code>.
+                </p>
+              }
+            >
+              <CodeBlock code={appSettings} language="json" title="appsettings.json" />
+              <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Localhost requests no longer receive security-root bootstrap permissions.
+                  A development host that relies on that must opt in explicitly with{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
+                    elsa.UseDefaultAuthentication(auth =&gt; auth.EnableLocalHostPermissionGrantForSecurityRoot())
+                  </code>.
+                </p>
+                <p>
+                  C# and Python expressions execute host code. They require{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">AllowHostCodeExecution</code>{" "}
+                  plus the <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">exec:csharp-expressions</code>{" "}
+                  / <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">exec:python-expressions</code>{" "}
+                  permission, and are not sandboxed — enable them only for trusted authors.
+                </p>
+              </div>
+            </StepItem>
+
+
+            {/* Step 5 */}
+            <StepItem
+              number={5}
               title="Run the Server"
               description={
                 <p>

@@ -16,6 +16,13 @@ import {
 import { GuideCard, PathCard, CodeBlock } from "@/components/get-started";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Badge } from "@/components/ui/badge";
+import {
+  ELSA_VERSION,
+  ELSA_RELEASE_DATE,
+  ELSA_RELEASE_LINKS,
+  ELSA_TEMPLATES_VERSION,
+} from "@/data/elsaVersion";
+
 
 
 const paths = [
@@ -114,7 +121,7 @@ const resources = [
 export default function GetStarted() {
   return (
     <Layout>
-      <Seo path="/get-started" title="Get started with Elsa Workflows" description="Setup guides for Elsa Workflows: pick the path that fits — Elsa Server, Elsa Studio, combined, or Docker. Up and running in minutes." />
+      <Seo path="/get-started" title={`Get started with Elsa Workflows ${ELSA_VERSION}`} description={`Setup guides for Elsa Workflows ${ELSA_VERSION}: Elsa Server, Elsa Studio, a combined host, or Docker — plus the ${ELSA_VERSION} upgrade notes.`} />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
@@ -126,6 +133,75 @@ export default function GetStarted() {
           </div>
         </div>
       </section>
+
+      {/* Latest release */}
+      <section id="latest-release" className="py-10 md:py-12 border-y border-border/60 scroll-mt-20">
+        <div className="container">
+          <div className="max-w-4xl rounded-lg border bg-card p-6 md:p-8">
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <h2 className="text-2xl font-bold">Latest stable release: Elsa {ELSA_VERSION}</h2>
+              <Badge variant="secondary" className="font-mono">{ELSA_RELEASE_DATE}</Badge>
+            </div>
+            <p className="text-muted-foreground mb-5">
+              Elsa {ELSA_VERSION} adds opt-in diagnostics (structured logs, console logs, OpenTelemetry),
+              runtime operations such as drain and pause/resume, a Secrets module, external
+              authentication, the StateMachine activity, a Dashboard API, and the Weaver AI host.
+              Elsa Studio {ELSA_VERSION} adds a dashboard shell, a diagnostics workspace, a React Flow
+              sequence designer, and a rebuilt state-machine designer. These modules are separate
+              packages: existing hosts do not opt into them automatically.
+            </p>
+
+            <h3 className="font-semibold mb-2 text-sm">Before you upgrade</h3>
+            <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1.5 mb-5">
+              <li>
+                <strong className="text-foreground">Identity secrets are required.</strong> The reference
+                server no longer ships usable admin credentials or API keys. Configure the initial
+                user/application yourself, and set a JWT signing key of at least 32 printable ASCII
+                characters with no surrounding whitespace (
+                <code className="font-mono">Identity__Tokens__SigningKey</code>). Known public defaults are
+                accepted only in <code className="font-mono">Development</code> or{" "}
+                <code className="font-mono">Demo</code>.
+              </li>
+              <li>
+                <strong className="text-foreground">Localhost bootstrap is opt-in.</strong> Localhost requests
+                no longer receive security-root permissions unless the host calls{" "}
+                <code className="font-mono">EnableLocalHostPermissionGrantForSecurityRoot()</code>.
+              </li>
+              <li>
+                <strong className="text-foreground">Script execution is privileged.</strong> C# and Python
+                expressions require <code className="font-mono">AllowHostCodeExecution</code> plus the{" "}
+                <code className="font-mono">exec:csharp-expressions</code> /{" "}
+                <code className="font-mono">exec:python-expressions</code> permission. They run host code and
+                are not sandboxes.
+              </li>
+              <li>
+                <strong className="text-foreground">Studio picks exactly one auth provider.</strong> Legacy
+                Elsa.Studio.Login, Elsa Identity, direct OIDC and brokered External Authentication must not be
+                mixed, and Studio {ELSA_VERSION} consumes Elsa.Api.Client {ELSA_VERSION} — upgrade Core first.
+              </li>
+              <li>
+                <strong className="text-foreground">.NET 10 package set</strong> moves FastEndpoints to 8.2.0;
+                new Secrets and external-authentication EF Core packages add provider migrations.
+              </li>
+            </ul>
+
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <a href={ELSA_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
+                <Github className="h-4 w-4" /> Elsa Core {ELSA_VERSION} release notes <ArrowRight className="h-4 w-4" />
+              </a>
+              <span className="text-muted-foreground">·</span>
+              <a href={ELSA_RELEASE_LINKS.studio} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
+                <Github className="h-4 w-4" /> Elsa Studio {ELSA_VERSION} <ArrowRight className="h-4 w-4" />
+              </a>
+              <span className="text-muted-foreground">·</span>
+              <a href={ELSA_RELEASE_LINKS.extensions} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
+                <Github className="h-4 w-4" /> Elsa Extensions {ELSA_VERSION} <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* Choose Your Path */}
       <section className="py-16 md:py-20">
@@ -161,7 +237,13 @@ export default function GetStarted() {
               <p className="text-muted-foreground">
                 The <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Templates</code> package
                 ships official <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">dotnet new</code> templates
-                for Elsa Server, Elsa Studio, and a combined solution. The current stable release targets Elsa 3.7.0.
+                for Elsa Server, Elsa Studio, and a combined solution. It is published separately from the
+                engine: the latest version on NuGet.org is{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_VERSION}</code>,
+                so a scaffolded solution does not yet reference Elsa {ELSA_VERSION}. After scaffolding, raise the{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.*</code> and{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Studio.*</code> package
+                references to {ELSA_VERSION} and apply the upgrade notes above.
               </p>
             </div>
           </ScrollReveal>
@@ -171,20 +253,24 @@ export default function GetStarted() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-semibold mb-1">1. Install the templates</h3>
-                  <p className="text-sm text-muted-foreground mb-3">From NuGet.org (stable release).</p>
-                  <CodeBlock language="bash" code={`dotnet new install Elsa.Templates`} />
+                  <p className="text-sm text-muted-foreground mb-3">From NuGet.org (latest published version).</p>
+                  <CodeBlock language="bash" code={`dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`} />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Or install a preview</h3>
-                  <p className="text-sm text-muted-foreground mb-3">From the Elsa preview feed.</p>
+                  <h3 className="font-semibold mb-1">Then move the solution to Elsa {ELSA_VERSION}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Update the generated package references to the current release line.
+                  </p>
                   <CodeBlock
                     language="bash"
-                    code={`dotnet new install Elsa.Templates@3.8.0-preview \\
-  --add-source https://f.feedz.io/elsa-workflows/elsa-3/nuget/index.json`}
+                    code={`dotnet add package Elsa --version ${ELSA_VERSION}
+# repeat for every Elsa.* and Elsa.Studio.* reference in the solution
+dotnet restore && dotnet build`}
                   />
                 </div>
               </div>
             </ScrollReveal>
+
 
             <ScrollReveal delay={100}>
               <div className="space-y-4">
