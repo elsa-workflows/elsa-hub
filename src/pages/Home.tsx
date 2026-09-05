@@ -45,7 +45,7 @@ const lifecycleSteps = [
   {
     icon: Activity,
     title: "Operate",
-    body: "Inspect workflow instances and execution journals through the Elsa 3.7 API, and manage them from Elsa Studio.",
+    body: "Inspect workflow instances and execution journals through the Elsa 3.8 API, and manage them from Elsa Studio. Structured logs, console logs and OpenTelemetry are available as opt-in diagnostics modules.",
   },
 ];
 
@@ -219,10 +219,10 @@ export default function Home() {
                 <h3 className="text-xl font-semibold mb-2">Deploy Elsa</h3>
                 <p className="text-sm text-muted-foreground mb-5">
                   Run Elsa Server and Studio as a separately deployed workflow
-                  system using the canonical quick-start image from the
-                  release/3.7.0 branch. A production-grade image is also available
-                  as part of Valence Runtime.
+                  system using the community quick-start image. A production-grade
+                  image is also available as part of Valence Runtime.
                 </p>
+
                 <HomeCodeSample
                   code={ELSA_DOCKER_QUICKSTART}
                   language="bash"
@@ -324,7 +324,7 @@ export default function Home() {
               <div>
                 <dt className="font-medium mb-1">Inspectable execution</dt>
                 <dd className="text-sm text-muted-foreground">
-                  Elsa 3.7 exposes workflow instances and execution journals through
+                  Elsa 3.8 exposes workflow instances and execution journals through
                   its API for external observability tooling.
                 </dd>
               </div>
