@@ -246,7 +246,26 @@ cd ElsaStudioBlazorWasm`}
               description="Install the Elsa Studio packages for the workflow designer UI."
             >
               <CodeBlock code={packages} language="bash" title="Terminal" />
+
+              <div className="mt-6 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Elsa Studio calls{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">UseElsaLocalization</code>{" "}
+                  during startup. A default Blazor WebAssembly project ships with trimmed
+                  globalization data, so the app aborts at load with{" "}
+                  <em>"Blazor detected a change in the application's culture"</em> and never leaves
+                  the loading splash. Add the property below to your{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">.csproj</code>{" "}
+                  — the build succeeds without it, so this only shows up at runtime.
+                </p>
+                <CodeBlock
+                  code={csprojGlobalization}
+                  language="xml"
+                  title="ElsaStudioBlazorWasm.csproj"
+                />
+              </div>
             </StepItem>
+
 
             {/* Step 3 */}
             <StepItem
