@@ -369,6 +369,26 @@ cd ElsaStudioBlazorWasm`}
               description="Start the Elsa Studio application."
             >
               <CodeBlock code="dotnet run" language="bash" title="Terminal" />
+              <Alert className="mt-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Serving this app from an ASP.NET Core host</AlertTitle>
+                <AlertDescription>
+                  If you host this WebAssembly app from an ASP.NET Core project instead of running
+                  it standalone, call{" "}
+                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                    app.UseBlazorFrameworkFiles()
+                  </code>{" "}
+                  before{" "}
+                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">
+                    app.UseStaticFiles()
+                  </code>
+                  . In the other order the ICU globalization{" "}
+                  <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">.dat</code>{" "}
+                  files under <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">_framework</code>{" "}
+                  return 404 and the page stays on "Loading…".
+                </AlertDescription>
+              </Alert>
+
               <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                 <p className="text-sm text-muted-foreground">
                   The studio will open in your browser. Login with the default credentials:
