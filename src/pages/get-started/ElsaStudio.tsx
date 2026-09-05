@@ -75,6 +75,11 @@ var backendApiConfig = new BackendApiConfig
 
 services.AddCore();
 services.AddShell();
+// Required. In Studio ${ELSA_VERSION}, AddElsaIdentityUI() only registers the
+// Elsa Identity provider and its redirect; the /login page itself lives in
+// Elsa.Studio.Authentication.UI and needs AddAuthenticationUI() for its
+// feature and services. Without it, /login fails to render. The same call is
+// required when you select direct OIDC instead of Elsa Identity.
 services.AddAuthenticationUI(configuration.GetSection(LoginThemeOptions.SectionName)).AddElsaStudioLoginThemes();
 services.AddRemoteBackend(backendApiConfig);
 services.AddDashboardModule(backendApiConfig);
