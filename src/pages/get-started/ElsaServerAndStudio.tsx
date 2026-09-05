@@ -568,6 +568,31 @@ export default function ElsaServerAndStudio() {
                 </AlertDescription>
               </Alert>
 
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>
+                  Studio {ELSA_VERSION}: the sign-in page needs its own module
+                </AlertTitle>
+                <AlertDescription>
+                  Select exactly one authentication provider explicitly with{" "}
+                  <code className="font-mono">AddStudioAuthenticationMode</code>
+                  . In {ELSA_VERSION},{" "}
+                  <code className="font-mono">AddElsaIdentityUI()</code> only
+                  registers the Elsa Identity provider and its redirect. The{" "}
+                  <code className="font-mono">/login</code> page itself ships in{" "}
+                  <code className="font-mono">
+                    Elsa.Studio.Authentication.UI
+                  </code>{" "}
+                  and only renders when you also reference that package and
+                  call <code className="font-mono">AddAuthenticationUI(...)</code>
+                  . The same applies when you select direct OIDC instead of Elsa
+                  Identity. Verified here by requesting{" "}
+                  <code className="font-mono">/login</code> on the running host:
+                  with the call it returns the sign-in form; without it the page
+                  fails to render.
+                </AlertDescription>
+              </Alert>
+
               <StepItem
                 number={1}
                 title="Create the solution and Host project"
