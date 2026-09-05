@@ -215,6 +215,11 @@ var backendApiConfig = new BackendApiConfig
 
 builder.Services.AddCore();
 builder.Services.AddShell();
+// Required. In Studio ${ELSA_VERSION}, AddElsaIdentityUI() only registers the
+// Elsa Identity provider and its redirect; the /login page itself lives in
+// Elsa.Studio.Authentication.UI and needs AddAuthenticationUI() for its
+// feature and services. Without it, /login fails to render. The same call is
+// required when you select direct OIDC instead of Elsa Identity.
 builder.Services.AddAuthenticationUI(configuration.GetSection(LoginThemeOptions.SectionName)).AddElsaStudioLoginThemes();
 builder.Services.AddRemoteBackend(backendApiConfig);
 builder.Services.AddDashboardModule(backendApiConfig);
@@ -560,6 +565,31 @@ export default function ElsaServerAndStudio() {
                     Elsa.Studio.Workflows.Monaco
                   </code>{" "}
                   do not exist on NuGet and are not referenced here.
+                </AlertDescription>
+              </Alert>
+
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>
+                  Studio {ELSA_VERSION}: the sign-in page needs its own module
+                </AlertTitle>
+                <AlertDescription>
+                  Select exactly one authentication provider explicitly with{" "}
+                  <code className="font-mono">AddStudioAuthenticationMode</code>
+                  . In {ELSA_VERSION},{" "}
+                  <code className="font-mono">AddElsaIdentityUI()</code> only
+                  registers the Elsa Identity provider and its redirect. The{" "}
+                  <code className="font-mono">/login</code> page itself ships in{" "}
+                  <code className="font-mono">
+                    Elsa.Studio.Authentication.UI
+                  </code>{" "}
+                  and only renders when you also reference that package and
+                  call <code className="font-mono">AddAuthenticationUI(...)</code>
+                  . The same applies when you select direct OIDC instead of Elsa
+                  Identity. Verified here by requesting{" "}
+                  <code className="font-mono">/login</code> on the running host:
+                  with the call it returns the sign-in form; without it the page
+                  fails to render.
                 </AlertDescription>
               </Alert>
 
