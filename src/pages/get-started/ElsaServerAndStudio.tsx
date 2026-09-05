@@ -438,10 +438,11 @@ export default function ElsaServerAndStudio() {
                   different numbers. The{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code> package
                   references Elsa Core / Studio {ELSA_VERSION}, CShells {ELSA_TEMPLATES_CSHELLS_VERSION}, and
-                  generates {ELSA_TEMPLATES_TARGET_FRAMEWORK} projects. It is prepared in{" "}
-                  <a className="text-primary hover:underline" href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer">PR #4</a>{" "}
-                  and not tagged yet; the 3.7.0 / 3.7.1 packages generated Elsa 3.7.0 references and needed a
+                  generates {ELSA_TEMPLATES_TARGET_FRAMEWORK} projects, and is tagged as{" "}
+                  <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">Elsa.Templates 3.8.0</a>;
+                  the 3.7.0 / 3.7.1 packages generated Elsa 3.7.0 references and needed a
                   manual bump.
+
                 </li>
 
                 <li>
