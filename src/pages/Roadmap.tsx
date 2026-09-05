@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
+import { ELSA_VERSION, ELSA_RELEASE_DATE, ELSA_RELEASE_LINKS } from "@/data/elsaVersion";
 
 const ROADMAP_ISSUE_URL = "https://github.com/elsa-workflows/elsa-core/issues/3232";
 
