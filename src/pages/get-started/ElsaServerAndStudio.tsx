@@ -699,7 +699,7 @@ export default function ElsaServerAndStudio() {
               <StepItem
                 number={6}
                 title="Restore, build, run"
-                description="Run the clean-room verification the same way we do."
+                description="Run the clean-room verification the same way it was externally validated."
               >
                 <CodeBlock code={buildRun} language="bash" title="Terminal" />
                 <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
