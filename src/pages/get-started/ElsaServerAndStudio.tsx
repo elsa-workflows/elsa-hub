@@ -13,22 +13,35 @@ import {
 } from "@/components/get-started";
 import {
   ELSA_VERSION,
+  ELSA_TEMPLATES_VERSION,
+  ELSA_RELEASE_LINKS,
   SUPPORTED_DOTNET_SDKS,
   LAST_VERIFIED_ON,
+  PACKAGES_CHECKED_ON,
   pkg,
 } from "@/data/elsaVersion";
 
 // ---------------------------------------------------------------------------
-// Template-based (recommended) path
+// Template-based path
 // ---------------------------------------------------------------------------
+//
+// Elsa.Templates ships separately from the engine. The latest published
+// version is ELSA_TEMPLATES_VERSION, which is behind ELSA_VERSION, so a
+// scaffolded solution must be moved onto the current release line afterwards.
 
-const installTemplates = `dotnet new install Elsa.Templates::${ELSA_VERSION}`;
+const installTemplates = `dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`;
 
 const scaffoldFromTemplate = `dotnet new elsaserverandstudio -n "ElsaServerAndStudio"
 cd ElsaServerAndStudio
 dotnet restore
 dotnet build
 dotnet run --project Host`;
+
+const upgradeScaffold = `# The template targets Elsa ${ELSA_TEMPLATES_VERSION}. Move every
+# Elsa.* and Elsa.Studio.* reference onto ${ELSA_VERSION}, then rebuild.
+dotnet add Host package Elsa --version ${ELSA_VERSION}
+dotnet restore && dotnet build`;
+
 
 // ---------------------------------------------------------------------------
 // Manual setup — Blazor Server hosting model
