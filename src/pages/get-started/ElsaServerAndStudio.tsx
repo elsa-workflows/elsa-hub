@@ -32,9 +32,9 @@ import {
 // Elsa.Templates ships on its own cadence, separate from the engine, but the
 // 3.8.0 template package references Elsa Core / Studio 3.8.0, CShells 0.0.28
 // and generates .NET 10 projects — so the old "scaffold at 3.7.0, then bump
-// every package" workaround no longer applies. The 3.8.0 package is prepared
-// in elsa-templates PR #4 and is not tagged/published yet: do not describe the
-// NuGet or preview feeds as verified until the tag exists.
+// every package" workaround no longer applies. The 3.8.0 package is tagged at
+// elsa-templates commit c44079008d06f4580374d7c8abbeff2faf748df0.
+
 
 const installTemplates = `dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`;
 
