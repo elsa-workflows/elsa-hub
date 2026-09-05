@@ -121,7 +121,7 @@ const resources = [
 export default function GetStarted() {
   return (
     <Layout>
-      <Seo path="/get-started" title="Get started with Elsa Workflows" description="Setup guides for Elsa Workflows: pick the path that fits — Elsa Server, Elsa Studio, combined, or Docker. Up and running in minutes." />
+      <Seo path="/get-started" title={`Get started with Elsa Workflows ${ELSA_VERSION}`} description={`Setup guides for Elsa Workflows ${ELSA_VERSION}: Elsa Server, Elsa Studio, a combined host, or Docker — plus the ${ELSA_VERSION} upgrade notes.`} />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">

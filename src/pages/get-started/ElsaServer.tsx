@@ -46,15 +46,17 @@ builder.Services.AddElsa(elsa =>
     // Expose API endpoints
     elsa.UseWorkflowsApi();
 
-    // Use default authentication (API key based)
+    // Identity. As of Elsa 3.8.0 the admin user provider denies every sign-in
+    // unless credentials are configured, and the signing key must be at least
+    // 32 printable ASCII characters with no surrounding whitespace.
+    // Bind both from configuration / a secret manager - never hard-code them.
     elsa.UseIdentity(identity =>
     {
-        identity.UseAdminUserProvider();
-        identity.TokenOptions = options =>
-        {
-            options.SigningKey = "my-long-256-bit-secret-token-signing-key";
-            options.AccessTokenLifetime = TimeSpan.FromDays(1);
-        };
+        identity.UseAdminUserProvider(options =>
+            builder.Configuration.GetSection("Identity:Admin").Bind(options));
+
+        identity.TokenOptions += options =>
+            builder.Configuration.GetSection("Identity:Tokens").Bind(options);
     });
 
     // Default authentication for API endpoints
@@ -63,8 +65,11 @@ builder.Services.AddElsa(elsa =>
     // Add scheduling capabilities
     elsa.UseScheduling();
 
-    // Enable C# workflow expressions
-    elsa.UseCSharp();
+    // Expression languages. C# executes host code: it requires
+    // Scripting:CSharp:AllowHostCodeExecution and the
+    // exec:csharp-expressions permission, and is not a sandbox.
+    elsa.UseCSharp(options =>
+        builder.Configuration.GetSection("Scripting:CSharp").Bind(options));
 
     // Enable JavaScript workflow expressions
     elsa.UseJavaScript();
@@ -86,6 +91,24 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseWorkflowsApi();
 app.Run();`;
+
+const appSettings = `{
+  "Identity": {
+    "Admin": {
+      "UserName": "admin",
+      "Password": "<set-a-strong-password>"
+    },
+    "Tokens": {
+      "SigningKey": "<at least 32 printable ASCII characters, no surrounding whitespace>",
+      "AccessTokenLifetime": "1:00:00:00"
+    }
+  },
+  "Scripting": {
+    "CSharp": {
+      "AllowHostCodeExecution": false
+    }
+  }
+}`;
 
 export default function ElsaServer() {
   return (
