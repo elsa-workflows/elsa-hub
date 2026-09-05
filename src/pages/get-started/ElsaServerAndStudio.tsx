@@ -455,7 +455,7 @@ export default function ElsaServerAndStudio() {
                 <li className="text-muted-foreground">
                   Package versions and registration APIs checked against the tagged{" "}
                   {ELSA_VERSION} sources and NuGet.org on <strong>{PACKAGES_CHECKED_ON}</strong>. Last full
-                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa 3.7.1).
+                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa {ELSA_VERSION}, externally verified by Codex).
                 </li>
 
               </ul>
