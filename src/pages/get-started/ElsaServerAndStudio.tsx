@@ -15,7 +15,6 @@ import {
   ELSA_VERSION,
   ELSA_TEMPLATES_VERSION,
   ELSA_TEMPLATES_RELEASE_URL,
-  ELSA_TEMPLATES_PR_URL,
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
   ELSA_TEMPLATES_CSHELLS_VERSION,
   ELSA_UPGRADE_GUIDE_URL,
@@ -33,9 +32,9 @@ import {
 // Elsa.Templates ships on its own cadence, separate from the engine, but the
 // 3.8.0 template package references Elsa Core / Studio 3.8.0, CShells 0.0.28
 // and generates .NET 10 projects — so the old "scaffold at 3.7.0, then bump
-// every package" workaround no longer applies. The 3.8.0 package is prepared
-// in elsa-templates PR #4 and is not tagged/published yet: do not describe the
-// NuGet or preview feeds as verified until the tag exists.
+// every package" workaround no longer applies. The 3.8.0 package is tagged at
+// elsa-templates commit c44079008d06f4580374d7c8abbeff2faf748df0.
+
 
 const installTemplates = `dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`;
 
@@ -439,10 +438,11 @@ export default function ElsaServerAndStudio() {
                   different numbers. The{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code> package
                   references Elsa Core / Studio {ELSA_VERSION}, CShells {ELSA_TEMPLATES_CSHELLS_VERSION}, and
-                  generates {ELSA_TEMPLATES_TARGET_FRAMEWORK} projects. It is prepared in{" "}
-                  <a className="text-primary hover:underline" href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer">PR #4</a>{" "}
-                  and not tagged yet; the 3.7.0 / 3.7.1 packages generated Elsa 3.7.0 references and needed a
+                  generates {ELSA_TEMPLATES_TARGET_FRAMEWORK} projects, and is tagged as{" "}
+                  <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">Elsa.Templates 3.8.0</a>;
+                  the 3.7.0 / 3.7.1 packages generated Elsa 3.7.0 references and needed a
                   manual bump.
+
                 </li>
 
                 <li>
@@ -494,11 +494,9 @@ export default function ElsaServerAndStudio() {
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_CSHELLS_VERSION}</code>,
                     and generates{" "}
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_TARGET_FRAMEWORK}</code>{" "}
-                    projects, so no post-scaffold package bump is required. This package is prepared in{" "}
-                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer">PR #4</a>{" "}
-                    and not tagged yet — the feeds are not confirmed until{" "}
-                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">the 3.8.0 release</a>{" "}
-                    is published.
+                    projects, so no post-scaffold package bump is required. See{" "}
+                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">the 3.8.0 release</a>.
+
                   </p>
                 }
               >

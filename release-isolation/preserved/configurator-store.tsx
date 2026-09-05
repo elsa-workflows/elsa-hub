@@ -162,11 +162,17 @@ export function buildIntent(
       byPackage.set(key, entry);
     }
     entry.selectedFeatures.push(featureId);
+    // Upstream expects settings keyed by featureId: { [featureId]: { [name]: value } }.
+    const featureSettings: Record<string, unknown> = {};
     for (const [name, value] of Object.entries(state.settings[featureId] ?? {})) {
       if (value === "" || value === undefined || value === null) continue;
-      entry.settings[name] = value;
+      featureSettings[name] = value;
+    }
+    if (Object.keys(featureSettings).length > 0) {
+      entry.settings = { ...(entry.settings ?? {}), [featureId]: featureSettings };
     }
   }
+
 
   const providers = catalog?.infrastructureProviders ?? [];
   const infrastructure = Object.entries(state.infrastructure)

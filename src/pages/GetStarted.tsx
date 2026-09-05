@@ -22,7 +22,6 @@ import {
   ELSA_RELEASE_LINKS,
   ELSA_TEMPLATES_VERSION,
   ELSA_TEMPLATES_RELEASE_URL,
-  ELSA_TEMPLATES_PR_URL,
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
   ELSA_TEMPLATES_CSHELLS_VERSION,
   ELSA_UPGRADE_GUIDE_URL,
@@ -252,15 +251,12 @@ export default function GetStarted() {
               </p>
               <p className="text-sm text-muted-foreground mt-4 rounded-md border border-border/70 bg-background p-4">
                 <strong className="text-foreground">Release status:</strong> the {ELSA_TEMPLATES_VERSION} template
-                package is prepared in{" "}
-                <a href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                  elsa-templates PR #4
-                </a>{" "}
-                and has not been tagged yet. Its release notes will appear at{" "}
+                package is tagged — see{" "}
                 <a href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                  the 3.8.0 tag
-                </a>. Until the tag lands, treat the NuGet and preview feeds as not yet confirmed.
+                  the 3.8.0 release
+                </a>.
               </p>
+
             </div>
           </ScrollReveal>
 
@@ -354,8 +350,7 @@ export default function GetStarted() {
                   <code className="font-mono">hybrid</code>. Auth: <code className="font-mono">elsa-identity</code>,{" "}
                   <code className="font-mono">open-id-connect</code>, <code className="font-mono">elsa-login</code>. Add{" "}
                   <code className="font-mono">--with-labels</code> for the Labels module. Hybrid output adds a WASM
-                  client and reads <code className="font-mono">Studio:HostingModel</code> at runtime; a routing
-                  correction for that mode is still being finished before the tag.
+                  client and reads <code className="font-mono">Studio:HostingModel</code> at runtime.
                 </p>
               </div>
 
