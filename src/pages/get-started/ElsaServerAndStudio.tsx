@@ -25,33 +25,25 @@ import {
 // Template-based path
 // ---------------------------------------------------------------------------
 //
-// Elsa.Templates ships on its own cadence, separate from the engine. Only
-// 3.7.0 and 3.7.1 are published to NuGet.org, and the 3.7.1 template package
-// generates projects whose Elsa.* / Elsa.Studio.* references are pinned to
-// 3.7.0. Template version and Elsa runtime version are therefore two
-// different numbers; the scaffolded solution has to be moved onto
-// ELSA_VERSION afterwards.
+// Elsa.Templates ships on its own cadence, separate from the engine, but the
+// 3.8.0 template package references Elsa Core / Studio 3.8.0, CShells 0.0.28
+// and generates .NET 10 projects — so the old "scaffold at 3.7.0, then bump
+// every package" workaround no longer applies. The 3.8.0 package is prepared
+// in elsa-templates PR #4 and is not tagged/published yet: do not describe the
+// NuGet or preview feeds as verified until the tag exists.
 
-const installTemplates = `dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`;
+const installTemplates = `dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`;
 
-const scaffoldFromTemplate = `dotnet new elsaserverandstudio -n "ElsaServerAndStudio"
+const scaffoldFromTemplate = `dotnet new elsa-combined -n "ElsaServerAndStudio" \\
+  --feature-model static \\
+  --studio-hosting server \\
+  --persistence sqlite \\
+  --auth-provider elsa-identity
 cd ElsaServerAndStudio
 dotnet restore
 dotnet build
-dotnet run --project Host`;
+dotnet run --project src/Company.ElsaCombined.Host`;
 
-const upgradeScaffold = `# The ${ELSA_TEMPLATES_VERSION} template generates Elsa.* / Elsa.Studio.*
-# references at 3.7.0. Raise every one of them to ${ELSA_VERSION}.
-dotnet list package | grep -i "Elsa"
-
-dotnet list package --format json \\
-  | jq -r '.projects[] | .path as $p | .frameworks[].topLevelPackages[]
-           | select(.id | startswith("Elsa")) | "\\($p) \\(.id)"' \\
-  | while read -r proj id; do
-      dotnet add "$proj" package "$id" --version ${ELSA_VERSION}
-    done
-
-dotnet restore && dotnet build`;
 
 
 
