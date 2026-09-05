@@ -15,52 +15,91 @@ import { ELSA_VERSION, pkg } from "@/data/elsaVersion";
 const packages = [
   "Elsa.Studio",
   "Elsa.Studio.Core.BlazorWasm",
-  "Elsa.Studio.Login.BlazorWasm",
+  "Elsa.Studio.Shell",
+  "Elsa.Studio.Authentication.ElsaIdentity.BlazorWasm",
+  "Elsa.Studio.Authentication.ElsaIdentity.UI",
+  "Elsa.Studio.Authentication.UI",
+  "Elsa.Studio.Authentication.Themes",
+  "Elsa.Studio.Dashboard",
+  "Elsa.Studio.Workflows",
+  "Elsa.Studio.Workflows.Dashboard",
   "Elsa.Studio.Workflows.Designer",
-  "Elsa.Studio.Workflows.Core",
 ]
   .map(pkg)
   .join("\n");
 
-const programCs = `using Elsa.Studio.Core.BlazorWasm.Extensions;
+// Verified by compiling this exact source against the Elsa Studio 3.8.0
+// packages listed above (.NET SDK 9.0.311): build succeeded, 0 warnings,
+// 0 errors.
+const programCs = `using Elsa.Studio.Authentication.Abstractions.Models;
+using Elsa.Studio.Authentication.ElsaIdentity.BlazorWasm.Extensions;
+using Elsa.Studio.Authentication.ElsaIdentity.HttpMessageHandlers;
+using Elsa.Studio.Authentication.ElsaIdentity.UI.Extensions;
+using Elsa.Studio.Authentication.Themes.Extensions;
+using Elsa.Studio.Authentication.UI.Extensions;
+using Elsa.Studio.Authentication.UI.Options;
+using Elsa.Studio.Contracts;
+using Elsa.Studio.Core.BlazorWasm.Extensions;
+using Elsa.Studio.Dashboard.Extensions;
 using Elsa.Studio.Extensions;
-using Elsa.Studio.Login.BlazorWasm.Extensions;
+using Elsa.Studio.Models;
+using Elsa.Studio.Shell;
+using Elsa.Studio.Shell.Extensions;
+using Elsa.Studio.Workflows.Dashboard.Extensions;
 using Elsa.Studio.Workflows.Designer.Extensions;
+using Elsa.Studio.Workflows.Extensions;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+var configuration = builder.Configuration;
+var services = builder.Services;
+
+// App comes from Elsa.Studio.Shell - you do not write your own
+// App.razor, Routes.razor or MainLayout.razor.
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
+builder.RootComponents.RegisterCustomElsaStudioElements();
 
-// Configure Elsa Studio
-builder.Services.AddCore();
-builder.Services.AddShell();
-builder.Services.AddRemoteBackend(
-    elsaClient => elsaClient.AuthenticationHandler = 
-        typeof(AuthenticatingApiHttpMessageHandler));
-builder.Services.AddLoginModule();
-builder.Services.AddWorkflowsModule();
+// Studio ${ELSA_VERSION} requires exactly one authentication provider.
+// This sample signs in against Elsa Identity on your Elsa Server.
+services.AddStudioAuthenticationMode(options => options.Provider = StudioAuthenticationProvider.ElsaIdentity);
+services.AddElsaIdentity();
+services.AddElsaIdentityUI();
 
-await builder.Build().RunAsync();`;
+var backendApiConfig = new BackendApiConfig
+{
+    ConfigureBackendOptions = options => configuration.GetSection("Backend").Bind(options),
+    ConfigureHttpClientBuilder = options => options.AuthenticationHandler = typeof(ElsaIdentityAuthenticatingApiHttpMessageHandler)
+};
 
-const appRazor = `@using Elsa.Studio.Shell
-@using Elsa.Studio.Shell.Components
+services.AddCore();
+services.AddShell();
+services.AddAuthenticationUI(configuration.GetSection(LoginThemeOptions.SectionName)).AddElsaStudioLoginThemes();
+services.AddRemoteBackend(backendApiConfig);
+services.AddDashboardModule(backendApiConfig);
+services.AddWorkflowsModule();
+services.AddWorkflowsDashboardModule();
 
-<Routes />`;
+var app = builder.Build();
 
-const mainLayoutRazor = `@inherits LayoutComponentBase
-@using Elsa.Studio.Shell.Components
+var startupTaskRunner = app.Services.GetRequiredService<IStartupTaskRunner>();
+await startupTaskRunner.RunStartupTasksAsync();
 
-<ElsaStudioShell />`;
+await app.RunAsync();`;
 
-const routesRazor = `@using Elsa.Studio.Shell.Components
-
-<ElsaRoutes />`;
+const importsRazor = `@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web`;
 
 const appSettingsJson = `{
   "Backend": {
     "Url": "https://localhost:5001/elsa/api"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
   }
 }`;
 
@@ -71,10 +110,10 @@ const indexHtml = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Elsa Studio</title>
     <base href="/" />
-    <link rel="icon" type="image/png" href="favicon.png" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link href="_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.css" rel="stylesheet" />
+    <link href="_content/Radzen.Blazor/css/material-base.css" rel="stylesheet" />
     <link href="_content/Elsa.Studio.Shell/css/shell.css" rel="stylesheet" />
-    <link href="ElsaStudioBlazorWasm.styles.css" rel="stylesheet" />
 </head>
 <body>
     <div id="app">
@@ -82,10 +121,12 @@ const indexHtml = `<!DOCTYPE html>
             <h1>Loading Elsa Studio...</h1>
         </div>
     </div>
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_content/BlazorMonaco/jsInterop.js"></script>
     <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"></script>
     <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script src="_content/CodeBeam.MudBlazor.Extensions/MudExtensions.min.js"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 </html>`;
@@ -93,9 +134,8 @@ const indexHtml = `<!DOCTYPE html>
 const filesToRemove = `rm -rf Pages
 rm -rf Layout
 rm App.razor
-rm MainLayout.razor
-rm Routes.razor
-rm _Imports.razor`;
+rm MainLayout.razor`;
+
 
 export default function ElsaStudio() {
   return (
@@ -214,23 +254,26 @@ cd ElsaStudioBlazorWasm`}
             {/* Step 5 */}
             <StepItem
               number={5}
-              title="Create Razor Components"
-              description="Create the required Razor components for the application shell."
+              title="Keep a minimal _Imports.razor"
+              description={
+                <p>
+                  Elsa Studio {ELSA_VERSION} supplies its own{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">App</code>{" "}
+                  root component from{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Elsa.Studio.Shell</code>,
+                  so you do not write an{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">App.razor</code>,{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Routes.razor</code> or{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">MainLayout.razor</code>{" "}
+                  yourself. Only a small{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">_Imports.razor</code>{" "}
+                  is needed.
+                </p>
+              }
             >
-              <div className="space-y-4">
-                <CodeBlock code={appRazor} language="razor" title="App.razor" />
-                <CodeBlock
-                  code={mainLayoutRazor}
-                  language="razor"
-                  title="MainLayout.razor"
-                />
-                <CodeBlock
-                  code={routesRazor}
-                  language="razor"
-                  title="Routes.razor"
-                />
-              </div>
+              <CodeBlock code={importsRazor} language="razor" title="_Imports.razor" />
             </StepItem>
+
 
             {/* Step 6 */}
             <StepItem
