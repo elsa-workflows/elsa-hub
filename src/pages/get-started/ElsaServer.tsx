@@ -224,9 +224,9 @@ cd ElsaServer`}
             </StepItem>
 
 
-            {/* Step 4 */}
+            {/* Step 5 */}
             <StepItem
-              number={4}
+              number={5}
               title="Run the Server"
               description={
                 <p>
