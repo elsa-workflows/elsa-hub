@@ -21,6 +21,11 @@ import {
   ELSA_RELEASE_DATE,
   ELSA_RELEASE_LINKS,
   ELSA_TEMPLATES_VERSION,
+  ELSA_TEMPLATES_RELEASE_URL,
+  ELSA_TEMPLATES_PR_URL,
+  ELSA_TEMPLATES_TARGET_FRAMEWORK,
+  ELSA_TEMPLATES_CSHELLS_VERSION,
+  ELSA_UPGRADE_GUIDE_URL,
 } from "@/data/elsaVersion";
 
 
@@ -237,14 +242,24 @@ export default function GetStarted() {
               <p className="text-muted-foreground">
                 The <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Templates</code> package
                 ships official <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">dotnet new</code> templates
-                for Elsa Server, Elsa Studio, and a combined solution. Template versions and Elsa runtime
-                versions are two different things. The newest template package on NuGet.org is{" "}
+                for Elsa Server, Elsa Studio, and a combined solution. The{" "}
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_VERSION}</code>{" "}
-                (only {ELSA_TEMPLATES_VERSION} and 3.7.0 are published), and its generated projects reference the{" "}
-                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.*</code> /{" "}
-                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Studio.*</code> packages at{" "}
-                <strong>3.7.0</strong> — not at the template version, and not at {ELSA_VERSION}. Scaffold with the
-                template you have, then move the generated solution onto the {ELSA_VERSION} runtime packages.
+                templates reference Elsa Core and Elsa Studio at {ELSA_VERSION}, CShells{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_CSHELLS_VERSION}</code>,
+                and generate <strong>.NET 10</strong> (
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_TARGET_FRAMEWORK}</code>)
+                projects — so no manual package bump is needed after scaffolding.
+              </p>
+              <p className="text-sm text-muted-foreground mt-4 rounded-md border border-border/70 bg-background p-4">
+                <strong className="text-foreground">Release status:</strong> the {ELSA_TEMPLATES_VERSION} template
+                package is prepared in{" "}
+                <a href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                  elsa-templates PR #4
+                </a>{" "}
+                and has not been tagged yet. Its release notes will appear at{" "}
+                <a href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                  the 3.8.0 tag
+                </a>. Until the tag lands, treat the NuGet and preview feeds as not yet confirmed.
               </p>
             </div>
           </ScrollReveal>
@@ -255,41 +270,27 @@ export default function GetStarted() {
                 <div>
                   <h3 className="font-semibold mb-1">1. Install the templates</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Template package version — independent of the Elsa runtime version.
+                    Template package version — independent of the Elsa runtime version, though{" "}
+                    {ELSA_TEMPLATES_VERSION} lines up with the {ELSA_VERSION} runtime.
                   </p>
-                  <CodeBlock language="bash" code={`dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`} />
+                  <CodeBlock language="bash" code={`dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`} />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Then move the solution to Elsa {ELSA_VERSION}</h3>
+                  <h3 className="font-semibold mb-1">Sign in to the generated app</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    List what the template generated, then raise each Elsa reference to the current release line.
-                    Every package below has a published {ELSA_VERSION} version.
+                    Generated <code className="font-mono px-1 py-0.5 rounded bg-muted border">Development</code>{" "}
+                    settings include a sample administrator:{" "}
+                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">admin</code> /{" "}
+                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">password</code>. Outside
+                    Development there are no built-in credentials — the identity source, administrator bootstrap
+                    and JWT signing key are deployment-owned settings you must provide yourself.
                   </p>
-                  <CodeBlock
-                    language="bash"
-                    code={`# 1. See which Elsa packages the template added (they come in at 3.7.0)
-dotnet list package | grep -i "Elsa"
-
-# 2. Raise every one of them to ${ELSA_VERSION}, per project
-dotnet list package --format json \\
-  | jq -r '.projects[] | .path as $p | .frameworks[].topLevelPackages[]
-           | select(.id | startswith("Elsa")) | "\\($p) \\(.id)"' \\
-  | while read -r proj id; do
-      dotnet add "$proj" package "$id" --version ${ELSA_VERSION}
-    done
-
-# 3. Restore and build
-dotnet restore && dotnet build`}
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Prefer doing this by hand? Edit the{" "}
-                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">Version</code> attribute on each{" "}
-                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">Elsa.*</code> /{" "}
-                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">Elsa.Studio.*</code>{" "}
-                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">PackageReference</code>, or move them
-                    into a <code className="font-mono px-1 py-0.5 rounded bg-muted border">Directory.Packages.props</code>{" "}
-                    so a single version applies solution-wide. Then apply the upgrade notes above — the scaffolded
-                    identity and scripting configuration predates them.
+                  <p className="text-xs text-muted-foreground">
+                    Migrating an existing solution instead of scaffolding a new one? Follow the{" "}
+                    <a href={ELSA_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                      upgrade guide for {ELSA_VERSION}
+                    </a>. Older template packages (3.7.0 / 3.7.1) generated Elsa 3.7.0 references and required a
+                    manual package bump; that workaround is no longer the recommended path.
                   </p>
                 </div>
               </div>
@@ -328,6 +329,7 @@ dotnet restore && dotnet build`}
             </ScrollReveal>
           </div>
 
+
           <ScrollReveal delay={200}>
             <div className="mt-10 grid md:grid-cols-3 gap-4 max-w-5xl">
               <div className="rounded-lg border bg-background p-5">
@@ -346,13 +348,17 @@ dotnet restore && dotnet build`}
                 </p>
               </div>
               <div className="rounded-lg border bg-background p-5">
-                <h4 className="font-semibold mb-2 text-sm">Studio hosting &amp; auth</h4>
+                <h4 className="font-semibold mb-2 text-sm">Studio hosting, auth &amp; modules</h4>
                 <p className="text-xs text-muted-foreground">
                   Hosting: <code className="font-mono">server</code>, <code className="font-mono">wasm</code>,{" "}
                   <code className="font-mono">hybrid</code>. Auth: <code className="font-mono">elsa-identity</code>,{" "}
-                  <code className="font-mono">open-id-connect</code>, <code className="font-mono">elsa-login</code>.
+                  <code className="font-mono">open-id-connect</code>, <code className="font-mono">elsa-login</code>. Add{" "}
+                  <code className="font-mono">--with-labels</code> for the Labels module. Hybrid output adds a WASM
+                  client and reads <code className="font-mono">Studio:HostingModel</code> at runtime; a routing
+                  correction for that mode is still being finished before the tag.
                 </p>
               </div>
+
             </div>
           </ScrollReveal>
 
