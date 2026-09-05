@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
 import { ELSA_VERSION, ELSA_RELEASE_DATE, ELSA_RELEASE_LINKS } from "@/data/elsaVersion";
@@ -128,19 +130,30 @@ export default function Roadmap() {
   const handleSyncNow = async () => {
     setSyncing(true);
     try {
-      const { error } = await supabase.functions.invoke("sync-roadmap", {
+      const { data, error } = await supabase.functions.invoke("sync-roadmap", {
         body: { trigger: "manual" },
       });
-      if (error) throw error;
-      toast.success("Roadmap synced");
+      if (error) {
+        // functions.invoke collapses every failure into a generic message;
+        // read the real body so a failed sync is never silent.
+        const details =
+          error instanceof FunctionsHttpError ? await error.context.text() : error.message;
+        throw new Error(details);
+      }
+      if (data && (data as { success?: boolean }).success === false) {
+        throw new Error((data as { error?: string }).error ?? "Sync reported failure");
+      }
       await fetchSnapshot();
+      toast.success("Roadmap synced");
     } catch (e) {
-      console.error(e);
-      toast.error("Failed to sync roadmap");
+      const message = e instanceof Error ? e.message : String(e);
+      console.error("sync-roadmap failed:", message);
+      toast.error("Failed to sync roadmap", { description: message.slice(0, 300) });
     } finally {
       setSyncing(false);
     }
   };
+
 
   useEffect(() => {
     let cancelled = false;
@@ -176,6 +189,15 @@ export default function Roadmap() {
   const themes = parsed?.themes ?? [];
   const sequencing = parsed?.sequencing ?? [];
   const lastSynced = formatDate(snapshot?.synced_at);
+
+  // The upstream issue is the source of truth. Once its own last-updated stamp
+  // is at or after the release date, the statuses below already account for the
+  // release and the "may trail" caveat must disappear on its own.
+  const sourceUpdatedAt = snapshot?.issue_updated_at ?? snapshot?.synced_at ?? null;
+  const sourceReflectsRelease = sourceUpdatedAt
+    ? new Date(sourceUpdatedAt) >= new Date(`${ELSA_RELEASE_DATE}T00:00:00Z`)
+    : false;
+
 
   return (
     <Layout>
@@ -237,26 +259,40 @@ export default function Roadmap() {
         </div>
       </section>
 
-      {/* Release context: statuses come from the upstream issue and can lag a release */}
+      {/* Release context. The caveat about lagging statuses clears itself once
+          the upstream issue has been updated at or after the release date. */}
       <section className="pb-4">
         <div className="container max-w-6xl">
           <ScrollReveal>
             <Card variant="glass">
               <CardContent className="p-6 md:p-8">
                 <h2 className="text-xl font-semibold mb-3">
-                  Since the last sync: Elsa {ELSA_VERSION}
+                  Release context: Elsa {ELSA_VERSION}
                 </h2>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Item statuses below are read from issue #3232 as it stood at the last sync, so they can
-                  trail an actual release. Elsa {ELSA_VERSION} ({ELSA_RELEASE_DATE}) shipped part of the
-                  observability track: structured logging, console logging and OpenTelemetry are available
-                  as opt-in Core modules, and Elsa Studio {ELSA_VERSION} adds a diagnostics workspace.
+                  {sourceReflectsRelease ? (
+                    <>
+                      Issue #3232 was last updated on {formatDate(sourceUpdatedAt)}, at or after the
+                      Elsa {ELSA_VERSION} release ({ELSA_RELEASE_DATE}), so the statuses below already
+                      account for it.
+                    </>
+                  ) : (
+                    <>
+                      Item statuses below are read from issue #3232 as it stood on{" "}
+                      {formatDate(sourceUpdatedAt)}, before the Elsa {ELSA_VERSION} release
+                      ({ELSA_RELEASE_DATE}), so they can trail what actually shipped.
+                    </>
+                  )}{" "}
+                  In {ELSA_VERSION}, structured logging, console logging and OpenTelemetry are
+                  available as opt-in Core modules, and Elsa Studio {ELSA_VERSION} adds a diagnostics
+                  workspace.
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   The broader goals in that track — incident timelines, dropped-event counters, and
                   correlating traces, logs and metrics with workflow navigation — are not claimed as
                   complete by those release notes and remain open.
                 </p>
+
                 <div className="flex flex-wrap items-center gap-3 text-sm">
                   <a href={ELSA_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">
                     <Github className="h-4 w-4" /> Elsa Core {ELSA_VERSION} release notes
