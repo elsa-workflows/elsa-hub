@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { toast } from "sonner";
+import { ELSA_VERSION, ELSA_RELEASE_DATE, ELSA_RELEASE_LINKS } from "@/data/elsaVersion";
 
 const ROADMAP_ISSUE_URL = "https://github.com/elsa-workflows/elsa-core/issues/3232";
 
@@ -236,8 +237,46 @@ export default function Roadmap() {
         </div>
       </section>
 
+      {/* Release context: statuses come from the upstream issue and can lag a release */}
+      <section className="pb-4">
+        <div className="container max-w-6xl">
+          <ScrollReveal>
+            <Card variant="glass">
+              <CardContent className="p-6 md:p-8">
+                <h2 className="text-xl font-semibold mb-3">
+                  Since the last sync: Elsa {ELSA_VERSION}
+                </h2>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Item statuses below are read from issue #3232 as it stood at the last sync, so they can
+                  trail an actual release. Elsa {ELSA_VERSION} ({ELSA_RELEASE_DATE}) shipped part of the
+                  observability track: structured logging, console logging and OpenTelemetry are available
+                  as opt-in Core modules, and Elsa Studio {ELSA_VERSION} adds a diagnostics workspace.
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  The broader goals in that track — incident timelines, dropped-event counters, and
+                  correlating traces, logs and metrics with workflow navigation — are not claimed as
+                  complete by those release notes and remain open.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <a href={ELSA_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">
+                    <Github className="h-4 w-4" /> Elsa Core {ELSA_VERSION} release notes
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                  <span className="text-muted-foreground">·</span>
+                  <a href={ELSA_RELEASE_LINKS.studio} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">
+                    <Github className="h-4 w-4" /> Elsa Studio {ELSA_VERSION}
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* Status legend (only when we have structured themes) */}
       {parsed && themes.length > 0 && (
+
         <section className="pb-8 md:pb-12">
           <div className="container max-w-6xl">
             <ScrollReveal>

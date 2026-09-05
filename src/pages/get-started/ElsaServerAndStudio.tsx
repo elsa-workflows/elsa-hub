@@ -25,9 +25,12 @@ import {
 // Template-based path
 // ---------------------------------------------------------------------------
 //
-// Elsa.Templates ships separately from the engine. The latest published
-// version is ELSA_TEMPLATES_VERSION, which is behind ELSA_VERSION, so a
-// scaffolded solution must be moved onto the current release line afterwards.
+// Elsa.Templates ships on its own cadence, separate from the engine. Only
+// 3.7.0 and 3.7.1 are published to NuGet.org, and the 3.7.1 template package
+// generates projects whose Elsa.* / Elsa.Studio.* references are pinned to
+// 3.7.0. Template version and Elsa runtime version are therefore two
+// different numbers; the scaffolded solution has to be moved onto
+// ELSA_VERSION afterwards.
 
 const installTemplates = `dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`;
 
@@ -37,10 +40,19 @@ dotnet restore
 dotnet build
 dotnet run --project Host`;
 
-const upgradeScaffold = `# The template targets Elsa ${ELSA_TEMPLATES_VERSION}. Move every
-# Elsa.* and Elsa.Studio.* reference onto ${ELSA_VERSION}, then rebuild.
-dotnet add Host package Elsa --version ${ELSA_VERSION}
+const upgradeScaffold = `# The ${ELSA_TEMPLATES_VERSION} template generates Elsa.* / Elsa.Studio.*
+# references at 3.7.0. Raise every one of them to ${ELSA_VERSION}.
+dotnet list package | grep -i "Elsa"
+
+dotnet list package --format json \\
+  | jq -r '.projects[] | .path as $p | .frameworks[].topLevelPackages[]
+           | select(.id | startswith("Elsa")) | "\\($p) \\(.id)"' \\
+  | while read -r proj id; do
+      dotnet add "$proj" package "$id" --version ${ELSA_VERSION}
+    done
+
 dotnet restore && dotnet build`;
+
 
 
 // ---------------------------------------------------------------------------
@@ -333,8 +345,11 @@ export default function ElsaServerAndStudio() {
                 </li>
                 <li>
                   <strong>Template package:</strong> <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.Templates</code>{" "}
-                  ships on its own cadence. The latest version published to NuGet.org is{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code>, so a
+                  ships on its own cadence, so template version and Elsa runtime version are two
+                  different numbers. Only 3.7.0 and{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code> are published
+                  to NuGet.org, and the {ELSA_TEMPLATES_VERSION} template generates{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.*</code> references at 3.7.0 — so a
                   scaffolded solution must be moved onto {ELSA_VERSION} afterwards.
                 </li>
                 <li>
@@ -382,7 +397,8 @@ export default function ElsaServerAndStudio() {
                   <p>
                     Pin the template package to its latest published version,{" "}
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_VERSION}</code>.
-                    There is no {ELSA_VERSION} template package yet.
+                    There is no {ELSA_VERSION} template package: NuGet.org lists only 3.7.0 and{" "}
+                    {ELSA_TEMPLATES_VERSION}.
                   </p>
                 }
               >
