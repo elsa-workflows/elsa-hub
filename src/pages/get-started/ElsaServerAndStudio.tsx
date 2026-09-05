@@ -345,8 +345,11 @@ export default function ElsaServerAndStudio() {
                 </li>
                 <li>
                   <strong>Template package:</strong> <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.Templates</code>{" "}
-                  ships on its own cadence. The latest version published to NuGet.org is{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code>, so a
+                  ships on its own cadence, so template version and Elsa runtime version are two
+                  different numbers. Only 3.7.0 and{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code> are published
+                  to NuGet.org, and the {ELSA_TEMPLATES_VERSION} template generates{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.*</code> references at 3.7.0 — so a
                   scaffolded solution must be moved onto {ELSA_VERSION} afterwards.
                 </li>
                 <li>
@@ -394,7 +397,8 @@ export default function ElsaServerAndStudio() {
                   <p>
                     Pin the template package to its latest published version,{" "}
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_VERSION}</code>.
-                    There is no {ELSA_VERSION} template package yet.
+                    There is no {ELSA_VERSION} template package: NuGet.org lists only 3.7.0 and{" "}
+                    {ELSA_TEMPLATES_VERSION}.
                   </p>
                 }
               >
