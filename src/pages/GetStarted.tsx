@@ -348,13 +348,17 @@ export default function GetStarted() {
                 </p>
               </div>
               <div className="rounded-lg border bg-background p-5">
-                <h4 className="font-semibold mb-2 text-sm">Studio hosting &amp; auth</h4>
+                <h4 className="font-semibold mb-2 text-sm">Studio hosting, auth &amp; modules</h4>
                 <p className="text-xs text-muted-foreground">
                   Hosting: <code className="font-mono">server</code>, <code className="font-mono">wasm</code>,{" "}
                   <code className="font-mono">hybrid</code>. Auth: <code className="font-mono">elsa-identity</code>,{" "}
-                  <code className="font-mono">open-id-connect</code>, <code className="font-mono">elsa-login</code>.
+                  <code className="font-mono">open-id-connect</code>, <code className="font-mono">elsa-login</code>. Add{" "}
+                  <code className="font-mono">--with-labels</code> for the Labels module. Hybrid output adds a WASM
+                  client and reads <code className="font-mono">Studio:HostingModel</code> at runtime; a routing
+                  correction for that mode is still being finished before the tag.
                 </p>
               </div>
+
             </div>
           </ScrollReveal>
 
