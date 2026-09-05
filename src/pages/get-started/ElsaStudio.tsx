@@ -82,6 +82,10 @@ services.AddShell();
 // required when you select direct OIDC instead of Elsa Identity.
 services.AddAuthenticationUI(configuration.GetSection(LoginThemeOptions.SectionName)).AddElsaStudioLoginThemes();
 services.AddRemoteBackend(backendApiConfig);
+// Pass the same BackendApiConfig here. Only this overload registers
+// AddRemoteApi<IDashboardApi>(backendApiConfig) with the authenticating
+// handler; the parameterless AddDashboardModule() leaves dashboard calls
+// unauthenticated and they fail with 401 while the workflow API still works.
 services.AddDashboardModule(backendApiConfig);
 services.AddWorkflowsModule();
 services.AddWorkflowsDashboardModule();
