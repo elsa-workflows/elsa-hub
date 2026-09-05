@@ -380,8 +380,9 @@ export default function ElsaServerAndStudio() {
                 title="Install the Elsa templates"
                 description={
                   <p>
-                    Pin the template package to the same release as the runtime
-                    packages.
+                    Pin the template package to its latest published version,{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_VERSION}</code>.
+                    There is no {ELSA_VERSION} template package yet.
                   </p>
                 }
               >
@@ -404,24 +405,32 @@ export default function ElsaServerAndStudio() {
                 />
                 <div className="mt-4 p-4 rounded-lg border bg-muted/30 space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Open the URL printed in the terminal and sign in with:
+                    Open the URL printed in the terminal and sign in with the development
+                    credentials the template writes into its own configuration. Treat them as
+                    development-only: replace them before the app leaves your machine.
                   </p>
-                  <ul className="text-sm text-muted-foreground list-disc list-inside">
-                    <li>
-                      Username:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        admin
-                      </code>
-                    </li>
-                    <li>
-                      Password:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        password
-                      </code>
-                    </li>
-                  </ul>
                 </div>
               </StepItem>
+
+              <StepItem
+                number={3}
+                title={`Move the solution to Elsa ${ELSA_VERSION}`}
+                description={
+                  <p>
+                    Raise every <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Elsa.*</code> and{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Elsa.Studio.*</code> reference to{" "}
+                    {ELSA_VERSION}, then apply the identity and scripting changes described below —
+                    the scaffolded configuration predates them.
+                  </p>
+                }
+              >
+                <CodeBlock
+                  code={upgradeScaffold}
+                  language="bash"
+                  title="Terminal"
+                />
+              </StepItem>
+
             </div>
 
             {/* Manual walkthrough */}
