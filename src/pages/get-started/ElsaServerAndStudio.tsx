@@ -331,10 +331,25 @@ export default function ElsaServerAndStudio() {
                   </code>
                   .
                 </li>
-                <li className="text-muted-foreground">
-                  Last verified from a clean checkout on{" "}
-                  <strong>{LAST_VERIFIED_ON}</strong>.
+                <li>
+                  <strong>Template package:</strong> <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.Templates</code>{" "}
+                  ships on its own cadence. The latest version published to NuGet.org is{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code>, so a
+                  scaffolded solution must be moved onto {ELSA_VERSION} afterwards.
                 </li>
+                <li>
+                  <strong>Release notes:</strong>{" "}
+                  <a className="text-primary hover:underline" href={ELSA_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer">Elsa Core {ELSA_VERSION}</a>{" "}
+                  ·{" "}
+                  <a className="text-primary hover:underline" href={ELSA_RELEASE_LINKS.studio} target="_blank" rel="noopener noreferrer">Elsa Studio {ELSA_VERSION}</a>
+                  .
+                </li>
+                <li className="text-muted-foreground">
+                  Package versions and registration APIs checked against the tagged{" "}
+                  {ELSA_VERSION} sources and NuGet.org on <strong>{PACKAGES_CHECKED_ON}</strong>. Last full
+                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa 3.7.1).
+                </li>
+
               </ul>
             </div>
 
