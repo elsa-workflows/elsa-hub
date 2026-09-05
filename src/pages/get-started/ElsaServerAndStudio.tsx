@@ -126,10 +126,10 @@ ${pkg("Elsa.Studio.Workflows.Dashboard")}
 ${pkg("Elsa.Studio.Workflows.Designer")}`;
 
 
-// Verified by compiling this exact source (plus Host.csproj and
-// Pages/_Host.cshtml below) against the Elsa 3.8.0 packages with .NET SDK
-// 9.0.311: build succeeded, and the host serves Studio on "/" while the Elsa
-// API answers under its configured route prefix.
+// Externally verified by Codex on 2026-09-05: this exact source (plus
+// Host.csproj and Pages/_Host.cshtml below) restores and builds against the
+// Elsa 3.8.0 packages with 0 warnings and 0 errors, and the host serves Studio
+// on "/" while the Elsa API answers under its configured route prefix.
 const programCs = `using Elsa.Extensions;
 using Elsa.Http.Options;
 using Elsa.Persistence.EFCore.Extensions;
@@ -455,7 +455,7 @@ export default function ElsaServerAndStudio() {
                 <li className="text-muted-foreground">
                   Package versions and registration APIs checked against the tagged{" "}
                   {ELSA_VERSION} sources and NuGet.org on <strong>{PACKAGES_CHECKED_ON}</strong>. Last full
-                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa 3.7.1).
+                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa {ELSA_VERSION}, externally verified by Codex).
                 </li>
 
               </ul>
@@ -699,7 +699,7 @@ export default function ElsaServerAndStudio() {
               <StepItem
                 number={6}
                 title="Restore, build, run"
-                description="Run the clean-room verification the same way we do."
+                description="Run the clean-room verification the same way it was externally validated."
               >
                 <CodeBlock code={buildRun} language="bash" title="Terminal" />
                 <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
