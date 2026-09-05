@@ -70,6 +70,12 @@ builder.Services.AddElsa(elsa =>
     // REST API consumed by Elsa Studio and your own clients.
     elsa.UseWorkflowsApi();
 
+    // Backend for Elsa Studio's default dashboard. Both extension methods live
+    // in Elsa.Extensions. If Studio registers AddDashboardModule() and the
+    // server omits these, the dashboard's calls return errors.
+    elsa.UseDashboardApi();
+    elsa.UseWorkflowRuntimeDashboard();
+
     elsa.UseScheduling();
 
     // HTTP module: HTTP Endpoint activities and the workflow middleware below.
