@@ -237,7 +237,13 @@ export default function GetStarted() {
               <p className="text-muted-foreground">
                 The <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Templates</code> package
                 ships official <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">dotnet new</code> templates
-                for Elsa Server, Elsa Studio, and a combined solution. The current stable release targets Elsa 3.7.0.
+                for Elsa Server, Elsa Studio, and a combined solution. It is published separately from the
+                engine: the latest version on NuGet.org is{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_VERSION}</code>,
+                so a scaffolded solution does not yet reference Elsa {ELSA_VERSION}. After scaffolding, raise the{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.*</code> and{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Studio.*</code> package
+                references to {ELSA_VERSION} and apply the upgrade notes above.
               </p>
             </div>
           </ScrollReveal>
@@ -247,20 +253,24 @@ export default function GetStarted() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-semibold mb-1">1. Install the templates</h3>
-                  <p className="text-sm text-muted-foreground mb-3">From NuGet.org (stable release).</p>
-                  <CodeBlock language="bash" code={`dotnet new install Elsa.Templates`} />
+                  <p className="text-sm text-muted-foreground mb-3">From NuGet.org (latest published version).</p>
+                  <CodeBlock language="bash" code={`dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`} />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Or install a preview</h3>
-                  <p className="text-sm text-muted-foreground mb-3">From the Elsa preview feed.</p>
+                  <h3 className="font-semibold mb-1">Then move the solution to Elsa {ELSA_VERSION}</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Update the generated package references to the current release line.
+                  </p>
                   <CodeBlock
                     language="bash"
-                    code={`dotnet new install Elsa.Templates@3.8.0-preview \\
-  --add-source https://f.feedz.io/elsa-workflows/elsa-3/nuget/index.json`}
+                    code={`dotnet add package Elsa --version ${ELSA_VERSION}
+# repeat for every Elsa.* and Elsa.Studio.* reference in the solution
+dotnet restore && dotnet build`}
                   />
                 </div>
               </div>
             </ScrollReveal>
+
 
             <ScrollReveal delay={100}>
               <div className="space-y-4">
