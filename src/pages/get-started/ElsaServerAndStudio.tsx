@@ -564,23 +564,20 @@ export default function ElsaServerAndStudio() {
                 <CodeBlock code={buildRun} language="bash" title="Terminal" />
                 <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Open the URL printed in the terminal and sign in with:
+                    Open the URL printed in the terminal and sign in with the credentials you
+                    configured under <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">Identity:Admin</code>.
+                    Elsa {ELSA_VERSION} ships no default admin account: with nothing configured, every
+                    sign-in is denied.
                   </p>
-                  <ul className="text-sm text-muted-foreground list-disc list-inside">
-                    <li>
-                      Username:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        admin
-                      </code>
-                    </li>
-                    <li>
-                      Password:{" "}
-                      <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                        password
-                      </code>
-                    </li>
-                  </ul>
+                  <p className="text-sm text-muted-foreground">
+                    Localhost requests no longer receive security-root permissions automatically.
+                    A local host that needs that must opt in with{" "}
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
+                      EnableLocalHostPermissionGrantForSecurityRoot()
+                    </code>.
+                  </p>
                 </div>
+
               </StepItem>
             </div>
 
