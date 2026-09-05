@@ -16,6 +16,13 @@ import {
 import { GuideCard, PathCard, CodeBlock } from "@/components/get-started";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Badge } from "@/components/ui/badge";
+import {
+  ELSA_VERSION,
+  ELSA_RELEASE_DATE,
+  ELSA_RELEASE_LINKS,
+  ELSA_TEMPLATES_VERSION,
+} from "@/data/elsaVersion";
+
 
 
 const paths = [
