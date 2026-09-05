@@ -420,13 +420,16 @@ export default function ElsaServerAndStudio() {
                 </li>
                 <li>
                   <strong>Template package:</strong> <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.Templates</code>{" "}
-                  ships on its own cadence, so template version and Elsa runtime version are two
-                  different numbers. Only 3.7.0 and{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code> are published
-                  to NuGet.org, and the {ELSA_TEMPLATES_VERSION} template generates{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.*</code> references at 3.7.0 — so a
-                  scaffolded solution must be moved onto {ELSA_VERSION} afterwards.
+                  ships on its own cadence, so template version and Elsa runtime version remain two
+                  different numbers. The{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code> package
+                  references Elsa Core / Studio {ELSA_VERSION}, CShells {ELSA_TEMPLATES_CSHELLS_VERSION}, and
+                  generates {ELSA_TEMPLATES_TARGET_FRAMEWORK} projects. It is prepared in{" "}
+                  <a className="text-primary hover:underline" href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer">PR #4</a>{" "}
+                  and not tagged yet; the 3.7.0 / 3.7.1 packages generated Elsa 3.7.0 references and needed a
+                  manual bump.
                 </li>
+
                 <li>
                   <strong>Release notes:</strong>{" "}
                   <a className="text-primary hover:underline" href={ELSA_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer">Elsa Core {ELSA_VERSION}</a>{" "}
