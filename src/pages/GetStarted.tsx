@@ -22,7 +22,6 @@ import {
   ELSA_RELEASE_LINKS,
   ELSA_TEMPLATES_VERSION,
   ELSA_TEMPLATES_RELEASE_URL,
-  ELSA_TEMPLATES_PR_URL,
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
   ELSA_TEMPLATES_CSHELLS_VERSION,
   ELSA_UPGRADE_GUIDE_URL,
@@ -351,8 +350,7 @@ export default function GetStarted() {
                   <code className="font-mono">hybrid</code>. Auth: <code className="font-mono">elsa-identity</code>,{" "}
                   <code className="font-mono">open-id-connect</code>, <code className="font-mono">elsa-login</code>. Add{" "}
                   <code className="font-mono">--with-labels</code> for the Labels module. Hybrid output adds a WASM
-                  client and reads <code className="font-mono">Studio:HostingModel</code> at runtime; a routing
-                  correction for that mode is still being finished before the tag.
+                  client and reads <code className="font-mono">Studio:HostingModel</code> at runtime.
                 </p>
               </div>
 
