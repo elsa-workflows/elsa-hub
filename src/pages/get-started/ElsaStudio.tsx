@@ -136,10 +136,19 @@ const indexHtml = `<!DOCTYPE html>
 </body>
 </html>`;
 
+const csprojGlobalization = `<PropertyGroup>
+  <!-- Required: Elsa Studio switches the culture at startup via
+       UseElsaLocalization. Without the full ICU data, Blazor WebAssembly
+       throws "Blazor detected a change in the application's culture"
+       and the app stops at the loading splash. -->
+  <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+</PropertyGroup>`;
+
 const filesToRemove = `rm -rf Pages
 rm -rf Layout
 rm App.razor
 rm MainLayout.razor`;
+
 
 
 export default function ElsaStudio() {
