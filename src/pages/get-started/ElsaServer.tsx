@@ -28,9 +28,9 @@ const packages = [
   .map(pkg)
   .join("\n");
 
-// Verified by compiling this exact source against the Elsa 3.8.0 packages
-// listed above (.NET 9 SDK 9.0.311): build succeeded, 0 warnings, 0 errors,
-// and the host starts in Production with configured identity secrets.
+// Externally verified by Codex on 2026-09-05: this exact source restores and
+// builds against the Elsa 3.8.0 packages listed above with 0 warnings and
+// 0 errors, and the host starts in Production with configured identity secrets.
 const programCs = `using Elsa.Extensions;
 using Elsa.Http.Options;
 using Elsa.Persistence.EFCore.Extensions;

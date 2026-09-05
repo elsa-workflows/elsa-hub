@@ -28,9 +28,9 @@ const packages = [
   .map(pkg)
   .join("\n");
 
-// Verified by compiling this exact source against the Elsa Studio 3.8.0
-// packages listed above (.NET SDK 9.0.311): build succeeded, 0 warnings,
-// 0 errors.
+// Externally verified by Codex on 2026-09-05: this exact source restores and
+// builds against the Elsa Studio 3.8.0 packages listed above with 0 warnings
+// and 0 errors.
 const programCs = `using Elsa.Studio.Authentication.Abstractions.Models;
 using Elsa.Studio.Authentication.ElsaIdentity.BlazorWasm.Extensions;
 using Elsa.Studio.Authentication.ElsaIdentity.HttpMessageHandlers;

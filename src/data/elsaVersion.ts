@@ -59,10 +59,11 @@ export const ELSA_UPGRADE_GUIDE_URL =
 export const SUPPORTED_DOTNET_SDKS = ["8.0", "9.0", "10.0"] as const;
 
 /**
- * ISO date of the last clean-room verification of the guides
- * (performed against Elsa 3.7.1).
+ * ISO date of the last clean-room verification of the guides.
+ * Externally verified by Codex on 2026-09-05 against Elsa 3.8.0
+ * from a clean NuGet.org-only hive.
  */
-export const LAST_VERIFIED_ON = "2026-07-18";
+export const LAST_VERIFIED_ON = "2026-09-05";
 
 /**
  * ISO date on which the package versions and registration APIs on these pages
