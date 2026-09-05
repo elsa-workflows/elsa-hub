@@ -252,15 +252,12 @@ export default function GetStarted() {
               </p>
               <p className="text-sm text-muted-foreground mt-4 rounded-md border border-border/70 bg-background p-4">
                 <strong className="text-foreground">Release status:</strong> the {ELSA_TEMPLATES_VERSION} template
-                package is prepared in{" "}
-                <a href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                  elsa-templates PR #4
-                </a>{" "}
-                and has not been tagged yet. Its release notes will appear at{" "}
+                package is tagged — see{" "}
                 <a href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                  the 3.8.0 tag
-                </a>. Until the tag lands, treat the NuGet and preview feeds as not yet confirmed.
+                  the 3.8.0 release
+                </a>.
               </p>
+
             </div>
           </ScrollReveal>
 
