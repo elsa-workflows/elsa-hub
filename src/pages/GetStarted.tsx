@@ -237,13 +237,14 @@ export default function GetStarted() {
               <p className="text-muted-foreground">
                 The <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Templates</code> package
                 ships official <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">dotnet new</code> templates
-                for Elsa Server, Elsa Studio, and a combined solution. It is published separately from the
-                engine: the latest version on NuGet.org is{" "}
-                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_VERSION}</code>,
-                so a scaffolded solution does not yet reference Elsa {ELSA_VERSION}. After scaffolding, raise the{" "}
-                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.*</code> and{" "}
-                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Studio.*</code> package
-                references to {ELSA_VERSION} and apply the upgrade notes above.
+                for Elsa Server, Elsa Studio, and a combined solution. Template versions and Elsa runtime
+                versions are two different things. The newest template package on NuGet.org is{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_VERSION}</code>{" "}
+                (only {ELSA_TEMPLATES_VERSION} and 3.7.0 are published), and its generated projects reference the{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.*</code> /{" "}
+                <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">Elsa.Studio.*</code> packages at{" "}
+                <strong>3.7.0</strong> — not at the template version, and not at {ELSA_VERSION}. Scaffold with the
+                template you have, then move the generated solution onto the {ELSA_VERSION} runtime packages.
               </p>
             </div>
           </ScrollReveal>
@@ -253,23 +254,47 @@ export default function GetStarted() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-semibold mb-1">1. Install the templates</h3>
-                  <p className="text-sm text-muted-foreground mb-3">From NuGet.org (latest published version).</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Template package version — independent of the Elsa runtime version.
+                  </p>
                   <CodeBlock language="bash" code={`dotnet new install Elsa.Templates::${ELSA_TEMPLATES_VERSION}`} />
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Then move the solution to Elsa {ELSA_VERSION}</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Update the generated package references to the current release line.
+                    List what the template generated, then raise each Elsa reference to the current release line.
+                    Every package below has a published {ELSA_VERSION} version.
                   </p>
                   <CodeBlock
                     language="bash"
-                    code={`dotnet add package Elsa --version ${ELSA_VERSION}
-# repeat for every Elsa.* and Elsa.Studio.* reference in the solution
+                    code={`# 1. See which Elsa packages the template added (they come in at 3.7.0)
+dotnet list package | grep -i "Elsa"
+
+# 2. Raise every one of them to ${ELSA_VERSION}, per project
+dotnet list package --format json \\
+  | jq -r '.projects[] | .path as $p | .frameworks[].topLevelPackages[]
+           | select(.id | startswith("Elsa")) | "\\($p) \\(.id)"' \\
+  | while read -r proj id; do
+      dotnet add "$proj" package "$id" --version ${ELSA_VERSION}
+    done
+
+# 3. Restore and build
 dotnet restore && dotnet build`}
                   />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Prefer doing this by hand? Edit the{" "}
+                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">Version</code> attribute on each{" "}
+                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">Elsa.*</code> /{" "}
+                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">Elsa.Studio.*</code>{" "}
+                    <code className="font-mono px-1 py-0.5 rounded bg-muted border">PackageReference</code>, or move them
+                    into a <code className="font-mono px-1 py-0.5 rounded bg-muted border">Directory.Packages.props</code>{" "}
+                    so a single version applies solution-wide. Then apply the upgrade notes above — the scaffolded
+                    identity and scripting configuration predates them.
+                  </p>
                 </div>
               </div>
             </ScrollReveal>
+
 
 
             <ScrollReveal delay={100}>
