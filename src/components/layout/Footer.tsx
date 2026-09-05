@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Github, MessageCircle, BookOpen, ExternalLink } from "lucide-react";
 import elsaLogo from "@/assets/elsa-logo.png";
 import { FooterNewsletterSignup } from "@/components/newsletter";
+import { ELSA_VERSION } from "@/data/elsaVersion";
 
 const footerLinks = {
   product: [{
@@ -41,7 +42,7 @@ const footerLinks = {
     external: true
   }, {
     label: "NuGet Packages",
-    href: "https://www.nuget.org/profiles/phalanx",
+    href: `https://www.nuget.org/packages/Elsa/${ELSA_VERSION}`,
     external: true
   }],
   community: [{

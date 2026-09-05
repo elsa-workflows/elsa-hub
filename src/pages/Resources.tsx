@@ -17,6 +17,7 @@ import {
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Seo } from "@/components/Seo";
 import { LearningPaths } from "@/components/resources";
+import { ELSA_VERSION } from "@/data/elsaVersion";
 
 const primaryResources = [
   {
@@ -64,7 +65,7 @@ const additionalResources = [
     icon: Package,
     title: "NuGet Packages",
     description: "All official Elsa packages",
-    href: "https://www.nuget.org/profiles/phalanx",
+    href: `https://www.nuget.org/packages/Elsa/${ELSA_VERSION}`,
   },
   {
     icon: FileCode,
