@@ -196,7 +196,19 @@ const routesRazor = `@using Elsa.Studio.Shell.Components
 
 const appSettingsJson = `{
   "Identity": {
-    "SigningKey": "replace-with-a-long-256-bit-secret"
+    "Admin": {
+      "UserName": "admin",
+      "Password": "<set-a-strong-password>"
+    },
+    "Tokens": {
+      "SigningKey": "<at least 32 printable ASCII characters, no surrounding whitespace>",
+      "AccessTokenLifetime": "1:00:00:00"
+    }
+  },
+  "Scripting": {
+    "CSharp": {
+      "AllowHostCodeExecution": false
+    }
   },
   "Backend": {
     "Url": "/elsa/api"
