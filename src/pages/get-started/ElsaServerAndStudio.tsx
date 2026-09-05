@@ -493,11 +493,9 @@ export default function ElsaServerAndStudio() {
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_CSHELLS_VERSION}</code>,
                     and generates{" "}
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_TARGET_FRAMEWORK}</code>{" "}
-                    projects, so no post-scaffold package bump is required. This package is prepared in{" "}
-                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_PR_URL} target="_blank" rel="noopener noreferrer">PR #4</a>{" "}
-                    and not tagged yet — the feeds are not confirmed until{" "}
-                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">the 3.8.0 release</a>{" "}
-                    is published.
+                    projects, so no post-scaffold package bump is required. See{" "}
+                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">the 3.8.0 release</a>.
+
                   </p>
                 }
               >
