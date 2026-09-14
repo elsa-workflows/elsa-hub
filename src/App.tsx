@@ -81,6 +81,7 @@ const AdminOrders = lazy(() => import("./pages/dashboard/admin/AdminOrders"));
 const AdminInvitations = lazy(() => import("./pages/dashboard/admin/AdminInvitations"));
 const AdminAudit = lazy(() => import("./pages/dashboard/admin/AdminAudit"));
 const AdminRadarLocations = lazy(() => import("./pages/dashboard/admin/AdminRadarLocations"));
+const AdminTrainingLeads = lazy(() => import("./pages/dashboard/admin/AdminTrainingLeads"));
 const OrgWorkspaces = lazy(() => import("./pages/dashboard/org/OrgWorkspaces"));
 const OrgWorkspace = lazy(() => import("./pages/dashboard/org/OrgWorkspace"));
 const ProviderWorkspaces = lazy(() => import("./pages/dashboard/provider/ProviderWorkspaces"));
@@ -216,6 +217,7 @@ const App = () => (
                 <Route path="admin/invitations" element={<AdminInvitations />} />
                 <Route path="admin/audit" element={<AdminAudit />} />
                 <Route path="admin/radar" element={<AdminRadarLocations />} />
+                <Route path="admin/training" element={<AdminTrainingLeads />} />
               </Route>
 
               {/* Backward Compatibility Redirects */}

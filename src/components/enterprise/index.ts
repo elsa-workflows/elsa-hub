@@ -4,4 +4,5 @@ export { NeutralityDisclaimer } from "./NeutralityDisclaimer";
 export { AvailabilityDisclaimer } from "./AvailabilityDisclaimer";
 export { AvailabilityStatusBadge } from "./AvailabilityStatusBadge";
 export { ProviderTile } from "./ProviderTile";
+export { TrainingInterestDialog } from "./TrainingInterestDialog";
 

@@ -1568,6 +1568,96 @@ export type Database = {
           },
         ]
       }
+      training_leads: {
+        Row: {
+          company: string | null
+          company_size: string | null
+          contact_name: string | null
+          created_at: string
+          delivery: string | null
+          email: string
+          experience: string | null
+          headcount: number | null
+          id: string
+          intent: string
+          interest: string | null
+          internal_notes: string | null
+          languages: string[] | null
+          notes: string | null
+          offerings: string[] | null
+          organization_name: string | null
+          outline_url: string | null
+          preferred_length: string | null
+          regions: string[] | null
+          role: string | null
+          source_page: string | null
+          start_month: string | null
+          status: string
+          timezone_region: string | null
+          updated_at: string
+          user_id: string | null
+          website: string | null
+        }
+        Insert: {
+          company?: string | null
+          company_size?: string | null
+          contact_name?: string | null
+          created_at?: string
+          delivery?: string | null
+          email: string
+          experience?: string | null
+          headcount?: number | null
+          id?: string
+          intent: string
+          interest?: string | null
+          internal_notes?: string | null
+          languages?: string[] | null
+          notes?: string | null
+          offerings?: string[] | null
+          organization_name?: string | null
+          outline_url?: string | null
+          preferred_length?: string | null
+          regions?: string[] | null
+          role?: string | null
+          source_page?: string | null
+          start_month?: string | null
+          status?: string
+          timezone_region?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          company?: string | null
+          company_size?: string | null
+          contact_name?: string | null
+          created_at?: string
+          delivery?: string | null
+          email?: string
+          experience?: string | null
+          headcount?: number | null
+          id?: string
+          intent?: string
+          interest?: string | null
+          internal_notes?: string | null
+          languages?: string[] | null
+          notes?: string | null
+          offerings?: string[] | null
+          organization_name?: string | null
+          outline_url?: string | null
+          preferred_length?: string | null
+          regions?: string[] | null
+          role?: string | null
+          source_page?: string | null
+          start_month?: string | null
+          status?: string
+          timezone_region?: string | null
+          updated_at?: string
+          user_id?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       unsubscribe_tokens: {
         Row: {
           created_at: string

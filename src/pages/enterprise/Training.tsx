@@ -19,8 +19,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { NeutralityDisclaimer } from "@/components/enterprise";
-import { NewsletterSubscribeDialog } from "@/components/newsletter";
+import { NeutralityDisclaimer, TrainingInterestDialog } from "@/components/enterprise";
+import type { TrainingInterestIntent } from "@/lib/trainingInterest";
 import {
   ArrowRight,
   Award,
@@ -78,38 +78,8 @@ const trainingFormats = [
   },
 ];
 
-type InterestKind = "notify" | "quote" | "provider";
-
-const dialogCopy: Record<
-  InterestKind,
-  { title: string; description: string; buttonText: string; successMessage: string }
-> = {
-  notify: {
-    title: "Notify me when seats open",
-    description:
-      "Leave your email and we’ll write when public Fundamentals seats or early-bird invites are available.",
-    buttonText: "Notify me",
-    successMessage: "You’re on the list. We’ll email you about Elsa+ Training dates.",
-  },
-  quote: {
-    title: "Request a private team workshop",
-    description:
-      "Leave your email and we’ll follow up with a private-workshop quote for Elsa Workflows Fundamentals for Teams.",
-    buttonText: "Request a quote",
-    successMessage: "Thanks — we’ll follow up about a private team workshop quote.",
-  },
-  provider: {
-    title: "Offer Elsa Workflows training?",
-    description:
-      "Listing is not automatic. Leave your email and we’ll be in touch about becoming a training provider.",
-    buttonText: "Get in touch",
-    successMessage: "Thanks for your interest. We’ll reach out about training provider opportunities.",
-  },
-};
-
 export default function Training() {
-  const [interest, setInterest] = useState<InterestKind | null>(null);
-  const dialog = interest ? dialogCopy[interest] : dialogCopy.notify;
+  const [interest, setInterest] = useState<TrainingInterestIntent | null>(null);
 
   return (
     <Layout>
@@ -387,16 +357,13 @@ export default function Training() {
         </div>
       </section>
 
-      <NewsletterSubscribeDialog
+      <TrainingInterestDialog
+        key={interest ?? "closed"}
         open={interest !== null}
+        intent={interest ?? "notify"}
         onOpenChange={(open) => {
           if (!open) setInterest(null);
         }}
-        title={dialog.title}
-        description={dialog.description}
-        buttonText={dialog.buttonText}
-        successMessage={dialog.successMessage}
-        disclaimer="We’ll only email you about Elsa+ Training dates and quotes."
       />
 
       <section className="pb-16 md:pb-24">
