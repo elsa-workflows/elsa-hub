@@ -85,10 +85,12 @@ export function TrainingInterestDialog({
   const [form, setForm] = useState<TrainingInterestForm>(emptyTrainingInterestForm);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setSubmitted(false);
+    setSubmitError(null);
     setForm(emptyTrainingInterestForm());
   }, [open, intent]);
 
@@ -115,11 +117,13 @@ export function TrainingInterestDialog({
       userId: user?.id ?? null,
     });
     if (result.ok === false) {
+      setSubmitError(result.error);
       toast.error(result.error);
       return;
     }
 
     setSubmitting(true);
+    setSubmitError(null);
     try {
       if (form.honeypot.trim()) {
         setSubmitted(true);
@@ -149,7 +153,9 @@ export function TrainingInterestDialog({
       setSubmitted(true);
     } catch (err) {
       console.error("Training interest failed:", err);
-      toast.error("We couldn’t send that. Please try again, or email us directly.");
+      const message = "We couldn’t send that. Please try again, or email us directly.";
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -494,9 +500,15 @@ export function TrainingInterestDialog({
             </div>
 
             <div className="shrink-0 space-y-3 border-t bg-background p-6 pt-4">
-              <p className="text-xs text-muted-foreground text-center">
-                We’ll only email you about Elsa+ Training dates and quotes.
-              </p>
+              {submitError ? (
+                <p role="alert" className="text-sm text-destructive text-center">
+                  {submitError}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center">
+                  We’ll only email you about Elsa+ Training dates and quotes.
+                </p>
+              )}
               <DialogFooter className="sm:justify-end">
                 <Button
                   type="button"
