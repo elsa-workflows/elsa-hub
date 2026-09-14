@@ -40,6 +40,7 @@ import {
   startMonthOptions,
   toggleListValue,
   validateTrainingInterest,
+  type SeatInterest,
   type TrainingInterestForm,
   type TrainingInterestIntent,
 } from "@/lib/trainingInterest";
@@ -49,6 +50,7 @@ interface TrainingInterestDialogProps {
   onOpenChange: (open: boolean) => void;
   intent: TrainingInterestIntent;
   sourcePage?: string;
+  defaultInterest?: SeatInterest;
 }
 
 function FieldLabel({
@@ -75,6 +77,7 @@ export function TrainingInterestDialog({
   onOpenChange,
   intent,
   sourcePage = "/elsa-plus/training",
+  defaultInterest,
 }: TrainingInterestDialogProps) {
   const copy = dialogCopy[intent];
   const { user } = useAuth();
@@ -91,8 +94,11 @@ export function TrainingInterestDialog({
     if (!open) return;
     setSubmitted(false);
     setSubmitError(null);
-    setForm(emptyTrainingInterestForm());
-  }, [open, intent]);
+    setForm({
+      ...emptyTrainingInterestForm(),
+      interest: defaultInterest ?? "",
+    });
+  }, [open, intent, defaultInterest]);
 
   useEffect(() => {
     if (!open || !user) return;

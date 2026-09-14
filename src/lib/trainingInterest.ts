@@ -1,6 +1,6 @@
 export type TrainingInterestIntent = "notify" | "quote" | "provider";
 
-export type SeatInterest = "public" | "private" | "both";
+export type SeatInterest = "public" | "private" | "both" | "self_paced";
 export type PreferredLength = "half_day" | "one_day" | "either";
 export type DeliveryMode = "remote" | "on_site" | "either";
 export type TrainingLeadStatus = "new" | "contacted" | "closed";
@@ -18,11 +18,11 @@ export const dialogCopy: Record<
   { title: string; description: string; buttonText: string; successMessage: string }
 > = {
   notify: {
-    title: "Notify me when seats open",
+    title: "Get Fundamentals Core",
     description:
-      "Tell us a bit about you and we’ll write when public Fundamentals seats or early-bird invites are available.",
-    buttonText: "Notify me",
-    successMessage: "You’re on the list. We’ll email you about Elsa+ Training dates.",
+      "Leave your details and we’ll follow up about self-paced Elsa Workflows Fundamentals Core — Modules 0–5, a cloneable lab kit, and Labs A–C.",
+    buttonText: "Get Fundamentals Core",
+    successMessage: "Thanks — we’ll follow up about Fundamentals Core.",
   },
   quote: {
     title: "Request a private team workshop",
@@ -58,10 +58,17 @@ export const companySizeOptions = [
 ] as const;
 
 export const seatInterestOptions = [
-  { value: "public" as const, label: "Public seats" },
+  { value: "self_paced" as const, label: "Self-paced Core" },
   { value: "private" as const, label: "Private team workshop" },
   { value: "both" as const, label: "Both" },
 ];
+
+export const seatInterestLabels: Record<SeatInterest, string> = {
+  self_paced: "Self-paced Core",
+  public: "Public seats",
+  private: "Private team workshop",
+  both: "Both",
+};
 
 export const preferredLengthOptions = [
   { value: "half_day" as const, label: "Half-day" },
@@ -205,7 +212,12 @@ export function shouldSubscribeToNewsletter(
   form: Pick<TrainingInterestForm, "interest">,
 ): boolean {
   if (intent === "notify") return true;
-  if (intent === "quote" && (form.interest === "public" || form.interest === "both")) return true;
+  if (
+    intent === "quote" &&
+    (form.interest === "public" || form.interest === "both" || form.interest === "self_paced")
+  ) {
+    return true;
+  }
   return false;
 }
 

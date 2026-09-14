@@ -70,7 +70,7 @@ const learningAndEnablement = [
   {
     title: "Training & Academy",
     description:
-      "Live half-day and full-day Elsa 3 workshops for mid-size .NET teams. Notify when public seats open, or request a private team workshop.",
+      "Self-paced Elsa 3 Fundamentals Core for mid-size .NET teams. Private team workshops on request.",
     icon: GraduationCap,
     href: "/elsa-plus/training",
     badge: "Available",

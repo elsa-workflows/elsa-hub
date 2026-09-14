@@ -19,6 +19,8 @@ import {
 import {
   intentLabels,
   offeringOptions,
+  seatInterestLabels,
+  type SeatInterest,
   type TrainingInterestIntent,
   type TrainingLeadStatus,
 } from "@/lib/trainingInterest";
@@ -106,7 +108,14 @@ function LeadCard({
         <dl className="grid gap-3 sm:grid-cols-2">
           <Detail label="Role" value={lead.role} />
           <Detail label="Company size" value={lead.company_size} />
-          <Detail label="Interest" value={lead.interest} />
+          <Detail
+            label="Interest"
+            value={
+              lead.interest
+                ? seatInterestLabels[lead.interest as SeatInterest] ?? lead.interest
+                : lead.interest
+            }
+          />
           <Detail label="Preferred length" value={lead.preferred_length} />
           <Detail label="Start month" value={lead.start_month} />
           <Detail label="Headcount" value={lead.headcount} />
@@ -197,7 +206,8 @@ export default function AdminTrainingLeads() {
         <h1 className="text-3xl font-bold tracking-tight">Training leads</h1>
         <p className="text-muted-foreground">
           Triage Elsa+ Training interest. Work private quotes first, then provider listings,
-          then notify-me demand. Notify-me and public-seat quotes are also on MailerLite.
+          then self-paced Core demand. Self-paced Core and public-seat quotes are also on
+          MailerLite.
         </p>
       </div>
 
