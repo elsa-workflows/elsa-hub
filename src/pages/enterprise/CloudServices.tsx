@@ -365,14 +365,23 @@ export default function CloudServices() {
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">Next Steps</h2>
             <p className="text-muted-foreground mb-8">
-              Managed cloud hosting is currently in development. If you're
-              interested in learning more or discussing whether this offering
-              fits your requirements, we're happy to have a conversation.
+              Managed hosting is not live yet.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="gap-2" onClick={() => setNotifyDialogOpen(true)}>
-                Notify Me
-                <ArrowRight className="h-4 w-4" />
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary"
+                asChild
+              >
+                <a
+                  href="https://elsacloud.app/request-trial"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Join the waitlist
+                  <ArrowRight className="h-4 w-4" />
+                </a>
               </Button>
               <Button variant="outline" size="lg" className="gap-2" asChild>
                 <a
@@ -388,15 +397,6 @@ export default function CloudServices() {
           </div>
         </div>
       </section>
-
-      <NewsletterSubscribeDialog
-        open={notifyDialogOpen}
-        onOpenChange={setNotifyDialogOpen}
-        title="Get Notified"
-        description="Be the first to know when Managed Cloud Hosting becomes available."
-        buttonText="Notify Me"
-        successMessage="You're on the list! We'll notify you when Cloud Hosting is ready."
-      />
     </Layout>
   );
 }
