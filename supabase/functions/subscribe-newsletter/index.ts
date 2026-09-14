@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
       throw new Error("MAILERLITE_API_KEY not configured");
     }
 
-    const { email, firstName } = await req.json();
+    const { email, firstName, company } = await req.json();
 
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,7 +42,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         email: email.toLowerCase().trim(),
-        fields: firstName?.trim() ? { name: firstName.trim() } : undefined,
+        fields: (() => {
+          const fields: Record<string, string> = {};
+          if (typeof firstName === "string" && firstName.trim()) fields.name = firstName.trim();
+          if (typeof company === "string" && company.trim()) fields.company = company.trim().slice(0, 200);
+          return Object.keys(fields).length ? fields : undefined;
+        })(),
         status: "active",
       }),
     });

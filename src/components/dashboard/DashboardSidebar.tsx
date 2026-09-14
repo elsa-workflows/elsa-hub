@@ -20,6 +20,7 @@ import {
   Radar,
   KeyRound,
   Inbox,
+  GraduationCap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -73,6 +74,7 @@ const adminNavItems = [
   { label: "Invitations", icon: Mail, path: "invitations" },
   { label: "Audit Log", icon: FileText, path: "audit" },
   { label: "Radar Map", icon: Radar, path: "radar" },
+  { label: "Training leads", icon: GraduationCap, path: "training" },
 ];
 
 export function DashboardSidebar() {
