@@ -167,8 +167,8 @@ const PAGE_DOCS: Doc[] = [
     source: "page",
     external_id: "page:training",
     url: `${SITE_BASE}/elsa-plus/training`,
-    title: "Elsa+ Training",
-    body: "Live and self-paced training on Elsa Workflows architecture, activities, persistence, distributed runtime, and integration patterns.",
+    title: "Elsa Workflows Fundamentals for Teams",
+    body: "Live half-day and full-day Elsa 3 workshops for mid-size .NET teams. Hands-on labs on a real host and Studio. Courses, self-paced materials, and certifications are later — not sold in v1. Notify when public seats open, or request a private team workshop.",
   },
   {
     source: "page",

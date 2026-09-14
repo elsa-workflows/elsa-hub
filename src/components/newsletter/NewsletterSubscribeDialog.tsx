@@ -20,6 +20,7 @@ interface NewsletterSubscribeDialogProps {
   description?: string;
   buttonText?: string;
   successMessage?: string;
+  disclaimer?: string;
 }
 
 export function NewsletterSubscribeDialog({
@@ -29,6 +30,7 @@ export function NewsletterSubscribeDialog({
   description = "Be the first to know when this becomes available.",
   buttonText = "Notify Me",
   successMessage = "You're on the list! We'll be in touch.",
+  disclaimer = "We'll only email you about relevant updates. Unsubscribe anytime.",
 }: NewsletterSubscribeDialogProps) {
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -107,7 +109,7 @@ export function NewsletterSubscribeDialog({
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            We'll only email you about relevant updates. Unsubscribe anytime.
+            {disclaimer}
           </p>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
