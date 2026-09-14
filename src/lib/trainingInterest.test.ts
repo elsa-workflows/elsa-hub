@@ -86,7 +86,7 @@ describe("validateTrainingInterest", () => {
   it("requires a valid email for every intent", () => {
     const result = validateTrainingInterest("notify", notifyForm({ email: "not-an-email" }));
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/valid email/i);
+    if (result.ok === false) expect(result.error).toMatch(/valid email/i);
   });
 
   it("maps a notify payload and marks it for MailerLite", () => {
@@ -116,7 +116,7 @@ describe("validateTrainingInterest", () => {
   it("requires headcount on private quotes", () => {
     const missing = validateTrainingInterest("quote", quoteForm({ headcount: "" }));
     expect(missing.ok).toBe(false);
-    if (!missing.ok) expect(missing.error).toMatch(/how many people/i);
+    if (missing.ok === false) expect(missing.error).toMatch(/how many people/i);
 
     const ok = validateTrainingInterest("quote", quoteForm());
     expect(ok.ok).toBe(true);

@@ -114,7 +114,7 @@ export function TrainingInterestDialog({
       sourcePage,
       userId: user?.id ?? null,
     });
-    if (!result.ok) {
+    if (result.ok === false) {
       toast.error(result.error);
       return;
     }

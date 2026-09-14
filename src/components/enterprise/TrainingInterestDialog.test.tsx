@@ -48,7 +48,7 @@ describe("TrainingInterestDialog", () => {
 
     expect(screen.getByRole("heading", { name: /private team workshop/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/headcount/i)).toBeInTheDocument();
-    expect(screen.getByText(/delivery/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/delivery/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/notes/i)).toBeInTheDocument();
     expect(screen.queryByText("Offerings")).not.toBeInTheDocument();
   });
