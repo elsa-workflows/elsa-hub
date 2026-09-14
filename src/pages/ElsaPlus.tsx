@@ -59,7 +59,8 @@ const runtimeAndOperations = [
   },
   {
     title: "Managed Cloud Hosting",
-    description: "Managed hosting is not live yet.",
+    description:
+      "Managed Elsa hosting covering runtime operations, updates, backups, and environment isolation. Not live yet.",
     icon: Cloud,
     href: "/elsa-plus/cloud-services",
   },
