@@ -50,7 +50,7 @@ const groups: NavGroup[] = [
       { label: "Overview", to: "/elsa-plus" },
       { label: "Valence Runtime", to: "/elsa-plus/valence-runtime", badge: "Early Preview" },
       { label: "Runtime Builder", to: "/elsa-plus/runtime-builder", badge: "Preview" },
-      { label: "Managed Cloud Hosting", to: "/elsa-plus/cloud-services" },
+      { label: "Managed Cloud Hosting", to: "/elsa-plus/cloud-services", badge: "Waitlist" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
     ],
