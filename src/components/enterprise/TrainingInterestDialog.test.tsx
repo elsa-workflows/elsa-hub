@@ -31,11 +31,11 @@ describe("TrainingInterestDialog", () => {
       <TrainingInterestDialog open intent="notify" onOpenChange={() => {}} />,
     );
 
-    expect(screen.getByRole("heading", { name: /notify me when seats open/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /get fundamentals core/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^name/i)).toBeInTheDocument();
     expect(screen.getByText("Interest")).toBeInTheDocument();
-    expect(screen.getByText("Public seats")).toBeInTheDocument();
+    expect(screen.getByText("Self-paced Core")).toBeInTheDocument();
     expect(screen.getByText("Preferred start month")).toBeInTheDocument();
     expect(screen.queryByLabelText(/headcount/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Offerings")).not.toBeInTheDocument();
@@ -67,5 +67,18 @@ describe("TrainingInterestDialog", () => {
     expect(screen.getByLabelText(/experience/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/headcount/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Company size")).not.toBeInTheDocument();
+  });
+
+  it("preselects self-paced Core when defaultInterest is set", () => {
+    render(
+      <TrainingInterestDialog
+        open
+        intent="notify"
+        defaultInterest="self_paced"
+        onOpenChange={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("radio", { name: /self-paced core/i })).toBeChecked();
   });
 });

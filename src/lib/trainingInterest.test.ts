@@ -17,7 +17,7 @@ function notifyForm(overrides: Partial<TrainingInterestForm> = {}): TrainingInte
     role: "tech_lead",
     company: "Acme",
     companySize: "51-200",
-    interest: "public",
+    interest: "self_paced",
     preferredLength: "half_day",
     startMonth: "2026-10",
     ...overrides,
@@ -77,6 +77,7 @@ describe("shouldSubscribeToNewsletter", () => {
     expect(shouldSubscribeToNewsletter("notify", { interest: "" })).toBe(true);
     expect(shouldSubscribeToNewsletter("quote", { interest: "public" })).toBe(true);
     expect(shouldSubscribeToNewsletter("quote", { interest: "both" })).toBe(true);
+    expect(shouldSubscribeToNewsletter("quote", { interest: "self_paced" })).toBe(true);
     expect(shouldSubscribeToNewsletter("quote", { interest: "private" })).toBe(false);
     expect(shouldSubscribeToNewsletter("provider", { interest: "" })).toBe(false);
   });
@@ -104,7 +105,7 @@ describe("validateTrainingInterest", () => {
       role: "tech_lead",
       company: "Acme",
       company_size: "51-200",
-      interest: "public",
+      interest: "self_paced",
       preferred_length: "half_day",
       start_month: "2026-10",
       headcount: null,
