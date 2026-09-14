@@ -58,12 +58,10 @@ const runtimeAndOperations = [
     },
   },
   {
-    title: "Cloud & Managed Services",
-    description:
-      "Managed workflow engine in the cloud with enterprise-grade hosting and seamless management.",
+    title: "Managed Cloud Hosting",
+    description: "Managed hosting is not live yet.",
     icon: Cloud,
     href: "/elsa-plus/cloud-services",
-    comingSoon: true,
   },
 ];
 
