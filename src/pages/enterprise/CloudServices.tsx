@@ -1,5 +1,4 @@
 import { Seo } from "@/components/Seo";
-import { useState } from "react";
 import {
   Cloud,
   Server,
@@ -27,7 +26,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { NewsletterSubscribeDialog } from "@/components/newsletter";
 
 const includedFeatures = [
   {
