@@ -70,10 +70,10 @@ const learningAndEnablement = [
   {
     title: "Training & Academy",
     description:
-      "Courses, workshops, and educational resources for teams working with Elsa Workflows.",
+      "Live half-day and full-day Elsa 3 workshops for mid-size .NET teams. Notify when public seats open, or request a private team workshop.",
     icon: GraduationCap,
     href: "/elsa-plus/training",
-    comingSoon: true,
+    badge: "Available",
   },
 ];
 
