@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   emptyTrainingInterestForm,
+  FUNDAMENTALS_CORE_GUMROAD_URL,
   parseHeadcount,
   shouldSubscribeToNewsletter,
   startMonthOptions,
@@ -8,6 +9,12 @@ import {
   validateTrainingInterest,
   type TrainingInterestForm,
 } from "./trainingInterest";
+
+describe("FUNDAMENTALS_CORE_GUMROAD_URL", () => {
+  it("points at the live Gumroad Fundamentals Core product", () => {
+    expect(FUNDAMENTALS_CORE_GUMROAD_URL).toBe("https://9868397950180.gumroad.com/l/pkvdly");
+  });
+});
 
 function notifyForm(overrides: Partial<TrainingInterestForm> = {}): TrainingInterestForm {
   return {

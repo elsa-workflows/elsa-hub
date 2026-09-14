@@ -20,7 +20,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer, TrainingInterestDialog } from "@/components/enterprise";
-import type { TrainingInterestIntent } from "@/lib/trainingInterest";
+import {
+  FUNDAMENTALS_CORE_GUMROAD_URL,
+  type TrainingInterestIntent,
+} from "@/lib/trainingInterest";
 import {
   ArrowRight,
   Award,
@@ -62,6 +65,21 @@ const laterFormats = [
 ];
 
 const privatePackages = ["€3,200", "€5,200", "€7,200"];
+
+function GetFundamentalsCoreButton({ size = "default" }: { size?: "default" | "lg" }) {
+  return (
+    <Button size={size} className="gap-2" asChild>
+      <a
+        href={FUNDAMENTALS_CORE_GUMROAD_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Get Fundamentals Core
+        <ArrowRight className="h-4 w-4" />
+      </a>
+    </Button>
+  );
+}
 
 export default function Training() {
   const [interest, setInterest] = useState<TrainingInterestIntent | null>(null);
@@ -105,10 +123,7 @@ export default function Training() {
               workshop.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-              <Button size="lg" className="gap-2" onClick={() => setInterest("notify")}>
-                Get Fundamentals Core
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              <GetFundamentalsCoreButton size="lg" />
               <Button
                 size="lg"
                 variant="outline"
@@ -197,10 +212,7 @@ export default function Training() {
                       Fundamentals Core — Modules 0–5, a cloneable lab kit, and Labs A–C
                       (~5–6 hours solo) on Elsa 3.8.1. From €399, EUR excl. VAT.
                     </p>
-                    <Button className="gap-2" onClick={() => setInterest("notify")}>
-                      Get Fundamentals Core
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <GetFundamentalsCoreButton />
                   </div>
                 </div>
               </CardContent>
@@ -282,10 +294,7 @@ export default function Training() {
                   Later: Fundamentals Complete (€699 / €849).
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button className="gap-2" onClick={() => setInterest("notify")}>
-                    Get Fundamentals Core
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+                  <GetFundamentalsCoreButton />
                   <Button variant="outline" onClick={() => setInterest("quote")}>
                     Get a private quote
                   </Button>
@@ -325,14 +334,11 @@ export default function Training() {
               </div>
               <h2 className="text-2xl md:text-3xl font-bold mb-4">Looking for training?</h2>
               <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                Self-paced Core and private team workshops — leave your details and we’ll follow
-                up.
+                Buy self-paced Core now, or leave your details and we’ll follow up about a
+                private team workshop.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-                <Button size="lg" className="gap-2" onClick={() => setInterest("notify")}>
-                  Get Fundamentals Core
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                <GetFundamentalsCoreButton size="lg" />
                 <Button size="lg" variant="outline" onClick={() => setInterest("quote")}>
                   Request a private quote
                 </Button>

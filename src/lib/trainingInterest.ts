@@ -1,3 +1,6 @@
+export const FUNDAMENTALS_CORE_GUMROAD_URL =
+  "https://9868397950180.gumroad.com/l/pkvdly";
+
 export type TrainingInterestIntent = "notify" | "quote" | "provider";
 
 export type SeatInterest = "public" | "private" | "both" | "self_paced";
