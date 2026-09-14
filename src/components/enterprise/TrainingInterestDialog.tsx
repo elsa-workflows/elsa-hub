@@ -159,9 +159,9 @@ export function TrainingInterestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden flex flex-col gap-0 p-0">
         {submitted ? (
-          <>
+          <div className="space-y-4 p-6">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -172,13 +172,14 @@ export function TrainingInterestDialog({
             <DialogFooter>
               <Button onClick={() => onOpenChange(false)}>Close</Button>
             </DialogFooter>
-          </>
+          </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <DialogHeader>
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <DialogHeader className="shrink-0 space-y-1.5 p-6 pb-2 pr-12">
               <DialogTitle>{copy.title}</DialogTitle>
               <DialogDescription>{copy.description}</DialogDescription>
             </DialogHeader>
+            <div className="max-h-[min(58vh,32rem)] space-y-4 overflow-y-auto px-6 py-2">
 
             {intent === "provider" ? (
               <div className="space-y-2">
@@ -490,23 +491,26 @@ export function TrainingInterestDialog({
               />
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              We’ll only email you about Elsa+ Training dates and quotes.
-            </p>
+            </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={submitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Sending…" : copy.buttonText}
-              </Button>
-            </DialogFooter>
+            <div className="shrink-0 space-y-3 border-t bg-background p-6 pt-4">
+              <p className="text-xs text-muted-foreground text-center">
+                We’ll only email you about Elsa+ Training dates and quotes.
+              </p>
+              <DialogFooter className="sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Sending…" : copy.buttonText}
+                </Button>
+              </DialogFooter>
+            </div>
           </form>
         )}
       </DialogContent>
