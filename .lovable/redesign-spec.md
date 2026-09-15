@@ -18,7 +18,7 @@ Open-source project and umbrella product family (MIT-licensed unless noted other
 - **Runtime Builder** — Preview capability within Elsa Platform
 - Documentation, samples, community, blog, roadmap
 
-Elsa Workflows remains open source, vendor-neutral, and community-driven.
+Elsa Workflows is MIT-licensed and community-driven. Elsa+ offerings are independent of the project.
 
 ### Elsa Platform
 - License: MIT open source.
@@ -143,7 +143,7 @@ Four primary categories + utility area.
 7. **Community & roadmap** — restrained combined block for Blog / Roadmap / Discord / Resources / Radar. Not a four-glass-card recreation of the current ecosystem grid.
 
 8. **Elsa+ disclosure + final CTA** — one calm paragraph:
-   > Elsa+ lists optional provider-backed products and services around Elsa Workflows. Elsa Workflows itself remains open source and vendor-neutral.
+   > Elsa+ lists optional products and services from independent providers around Elsa Workflows.
    > Then: primary **Get started**, secondary **Read the docs**.
 
 ---

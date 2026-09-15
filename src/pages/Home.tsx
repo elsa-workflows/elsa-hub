@@ -453,8 +453,7 @@ export default function Home() {
                 <Link to="/elsa-plus" className="text-foreground font-medium hover:text-primary transition-colors">Elsa+</Link>{" "}
                 lists optional provider-backed products and services around Elsa
                 Workflows — including Early Preview Docker images from Valence
-                Works, expert services, training, and more. Elsa Workflows itself
-                remains open source and vendor-neutral.
+                Works, expert services, training, and more.
               </p>
             </div>
 

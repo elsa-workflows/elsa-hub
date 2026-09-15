@@ -14,8 +14,7 @@ export function ElsaPlusDisclaimer({ className }: ElsaPlusDisclaimerProps) {
     >
       <p>
         Commercial services and offerings listed under Elsa+ are provided by
-        independent companies. Elsa Workflows remains fully open source,
-        vendor-neutral, and community-driven.
+        independent companies.
       </p>
     </div>
   );

@@ -104,7 +104,7 @@ const marketplace = [
 export default function ElsaPlus() {
   return (
     <Layout>
-      <Seo path="/elsa-plus" title="Elsa+ — Optional provider-backed offerings around Elsa Workflows" description="Elsa+ lists optional products and services around Elsa Workflows from independent providers: Early Preview Docker images, expert services, training, and more. Elsa Workflows itself remains open source and vendor-neutral." />
+      <Seo path="/elsa-plus" title="Elsa+ — Optional provider-backed offerings around Elsa Workflows" description="Elsa+ lists optional products and services around Elsa Workflows from independent providers: Early Preview Docker images, expert services, training, and more." />
       {/* Hero */}
       <section className="py-16 md:py-24">
         <div className="container">
@@ -118,9 +118,8 @@ export default function ElsaPlus() {
             </p>
             <div className="bg-muted/50 border rounded-lg p-6 text-left max-w-2xl mx-auto">
               <p className="text-muted-foreground leading-relaxed">
-                Elsa Workflows is open source and vendor-neutral. Elsa+ lists optional
-                offerings from independent providers — each offering identifies its
-                own provider, licence terms, and support model.
+                Elsa+ lists optional offerings from independent providers. Each
+                offering identifies its own provider, licence terms, and support model.
               </p>
             </div>
           </div>

@@ -137,8 +137,7 @@ export default function Training() {
               <strong>€3,200</strong> — EUR excl. VAT
             </p>
             <p className="text-sm text-muted-foreground">
-              An independent Elsa+ offering. Elsa Workflows remains fully open source and
-              vendor-neutral.
+              An independent Elsa+ offering.
             </p>
           </div>
         </div>

@@ -15,7 +15,7 @@ export function NeutralityDisclaimer({ className }: NeutralityDisclaimerProps) {
       <p>
         Commercial services listed on this website are provided by independent
         companies. These services are not affiliated with or endorsed by the .NET
-        Foundation. Elsa Workflows remains fully open source and vendor-neutral.
+        Foundation.
       </p>
     </div>
   );
