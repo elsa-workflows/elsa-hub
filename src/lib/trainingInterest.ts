@@ -1,6 +1,12 @@
 export const FUNDAMENTALS_CORE_GUMROAD_URL =
   "https://9868397950180.gumroad.com/l/pkvdly";
 
+export const ADVANCED_PATTERNS_GUMROAD_URL =
+  "https://9868397950180.gumroad.com/l/feynmd";
+
+export const FUNDAMENTALS_COMPLETE_GUMROAD_URL =
+  "https://9868397950180.gumroad.com/l/sycdc";
+
 export type TrainingInterestIntent = "notify" | "quote" | "provider";
 
 export type SeatInterest = "public" | "private" | "both" | "self_paced";

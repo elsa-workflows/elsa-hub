@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer, TrainingInterestDialog } from "@/components/enterprise";
 import {
+  ADVANCED_PATTERNS_GUMROAD_URL,
+  FUNDAMENTALS_COMPLETE_GUMROAD_URL,
   FUNDAMENTALS_CORE_GUMROAD_URL,
   type TrainingInterestIntent,
 } from "@/lib/trainingInterest";
@@ -30,6 +32,8 @@ import {
   BookOpen,
   CheckCircle2,
   GraduationCap,
+  Layers,
+  Library,
   Mail,
   Users,
   Video,
@@ -66,18 +70,35 @@ const laterFormats = [
 
 const privatePackages = ["€3,200", "€5,200", "€7,200"];
 
-function GetFundamentalsCoreButton({ size = "default" }: { size?: "default" | "lg" }) {
+const advancedOutcomes = [
+  "Advanced vs Core placement",
+  "Single long-running vs parent + child for approvals",
+  "Same-instance rewind",
+  "Thin Approval Lite lab",
+];
+
+function GumroadCta({
+  href,
+  label,
+  size = "default",
+}: {
+  href: string;
+  label: string;
+  size?: "default" | "lg";
+}) {
   return (
     <Button size={size} className="gap-2" asChild>
-      <a
-        href={FUNDAMENTALS_CORE_GUMROAD_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Get Fundamentals Core
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        {label}
         <ArrowRight className="h-4 w-4" />
       </a>
     </Button>
+  );
+}
+
+function GetFundamentalsCoreButton({ size = "default" }: { size?: "default" | "lg" }) {
+  return (
+    <GumroadCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Get Fundamentals Core" size={size} />
   );
 }
 
@@ -164,7 +185,8 @@ export default function Training() {
             </ul>
 
             <p className="text-sm text-muted-foreground mb-8">
-              Later upsell: Fundamentals Complete (€699 / €849) — not the current offer.
+              Fundamentals Complete is also available — Modules 0–10 + Labs A–H (~9–11
+              hours). Core stays the starting self-paced path.
             </p>
 
             <Accordion type="single" collapsible className="w-full">
@@ -196,7 +218,9 @@ export default function Training() {
               Training Formats
             </h2>
 
-            <Card className="mb-8 border-primary/30">
+            <h3 className="text-xl font-semibold mb-6">Self-paced</h3>
+
+            <Card className="mb-6 border-primary/30">
               <CardContent className="p-6 md:p-8">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -204,7 +228,7 @@ export default function Training() {
                   </div>
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <h3 className="text-xl font-semibold">Self-paced</h3>
+                      <h3 className="text-xl font-semibold">Fundamentals Core</h3>
                       <Badge>Available</Badge>
                     </div>
                     <p className="text-muted-foreground mb-6">
@@ -212,6 +236,62 @@ export default function Training() {
                       (~5–6 hours solo) on Elsa 3.8.1. From €399, EUR excl. VAT.
                     </p>
                     <GetFundamentalsCoreButton />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mb-6">
+              <CardContent className="p-6 md:p-8">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Layers className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="text-xl font-semibold">Advanced Patterns v1.0</h3>
+                      <Badge>Available</Badge>
+                    </div>
+                    <p className="text-muted-foreground mb-4">
+                      Advanced Patterns v1.0 for teams past Fundamentals Core. AP0–AP2:
+                      approval architecture + Approval Lite lab on Elsa 3.8.1. AP3–AP6
+                      follow later on the same product. From €499, EUR excl. VAT.
+                    </p>
+                    <p className="text-sm font-medium mb-2">What you learn</p>
+                    <ul className="space-y-2 mb-6">
+                      {advancedOutcomes.map((item) => (
+                        <li key={item} className="flex items-start gap-3 text-muted-foreground">
+                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <GumroadCta href={ADVANCED_PATTERNS_GUMROAD_URL} label="Get Advanced Patterns" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mb-8">
+              <CardContent className="p-6 md:p-8">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Library className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h3 className="text-xl font-semibold">Fundamentals Complete</h3>
+                      <Badge>Available</Badge>
+                    </div>
+                    <p className="text-muted-foreground mb-6">
+                      Full Fundamentals path: Modules 0–10 + Labs A–H (~9–11 hours).
+                      Code-first, long-running basics, testing, capstone. From €699, EUR
+                      excl. VAT.
+                    </p>
+                    <GumroadCta
+                      href={FUNDAMENTALS_COMPLETE_GUMROAD_URL}
+                      label="Get Fundamentals Complete"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -298,6 +378,24 @@ export default function Training() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Advanced Patterns v1.0
+                    </p>
+                    <p className="text-2xl font-bold mb-2">from €499</p>
+                    <p className="text-sm text-muted-foreground">
+                      AP0–AP2 · Elsa 3.8.1
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Fundamentals Complete
+                    </p>
+                    <p className="text-2xl font-bold mb-2">from €699</p>
+                    <p className="text-sm text-muted-foreground">
+                      Modules 0–10 + Labs A–H
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
                       Private team workshops
                     </p>
                     <p className="text-2xl font-bold mb-2">from €3,200</p>
@@ -306,10 +404,7 @@ export default function Training() {
                     </p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">EUR excl. VAT.</p>
-                <p className="text-sm text-muted-foreground mb-8">
-                  Later: Fundamentals Complete (€699 / €849).
-                </p>
+                <p className="text-sm text-muted-foreground mb-8">EUR excl. VAT.</p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <GetFundamentalsCoreButton />
                   <Button variant="outline" onClick={() => setInterest("quote")}>
