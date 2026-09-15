@@ -232,9 +232,27 @@ export default function Training() {
                       Private team workshops only — a facilitator for your whole team. From
                       €3,200, EUR excl. VAT.
                     </p>
+                    <div className="mb-6">
+                      <h4 className="text-base font-semibold mb-2">
+                        Module available for private teams: Approval Lite
+                      </h4>
+                      <p className="text-muted-foreground mb-3">
+                        Half-day facilitator-led architecture case for mid-size .NET teams
+                        past Fundamentals Core. Covers the approval decision tree (AP1) and
+                        a thin multi-role lab with rewind (AP2) on Elsa 3.8.1.
+                      </p>
+                      <p className="text-muted-foreground">
+                        Request a private quote and note &quot;Approval Lite&quot; in your
+                        message.
+                      </p>
+                    </div>
                     <Button variant="outline" onClick={() => setInterest("quote")}>
                       Request a private team workshop
                     </Button>
+                    <p className="text-sm text-muted-foreground mt-3">
+                      Private quotes can include Fundamentals and/or the Approval Lite
+                      module. Tell us which in your message.
+                    </p>
                   </div>
                 </div>
               </CardContent>
