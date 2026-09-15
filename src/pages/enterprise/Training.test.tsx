@@ -66,4 +66,28 @@ describe("Training page", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).toBeInTheDocument();
   });
+
+  it("mentions Approval Lite only as a private workshop module", () => {
+    renderTraining();
+
+    expect(
+      screen.getByRole("heading", {
+        name: /module available for private teams: approval lite/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/half-day facilitator-led architecture case/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/note "approval lite" in your message/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/fundamentals and\/or the approval lite module/i),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole("button", { name: /approval lite/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /approval lite/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/self-paced advanced/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/€2,400|€2,800/)).not.toBeInTheDocument();
+  });
 });
