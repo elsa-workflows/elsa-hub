@@ -171,7 +171,7 @@ export default function Training() {
               What’s in Fundamentals
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              Self-paced Core on Elsa 3.8.1: Modules 0–5, a cloneable lab kit, and Labs A–C
+              Self-paced Core on Elsa 3.8.4: Modules 0–5, a cloneable lab kit, and Labs A–C
               (~5–6 hours solo).
             </p>
 
@@ -233,7 +233,7 @@ export default function Training() {
                     </div>
                     <p className="text-muted-foreground mb-6">
                       Fundamentals Core — Modules 0–5, a cloneable lab kit, and Labs A–C
-                      (~5–6 hours solo) on Elsa 3.8.1. From €399, EUR excl. VAT.
+                      (~5–6 hours solo) on Elsa 3.8.4. From €399, EUR excl. VAT.
                     </p>
                     <GetFundamentalsCoreButton />
                   </div>
@@ -254,7 +254,7 @@ export default function Training() {
                     </div>
                     <p className="text-muted-foreground mb-4">
                       Advanced Patterns v1.0 for teams past Fundamentals Core. AP0–AP2:
-                      approval architecture + Approval Lite lab on Elsa 3.8.1. AP3–AP6
+                      approval architecture + Approval Lite lab on Elsa 3.8.4. AP3–AP6
                       follow later on the same product. From €499, EUR excl. VAT.
                     </p>
                     <p className="text-sm font-medium mb-2">What you learn</p>
@@ -319,7 +319,7 @@ export default function Training() {
                       <p className="text-muted-foreground mb-3">
                         Half-day facilitator-led architecture case for mid-size .NET teams
                         past Fundamentals Core. Covers the approval decision tree (AP1) and
-                        a thin multi-role lab with rewind (AP2) on Elsa 3.8.1.
+                        a thin multi-role lab with rewind (AP2) on Elsa 3.8.4.
                       </p>
                       <p className="text-muted-foreground">
                         Request a private quote and note &quot;Approval Lite&quot; in your
@@ -373,7 +373,7 @@ export default function Training() {
                     </p>
                     <p className="text-2xl font-bold mb-2">from €399</p>
                     <p className="text-sm text-muted-foreground">
-                      Modules 0–5 + Labs A–C · Elsa 3.8.1
+                      Modules 0–5 + Labs A–C · Elsa 3.8.4
                     </p>
                   </div>
                   <div>
@@ -382,7 +382,7 @@ export default function Training() {
                     </p>
                     <p className="text-2xl font-bold mb-2">from €499</p>
                     <p className="text-sm text-muted-foreground">
-                      AP0–AP2 · Elsa 3.8.1
+                      AP0–AP2 · Elsa 3.8.4
                     </p>
                   </div>
                   <div>
