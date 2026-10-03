@@ -3,6 +3,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TrainingInterestDialog } from "./TrainingInterestDialog";
 
 const insertMock = vi.fn(async (_payload: unknown) => ({ error: null }));
+const invokeMock = vi.fn(async (_name?: string, _args?: unknown) => ({
+  data: { success: true },
+  error: null,
+}));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -10,7 +14,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       insert: (payload: unknown) => insertMock(payload),
     }),
     functions: {
-      invoke: async () => ({ data: { success: true }, error: null }),
+      invoke: (name: string, args?: unknown) => invokeMock(name, args),
     },
   },
 }));
@@ -37,7 +41,8 @@ describe("TrainingInterestDialog", () => {
     expect(screen.getByLabelText(/^email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^name/i)).toBeInTheDocument();
     expect(screen.getByText("Interest")).toBeInTheDocument();
-    expect(screen.getByText("Self-paced Core")).toBeInTheDocument();
+    expect(screen.getByText("Self-paced (Solo Bundle)")).toBeInTheDocument();
+    expect(screen.getByRole("radiogroup", { name: /interest/i })).toBeInTheDocument();
     expect(screen.getByText("Preferred start month")).toBeInTheDocument();
     expect(screen.queryByLabelText(/headcount/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Offerings")).not.toBeInTheDocument();
@@ -81,29 +86,33 @@ describe("TrainingInterestDialog", () => {
       />,
     );
 
-    expect(screen.getByRole("radio", { name: /self-paced core/i })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /self-paced \(solo bundle\)/i })).toBeChecked();
   });
 
-  it("shows the seat-quote variant title and prefills the notes marker", () => {
+  it("shows the seat-quote variant without an Interest group or notes marker prefill", () => {
     render(
       <TrainingInterestDialog
         open
         intent="quote"
         quoteVariant="seat_quote"
-        defaultInterest="self_paced"
         onOpenChange={() => {}}
       />,
     );
 
     expect(screen.getByRole("heading", { name: /request a 25\+ seat quote/i })).toBeInTheDocument();
     expect(screen.getByText(/team pack quote for 25 or more people/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/notes/i)).toHaveValue("[25+ seat quote]");
+    expect(screen.getByLabelText(/^seats/i)).toHaveAttribute("placeholder", "25");
+    expect(screen.getByLabelText(/^seats/i)).toHaveAttribute("min", "25");
+    expect(screen.getByLabelText(/notes/i)).toHaveValue("");
+    expect(screen.queryByText("Interest")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/delivery/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/€399/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Fundamentals Core/i)).not.toBeInTheDocument();
   });
 
-  it("prepends the seat-quote marker to stored notes even if the field is cleared", async () => {
+  it("applies the seat-quote marker on submit and does not call subscribe-newsletter", async () => {
     insertMock.mockClear();
+    invokeMock.mockClear();
 
     render(
       <TrainingInterestDialog
@@ -116,7 +125,7 @@ describe("TrainingInterestDialog", () => {
 
     fireEvent.change(screen.getByLabelText(/notes/i), { target: { value: "Need 40 seats" } });
     fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "lead@acme.com" } });
-    fireEvent.change(screen.getByLabelText(/headcount/i), { target: { value: "40" } });
+    fireEvent.change(screen.getByLabelText(/^seats/i), { target: { value: "40" } });
     fireEvent.click(screen.getByRole("button", { name: /^request a quote$/i }));
 
     await waitFor(() => {
@@ -125,5 +134,31 @@ describe("TrainingInterestDialog", () => {
     const payload = insertMock.mock.calls[0]?.[0] as { notes?: string; intent?: string };
     expect(payload.intent).toBe("quote");
     expect(payload.notes).toBe("[25+ seat quote] Need 40 seats");
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(invokeMock).not.toHaveBeenCalledWith("subscribe-newsletter", expect.anything());
+  });
+
+  it("does not invoke subscribe-newsletter on a default seat-quote submit", async () => {
+    insertMock.mockClear();
+    invokeMock.mockClear();
+
+    render(
+      <TrainingInterestDialog
+        open
+        intent="quote"
+        quoteVariant="seat_quote"
+        onOpenChange={() => {}}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "lead@acme.com" } });
+    fireEvent.change(screen.getByLabelText(/^seats/i), { target: { value: "25" } });
+    fireEvent.click(screen.getByRole("button", { name: /^request a quote$/i }));
+
+    await waitFor(() => {
+      expect(insertMock).toHaveBeenCalled();
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(invokeMock.mock.calls.some((call) => call[0] === "subscribe-newsletter")).toBe(false);
   });
 });

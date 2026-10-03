@@ -130,19 +130,26 @@ describe("Training page", () => {
       screen.getByRole("heading", { name: /request a 25\+ seat quote/i }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /request a private team workshop/i })).not.toBeInTheDocument();
-    expect(within(dialog).getByLabelText(/notes/i)).toHaveValue("[25+ seat quote]");
+    expect(within(dialog).getByLabelText(/notes/i)).toHaveValue("");
+    expect(within(dialog).getByLabelText(/^seats/i)).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/headcount/i)).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/delivery/i)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Interest")).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/€399/)).not.toBeInTheDocument();
     expect(within(dialog).queryByText(/Fundamentals Core/i)).not.toBeInTheDocument();
   });
 
-  it("uses completion certificates in the later-formats roadmap, not a certification product", () => {
+  it("lists completion certificates as included with Team packs, not as a later product", () => {
     renderTraining();
 
     expect(
-      screen.getByText(/self-paced → private workshop → completion certificates/i),
+      screen.getByRole("heading", { name: /completion certificates/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/included with team 5 and team 10/i)).toBeInTheDocument();
+    expect(screen.queryByText(/not live/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText(/self-paced → private workshop → certifications/i),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/certification/i)).not.toBeInTheDocument();
   });
 });

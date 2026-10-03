@@ -52,16 +52,18 @@ const prerequisites = [
   "Git",
 ];
 
-const laterFormats = [
+const extraFormats = [
+  {
+    icon: Award,
+    title: "Completion certificates",
+    description: "Included with Team 5 and Team 10.",
+    later: false,
+  },
   {
     icon: Video,
     title: "Courses",
     description: "Structured learning paths are not sold yet.",
-  },
-  {
-    icon: Award,
-    title: "Certifications",
-    description: "Not live. The intended path is self-paced → private workshop → completion certificates.",
+    later: true,
   },
 ];
 
@@ -335,8 +337,8 @@ export default function Training() {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {laterFormats.map((format) => (
-                <Card key={format.title} className="opacity-80">
+              {extraFormats.map((format) => (
+                <Card key={format.title} className={format.later ? "opacity-80" : undefined}>
                   <CardContent className="p-6 flex gap-4">
                     <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                       <format.icon className="h-6 w-6 text-muted-foreground" />
@@ -344,7 +346,9 @@ export default function Training() {
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold">{format.title}</h3>
-                        <Badge variant="secondary">Later</Badge>
+                        <Badge variant={format.later ? "secondary" : undefined}>
+                          {format.later ? "Later" : "Available"}
+                        </Badge>
                       </div>
                       <p className="text-muted-foreground text-sm">{format.description}</p>
                     </div>
@@ -454,11 +458,7 @@ export default function Training() {
         open={interest !== null}
         intent={interest ?? "notify"}
         quoteVariant={quoteVariant}
-        defaultInterest={
-          interest === "notify" || (interest === "quote" && quoteVariant === "seat_quote")
-            ? "self_paced"
-            : undefined
-        }
+        defaultInterest={interest === "notify" ? "self_paced" : undefined}
         onOpenChange={(open) => {
           if (!open) setInterest(null);
         }}

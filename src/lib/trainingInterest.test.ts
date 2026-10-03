@@ -14,7 +14,7 @@ import {
 } from "./trainingInterest";
 
 describe("Gumroad product URLs", () => {
-  it("points at the live Gumroad Fundamentals Core product", () => {
+  it("points at the live Gumroad Solo Bundle product", () => {
     expect(FUNDAMENTALS_CORE_GUMROAD_URL).toBe("https://9868397950180.gumroad.com/l/pkvdly");
   });
 });
@@ -90,6 +90,16 @@ describe("shouldSubscribeToNewsletter", () => {
     expect(shouldSubscribeToNewsletter("quote", { interest: "self_paced" })).toBe(true);
     expect(shouldSubscribeToNewsletter("quote", { interest: "private" })).toBe(false);
     expect(shouldSubscribeToNewsletter("provider", { interest: "" })).toBe(false);
+    expect(
+      shouldSubscribeToNewsletter("quote", { interest: "" }, { quoteVariant: "seat_quote" }),
+    ).toBe(false);
+    expect(
+      shouldSubscribeToNewsletter(
+        "quote",
+        { interest: "self_paced" },
+        { quoteVariant: "seat_quote" },
+      ),
+    ).toBe(false);
   });
 });
 
@@ -174,7 +184,7 @@ describe("toggleListValue", () => {
 });
 
 describe("seat-quote lead distinction", () => {
-  it("prefills and prepends the 25+ seat quote marker on notes", () => {
+  it("prepends the 25+ seat quote marker on notes at submit time", () => {
     expect(applySeatQuoteNotesMarker("")).toBe(SEAT_QUOTE_NOTES_MARKER);
     expect(applySeatQuoteNotesMarker("  ")).toBe(SEAT_QUOTE_NOTES_MARKER);
     expect(applySeatQuoteNotesMarker("Need 40 seats")).toBe(
@@ -185,13 +195,28 @@ describe("seat-quote lead distinction", () => {
     );
   });
 
-  it("stores quote intent with the seat-quote marker in notes", () => {
+  it("stores quote intent with the seat-quote marker in notes and does not subscribe", () => {
     const markedNotes = applySeatQuoteNotesMarker("Need 40 seats in Q4");
-    const result = validateTrainingInterest("quote", quoteForm({ notes: markedNotes }));
+    const result = validateTrainingInterest(
+      "quote",
+      quoteForm({ interest: "", headcount: "40", notes: markedNotes }),
+      { quoteVariant: "seat_quote" },
+    );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.subscribe).toBe(false);
     expect(result.insert.intent).toBe("quote");
     expect(result.insert.notes).toBe("[25+ seat quote] Need 40 seats in Q4");
+  });
+
+  it("requires 25 to 500 seats on seat quotes", () => {
+    const tooFew = validateTrainingInterest(
+      "quote",
+      quoteForm({ interest: "", headcount: "8" }),
+      { quoteVariant: "seat_quote" },
+    );
+    expect(tooFew.ok).toBe(false);
+    if (tooFew.ok === false) expect(tooFew.error).toMatch(/seats you need \(25-500\)/i);
   });
 
   it("describes the Solo Bundle seat-quote dialog without old Core pricing copy", () => {

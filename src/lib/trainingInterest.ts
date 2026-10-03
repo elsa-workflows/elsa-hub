@@ -10,6 +10,9 @@ export type DeliveryMode = "remote" | "on_site" | "either";
 export type TrainingLeadStatus = "new" | "contacted" | "closed";
 
 export const SEAT_QUOTE_NOTES_MARKER = "[25+ seat quote]";
+export const SEAT_QUOTE_NOTES_MAX_LENGTH = 4983;
+export const SEAT_QUOTE_HEADCOUNT_MIN = 25;
+export const SEAT_QUOTE_HEADCOUNT_MAX = 500;
 
 export const TRAINING_INTENTS: TrainingInterestIntent[] = ["notify", "quote", "provider"];
 
@@ -85,13 +88,13 @@ export const companySizeOptions = [
 ] as const;
 
 export const seatInterestOptions = [
-  { value: "self_paced" as const, label: "Self-paced Core" },
+  { value: "self_paced" as const, label: "Self-paced (Solo Bundle)" },
   { value: "private" as const, label: "Private team workshop" },
   { value: "both" as const, label: "Both" },
 ];
 
 export const seatInterestLabels: Record<SeatInterest, string> = {
-  self_paced: "Self-paced Core",
+  self_paced: "Self-paced (Solo Bundle)",
   public: "Public seats",
   private: "Private team workshop",
   both: "Both",
@@ -225,11 +228,16 @@ function isValidOptionalUrl(value: string): boolean {
   }
 }
 
-export function parseHeadcount(value: string): number | null {
+export function parseHeadcount(
+  value: string,
+  range: { min?: number; max?: number } = {},
+): number | null {
+  const min = range.min ?? 1;
+  const max = range.max ?? 500;
   const t = trim(value);
   if (!t) return null;
   const n = Number(t);
-  if (!Number.isInteger(n) || n < 1 || n > 500) return null;
+  if (!Number.isInteger(n) || n < min || n > max) return null;
   return n;
 }
 
@@ -237,7 +245,9 @@ export function parseHeadcount(value: string): number | null {
 export function shouldSubscribeToNewsletter(
   intent: TrainingInterestIntent,
   form: Pick<TrainingInterestForm, "interest">,
+  extras: { quoteVariant?: TrainingQuoteVariant } = {},
 ): boolean {
+  if (extras.quoteVariant === "seat_quote") return false;
   if (intent === "notify") return true;
   if (
     intent === "quote" &&
@@ -280,7 +290,11 @@ export type TrainingInterestValidation =
 export function validateTrainingInterest(
   intent: TrainingInterestIntent,
   form: TrainingInterestForm,
-  extras: { sourcePage?: string; userId?: string | null } = {},
+  extras: {
+    sourcePage?: string;
+    userId?: string | null;
+    quoteVariant?: TrainingQuoteVariant;
+  } = {},
 ): TrainingInterestValidation {
   if (!TRAINING_INTENTS.includes(intent)) {
     return { ok: false, error: "Unknown request type." };
@@ -314,10 +328,22 @@ export function validateTrainingInterest(
     }
   }
 
+  const isSeatQuote = intent === "quote" && extras.quoteVariant === "seat_quote";
+
   if (intent === "quote") {
-    const headcount = parseHeadcount(form.headcount);
+    const headcount = parseHeadcount(
+      form.headcount,
+      isSeatQuote
+        ? { min: SEAT_QUOTE_HEADCOUNT_MIN, max: SEAT_QUOTE_HEADCOUNT_MAX }
+        : undefined,
+    );
     if (headcount === null) {
-      return { ok: false, error: "Please enter how many people will attend (1–500)." };
+      return {
+        ok: false,
+        error: isSeatQuote
+          ? "Please enter how many seats you need (25-500)."
+          : "Please enter how many people will attend (1-500).",
+      };
     }
     if (!isValidOptionalUrl(form.website) || !isValidOptionalUrl(form.outlineUrl)) {
       return { ok: false, error: "Please enter a valid http(s) URL." };
@@ -338,7 +364,12 @@ export function validateTrainingInterest(
     interest: optional(form.interest),
     preferred_length: optional(form.preferredLength),
     start_month: optional(form.startMonth),
-    headcount: parseHeadcount(form.headcount),
+    headcount: parseHeadcount(
+      form.headcount,
+      isSeatQuote
+        ? { min: SEAT_QUOTE_HEADCOUNT_MIN, max: SEAT_QUOTE_HEADCOUNT_MAX }
+        : undefined,
+    ),
     delivery: optional(form.delivery),
     timezone_region: optional(form.timezoneRegion),
     notes: optional(form.notes),
@@ -356,7 +387,9 @@ export function validateTrainingInterest(
   return {
     ok: true,
     insert,
-    subscribe: shouldSubscribeToNewsletter(intent, form),
+    subscribe: shouldSubscribeToNewsletter(intent, form, {
+      quoteVariant: extras.quoteVariant,
+    }),
   };
 }
 
