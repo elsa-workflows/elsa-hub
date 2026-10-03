@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Training from "./Training";
 import { FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
@@ -120,14 +120,36 @@ describe("Training page", () => {
     expect(screen.queryByText(/instead of core/i)).not.toBeInTheDocument();
   });
 
-  it("opens the quote dialog from Request a quote in the Team packs card", () => {
+  it("opens the seat-quote dialog variant from Request a quote in the Team packs card", () => {
     renderTraining();
 
     fireEvent.click(screen.getByRole("button", { name: /^request a quote$/i }));
 
+    const dialog = screen.getByRole("dialog");
     expect(
-      screen.getByRole("heading", { name: /request a private team workshop/i }),
+      screen.getByRole("heading", { name: /request a 25\+ seat quote/i }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /request a private team workshop/i })).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText(/notes/i)).toHaveValue("");
+    expect(within(dialog).getByLabelText(/^seats/i)).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/headcount/i)).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/delivery/i)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Interest")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/€399/)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/Fundamentals Core/i)).not.toBeInTheDocument();
+  });
+
+  it("lists completion certificates as included with Team packs, not as a later product", () => {
+    renderTraining();
+
+    expect(
+      screen.getByRole("heading", { name: /completion certificates/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/included with team 5 and team 10/i)).toBeInTheDocument();
+    expect(screen.queryByText(/not live/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/self-paced → private workshop → certifications/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/certification/i)).not.toBeInTheDocument();
   });
 });

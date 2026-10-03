@@ -206,7 +206,7 @@ export default function AdminTrainingLeads() {
         <h1 className="text-3xl font-bold tracking-tight">Training leads</h1>
         <p className="text-muted-foreground">
           Triage Elsa+ Training interest. Work private quotes first, then provider listings,
-          then self-paced Core demand. Self-paced Core and public-seat quotes are also on
+          then self-paced (Solo Bundle) demand. Self-paced (Solo Bundle) and public-seat quotes are also on
           MailerLite.
         </p>
       </div>

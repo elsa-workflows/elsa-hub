@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  applySeatQuoteNotesMarker,
   emptyTrainingInterestForm,
   FUNDAMENTALS_CORE_GUMROAD_URL,
   parseHeadcount,
+  quoteDialogCopy,
+  SEAT_QUOTE_NOTES_MARKER,
   shouldSubscribeToNewsletter,
   startMonthOptions,
   toggleListValue,
@@ -11,7 +14,7 @@ import {
 } from "./trainingInterest";
 
 describe("Gumroad product URLs", () => {
-  it("points at the live Gumroad Fundamentals Core product", () => {
+  it("points at the live Gumroad Solo Bundle product", () => {
     expect(FUNDAMENTALS_CORE_GUMROAD_URL).toBe("https://9868397950180.gumroad.com/l/pkvdly");
   });
 });
@@ -87,6 +90,16 @@ describe("shouldSubscribeToNewsletter", () => {
     expect(shouldSubscribeToNewsletter("quote", { interest: "self_paced" })).toBe(true);
     expect(shouldSubscribeToNewsletter("quote", { interest: "private" })).toBe(false);
     expect(shouldSubscribeToNewsletter("provider", { interest: "" })).toBe(false);
+    expect(
+      shouldSubscribeToNewsletter("quote", { interest: "" }, { quoteVariant: "seat_quote" }),
+    ).toBe(false);
+    expect(
+      shouldSubscribeToNewsletter(
+        "quote",
+        { interest: "self_paced" },
+        { quoteVariant: "seat_quote" },
+      ),
+    ).toBe(false);
   });
 });
 
@@ -167,5 +180,53 @@ describe("toggleListValue", () => {
   it("adds and removes values", () => {
     expect(toggleListValue(["Europe"], "Asia")).toEqual(["Europe", "Asia"]);
     expect(toggleListValue(["Europe", "Asia"], "Europe")).toEqual(["Asia"]);
+  });
+});
+
+describe("seat-quote lead distinction", () => {
+  it("prepends the 25+ seat quote marker on notes at submit time", () => {
+    expect(applySeatQuoteNotesMarker("")).toBe(SEAT_QUOTE_NOTES_MARKER);
+    expect(applySeatQuoteNotesMarker("  ")).toBe(SEAT_QUOTE_NOTES_MARKER);
+    expect(applySeatQuoteNotesMarker("Need 40 seats")).toBe(
+      `${SEAT_QUOTE_NOTES_MARKER} Need 40 seats`,
+    );
+    expect(applySeatQuoteNotesMarker(`${SEAT_QUOTE_NOTES_MARKER} Need 40 seats`)).toBe(
+      `${SEAT_QUOTE_NOTES_MARKER} Need 40 seats`,
+    );
+  });
+
+  it("stores quote intent with the seat-quote marker in notes and does not subscribe", () => {
+    const markedNotes = applySeatQuoteNotesMarker("Need 40 seats in Q4");
+    const result = validateTrainingInterest(
+      "quote",
+      quoteForm({ interest: "", headcount: "40", notes: markedNotes }),
+      { quoteVariant: "seat_quote" },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.subscribe).toBe(false);
+    expect(result.insert.intent).toBe("quote");
+    expect(result.insert.notes).toBe("[25+ seat quote] Need 40 seats in Q4");
+  });
+
+  it("requires 25 to 500 seats on seat quotes", () => {
+    const tooFew = validateTrainingInterest(
+      "quote",
+      quoteForm({ interest: "", headcount: "8" }),
+      { quoteVariant: "seat_quote" },
+    );
+    expect(tooFew.ok).toBe(false);
+    if (tooFew.ok === false) expect(tooFew.error).toMatch(/seats you need \(25-500\)/i);
+  });
+
+  it("describes the Solo Bundle seat-quote dialog without old Core pricing copy", () => {
+    const copy = quoteDialogCopy.seat_quote;
+    const joined = `${copy.title} ${copy.description} ${copy.buttonText} ${copy.successMessage}`;
+    expect(copy.title).toBe("Request a 25+ seat quote");
+    expect(joined).toMatch(/25\+ seat/i);
+    expect(joined).not.toMatch(/€399/);
+    expect(joined).not.toMatch(/Fundamentals Core/);
+    expect(joined).not.toContain("\u2014");
+    expect(joined).not.toContain("\u2013");
   });
 });

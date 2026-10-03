@@ -27,6 +27,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import {
+  applySeatQuoteNotesMarker,
   companySizeOptions,
   deliveryOptions,
   dialogCopy,
@@ -34,15 +35,20 @@ import {
   languageOptions,
   offeringOptions,
   preferredLengthOptions,
+  quoteDialogCopy,
   regionOptions,
   roleOptions,
   seatInterestOptions,
+  SEAT_QUOTE_HEADCOUNT_MAX,
+  SEAT_QUOTE_HEADCOUNT_MIN,
+  SEAT_QUOTE_NOTES_MAX_LENGTH,
   startMonthOptions,
   toggleListValue,
   validateTrainingInterest,
   type SeatInterest,
   type TrainingInterestForm,
   type TrainingInterestIntent,
+  type TrainingQuoteVariant,
 } from "@/lib/trainingInterest";
 
 interface TrainingInterestDialogProps {
@@ -51,6 +57,7 @@ interface TrainingInterestDialogProps {
   intent: TrainingInterestIntent;
   sourcePage?: string;
   defaultInterest?: SeatInterest;
+  quoteVariant?: TrainingQuoteVariant;
 }
 
 function FieldLabel({
@@ -78,8 +85,10 @@ export function TrainingInterestDialog({
   intent,
   sourcePage = "/elsa-plus/training",
   defaultInterest,
+  quoteVariant = "workshop",
 }: TrainingInterestDialogProps) {
-  const copy = dialogCopy[intent];
+  const copy = intent === "quote" ? quoteDialogCopy[quoteVariant] : dialogCopy[intent];
+  const isSeatQuote = intent === "quote" && quoteVariant === "seat_quote";
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { organizations } = useOrganizations();
@@ -118,9 +127,14 @@ export function TrainingInterestDialog({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    const result = validateTrainingInterest(intent, form, {
+    const formForValidation = isSeatQuote
+      ? { ...form, notes: applySeatQuoteNotesMarker(form.notes) }
+      : form;
+
+    const result = validateTrainingInterest(intent, formForValidation, {
       sourcePage,
       userId: user?.id ?? null,
+      quoteVariant: intent === "quote" ? quoteVariant : undefined,
     });
     if (result.ok === false) {
       setSubmitError(result.error);
@@ -312,13 +326,17 @@ export function TrainingInterestDialog({
                   </div>
                 </div>
 
+                {!isSeatQuote ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Interest</p>
+                  <p id="training-interest-label" className="text-sm font-medium">
+                    Interest
+                  </p>
                   <RadioGroup
                     value={form.interest}
                     onValueChange={(v) =>
                       setField("interest", v as TrainingInterestForm["interest"])
                     }
+                    aria-labelledby="training-interest-label"
                     className="grid gap-2 sm:grid-cols-3"
                   >
                     {seatInterestOptions.map((option) => (
@@ -331,6 +349,7 @@ export function TrainingInterestDialog({
                     ))}
                   </RadioGroup>
                 </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <FieldLabel htmlFor="training-start">Preferred start month</FieldLabel>
@@ -352,22 +371,23 @@ export function TrainingInterestDialog({
 
             {intent === "quote" ? (
               <>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className={isSeatQuote ? "space-y-2" : "grid gap-4 sm:grid-cols-2"}>
                   <div className="space-y-2">
                     <FieldLabel htmlFor="training-headcount" required>
-                      Headcount
+                      {isSeatQuote ? "Seats" : "Headcount"}
                     </FieldLabel>
                     <Input
                       id="training-headcount"
                       type="number"
-                      min={1}
-                      max={500}
+                      min={isSeatQuote ? SEAT_QUOTE_HEADCOUNT_MIN : 1}
+                      max={isSeatQuote ? SEAT_QUOTE_HEADCOUNT_MAX : 500}
                       inputMode="numeric"
                       value={form.headcount}
                       onChange={(e) => setField("headcount", e.target.value)}
-                      placeholder="8"
+                      placeholder={isSeatQuote ? "25" : "8"}
                     />
                   </div>
+                  {!isSeatQuote ? (
                   <div className="space-y-2">
                     <FieldLabel htmlFor="training-delivery">Delivery</FieldLabel>
                     <Select
@@ -388,6 +408,7 @@ export function TrainingInterestDialog({
                       </SelectContent>
                     </Select>
                   </div>
+                  ) : null}
                 </div>
                 <div className="space-y-2">
                   <FieldLabel htmlFor="training-tz">Timezone / region</FieldLabel>
@@ -482,12 +503,14 @@ export function TrainingInterestDialog({
                   value={form.notes}
                   onChange={(e) => setField("notes", e.target.value)}
                   placeholder={
-                    intent === "quote"
+                    isSeatQuote
+                      ? "How many seats you need, timing, or other constraints."
+                      : intent === "quote"
                       ? "Timing, constraints, or what the team already knows about Elsa."
                       : "Anything else we should know about listing or partnership."
                   }
                   rows={4}
-                  maxLength={5000}
+                  maxLength={isSeatQuote ? SEAT_QUOTE_NOTES_MAX_LENGTH : 5000}
                 />
               </div>
             )}
