@@ -168,7 +168,7 @@ const PAGE_DOCS: Doc[] = [
     external_id: "page:training",
     url: `${SITE_BASE}/elsa-plus/training`,
     title: "Elsa Workflows Fundamentals for Teams",
-    body: "Self-paced Elsa Workflows Fundamentals Core for mid-size .NET teams adopting Elsa 3 — Modules 0–5, a cloneable lab kit, and Labs A–C (~5–6 hours solo) on Elsa 3.8.1. Private team workshops on request. Courses and certifications are later. Self-paced Core from €399; private workshops from €3,200 (EUR excl. VAT).",
+    body: "Self-paced Elsa Workflows Solo Bundle for mid-size .NET teams adopting Elsa 3, on Elsa 3.8.4. Solo Bundle €29 at launch until 31 Oct, then €39. Team 5 €349 (5 seats, certificates, 90 days email Q&A). Team 10 €599 (adds 60-minute live team Q&A). 25+ seats by quote. Private team workshops from €3,200. EUR excl. VAT. Courses and certifications are later.",
   },
   {
     source: "page",

@@ -2,11 +2,14 @@ export const FUNDAMENTALS_CORE_GUMROAD_URL =
   "https://9868397950180.gumroad.com/l/pkvdly";
 
 export type TrainingInterestIntent = "notify" | "quote" | "provider";
+export type TrainingQuoteVariant = "workshop" | "seat_quote";
 
 export type SeatInterest = "public" | "private" | "both" | "self_paced";
 export type PreferredLength = "half_day" | "one_day" | "either";
 export type DeliveryMode = "remote" | "on_site" | "either";
 export type TrainingLeadStatus = "new" | "contacted" | "closed";
+
+export const SEAT_QUOTE_NOTES_MARKER = "[25+ seat quote]";
 
 export const TRAINING_INTENTS: TrainingInterestIntent[] = ["notify", "quote", "provider"];
 
@@ -42,6 +45,27 @@ export const dialogCopy: Record<
     successMessage: "Thanks for your interest. We’ll reach out about training provider opportunities.",
   },
 };
+
+export const quoteDialogCopy: Record<
+  TrainingQuoteVariant,
+  { title: string; description: string; buttonText: string; successMessage: string }
+> = {
+  workshop: dialogCopy.quote,
+  seat_quote: {
+    title: "Request a 25+ seat quote",
+    description:
+      "Share team size and how many seats you need. We will follow up with a Team pack quote for 25 or more people on Elsa 3.8.4.",
+    buttonText: "Request a quote",
+    successMessage: "Thanks. We will follow up about a 25+ seat Team pack quote.",
+  },
+};
+
+export function applySeatQuoteNotesMarker(notes: string): string {
+  const trimmed = notes.trim();
+  if (!trimmed) return SEAT_QUOTE_NOTES_MARKER;
+  if (trimmed.startsWith(SEAT_QUOTE_NOTES_MARKER)) return trimmed;
+  return `${SEAT_QUOTE_NOTES_MARKER} ${trimmed}`;
+}
 
 export const roleOptions = [
   { value: "developer", label: "Developer" },

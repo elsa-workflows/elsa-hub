@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TrainingInterestDialog } from "./TrainingInterestDialog";
+
+const insertMock = vi.fn(async () => ({ error: null }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
-      insert: async () => ({ error: null }),
+      insert: (payload: unknown) => insertMock(payload),
     }),
     functions: {
       invoke: async () => ({ data: { success: true }, error: null }),
@@ -80,5 +82,48 @@ describe("TrainingInterestDialog", () => {
     );
 
     expect(screen.getByRole("radio", { name: /self-paced core/i })).toBeChecked();
+  });
+
+  it("shows the seat-quote variant title and prefills the notes marker", () => {
+    render(
+      <TrainingInterestDialog
+        open
+        intent="quote"
+        quoteVariant="seat_quote"
+        defaultInterest="self_paced"
+        onOpenChange={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: /request a 25\+ seat quote/i })).toBeInTheDocument();
+    expect(screen.getByText(/team pack quote for 25 or more people/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/notes/i)).toHaveValue("[25+ seat quote]");
+    expect(screen.queryByText(/€399/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Fundamentals Core/i)).not.toBeInTheDocument();
+  });
+
+  it("prepends the seat-quote marker to stored notes even if the field is cleared", async () => {
+    insertMock.mockClear();
+
+    render(
+      <TrainingInterestDialog
+        open
+        intent="quote"
+        quoteVariant="seat_quote"
+        onOpenChange={() => {}}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/notes/i), { target: { value: "Need 40 seats" } });
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: "lead@acme.com" } });
+    fireEvent.change(screen.getByLabelText(/headcount/i), { target: { value: "40" } });
+    fireEvent.click(screen.getByRole("button", { name: /^request a quote$/i }));
+
+    await waitFor(() => {
+      expect(insertMock).toHaveBeenCalled();
+    });
+    const payload = insertMock.mock.calls[0]?.[0] as { notes?: string; intent?: string };
+    expect(payload.intent).toBe("quote");
+    expect(payload.notes).toBe("[25+ seat quote] Need 40 seats");
   });
 });

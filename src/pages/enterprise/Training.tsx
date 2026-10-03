@@ -23,6 +23,7 @@ import { NeutralityDisclaimer, TrainingInterestDialog } from "@/components/enter
 import {
   FUNDAMENTALS_CORE_GUMROAD_URL,
   type TrainingInterestIntent,
+  type TrainingQuoteVariant,
 } from "@/lib/trainingInterest";
 import {
   ArrowRight,
@@ -60,7 +61,7 @@ const laterFormats = [
   {
     icon: Award,
     title: "Certifications",
-    description: "Not live. The intended path is self-paced → private workshop → certifications.",
+    description: "Not live. The intended path is self-paced → private workshop → completion certificates.",
   },
 ];
 
@@ -93,6 +94,12 @@ function BuySoloBundleButton({ size = "default" }: { size?: "default" | "lg" }) 
 
 export default function Training() {
   const [interest, setInterest] = useState<TrainingInterestIntent | null>(null);
+  const [quoteVariant, setQuoteVariant] = useState<TrainingQuoteVariant>("workshop");
+
+  const openQuote = (variant: TrainingQuoteVariant = "workshop") => {
+    setQuoteVariant(variant);
+    setInterest("quote");
+  };
 
   return (
     <Layout>
@@ -134,7 +141,7 @@ export default function Training() {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => setInterest("quote")}
+                onClick={() => openQuote()}
               >
                 Request a private team workshop
               </Button>
@@ -274,7 +281,7 @@ export default function Training() {
                     <GumroadCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Buy a Team pack" />
                     <p className="text-sm text-muted-foreground mt-3">
                       Need 25+ seats? Team packs of 25 or more are by quote.{" "}
-                      <Button variant="link" className="p-0 h-auto" onClick={() => setInterest("quote")}>
+                      <Button variant="link" className="p-0 h-auto" onClick={() => openQuote("seat_quote")}>
                         Request a quote
                       </Button>
                     </p>
@@ -315,7 +322,7 @@ export default function Training() {
                         message.
                       </p>
                     </div>
-                    <Button variant="outline" onClick={() => setInterest("quote")}>
+                    <Button variant="outline" onClick={() => openQuote()}>
                       Request a private team workshop
                     </Button>
                     <p className="text-sm text-muted-foreground mt-3">
@@ -387,7 +394,7 @@ export default function Training() {
                 <p className="text-sm text-muted-foreground mb-8">EUR excl. VAT.</p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <BuySoloBundleButton />
-                  <Button variant="outline" onClick={() => setInterest("quote")}>
+                  <Button variant="outline" onClick={() => openQuote()}>
                     Get a private quote
                   </Button>
                 </div>
@@ -430,7 +437,7 @@ export default function Training() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
                 <BuySoloBundleButton size="lg" />
-                <Button size="lg" variant="outline" onClick={() => setInterest("quote")}>
+                <Button size="lg" variant="outline" onClick={() => openQuote()}>
                   Request a private quote
                 </Button>
               </div>
@@ -443,10 +450,15 @@ export default function Training() {
       </section>
 
       <TrainingInterestDialog
-        key={interest ?? "closed"}
+        key={`${interest ?? "closed"}-${quoteVariant}`}
         open={interest !== null}
         intent={interest ?? "notify"}
-        defaultInterest={interest === "notify" ? "self_paced" : undefined}
+        quoteVariant={quoteVariant}
+        defaultInterest={
+          interest === "notify" || (interest === "quote" && quoteVariant === "seat_quote")
+            ? "self_paced"
+            : undefined
+        }
         onOpenChange={(open) => {
           if (!open) setInterest(null);
         }}

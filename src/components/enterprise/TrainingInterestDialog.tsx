@@ -27,6 +27,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import {
+  applySeatQuoteNotesMarker,
   companySizeOptions,
   deliveryOptions,
   dialogCopy,
@@ -34,15 +35,18 @@ import {
   languageOptions,
   offeringOptions,
   preferredLengthOptions,
+  quoteDialogCopy,
   regionOptions,
   roleOptions,
   seatInterestOptions,
+  SEAT_QUOTE_NOTES_MARKER,
   startMonthOptions,
   toggleListValue,
   validateTrainingInterest,
   type SeatInterest,
   type TrainingInterestForm,
   type TrainingInterestIntent,
+  type TrainingQuoteVariant,
 } from "@/lib/trainingInterest";
 
 interface TrainingInterestDialogProps {
@@ -51,6 +55,7 @@ interface TrainingInterestDialogProps {
   intent: TrainingInterestIntent;
   sourcePage?: string;
   defaultInterest?: SeatInterest;
+  quoteVariant?: TrainingQuoteVariant;
 }
 
 function FieldLabel({
@@ -78,8 +83,10 @@ export function TrainingInterestDialog({
   intent,
   sourcePage = "/elsa-plus/training",
   defaultInterest,
+  quoteVariant = "workshop",
 }: TrainingInterestDialogProps) {
-  const copy = dialogCopy[intent];
+  const copy = intent === "quote" ? quoteDialogCopy[quoteVariant] : dialogCopy[intent];
+  const isSeatQuote = intent === "quote" && quoteVariant === "seat_quote";
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { organizations } = useOrganizations();
@@ -97,8 +104,9 @@ export function TrainingInterestDialog({
     setForm({
       ...emptyTrainingInterestForm(),
       interest: defaultInterest ?? "",
+      notes: isSeatQuote ? SEAT_QUOTE_NOTES_MARKER : "",
     });
-  }, [open, intent, defaultInterest]);
+  }, [open, intent, defaultInterest, isSeatQuote]);
 
   useEffect(() => {
     if (!open || !user) return;
@@ -118,7 +126,11 @@ export function TrainingInterestDialog({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    const result = validateTrainingInterest(intent, form, {
+    const formForValidation = isSeatQuote
+      ? { ...form, notes: applySeatQuoteNotesMarker(form.notes) }
+      : form;
+
+    const result = validateTrainingInterest(intent, formForValidation, {
       sourcePage,
       userId: user?.id ?? null,
     });
@@ -482,7 +494,9 @@ export function TrainingInterestDialog({
                   value={form.notes}
                   onChange={(e) => setField("notes", e.target.value)}
                   placeholder={
-                    intent === "quote"
+                    isSeatQuote
+                      ? "How many seats you need, timing, or other constraints."
+                      : intent === "quote"
                       ? "Timing, constraints, or what the team already knows about Elsa."
                       : "Anything else we should know about listing or partnership."
                   }
