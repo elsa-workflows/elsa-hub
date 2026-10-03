@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -178,7 +179,10 @@ describe("Training page", () => {
   });
 
   it("contains no em dash or en dash in the Training page source or rendered copy", () => {
-    const source = readFileSync(new URL("./Training.tsx", import.meta.url), "utf8");
+    const source = readFileSync(
+      path.join(process.cwd(), "src/pages/enterprise/Training.tsx"),
+      "utf8",
+    );
     expect(source).not.toMatch(/[\u2013\u2014]/);
 
     const { container } = renderTraining();
