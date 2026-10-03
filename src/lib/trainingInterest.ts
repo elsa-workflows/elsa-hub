@@ -29,16 +29,16 @@ export const dialogCopy: Record<
   notify: {
     title: "Get Fundamentals Core",
     description:
-      "Leave your details and we’ll follow up about self-paced Elsa Workflows Fundamentals Core — Modules 0–5, a cloneable lab kit, and Labs A–C.",
+      "Leave your details and we’ll follow up about self-paced Elsa Workflows Fundamentals Core: Modules 0-5, a lab kit you download and unzip, and Labs A-C.",
     buttonText: "Get Fundamentals Core",
-    successMessage: "Thanks — we’ll follow up about Fundamentals Core.",
+    successMessage: "Thanks. We’ll follow up about Fundamentals Core.",
   },
   quote: {
     title: "Request a private team workshop",
     description:
       "Share team size and delivery preferences and we’ll follow up with a private-workshop quote for Elsa Workflows Fundamentals for Teams.",
     buttonText: "Request a quote",
-    successMessage: "Thanks — we’ll follow up about a private team workshop quote.",
+    successMessage: "Thanks. We’ll follow up about a private team workshop quote.",
   },
   provider: {
     title: "Offer Elsa Workflows training?",
@@ -80,10 +80,10 @@ export const roleOptions = [
 ] as const;
 
 export const companySizeOptions = [
-  { value: "1-10", label: "1–10" },
-  { value: "11-50", label: "11–50" },
-  { value: "51-200", label: "51–200" },
-  { value: "201-1000", label: "201–1,000" },
+  { value: "1-10", label: "1-10" },
+  { value: "11-50", label: "11-50" },
+  { value: "51-200", label: "51-200" },
+  { value: "201-1000", label: "201-1,000" },
   { value: "1000+", label: "1,000+" },
 ] as const;
 

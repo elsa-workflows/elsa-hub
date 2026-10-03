@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   applySeatQuoteNotesMarker,
+  companySizeOptions,
+  dialogCopy,
   emptyTrainingInterestForm,
   FUNDAMENTALS_CORE_GUMROAD_URL,
   parseHeadcount,
@@ -228,5 +230,19 @@ describe("seat-quote lead distinction", () => {
     expect(joined).not.toMatch(/Fundamentals Core/);
     expect(joined).not.toContain("\u2014");
     expect(joined).not.toContain("\u2013");
+  });
+});
+
+describe("training interest dialog copy", () => {
+  it("uses download-and-unzip lab kit wording and no em or en dashes", () => {
+    expect(dialogCopy.notify.description).toMatch(/a lab kit you download and unzip/);
+    expect(dialogCopy.notify.description).not.toMatch(/cloneable/i);
+
+    const copyBlob = [
+      ...Object.values(dialogCopy).flatMap((copy) => Object.values(copy)),
+      ...Object.values(quoteDialogCopy).flatMap((copy) => Object.values(copy)),
+      ...companySizeOptions.map((option) => option.label),
+    ].join("\n");
+    expect(copyBlob).not.toMatch(/[\u2013\u2014]/);
   });
 });
