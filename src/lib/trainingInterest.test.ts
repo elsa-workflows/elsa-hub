@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   emptyTrainingInterestForm,
-  ADVANCED_PATTERNS_GUMROAD_URL,
-  FUNDAMENTALS_COMPLETE_GUMROAD_URL,
   FUNDAMENTALS_CORE_GUMROAD_URL,
   parseHeadcount,
   shouldSubscribeToNewsletter,
@@ -15,13 +13,6 @@ import {
 describe("Gumroad product URLs", () => {
   it("points at the live Gumroad Fundamentals Core product", () => {
     expect(FUNDAMENTALS_CORE_GUMROAD_URL).toBe("https://9868397950180.gumroad.com/l/pkvdly");
-  });
-
-  it("points Advanced Patterns and Complete at their own products, not Core", () => {
-    expect(ADVANCED_PATTERNS_GUMROAD_URL).toBe("https://9868397950180.gumroad.com/l/feynmd");
-    expect(FUNDAMENTALS_COMPLETE_GUMROAD_URL).toBe("https://9868397950180.gumroad.com/l/sycdc");
-    expect(ADVANCED_PATTERNS_GUMROAD_URL).not.toBe(FUNDAMENTALS_CORE_GUMROAD_URL);
-    expect(FUNDAMENTALS_COMPLETE_GUMROAD_URL).not.toBe(FUNDAMENTALS_CORE_GUMROAD_URL);
   });
 });
 

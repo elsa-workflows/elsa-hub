@@ -1,15 +1,12 @@
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Training from "./Training";
-import {
-  ADVANCED_PATTERNS_GUMROAD_URL,
-  FUNDAMENTALS_COMPLETE_GUMROAD_URL,
-  FUNDAMENTALS_CORE_GUMROAD_URL,
-} from "@/lib/trainingInterest";
+import { FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
 
 vi.mock("@/components/layout/Layout", () => ({
-  Layout: ({ children }: { children: unknown }) => <div>{children}</div>,
+  Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock("@/components/Seo", () => ({
@@ -48,16 +45,34 @@ function renderTraining() {
 }
 
 describe("Training page", () => {
-  it("sends every Get Fundamentals Core CTA to the live Gumroad product", () => {
+  it("sends every Buy the Solo Bundle and Buy a Team pack CTA to the live Gumroad product", () => {
     renderTraining();
 
-    const coreLinks = screen.getAllByRole("link", { name: /get fundamentals core/i });
-    expect(coreLinks.length).toBeGreaterThanOrEqual(4);
-    for (const link of coreLinks) {
+    const buyLinks = screen.getAllByRole("link", { name: /buy the solo bundle|buy a team pack/i });
+    expect(buyLinks.length).toBeGreaterThanOrEqual(4);
+    for (const link of buyLinks) {
       expect(link).toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
     }
+  });
+
+  it("does not link to unpublished Gumroad products and shows Solo Bundle pricing", () => {
+    renderTraining();
+
+    for (const link of screen.getAllByRole("link")) {
+      const href = link.getAttribute("href") ?? "";
+      expect(href).not.toMatch(/feynmd|sycdc/);
+    }
+
+    expect(screen.getAllByText(/€29/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/€39/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/€349/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/€599/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/25\+/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/€399/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/€499/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/€699/)).not.toBeInTheDocument();
   });
 
   it("keeps the private workshop CTA on the interest dialog", () => {
@@ -95,46 +110,24 @@ describe("Training page", () => {
     expect(screen.queryByText(/€2,400|€2,800/)).not.toBeInTheDocument();
   });
 
-  it("sends Get Advanced Patterns to the Advanced Gumroad product, not Core", () => {
+  it("keeps the hero Solo Bundle CTA and €29 teaser as the primary self-paced offer", () => {
     renderTraining();
 
-    const links = screen.getAllByRole("link", { name: /get advanced patterns/i });
-    expect(links.length).toBeGreaterThanOrEqual(1);
-    for (const link of links) {
-      expect(link).toHaveAttribute("href", ADVANCED_PATTERNS_GUMROAD_URL);
-      expect(link).not.toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    }
-
-    expect(screen.getByRole("heading", { name: /advanced patterns v1\.0/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/from €499/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/ap0–ap2/i).length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("sends Get Fundamentals Complete to the Complete Gumroad product, not Core", () => {
-    renderTraining();
-
-    const links = screen.getAllByRole("link", { name: /get fundamentals complete/i });
-    expect(links.length).toBeGreaterThanOrEqual(1);
-    for (const link of links) {
-      expect(link).toHaveAttribute("href", FUNDAMENTALS_COMPLETE_GUMROAD_URL);
-      expect(link).not.toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link).toHaveAttribute("rel", "noopener noreferrer");
-    }
-
-    expect(screen.getByRole("heading", { name: /fundamentals complete/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/from €699/i).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/modules 0–10 \+ labs a–h/i).length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("keeps the hero Core CTA and €399 teaser as the primary self-paced offer", () => {
-    renderTraining();
-
-    expect(screen.getByText(/self-paced core from/i)).toBeInTheDocument();
-    expect(screen.getAllByText("€399").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/solo bundle/i, { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText(/at launch \(until 31 oct, then €39\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText("€29").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/replaces fundamentals core/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/instead of core/i)).not.toBeInTheDocument();
+  });
+
+  it("opens the quote dialog from Request a quote in the Team packs card", () => {
+    renderTraining();
+
+    fireEvent.click(screen.getByRole("button", { name: /^request a quote$/i }));
+
+    expect(
+      screen.getByRole("heading", { name: /request a private team workshop/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeInTheDocument();
   });
 });
