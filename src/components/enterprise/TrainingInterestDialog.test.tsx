@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TrainingInterestDialog } from "./TrainingInterestDialog";
 
-const insertMock = vi.fn(async () => ({ error: null }));
+const insertMock = vi.fn(async (_payload: unknown) => ({ error: null }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
