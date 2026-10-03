@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -5,7 +6,7 @@ import Training from "./Training";
 import { FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
 
 vi.mock("@/components/layout/Layout", () => ({
-  Layout: ({ children }: { children: unknown }) => <div>{children}</div>,
+  Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock("@/components/Seo", () => ({
