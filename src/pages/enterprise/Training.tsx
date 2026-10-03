@@ -21,8 +21,6 @@ import {
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer, TrainingInterestDialog } from "@/components/enterprise";
 import {
-  ADVANCED_PATTERNS_GUMROAD_URL,
-  FUNDAMENTALS_COMPLETE_GUMROAD_URL,
   FUNDAMENTALS_CORE_GUMROAD_URL,
   type TrainingInterestIntent,
 } from "@/lib/trainingInterest";
@@ -32,8 +30,6 @@ import {
   BookOpen,
   CheckCircle2,
   GraduationCap,
-  Layers,
-  Library,
   Mail,
   Users,
   Video,
@@ -70,13 +66,6 @@ const laterFormats = [
 
 const privatePackages = ["€3,200", "€5,200", "€7,200"];
 
-const advancedOutcomes = [
-  "Advanced vs Core placement",
-  "Single long-running vs parent + child for approvals",
-  "Same-instance rewind",
-  "Thin Approval Lite lab",
-];
-
 function GumroadCta({
   href,
   label,
@@ -96,9 +85,9 @@ function GumroadCta({
   );
 }
 
-function GetFundamentalsCoreButton({ size = "default" }: { size?: "default" | "lg" }) {
+function BuySoloBundleButton({ size = "default" }: { size?: "default" | "lg" }) {
   return (
-    <GumroadCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Get Fundamentals Core" size={size} />
+    <GumroadCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Buy the Solo Bundle" size={size} />
   );
 }
 
@@ -110,7 +99,7 @@ export default function Training() {
       <Seo
         path="/elsa-plus/training"
         title="Elsa Workflows Fundamentals for Teams — Elsa+"
-        description="Self-paced Elsa Workflows Fundamentals Core for mid-size .NET teams adopting Elsa 3 — Modules 0–5, a cloneable lab kit, and Labs A–C (~5–6 hours). Request a private team workshop."
+        description="Self-paced Elsa Workflows training for .NET teams adopting Elsa 3. The Solo Bundle covers Fundamentals Core and Complete, Advanced Patterns with Approval Lite, and the Elsa 3.8.4 lab kit. Team packs and private workshops available."
       />
 
       <section className="pt-8 pb-4">
@@ -138,13 +127,10 @@ export default function Training() {
               Elsa Workflows Fundamentals for Teams
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed mb-8">
-              Self-paced <strong className="font-semibold text-foreground">Core</strong> for
-              mid-size .NET teams adopting Elsa 3 — modules, a cloneable lab kit, and Labs A–C
-              (~5–6 hours solo). Prefer a facilitator for your whole team? Request a private
-              workshop.
+              The <strong>Solo Bundle</strong> gives you every self-paced module and lab on Elsa 3.8.4 for one low price. Team packs cover 5 or 10 seats. Prefer a facilitator for your whole team? Request a private workshop.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-              <GetFundamentalsCoreButton size="lg" />
+              <BuySoloBundleButton size="lg" />
               <Button
                 size="lg"
                 variant="outline"
@@ -154,8 +140,7 @@ export default function Training() {
               </Button>
             </div>
             <p className="text-sm font-medium mb-3">
-              Self-paced Core from <strong>€399</strong> · Private team workshops from{" "}
-              <strong>€3,200</strong> — EUR excl. VAT
+              Solo Bundle <strong>€29</strong> at launch (until 31 Oct, then €39) · Team packs from <strong>€349</strong> · Private team workshops from <strong>€3,200</strong>. EUR excl. VAT.
             </p>
             <p className="text-sm text-muted-foreground">
               An independent Elsa+ offering.
@@ -171,8 +156,7 @@ export default function Training() {
               What’s in Fundamentals
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              Self-paced Core on Elsa 3.8.4: Modules 0–5, a cloneable lab kit, and Labs A–C
-              (~5–6 hours solo).
+              The Solo Bundle on Elsa 3.8.4 starts with Core: Modules 0-5, a cloneable lab kit, and Labs A-C (about 5 to 6 hours solo).
             </p>
 
             <ul className="space-y-4 mb-8">
@@ -185,8 +169,7 @@ export default function Training() {
             </ul>
 
             <p className="text-sm text-muted-foreground mb-8">
-              Fundamentals Complete is also available — Modules 0–10 + Labs A–H (~9–11
-              hours). Core stays the starting self-paced path.
+              The bundle also includes Complete Labs D-H and Advanced Patterns AP0-AP2 with the Approval Lite lab.
             </p>
 
             <Accordion type="single" collapsible className="w-full">
@@ -228,45 +211,34 @@ export default function Training() {
                   </div>
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <h3 className="text-xl font-semibold">Fundamentals Core</h3>
-                      <Badge>Available</Badge>
-                    </div>
-                    <p className="text-muted-foreground mb-6">
-                      Fundamentals Core — Modules 0–5, a cloneable lab kit, and Labs A–C
-                      (~5–6 hours solo) on Elsa 3.8.4. From €399, EUR excl. VAT.
-                    </p>
-                    <GetFundamentalsCoreButton />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mb-6">
-              <CardContent className="p-6 md:p-8">
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Layers className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <h3 className="text-xl font-semibold">Advanced Patterns v1.0</h3>
+                      <h3 className="text-xl font-semibold">Solo Bundle</h3>
                       <Badge>Available</Badge>
                     </div>
                     <p className="text-muted-foreground mb-4">
-                      Advanced Patterns v1.0 for teams past Fundamentals Core. AP0–AP2:
-                      approval architecture + Approval Lite lab on Elsa 3.8.4. AP3–AP6
-                      follow later on the same product. From €499, EUR excl. VAT.
+                      Everything self-paced in one purchase, on Elsa 3.8.4.
                     </p>
-                    <p className="text-sm font-medium mb-2">What you learn</p>
                     <ul className="space-y-2 mb-6">
-                      {advancedOutcomes.map((item) => (
-                        <li key={item} className="flex items-start gap-3 text-muted-foreground">
-                          <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
+                      <li className="flex items-start gap-3 text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>Core: Modules 0-5 with Labs A-C</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>Complete: Labs D-H</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>Advanced Patterns: AP0-AP2 with the Approval Lite lab</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>The Elsa 3.8.4 lab kit</span>
+                      </li>
                     </ul>
-                    <GumroadCta href={ADVANCED_PATTERNS_GUMROAD_URL} label="Get Advanced Patterns" />
+                    <p className="text-sm font-medium mb-6">
+                      €29 at launch until 31 Oct, then €39. EUR excl. VAT.
+                    </p>
+                    <BuySoloBundleButton />
                   </div>
                 </div>
               </CardContent>
@@ -276,22 +248,39 @@ export default function Training() {
               <CardContent className="p-6 md:p-8">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Library className="h-6 w-6 text-primary" />
+                    <Users className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <h3 className="text-xl font-semibold">Fundamentals Complete</h3>
+                      <h3 className="text-xl font-semibold">Team packs</h3>
                       <Badge>Available</Badge>
                     </div>
-                    <p className="text-muted-foreground mb-6">
-                      Full Fundamentals path: Modules 0–10 + Labs A–H (~9–11 hours).
-                      Code-first, long-running basics, testing, capstone. From €699, EUR
-                      excl. VAT.
+                    <p className="text-muted-foreground mb-4">
+                      One purchase for your whole team, with the same Solo Bundle content.
                     </p>
-                    <GumroadCta
-                      href={FUNDAMENTALS_COMPLETE_GUMROAD_URL}
-                      label="Get Fundamentals Complete"
-                    />
+                    <ul className="space-y-2 mb-6">
+                      <li className="flex items-start gap-3 text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>Team 5: €349. 5 seats, certificates, and 90 days of email Q&A.</span>
+                      </li>
+                      <li className="flex items-start gap-3 text-muted-foreground">
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>Team 10: €599. 10 seats and everything in Team 5, plus a 60-minute live team Q&A.</span>
+                      </li>
+                    </ul>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      EUR excl. VAT. Pick Team 5 or Team 10 at checkout.
+                    </p>
+                    <GumroadCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Buy a Team pack" />
+                    <p className="text-sm text-muted-foreground mt-3">
+                      Need 25+ seats? Team packs of 25 or more are by quote.{" "}
+                      <Button variant="link" className="p-0 h-auto" onClick={() => setInterest("quote")}>
+                        Request a quote
+                      </Button>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Mention the seat count in your message.
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -369,29 +358,20 @@ export default function Training() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-8">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Self-paced Core
+                      Solo Bundle
                     </p>
-                    <p className="text-2xl font-bold mb-2">from €399</p>
+                    <p className="text-2xl font-bold mb-2">€29</p>
                     <p className="text-sm text-muted-foreground">
-                      Modules 0–5 + Labs A–C · Elsa 3.8.4
+                      Launch price until 31 Oct, then €39 · Elsa 3.8.4
                     </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Advanced Patterns v1.0
+                      Team packs
                     </p>
-                    <p className="text-2xl font-bold mb-2">from €499</p>
+                    <p className="text-2xl font-bold mb-2">from €349</p>
                     <p className="text-sm text-muted-foreground">
-                      AP0–AP2 · Elsa 3.8.4
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">
-                      Fundamentals Complete
-                    </p>
-                    <p className="text-2xl font-bold mb-2">from €699</p>
-                    <p className="text-sm text-muted-foreground">
-                      Modules 0–10 + Labs A–H
+                      Team 5 €349 · Team 10 €599 · 25+ seats by quote
                     </p>
                   </div>
                   <div>
@@ -406,7 +386,7 @@ export default function Training() {
                 </div>
                 <p className="text-sm text-muted-foreground mb-8">EUR excl. VAT.</p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <GetFundamentalsCoreButton />
+                  <BuySoloBundleButton />
                   <Button variant="outline" onClick={() => setInterest("quote")}>
                     Get a private quote
                   </Button>
@@ -446,11 +426,10 @@ export default function Training() {
               </div>
               <h2 className="text-2xl md:text-3xl font-bold mb-4">Looking for training?</h2>
               <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                Buy self-paced Core now, or leave your details and we’ll follow up about a
-                private team workshop.
+                Buy the Solo Bundle or a Team pack now, or leave your details and we’ll follow up about a private team workshop or a 25+ seat quote.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-                <GetFundamentalsCoreButton size="lg" />
+                <BuySoloBundleButton size="lg" />
                 <Button size="lg" variant="outline" onClick={() => setInterest("quote")}>
                   Request a private quote
                 </Button>
