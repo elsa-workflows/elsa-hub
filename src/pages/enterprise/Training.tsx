@@ -37,11 +37,17 @@ import {
 } from "lucide-react";
 
 const fundamentalsOutcomes = [
-  "Explain Elsa 3’s core model in team language (definitions vs instances, activities, triggers, bookmarks)",
-  "Host Elsa in ASP.NET Core with management, runtime, API, and HTTP wired for real work",
-  "Design Flowchart workflows in Studio — variables, expressions, and Decision branching",
-  "Build and publish HTTP-triggered workflows your team can call with curl/Postman",
-  "Inspect instances (journal/incidents) and know when Studio vs code-first is the right authoring path",
+  "Explain how Elsa 3 works in plain terms: workflow definitions and instances, activity outcomes and outputs, triggers and bookmarks.",
+  "Host Elsa 3.8.4 in an ASP.NET Core app with SQLite persistence, the Workflows API, and HTTP workflows.",
+  "Build and publish a Flowchart in Elsa Studio with variables, expressions, and a Decision branch, then read the journal to see which branch ran.",
+  "Publish an HTTP-triggered workflow that returns JSON, call it with curl, and follow the run in Studio.",
+];
+
+const advancedPatternsOutcomes = [
+  "Decide when one long-running workflow is enough for a multi-role approval, and where state belongs: workflow variables, bookmarks, or your own database.",
+  "Build an approval workflow in Elsa Studio that starts from an HTTP POST, rejects invalid input with a 400, and replies right away with a 202 and the instance ID.",
+  "Pause until a manager decision arrives, and handle reject and resubmit on the same instance instead of trying to undo history.",
+  "Check every path yourself with curl and the Studio journal, then confirm it with the included smoke script.",
 ];
 
 const prerequisites = [
@@ -107,7 +113,7 @@ export default function Training() {
     <Layout>
       <Seo
         path="/elsa-plus/training"
-        title="Elsa Workflows Fundamentals for Teams — Elsa+"
+        title="Elsa Workflows Fundamentals for Teams: Elsa+"
         description="Self-paced Elsa Workflows training for .NET teams adopting Elsa 3. The Solo Bundle covers Fundamentals Core and Complete, Advanced Patterns with Approval Lite, and the Elsa 3.8.4 lab kit. Team packs and private workshops available."
       />
 
@@ -165,11 +171,22 @@ export default function Training() {
               What’s in Fundamentals
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              The Solo Bundle on Elsa 3.8.4 starts with Core: Modules 0-5, a cloneable lab kit, and Labs A-C (about 5 to 6 hours solo).
+              The Solo Bundle on Elsa 3.8.4 starts with Core: Modules 0-5, a lab kit you download and unzip, and Labs A-C (about 5 to 6 hours solo).
             </p>
 
+            <h3 className="text-xl font-semibold mb-4">What you'll learn</h3>
+            <h4 className="text-base font-semibold mb-3">Core</h4>
             <ul className="space-y-4 mb-8">
               {fundamentalsOutcomes.map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <h4 className="text-base font-semibold mb-3">Advanced Patterns (includes Approval Lite)</h4>
+            <ul className="space-y-4 mb-8">
+              {advancedPatternsOutcomes.map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <span>{item}</span>
@@ -270,13 +287,16 @@ export default function Training() {
                     <ul className="space-y-2 mb-6">
                       <li className="flex items-start gap-3 text-muted-foreground">
                         <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <span>Team 5: €349. 5 seats, certificates, and 90 days of email Q&A.</span>
+                        <span>Team 5: 5 seats, completion certificates, and 90 days of email Q&A.</span>
                       </li>
                       <li className="flex items-start gap-3 text-muted-foreground">
                         <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <span>Team 10: €599. 10 seats and everything in Team 5, plus a 60-minute live team Q&A.</span>
+                        <span>Team 10: 10 seats, completion certificates, 90 days of email Q&A, plus a 60-minute live team Q&A.</span>
                       </li>
                     </ul>
+                    <p className="text-sm font-medium mb-2">
+                      Team 5 €349 · Team 10 €599.
+                    </p>
                     <p className="text-sm text-muted-foreground mb-6">
                       EUR excl. VAT. Pick Team 5 or Team 10 at checkout.
                     </p>
@@ -307,29 +327,25 @@ export default function Training() {
                       <Badge>Available</Badge>
                     </div>
                     <p className="text-muted-foreground mb-6">
-                      Private team workshops only — a facilitator for your whole team. From
+                      Private team workshops with a facilitator for your whole team. From
                       €3,200, EUR excl. VAT.
                     </p>
                     <div className="mb-6">
                       <h4 className="text-base font-semibold mb-2">
-                        Module available for private teams: Approval Lite
+                        Approval Lite: self-paced in the Solo Bundle, or as a private workshop
                       </h4>
                       <p className="text-muted-foreground mb-3">
-                        Half-day facilitator-led architecture case for mid-size .NET teams
-                        past Fundamentals Core. Covers the approval decision tree (AP1) and
-                        a thin multi-role lab with rewind (AP2) on Elsa 3.8.4.
+                        Approval Lite is part of Advanced Patterns (AP0 to AP2) and is included in the Solo Bundle and every Team pack. Work through it at your own pace after the Core labs: learn the approval decision tree (AP1), then build a small multi-role approval workflow with a reject and resubmit loop on the Elsa 3.8.4 lab kit (AP2). Plan for about 3 hours. Team 5 and Team 10 include completion certificates.
                       </p>
                       <p className="text-muted-foreground">
-                        Request a private quote and note &quot;Approval Lite&quot; in your
-                        message.
+                        Prefer to learn it live? We also run Approval Lite as a half-day facilitated private workshop, on its own or after a Fundamentals workshop. Request a quote and mention &quot;Approval Lite&quot; in your message.
                       </p>
                     </div>
                     <Button variant="outline" onClick={() => openQuote()}>
                       Request a private team workshop
                     </Button>
                     <p className="text-sm text-muted-foreground mt-3">
-                      Private quotes can include Fundamentals and/or the Approval Lite
-                      module. Tell us which in your message.
+                      Private quotes can include Fundamentals, Approval Lite, or both. Tell us which in your message.
                     </p>
                   </div>
                 </div>

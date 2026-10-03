@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -86,28 +87,102 @@ describe("Training page", () => {
     expect(screen.queryByRole("dialog")).toBeInTheDocument();
   });
 
-  it("mentions Approval Lite only as a private workshop module", () => {
+  it("rewrites the Workshops card for self-paced Approval Lite", () => {
     renderTraining();
 
+    expect(screen.getByRole("heading", { name: /^workshops$/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/private team workshops with a facilitator for your whole team\. from/i),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/€3,200/).length).toBeGreaterThanOrEqual(1);
     expect(
       screen.getByRole("heading", {
-        name: /module available for private teams: approval lite/i,
+        name: /approval lite: self-paced in the solo bundle, or as a private workshop/i,
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/half-day facilitator-led architecture case/i),
+      screen.getByText(/approval lite is part of advanced patterns \(ap0 to ap2\) and is included in the solo bundle and every team pack/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/note "approval lite" in your message/i),
+      screen.getByText(/prefer to learn it live\? we also run approval lite as a half-day facilitated private workshop/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/fundamentals and\/or the approval lite module/i),
+      screen.getByText(/mention "approval lite" in your message/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/private quotes can include fundamentals, approval lite, or both\. tell us which in your message\./i),
     ).toBeInTheDocument();
 
+    expect(screen.queryByText(/private team workshops only/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/module available for private teams/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /approval lite/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /approval lite/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /buy approval lite/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/€2,400|€2,800/)).not.toBeInTheDocument();
+  });
+
+  it("shows What you'll learn lists for Core and Advanced Patterns", () => {
+    renderTraining();
+
+    expect(screen.getByRole("heading", { name: "What you'll learn" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Core" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Advanced Patterns (includes Approval Lite)" }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        "Explain how Elsa 3 works in plain terms: workflow definitions and instances, activity outcomes and outputs, triggers and bookmarks.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Host Elsa 3.8.4 in an ASP.NET Core app with SQLite persistence, the Workflows API, and HTTP workflows.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Build and publish a Flowchart in Elsa Studio with variables, expressions, and a Decision branch, then read the journal to see which branch ran.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Publish an HTTP-triggered workflow that returns JSON, call it with curl, and follow the run in Studio.",
+      ),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        "Decide when one long-running workflow is enough for a multi-role approval, and where state belongs: workflow variables, bookmarks, or your own database.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Build an approval workflow in Elsa Studio that starts from an HTTP POST, rejects invalid input with a 400, and replies right away with a 202 and the instance ID.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Pause until a manager decision arrives, and handle reject and resubmit on the same instance instead of trying to undo history.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Check every path yourself with curl and the Studio journal, then confirm it with the included smoke script.",
+      ),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByText(/studio vs code-first/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/cloneable lab kit/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/a lab kit you download and unzip/i)).toBeInTheDocument();
+  });
+
+  it("contains no em dash or en dash in the Training page source or rendered copy", () => {
+    const source = readFileSync(new URL("./Training.tsx", import.meta.url), "utf8");
+    expect(source).not.toMatch(/[\u2013\u2014]/);
+
+    const { container } = renderTraining();
+    expect(container.innerHTML).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("keeps the hero Solo Bundle CTA and €29 teaser as the primary self-paced offer", () => {
@@ -146,6 +221,14 @@ describe("Training page", () => {
       screen.getByRole("heading", { name: /completion certificates/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/included with team 5 and team 10/i)).toBeInTheDocument();
+    expect(
+      screen.getByText("Team 5: 5 seats, completion certificates, and 90 days of email Q&A."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Team 10: 10 seats, completion certificates, 90 days of email Q&A, plus a 60-minute live team Q&A.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/not live/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText(/self-paced → private workshop → certifications/i),
