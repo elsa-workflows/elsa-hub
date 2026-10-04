@@ -42,6 +42,8 @@ describe("Seo", () => {
     expect(document.querySelector("meta[name='twitter:image']")?.getAttribute("content")).toBe(
       "https://www.elsaworkflows.io/og-training.png",
     );
+    expect(document.querySelector("meta[property='og:image:width']")).toBeNull();
+    expect(document.querySelector("meta[property='og:image:height']")).toBeNull();
   });
 
   it("falls back to the shared site og image and twitter card", async () => {
@@ -50,9 +52,16 @@ describe("Seo", () => {
     );
 
     await waitFor(() => {
-      expect(document.querySelector("meta[property='og:image']")?.getAttribute("content")).toBe(
+      expect(SITE_OG_IMAGE).toBe("https://www.elsaworkflows.io/og-default.png");
+    expect(document.querySelector("meta[property='og:image']")?.getAttribute("content")).toBe(
         SITE_OG_IMAGE,
       );
+    expect(document.querySelector("meta[property='og:image:width']")?.getAttribute("content")).toBe(
+      "1200",
+    );
+    expect(document.querySelector("meta[property='og:image:height']")?.getAttribute("content")).toBe(
+      "630",
+    );
     });
     expect(document.querySelectorAll("meta[property='og:image']")).toHaveLength(1);
     expect(document.querySelectorAll("meta[name='twitter:card']")).toHaveLength(1);

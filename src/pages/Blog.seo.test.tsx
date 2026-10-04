@@ -5,7 +5,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import Blog from "./Blog";
 import BlogPost from "./BlogPost";
-import { SITE_OG_IMAGE, SITE_TWITTER_CARD } from "@/lib/site";
+import { SITE_OG_IMAGE, SITE_OG_IMAGE_HEIGHT, SITE_OG_IMAGE_WIDTH, SITE_TWITTER_CARD } from "@/lib/site";
 import { fetchBlogIndex, fetchBlogPost } from "@/lib/blog";
 
 vi.mock("@/lib/blog", async () => {
@@ -91,7 +91,9 @@ describe("blog social fallbacks after hydration", () => {
 
   afterEach(() => {
     document
-      .querySelectorAll("meta[property='og:image'], meta[name='twitter:card'], meta[name='twitter:image']")
+      .querySelectorAll(
+        "meta[property='og:image'], meta[property='og:image:width'], meta[property='og:image:height'], meta[property='og:title'], meta[property='og:description'], meta[property='og:url'], meta[property='og:type'], meta[name='twitter:card'], meta[name='twitter:image'], meta[name='twitter:title'], meta[name='twitter:description'], meta[name='description'], meta[name='robots'], link[rel='canonical']",
+      )
       .forEach((node) => node.remove());
   });
 
@@ -141,6 +143,64 @@ describe("blog social fallbacks after hydration", () => {
     );
     expect(document.querySelector("meta[name='twitter:image']")?.getAttribute("content")).toBe(
       SITE_OG_IMAGE,
+    );
+  });
+
+  it("sets generic preview tags and noindex on Post not found", async () => {
+    document.head.insertAdjacentHTML(
+      "beforeend",
+      [
+        `<title>A real post title — Elsa Workflows</title>`,
+        `<link data-rh="true" rel="canonical" href="https://www.elsaworkflows.io/blog/real-post" />`,
+        `<meta data-rh="true" name="description" content="A real post description." />`,
+        `<meta data-rh="true" property="og:title" content="A real post title" />`,
+        `<meta data-rh="true" property="og:description" content="A real post description." />`,
+        `<meta data-rh="true" property="og:url" content="https://www.elsaworkflows.io/blog/real-post" />`,
+        `<meta data-rh="true" property="og:image" content="https://example.com/custom.png" />`,
+      ].join("\n"),
+    );
+    fetchPost.mockResolvedValue(null);
+
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/blog/missing-slug"]}>
+          <Routes>
+            <Route path="/blog/:slug" element={<BlogPost />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+
+    await waitFor(() => {
+      expect(document.title).toBe("Post not found — Elsa Workflows");
+    });
+    expect(document.querySelector("meta[name='robots']")?.getAttribute("content")).toBe("noindex");
+    expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
+      "This blog post could not be found.",
+    );
+    expect(document.querySelector("link[rel='canonical']")?.getAttribute("href")).toBe(
+      "https://www.elsaworkflows.io/blog/missing-slug",
+    );
+    expect(document.querySelector("meta[property='og:title']")?.getAttribute("content")).toBe(
+      "Post not found",
+    );
+    expect(document.querySelector("meta[property='og:url']")?.getAttribute("content")).toBe(
+      "https://www.elsaworkflows.io/blog/missing-slug",
+    );
+    expect(document.querySelector("meta[property='og:image']")?.getAttribute("content")).toBe(
+      SITE_OG_IMAGE,
+    );
+    expect(document.querySelector("meta[property='og:image:width']")?.getAttribute("content")).toBe(
+      String(SITE_OG_IMAGE_WIDTH),
+    );
+    expect(document.querySelector("meta[property='og:image:height']")?.getAttribute("content")).toBe(
+      String(SITE_OG_IMAGE_HEIGHT),
+    );
+    expect(document.querySelector("meta[name='twitter:image']")?.getAttribute("content")).toBe(
+      SITE_OG_IMAGE,
+    );
+    expect(document.querySelector("meta[name='twitter:card']")?.getAttribute("content")).toBe(
+      SITE_TWITTER_CARD,
     );
   });
 });

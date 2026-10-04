@@ -19,7 +19,14 @@ import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
 import { BlogPostActions } from "@/components/blog/BlogPostActions";
 import { BlogPostViews } from "@/components/blog/BlogPostViews";
 
-import { SITE_TWITTER_CARD, SITE_URL, resolveSocialImage } from "@/lib/site";
+import {
+  SITE_OG_IMAGE,
+  SITE_OG_IMAGE_HEIGHT,
+  SITE_OG_IMAGE_WIDTH,
+  SITE_TWITTER_CARD,
+  SITE_URL,
+  resolveSocialImage,
+} from "@/lib/site";
 import { InlineNewsletter } from "@/components/newsletter";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -81,11 +88,27 @@ export default function BlogPost() {
   }
 
   if (state.kind === "not_found") {
+    const missingTitle = "Post not found — Elsa Workflows";
+    const missingDescription = "This blog post could not be found.";
+    const missingUrl = slug ? `${BLOG_CANONICAL_BASE}/${slug}` : BLOG_CANONICAL_BASE;
     return (
       <Layout>
         <Helmet>
+          <title>{missingTitle}</title>
+          <meta name="description" content={missingDescription} />
           <meta name="robots" content="noindex" />
-          <title>Post not found — Elsa Workflows</title>
+          <link rel="canonical" href={missingUrl} />
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content="Post not found" />
+          <meta property="og:description" content={missingDescription} />
+          <meta property="og:url" content={missingUrl} />
+          <meta property="og:image" content={SITE_OG_IMAGE} />
+          <meta property="og:image:width" content={String(SITE_OG_IMAGE_WIDTH)} />
+          <meta property="og:image:height" content={String(SITE_OG_IMAGE_HEIGHT)} />
+          <meta name="twitter:card" content={SITE_TWITTER_CARD} />
+          <meta name="twitter:title" content="Post not found" />
+          <meta name="twitter:description" content={missingDescription} />
+          <meta name="twitter:image" content={SITE_OG_IMAGE} />
         </Helmet>
         <div className="container max-w-2xl py-24 text-center">
           <h1 className="text-3xl font-semibold">Post not found</h1>
@@ -129,7 +152,9 @@ export default function BlogPost() {
   const canonical = post.canonicalUrl || `${BLOG_CANONICAL_BASE}/${post.slug}`;
   const seoTitle = post.seo?.title || post.title;
   const seoDescription = post.seo?.description || post.description || "";
-  const ogImage = resolveSocialImage(post.seo?.openGraphImage || post.featuredImage);
+  const rawImage = post.seo?.openGraphImage || post.featuredImage;
+  const ogImage = resolveSocialImage(rawImage);
+  const usingDefaultImage = !rawImage;
   const pageTitle = `${seoTitle} — Elsa Workflows`;
 
   const jsonLd = {
@@ -169,6 +194,8 @@ export default function BlogPost() {
         <meta property="og:description" content={seoDescription} />
         <meta property="og:url" content={canonical} />
         <meta property="og:image" content={ogImage} />
+        {usingDefaultImage && <meta property="og:image:width" content={String(SITE_OG_IMAGE_WIDTH)} />}
+        {usingDefaultImage && <meta property="og:image:height" content={String(SITE_OG_IMAGE_HEIGHT)} />}
         {post.publishedAt && (
           <meta property="article:published_time" content={post.publishedAt} />
         )}

@@ -1,5 +1,11 @@
 import { Helmet } from "react-helmet-async";
-import { SITE_TWITTER_CARD, SITE_URL, resolveSocialImage } from "@/lib/site";
+import {
+  SITE_OG_IMAGE_HEIGHT,
+  SITE_OG_IMAGE_WIDTH,
+  SITE_TWITTER_CARD,
+  SITE_URL,
+  resolveSocialImage,
+} from "@/lib/site";
 
 interface SeoProps {
   title: string;
@@ -14,6 +20,7 @@ interface SeoProps {
 export function Seo({ title, description, path, image, type = "website", jsonLd, noIndex }: SeoProps) {
   const url = `${SITE_URL}${path}`;
   const ogImage = resolveSocialImage(image);
+  const usingDefaultImage = !image;
   const ldArray = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
   return (
@@ -27,6 +34,8 @@ export function Seo({ title, description, path, image, type = "website", jsonLd,
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
       <meta property="og:image" content={ogImage} />
+      {usingDefaultImage && <meta property="og:image:width" content={String(SITE_OG_IMAGE_WIDTH)} />}
+      {usingDefaultImage && <meta property="og:image:height" content={String(SITE_OG_IMAGE_HEIGHT)} />}
       <meta property="og:site_name" content="Elsa Workflows" />
       <meta name="twitter:card" content={SITE_TWITTER_CARD} />
       <meta name="twitter:title" content={title} />
