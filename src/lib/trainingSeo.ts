@@ -2,10 +2,10 @@ import { FUNDAMENTALS_CORE_GUMROAD_URL } from "./trainingInterest";
 import { SITE_URL } from "./site";
 
 export const TRAINING_PATH = "/elsa-plus/training";
-export const TRAINING_TITLE = "Elsa Workflows Fundamentals for Teams: Elsa+";
+export const TRAINING_TITLE = "Elsa Workflows Training | Hands-on Elsa 3 Course for .NET";
 export const TRAINING_DESCRIPTION =
-  "Self-paced Elsa Workflows training for .NET teams adopting Elsa 3. The Solo Bundle covers Fundamentals Core and Complete, Advanced Patterns with Approval Lite, and the Elsa 3.8.4 lab kit. Team packs and private workshops available.";
-export const TRAINING_H1 = "Elsa Workflows Fundamentals for Teams";
+  "Learn Elsa Workflows 3 hands-on: self-paced course and lab kit for hosting, Studio, HTTP workflows and approvals. Solo Bundle, team packs, workshops.";
+export const TRAINING_H1 = "Elsa Workflows Training for .NET Developers and Teams";
 export const TRAINING_INTRO =
   "The Solo Bundle gives you every self-paced module and lab on Elsa 3.8.4 for one low price. Team packs cover 5 or 10 seats. Prefer a facilitator for your whole team? Request a private workshop.";
 export const TRAINING_OG_IMAGE_PATH = "/og-training.png";
