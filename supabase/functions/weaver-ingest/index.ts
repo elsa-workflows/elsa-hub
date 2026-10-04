@@ -7,6 +7,11 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { embedTexts } from "../_shared/ai-gateway.ts";
+import {
+  dedupeDocsBySourceExternalId,
+  shouldPruneSource,
+  staleIds,
+} from "./doc-sets.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +24,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const CATALOG_BASE = Deno.env.get("ELSA_PACKAGE_CATALOG_API_BASE_URL") ??
-  "https://api-k35qdj734hds2.azurewebsites.net";
+  "https://api-m5uymkuaf222o.azurewebsites.net";
 const CATALOG_KEY = Deno.env.get("ELSA_PACKAGE_CATALOG_API_KEY")!;
 
 const SITE_BASE = "https://elsa-workflows.io";
@@ -61,32 +66,42 @@ function chunkText(text: string, size: number): string[] {
   return out;
 }
 
-async function buildBlogDocs(): Promise<Doc[]> {
+async function buildBlogDocs(): Promise<{ docs: Doc[]; ok: boolean }> {
   const docs: Doc[] = [];
   let index: any;
   try {
     const res = await fetch(`${BLOG_BASE}/index.json`);
     if (!res.ok) {
       console.warn(`blog index fetch failed: ${res.status}`);
-      return docs;
+      return { docs, ok: false };
     }
     index = await res.json();
   } catch (e) {
     console.warn("blog index fetch error", e);
-    return docs;
+    return { docs, ok: false };
   }
 
-  const posts: any[] = Array.isArray(index?.posts) ? index.posts : [];
+  if (!Array.isArray(index?.posts)) {
+    console.warn("blog index missing posts array");
+    return { docs, ok: false };
+  }
+
+  const posts: any[] = index.posts;
+  let ok = true;
   // Fetch posts in batches of 8.
   for (let i = 0; i < posts.length; i += 8) {
     const batch = posts.slice(i, i + 8);
     const results = await Promise.all(batch.map(async (p) => {
       try {
         const r = await fetch(`${BLOG_BASE}/posts/${encodeURIComponent(p.slug)}.json`);
-        if (!r.ok) return null;
+        if (!r.ok) {
+          ok = false;
+          return null;
+        }
         return await r.json();
       } catch (e) {
         console.warn(`post fetch failed: ${p.slug}`, e);
+        ok = false;
         return null;
       }
     }));
@@ -116,7 +131,7 @@ async function buildBlogDocs(): Promise<Doc[]> {
       });
     }
   }
-  return docs;
+  return { docs, ok };
 }
 
 
@@ -244,11 +259,13 @@ async function fetchCatalog() {
 
 async function buildBundleAndProviderDocs(
   supabase: ReturnType<typeof createClient>,
-): Promise<Doc[]> {
+): Promise<{ docs: Doc[]; providerOk: boolean; bundleOk: boolean }> {
   const docs: Doc[] = [];
-  const { data: providers } = await supabase
+  const { data: providers, error: providerError } = await supabase
     .from("service_providers")
     .select("id, slug, name, contact_email, availability_status, accepting_new_purchases, estimated_lead_time_days");
+  const providerOk = !providerError;
+  if (providerError) console.error("service_providers fetch failed", providerError);
   for (const p of providers ?? []) {
     docs.push({
       source: "provider",
@@ -261,12 +278,14 @@ async function buildBundleAndProviderDocs(
     });
   }
 
-  const { data: bundles } = await supabase
+  const { data: bundles, error: bundleError } = await supabase
     .from("credit_bundles")
     .select(
       "id, name, description, hours, price_cents, currency, billing_type, recurring_interval, monthly_hours, priority_level, service_provider_id, is_active",
     )
     .eq("is_active", true);
+  const bundleOk = !bundleError;
+  if (bundleError) console.error("credit_bundles fetch failed", bundleError);
   const providerById = new Map((providers ?? []).map((p: any) => [p.id, p]));
   for (const b of bundles ?? []) {
     const provider = providerById.get(b.service_provider_id);
@@ -286,7 +305,7 @@ async function buildBundleAndProviderDocs(
       metadata: { bundleId: b.id, providerId: b.service_provider_id },
     });
   }
-  return docs;
+  return { docs, providerOk, bundleOk };
 }
 
 function buildPackageDocs(catalog: { packages?: any[] }): Doc[] {
@@ -392,26 +411,42 @@ Deno.serve(async (req) => {
   });
 
   // Build documents
-  const [catalog, dbDocs, blogDocs] = await Promise.all([
+  let catalogOk = true;
+  const [catalog, dbDocsResult, blogResult] = await Promise.all([
     fetchCatalog().catch((e) => {
       console.error("catalog fetch failed", e);
+      catalogOk = false;
       return { packages: [], infrastructureProviders: [] };
     }),
-    buildBundleAndProviderDocs(supabaseService),
+    buildBundleAndProviderDocs(supabaseService).catch((e) => {
+      console.error("provider/bundle docs failed", e);
+      return { docs: [] as Doc[], providerOk: false, bundleOk: false };
+    }),
     buildBlogDocs().catch((e) => {
       console.error("blog docs failed", e);
-      return [] as Doc[];
+      return { docs: [] as Doc[], ok: false };
     }),
   ]);
-  const docs: Doc[] = [
+  const packageDocs = catalogOk ? buildPackageDocs(catalog) : [];
+  const infraDocs = catalogOk ? buildInfraDocs(catalog) : [];
+  const providerDocs = dbDocsResult.docs.filter((d) => d.source === "provider");
+  const bundleDocs = dbDocsResult.docs.filter((d) => d.source === "bundle");
+  const assembled: Doc[] = [
     ...PAGE_DOCS,
     ...FAQ_DOCS,
-    ...dbDocs,
-    ...buildPackageDocs(catalog),
-    ...buildInfraDocs(catalog),
-    ...blogDocs,
+    ...dbDocsResult.docs,
+    ...packageDocs,
+    ...infraDocs,
+    ...blogResult.docs,
   ];
-
+  const { docs, duplicateKeys } = dedupeDocsBySourceExternalId(assembled);
+  if (duplicateKeys.length > 0) {
+    console.warn(JSON.stringify({
+      msg: "weaver-ingest duplicate keys",
+      count: duplicateKeys.length,
+      keys: duplicateKeys,
+    }));
+  }
 
   // Embed in batches of 32
   const batchSize = 32;
@@ -446,31 +481,49 @@ Deno.serve(async (req) => {
     upserted += rows.length;
   }
 
-  // Remove stale blog chunks for posts no longer present.
-  let blogPruned = 0;
-  if (blogDocs.length > 0) {
-    const currentBlogIds = blogDocs.map((d) => d.external_id);
+  const prunePlans: Array<{
+    source: Doc["source"];
+    ok: boolean;
+    currentIds: string[];
+  }> = [
+    { source: "page", ok: true, currentIds: PAGE_DOCS.map((d) => d.external_id) },
+    { source: "faq", ok: true, currentIds: FAQ_DOCS.map((d) => d.external_id) },
+    { source: "provider", ok: dbDocsResult.providerOk, currentIds: providerDocs.map((d) => d.external_id) },
+    { source: "bundle", ok: dbDocsResult.bundleOk, currentIds: bundleDocs.map((d) => d.external_id) },
+    { source: "package", ok: catalogOk, currentIds: packageDocs.map((d) => d.external_id) },
+    { source: "infrastructure", ok: catalogOk, currentIds: infraDocs.map((d) => d.external_id) },
+    { source: "blog", ok: blogResult.ok, currentIds: blogResult.docs.map((d) => d.external_id) },
+  ];
+
+  const pruned: Record<string, number> = {};
+  for (const plan of prunePlans) {
+    if (!shouldPruneSource(plan)) {
+      console.warn(JSON.stringify({
+        msg: "weaver-ingest skip prune",
+        source: plan.source,
+        ok: plan.ok,
+        currentCount: plan.currentIds.length,
+      }));
+      continue;
+    }
     const { data: existing } = await supabaseService
       .from("weaver_documents")
       .select("external_id")
-      .eq("source", "blog");
-    const stale = (existing ?? [])
-      .map((r: any) => r.external_id as string)
-      .filter((id) => !currentBlogIds.includes(id));
-    if (stale.length > 0) {
-      const { error: delErr } = await supabaseService
-        .from("weaver_documents")
-        .delete()
-        .eq("source", "blog")
-        .in("external_id", stale);
-      if (delErr) console.error("stale blog cleanup failed", delErr);
-      else blogPruned = stale.length;
-    }
+      .eq("source", plan.source);
+    const stale = staleIds((existing ?? []).map((r: { external_id: string | null }) => r.external_id), plan.currentIds);
+    if (stale.length === 0) continue;
+    const { error: delErr } = await supabaseService
+      .from("weaver_documents")
+      .delete()
+      .eq("source", plan.source)
+      .in("external_id", stale);
+    if (delErr) console.error(`stale ${plan.source} cleanup failed`, delErr);
+    else pruned[plan.source] = stale.length;
   }
 
-  console.log(JSON.stringify({ actor, upserted, total: docs.length, blogPruned }));
+  console.log(JSON.stringify({ actor, upserted, total: docs.length, pruned }));
   return new Response(
-    JSON.stringify({ ok: true, actor, upserted, total: docs.length, blogPruned }),
+    JSON.stringify({ ok: true, actor, upserted, total: docs.length, pruned }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
