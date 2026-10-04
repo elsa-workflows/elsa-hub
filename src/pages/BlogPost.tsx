@@ -19,6 +19,7 @@ import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
 import { BlogPostActions } from "@/components/blog/BlogPostActions";
 import { BlogPostViews } from "@/components/blog/BlogPostViews";
 
+import { SITE_URL } from "@/lib/site";
 import { InlineNewsletter } from "@/components/newsletter";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -151,7 +152,7 @@ export default function BlogPost() {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://www.elsa-workflows.io/" },
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
       { "@type": "ListItem", position: 2, name: "Blog", item: BLOG_CANONICAL_BASE },
       { "@type": "ListItem", position: 3, name: post.title, item: canonical },
     ],

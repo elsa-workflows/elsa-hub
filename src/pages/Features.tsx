@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Seo } from "@/components/Seo";
+import { SITE_URL } from "@/lib/site";
 import workflowGraph from "@/assets/features-workflow-graph.jpg";
 import logsPanel from "@/assets/features-logs-panel.jpg";
 import architectureDiagram from "@/assets/features-architecture.jpg";
@@ -157,7 +158,7 @@ export default function Features() {
       "@context": "https://schema.org",
       "@type": "WebPage",
       name: "Elsa Workflows — Features",
-      url: "https://www.elsa-workflows.io/features",
+      url: `${SITE_URL}/features`,
       description:
         "Embeddable .NET workflow engine: durable runtime, visual Studio, integrations, observability, multi-tenancy, and production operations.",
     },

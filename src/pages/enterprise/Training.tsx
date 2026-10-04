@@ -26,6 +26,20 @@ import {
   type TrainingQuoteVariant,
 } from "@/lib/trainingInterest";
 import {
+  TRAINING_DESCRIPTION,
+  TRAINING_H1,
+  TRAINING_INTRO_AFTER,
+  TRAINING_INTRO_BEFORE,
+  TRAINING_INTRO_EMPHASIS,
+  TRAINING_LAUNCH_PRICE_EUR,
+  TRAINING_LAUNCH_UNTIL_LABEL,
+  TRAINING_OG_IMAGE_URL,
+  TRAINING_PATH,
+  TRAINING_POST_LAUNCH_PRICE_EUR,
+  TRAINING_TITLE,
+  trainingCourseJsonLd,
+} from "@/lib/trainingSeo";
+import {
   ArrowRight,
   Award,
   BookOpen,
@@ -112,9 +126,11 @@ export default function Training() {
   return (
     <Layout>
       <Seo
-        path="/elsa-plus/training"
-        title="Elsa Workflows Fundamentals for Teams: Elsa+"
-        description="Self-paced Elsa Workflows training for .NET teams adopting Elsa 3. The Solo Bundle covers Fundamentals Core and Complete, Advanced Patterns with Approval Lite, and the Elsa 3.8.4 lab kit. Team packs and private workshops available."
+        path={TRAINING_PATH}
+        title={TRAINING_TITLE}
+        description={TRAINING_DESCRIPTION}
+        image={TRAINING_OG_IMAGE_URL}
+        jsonLd={trainingCourseJsonLd()}
       />
 
       <section className="pt-8 pb-4">
@@ -139,10 +155,10 @@ export default function Training() {
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Elsa Workflows Fundamentals for Teams
+              {TRAINING_H1}
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed mb-8">
-              The <strong>Solo Bundle</strong> gives you every self-paced module and lab on Elsa 3.8.4 for one low price. Team packs cover 5 or 10 seats. Prefer a facilitator for your whole team? Request a private workshop.
+              {TRAINING_INTRO_BEFORE}<strong>{TRAINING_INTRO_EMPHASIS}</strong>{TRAINING_INTRO_AFTER}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
               <BuySoloBundleButton size="lg" />
@@ -155,7 +171,7 @@ export default function Training() {
               </Button>
             </div>
             <p className="text-sm font-medium mb-3">
-              Solo Bundle <strong>€29</strong> at launch (until 31 Oct, then €39) · Team packs from <strong>€349</strong> · Private team workshops from <strong>€3,200</strong>. EUR excl. VAT.
+              Solo Bundle <strong>€{TRAINING_LAUNCH_PRICE_EUR}</strong> at launch (until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR}) · Team packs from <strong>€349</strong> · Private team workshops from <strong>€3,200</strong>. EUR excl. VAT.
             </p>
           </div>
         </div>
@@ -259,7 +275,7 @@ export default function Training() {
                       </li>
                     </ul>
                     <p className="text-sm font-medium mb-6">
-                      €29 at launch until 31 Oct, then €39. EUR excl. VAT.
+                      €{TRAINING_LAUNCH_PRICE_EUR} at launch until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR}. EUR excl. VAT.
                     </p>
                     <BuySoloBundleButton />
                   </div>
@@ -384,9 +400,9 @@ export default function Training() {
                     <p className="text-sm font-medium text-muted-foreground mb-2">
                       Solo Bundle
                     </p>
-                    <p className="text-2xl font-bold mb-2">€29</p>
+                    <p className="text-2xl font-bold mb-2">€{TRAINING_LAUNCH_PRICE_EUR}</p>
                     <p className="text-sm text-muted-foreground">
-                      Launch price until 31 Oct, then €39 · Elsa 3.8.4
+                      Launch price until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} · Elsa 3.8.4
                     </p>
                   </div>
                   <div>

@@ -10,9 +10,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Share2, ExternalLink, Copy, Check, FileCode, FileText, Braces } from "lucide-react";
 import { toast } from "sonner";
+import { SITE_URL } from "@/lib/site";
 
 const SUPABASE_URL = "https://tehhrjepyfnhmsgtwzkf.supabase.co";
-const CANONICAL_BASE = "https://www.elsa-workflows.io/blog";
+const CANONICAL_BASE = `${SITE_URL}/blog`;
 
 type Format = "html" | "md" | "json";
 

@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { SITE_URL } from "@/lib/site";
 
 interface SeoProps {
   title: string;
@@ -10,7 +11,6 @@ interface SeoProps {
   noIndex?: boolean;
 }
 
-const SITE_URL = "https://www.elsa-workflows.io";
 const DEFAULT_IMAGE = `${SITE_URL}/elsa-logo.png`;
 
 export function Seo({ title, description, path, image, type = "website", jsonLd, noIndex }: SeoProps) {
@@ -29,6 +29,8 @@ export function Seo({ title, description, path, image, type = "website", jsonLd,
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
       <meta property="og:image" content={ogImage} />
+      <meta property="og:site_name" content="Elsa Workflows" />
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
