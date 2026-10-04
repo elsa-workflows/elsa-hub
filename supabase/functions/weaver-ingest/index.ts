@@ -7,6 +7,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { embedTexts } from "../_shared/ai-gateway.ts";
+import { buildPackageDocs, packageDocsPruneOk } from "./catalog-docs.ts";
 import {
   dedupeDocsBySourceExternalId,
   shouldPruneSource,
@@ -23,8 +24,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-const CATALOG_BASE = Deno.env.get("ELSA_PACKAGE_CATALOG_API_BASE_URL") ??
-  "https://api-m5uymkuaf222o.azurewebsites.net";
+const CATALOG_BASE = (Deno.env.get("ELSA_PACKAGE_CATALOG_API_BASE_URL") ??
+  "https://api-m5uymkuaf222o.azurewebsites.net").replace(/\/+$/, "");
 const CATALOG_KEY = Deno.env.get("ELSA_PACKAGE_CATALOG_API_KEY")!;
 
 const SITE_BASE = "https://elsa-workflows.io";
@@ -106,7 +107,10 @@ async function buildBlogDocs(): Promise<{ docs: Doc[]; ok: boolean }> {
       }
     }));
     for (const post of results) {
-      if (!post?.slug) continue;
+      if (!post?.slug) {
+        if (post) ok = false;
+        continue;
+      }
       const url = `${BLOG_CANONICAL_BASE}/${post.slug}`;
       const plain = stripHtml(post.html ?? "");
       const fullBody = [post.description, plain].filter(Boolean).join("\n\n");
@@ -308,25 +312,6 @@ async function buildBundleAndProviderDocs(
   return { docs, providerOk, bundleOk };
 }
 
-function buildPackageDocs(catalog: { packages?: any[] }): Doc[] {
-  const docs: Doc[] = [];
-  for (const pkg of catalog.packages ?? []) {
-    const features = (pkg.features ?? [])
-      .map((f: any) => `- ${f.id}: ${f.displayName ?? f.name ?? f.id}${f.description ? ` — ${f.description}` : ""}`)
-      .join("\n");
-    docs.push({
-      source: "package",
-      external_id: `package:${pkg.id}`,
-      url: `${SITE_BASE}/elsa-plus/runtime-builder`,
-      title: `Package: ${pkg.displayName ?? pkg.id}`,
-      body:
-        `${pkg.displayName ?? pkg.id} (id: ${pkg.id}). ${pkg.description ?? ""}\n\nFeatures:\n${features || "(no features declared)"}`,
-      metadata: { packageId: pkg.id, kind: "package" },
-    });
-  }
-  return docs;
-}
-
 function buildInfraDocs(catalog: { infrastructureProviders?: any[] }): Doc[] {
   return (catalog.infrastructureProviders ?? []).map((ip: any) => ({
     source: "infrastructure" as const,
@@ -427,7 +412,8 @@ Deno.serve(async (req) => {
       return { docs: [] as Doc[], ok: false };
     }),
   ]);
-  const packageDocs = catalogOk ? buildPackageDocs(catalog) : [];
+  const packageDocs = catalogOk ? buildPackageDocs(catalog, SITE_BASE) : [];
+  const packagePruneOk = catalogOk && packageDocsPruneOk(catalog, packageDocs);
   const infraDocs = catalogOk ? buildInfraDocs(catalog) : [];
   const providerDocs = dbDocsResult.docs.filter((d) => d.source === "provider");
   const bundleDocs = dbDocsResult.docs.filter((d) => d.source === "bundle");
@@ -490,7 +476,7 @@ Deno.serve(async (req) => {
     { source: "faq", ok: true, currentIds: FAQ_DOCS.map((d) => d.external_id) },
     { source: "provider", ok: dbDocsResult.providerOk, currentIds: providerDocs.map((d) => d.external_id) },
     { source: "bundle", ok: dbDocsResult.bundleOk, currentIds: bundleDocs.map((d) => d.external_id) },
-    { source: "package", ok: catalogOk, currentIds: packageDocs.map((d) => d.external_id) },
+    { source: "package", ok: packagePruneOk, currentIds: packageDocs.map((d) => d.external_id) },
     { source: "infrastructure", ok: catalogOk, currentIds: infraDocs.map((d) => d.external_id) },
     { source: "blog", ok: blogResult.ok, currentIds: blogResult.docs.map((d) => d.external_id) },
   ];
