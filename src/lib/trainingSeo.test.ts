@@ -11,6 +11,7 @@ import {
   TRAINING_POST_LAUNCH_PRICE_EUR,
   TRAINING_PRICE_VALID_UNTIL,
   TRAINING_PROVIDER_SAME_AS,
+  TRAINING_REGULAR_PRICE_VALID_FROM,
   trainingCourseJsonLd,
 } from "./trainingSeo";
 import { buildTrainingBody, buildTrainingHead } from "./trainingSeo";
@@ -33,17 +34,24 @@ describe("training Course JSON-LD", () => {
     expect(provider.sameAs).toBe("https://github.com/elsa-workflows");
     expect(provider.sameAs).not.toBe(provider.url);
 
-    const offers = ld.offers as Record<string, unknown>;
-    expect(offers["@type"]).toBe("Offer");
-    expect(offers.price).toBe(TRAINING_OFFER_PRICE);
-    expect(offers.price).toBe(String(TRAINING_LAUNCH_PRICE_EUR));
-    expect(offers.price).toBe("29");
-    expect(offers.priceCurrency).toBe(TRAINING_OFFER_CURRENCY);
-    expect(offers.priceValidUntil).toBe(TRAINING_PRICE_VALID_UNTIL);
-    expect(offers.priceValidUntil).toBe("2026-10-31");
+    const offers = ld.offers as Record<string, unknown>[];
+    expect(offers).toHaveLength(2);
+    expect(offers[0]["@type"]).toBe("Offer");
+    expect(offers[0].price).toBe(TRAINING_OFFER_PRICE);
+    expect(offers[0].price).toBe(String(TRAINING_LAUNCH_PRICE_EUR));
+    expect(offers[0].price).toBe("29");
+    expect(offers[0].priceCurrency).toBe(TRAINING_OFFER_CURRENCY);
+    expect(offers[0].priceValidUntil).toBe(TRAINING_PRICE_VALID_UNTIL);
+    expect(offers[0].priceValidUntil).toBe("2026-10-31");
+    expect(offers[0].url).toBe(FUNDAMENTALS_CORE_GUMROAD_URL);
+    expect(offers[1]["@type"]).toBe("Offer");
+    expect(offers[1].price).toBe(String(TRAINING_POST_LAUNCH_PRICE_EUR));
+    expect(offers[1].price).toBe("39");
+    expect(offers[1].validFrom).toBe(TRAINING_REGULAR_PRICE_VALID_FROM);
+    expect(offers[1].validFrom).toBe("2026-11-01");
+    expect(offers[1].url).toBe(FUNDAMENTALS_CORE_GUMROAD_URL);
     expect(TRAINING_LAUNCH_UNTIL_LABEL).toBe("31 Oct");
     expect(TRAINING_POST_LAUNCH_PRICE_EUR).toBe(39);
-    expect(offers.url).toBe(FUNDAMENTALS_CORE_GUMROAD_URL);
 
     const instance = ld.hasCourseInstance as Record<string, unknown>;
     expect(instance["@type"]).toBe("CourseInstance");

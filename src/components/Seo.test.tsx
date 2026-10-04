@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { render, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
-import { SITE_URL } from "@/lib/site";
+import { SITE_OG_IMAGE, SITE_TWITTER_CARD, SITE_URL } from "@/lib/site";
 import { Seo } from "./Seo";
 
 function renderSeo(ui: ReactNode) {
@@ -41,6 +41,26 @@ describe("Seo", () => {
     );
     expect(document.querySelector("meta[name='twitter:image']")?.getAttribute("content")).toBe(
       "https://www.elsaworkflows.io/og-training.png",
+    );
+  });
+
+  it("falls back to the shared site og image and twitter card", async () => {
+    renderSeo(
+      <Seo path="/blog" title="Blog title" description="Blog description" />,
+    );
+
+    await waitFor(() => {
+      expect(document.querySelector("meta[property='og:image']")?.getAttribute("content")).toBe(
+        SITE_OG_IMAGE,
+      );
+    });
+    expect(document.querySelectorAll("meta[property='og:image']")).toHaveLength(1);
+    expect(document.querySelectorAll("meta[name='twitter:card']")).toHaveLength(1);
+    expect(document.querySelector("meta[name='twitter:card']")?.getAttribute("content")).toBe(
+      SITE_TWITTER_CARD,
+    );
+    expect(document.querySelector("meta[name='twitter:image']")?.getAttribute("content")).toBe(
+      SITE_OG_IMAGE,
     );
   });
 });

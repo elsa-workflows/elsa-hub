@@ -1,12 +1,15 @@
-// Postbuild: write a fully-rendered Training HTML file so crawlers see
-// title, meta, canonical, OG/Twitter, JSON-LD, H1 and intro without JS.
-// The SPA still hydrates over #root (createRoot() clears it on mount).
-// Output is dist/elsa-plus/training/index.html so static hosts serve
-// /elsa-plus/training from that directory index. The repo has no
-// vercel/netlify _redirects; Lovable serves existing files first.
+// Writes dist/elsa-plus/training/index.html.
 //
-// This script is a standalone build step. It must not be gated on the
-// blog prerender (a failed blog index fetch must not skip Training).
+// The live Lovable host serves exact file paths only. There is no
+// _redirects file and no host rewrite. /elsa-plus/training/ may get this
+// directory index if the host serves dir/index.html. /elsa-plus/training
+// (no trailing slash) gets the SPA shell for clients that do not run JS.
+// Googlebot renders JS, so it still sees the approved title, description,
+// H1, canonical, and Course JSON-LD from the SPA.
+//
+// The SPA hydrates over #root (createRoot() clears it on mount).
+// This step is independent of the blog prerender: a failed blog index
+// fetch must not skip Training.
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";

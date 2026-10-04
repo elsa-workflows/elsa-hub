@@ -11,8 +11,9 @@ describe("prerender steps", () => {
     };
     expect(blog).not.toMatch(/prerenderTraining|prerender-training/);
     expect(pkg.scripts.postbuild).toMatch(/prerender-blog\.ts/);
-    expect(pkg.scripts.postbuild).toMatch(/prerender-training\.ts/);
-    expect(pkg.scripts.postbuild).not.toMatch(/prerender-blog\.ts &&/);
+    expect(pkg.scripts.postbuild).not.toMatch(/prerender-training/);
+    const vite = readFileSync(path.join(process.cwd(), "vite.config.ts"), "utf8");
+    expect(vite).toMatch(/prerenderTraining/);
   });
 
   it("strips data-rh shell tags before injecting route head", () => {
