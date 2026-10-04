@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
+import { SITE_URL } from "@/lib/site";
 import { track } from "@/lib/analytics";
 import { HomeCodeSample } from "@/components/home";
 import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
@@ -85,14 +86,14 @@ export default function Home() {
       "@context": "https://schema.org",
       "@type": "Organization",
       name: "Elsa Workflows",
-      url: "https://www.elsa-workflows.io",
-      logo: "https://www.elsa-workflows.io/elsa-logo.png",
+      url: SITE_URL,
+      logo: `${SITE_URL}/elsa-logo.png`,
     },
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: "Elsa Workflows",
-      url: "https://www.elsa-workflows.io",
+      url: SITE_URL,
     },
   ];
 

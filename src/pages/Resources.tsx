@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Seo } from "@/components/Seo";
+import { SITE_URL } from "@/lib/site";
 import { LearningPaths } from "@/components/resources";
 import { ELSA_VERSION } from "@/data/elsaVersion";
 
@@ -112,7 +113,7 @@ export default function Resources() {
         path="/resources"
         title="Resources — Elsa Workflows docs, samples, and community"
         description="Documentation, samples, governance, and community content for Elsa Workflows. Find guides, articles, videos, and contribution resources."
-        jsonLd={{ "@context": "https://schema.org", "@type": "CollectionPage", name: "Elsa Workflows resources", url: "https://www.elsa-workflows.io/resources", description: "Curated documentation, samples, governance, and community content for Elsa Workflows." }}
+        jsonLd={{ "@context": "https://schema.org", "@type": "CollectionPage", name: "Elsa Workflows resources", url: `${SITE_URL}/resources`, description: "Curated documentation, samples, governance, and community content for Elsa Workflows." }}
       />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">

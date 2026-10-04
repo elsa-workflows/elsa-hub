@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 import { prerenderBlog } from "./scripts/prerender-blog";
+import { prerenderTraining } from "./scripts/prerender-training";
 
 // Runs the blog prerender script after vite finishes the production bundle.
 // We hook into the build itself (instead of npm's `postbuild` script) because
@@ -30,6 +31,22 @@ function prerenderBlogPlugin(): Plugin {
   };
 }
 
+// Independent of the blog prerender: a failed blog index fetch must not
+// skip Training, and a Training failure must fail the build.
+function prerenderTrainingPlugin(): Plugin {
+  return {
+    name: "elsa-prerender-training",
+    apply: "build",
+    closeBundle: {
+      sequential: true,
+      order: "post",
+      async handler() {
+        await prerenderTraining();
+      },
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -44,6 +61,7 @@ export default defineConfig(({ mode }) => ({
     mcpPlugin(),
     mode === "development" && componentTagger(),
     mode !== "development" && prerenderBlogPlugin(),
+    mode !== "development" && prerenderTrainingPlugin(),
   ].filter(Boolean),
   resolve: {
     alias: {

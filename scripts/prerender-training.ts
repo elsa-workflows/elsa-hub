@@ -4,38 +4,42 @@
 // Output is dist/elsa-plus/training/index.html so static hosts serve
 // /elsa-plus/training from that directory index. The repo has no
 // vercel/netlify _redirects; Lovable serves existing files first.
+//
+// This script is a standalone build step. It must not be gated on the
+// blog prerender (a failed blog index fetch must not skip Training).
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { buildTrainingBody, buildTrainingHead } from "../src/lib/trainingSeo";
+import { injectIntoShell } from "./prerender-shell";
 
 const DIST = resolve("dist");
 const SHELL_PATH = resolve(DIST, "index.html");
 const OUT_PATH = resolve(DIST, "elsa-plus", "training", "index.html");
 
-function injectIntoShell(shell: string, headExtras: string, bodyHtml: string): string {
-  let html = shell
-    .replace(/<title>[\s\S]*?<\/title>/i, "")
-    .replace(/<meta\s+name="description"[^>]*\/?>/i, "")
-    .replace(/<meta\s+property="og:(title|description|url|type|image|site_name)"[^>]*\/?>/gi, "")
-    .replace(/<meta\s+name="twitter:(title|description|image|card)"[^>]*\/?>/gi, "");
-
-  html = html.replace(/<\/head>/i, `    ${headExtras}\n  </head>`);
-  html = html.replace(
-    /<div id="root"><\/div>/i,
-    `<div id="root">${bodyHtml}</div>`,
-  );
-  return html;
-}
-
 export async function prerenderTraining(): Promise<void> {
   if (!existsSync(SHELL_PATH)) {
-    console.warn(`[prerender-training] ${SHELL_PATH} not found, skipping.`);
-    return;
+    throw new Error(`[prerender-training] ${SHELL_PATH} not found`);
   }
   const shell = readFileSync(SHELL_PATH, "utf-8");
   const html = injectIntoShell(shell, buildTrainingHead(), buildTrainingBody());
   mkdirSync(dirname(OUT_PATH), { recursive: true });
   writeFileSync(OUT_PATH, html, "utf-8");
   console.log(`[prerender-training] wrote ${OUT_PATH}`);
+}
+
+const isDirectRun = (() => {
+  try {
+    const argv1 = process.argv[1] ? new URL(`file://${process.argv[1]}`).href : "";
+    return import.meta.url === argv1;
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectRun) {
+  prerenderTraining().catch((e) => {
+    console.error(`[prerender-training] ${(e as Error).message}`);
+    process.exit(1);
+  });
 }

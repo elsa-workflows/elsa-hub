@@ -187,8 +187,13 @@ describe("Training page", () => {
       path.join(process.cwd(), "src/lib/trainingInterest.ts"),
       "utf8",
     );
+    const seoSource = readFileSync(
+      path.join(process.cwd(), "src/lib/trainingSeo.ts"),
+      "utf8",
+    );
     expect(source).not.toMatch(/[\u2013\u2014]/);
     expect(interestSource).not.toMatch(/[\u2013\u2014]/);
+    expect(seoSource).not.toMatch(/[\u2013\u2014]/);
     expect(interestSource).not.toMatch(/cloneable/i);
 
     const { container } = renderTraining();

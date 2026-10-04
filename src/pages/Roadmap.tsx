@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
+import { SITE_URL } from "@/lib/site";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -179,7 +180,7 @@ export default function Roadmap() {
       "@context": "https://schema.org",
       "@type": "WebPage",
       name: "Elsa Workflows Roadmap",
-      url: "https://www.elsa-workflows.io/roadmap",
+      url: `${SITE_URL}/roadmap`,
       description:
         "Live roadmap for the Elsa Workflows engine, Studio, and extensions, synced weekly from the maintainers' GitHub roadmap issue.",
     },

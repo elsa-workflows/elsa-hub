@@ -11,7 +11,7 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { SITE_URL } from "../src/lib/site";
-import { prerenderTraining } from "./prerender-training";
+import { injectIntoShell } from "./prerender-shell";
 
 const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
 const SITE = SITE_URL;
@@ -108,27 +108,6 @@ function buildArticle(post: Post): string {
 </article>`;
 }
 
-function injectIntoShell(shell: string, headExtras: string, articleHtml: string): string {
-  // Strip the static <title> and sitewide <meta name="description"> so the
-  // per-post versions are the only ones in the document.
-  let html = shell
-    .replace(/<title>[\s\S]*?<\/title>/i, "")
-    .replace(/<meta\s+name="description"[^>]*\/?>/i, "")
-    .replace(/<meta\s+property="og:(title|description|url|type|image)"[^>]*\/?>/gi, "")
-    .replace(/<meta\s+name="twitter:(title|description|image|card)"[^>]*\/?>/gi, "");
-
-  html = html.replace(/<\/head>/i, `    ${headExtras}\n  </head>`);
-
-  // React's createRoot().render() clears children of #root on mount, so the
-  // prerendered article naturally disappears once the SPA hydrates.
-  html = html.replace(
-    /<div id="root"><\/div>/i,
-    `<div id="root">${articleHtml}</div>`,
-  );
-
-  return html;
-}
-
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} → ${res.status}`);
@@ -178,7 +157,6 @@ export async function prerenderBlog(): Promise<void> {
   }
 
   console.log(`[prerender-blog] wrote ${ok} post(s), ${failed} failed.`);
-  await prerenderTraining();
 }
 
 // Allow running this file directly via `tsx scripts/prerender-blog.ts`.
