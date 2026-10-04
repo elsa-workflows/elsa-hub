@@ -203,6 +203,7 @@ describe("Training page", () => {
     expect(screen.getAllByText("€29").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/replaces fundamentals core/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/instead of core/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/an independent elsa\+ offering/i)).not.toBeInTheDocument();
   });
 
   it("opens the seat-quote dialog variant from Request a quote in the Team packs card", () => {

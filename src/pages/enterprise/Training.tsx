@@ -157,9 +157,6 @@ export default function Training() {
             <p className="text-sm font-medium mb-3">
               Solo Bundle <strong>€29</strong> at launch (until 31 Oct, then €39) · Team packs from <strong>€349</strong> · Private team workshops from <strong>€3,200</strong>. EUR excl. VAT.
             </p>
-            <p className="text-sm text-muted-foreground">
-              An independent Elsa+ offering.
-            </p>
           </div>
         </div>
       </section>
