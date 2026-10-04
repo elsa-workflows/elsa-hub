@@ -10,7 +10,13 @@
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { SITE_URL } from "../src/lib/site";
+import {
+  SITE_OG_IMAGE_HEIGHT,
+  SITE_OG_IMAGE_WIDTH,
+  SITE_TWITTER_CARD,
+  SITE_URL,
+  resolveSocialImage,
+} from "../src/lib/site";
 import { injectIntoShell } from "./prerender-shell";
 
 const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
@@ -41,7 +47,9 @@ function esc(s: string): string {
 function buildHead(post: Post, canonical: string): string {
   const seoTitle = post.seo?.title || post.title;
   const seoDescription = post.seo?.description || post.description || "";
-  const ogImage = post.seo?.openGraphImage || post.featuredImage;
+  const rawImage = post.seo?.openGraphImage || post.featuredImage;
+  const ogImage = resolveSocialImage(rawImage);
+  const usingDefaultImage = !rawImage;
   const pageTitle = `${seoTitle} — Elsa Workflows`;
 
   const jsonLd = {
@@ -73,16 +81,18 @@ function buildHead(post: Post, canonical: string): string {
     `<meta property="og:title" content="${esc(seoTitle)}" />`,
     seoDescription ? `<meta property="og:description" content="${esc(seoDescription)}" />` : "",
     `<meta property="og:url" content="${esc(canonical)}" />`,
-    ogImage ? `<meta property="og:image" content="${esc(ogImage)}" />` : "",
+    `<meta property="og:image" content="${esc(ogImage)}" />`,
+    usingDefaultImage ? `<meta property="og:image:width" content="${SITE_OG_IMAGE_WIDTH}" />` : "",
+    usingDefaultImage ? `<meta property="og:image:height" content="${SITE_OG_IMAGE_HEIGHT}" />` : "",
     post.publishedAt ? `<meta property="article:published_time" content="${esc(post.publishedAt)}" />` : "",
     post.updatedAt ? `<meta property="article:modified_time" content="${esc(post.updatedAt)}" />` : "",
     ...(post.authors || []).map((a) => `<meta property="article:author" content="${esc(a.name)}" />`),
     post.category ? `<meta property="article:section" content="${esc(post.category)}" />` : "",
     ...(post.tags || []).map((t) => `<meta property="article:tag" content="${esc(t)}" />`),
-    `<meta name="twitter:card" content="${ogImage ? "summary_large_image" : "summary"}" />`,
+    `<meta name="twitter:card" content="${SITE_TWITTER_CARD}" />`,
     `<meta name="twitter:title" content="${esc(seoTitle)}" />`,
     seoDescription ? `<meta name="twitter:description" content="${esc(seoDescription)}" />` : "",
-    ogImage ? `<meta name="twitter:image" content="${esc(ogImage)}" />` : "",
+    `<meta name="twitter:image" content="${esc(ogImage)}" />`,
     `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`,
     `<script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>`,
   ].filter(Boolean).join("\n    ");

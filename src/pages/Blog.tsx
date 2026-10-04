@@ -13,7 +13,7 @@ import {
   fetchBlogIndex,
   formatBlogDate,
 } from "@/lib/blog";
-import { SITE_OG_IMAGE, SITE_TWITTER_CARD } from "@/lib/site";
+import { SITE_OG_IMAGE, SITE_OG_IMAGE_HEIGHT, SITE_OG_IMAGE_WIDTH, SITE_TWITTER_CARD } from "@/lib/site";
 import { InlineNewsletter } from "@/components/newsletter";
 import { track } from "@/lib/analytics";
 
@@ -109,6 +109,8 @@ export default function Blog() {
         <meta property="og:url" content={BLOG_CANONICAL_BASE} />
         <meta property="og:type" content="website" />
         <meta property="og:image" content={SITE_OG_IMAGE} />
+        <meta property="og:image:width" content={String(SITE_OG_IMAGE_WIDTH)} />
+        <meta property="og:image:height" content={String(SITE_OG_IMAGE_HEIGHT)} />
         <meta name="twitter:card" content={SITE_TWITTER_CARD} />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />

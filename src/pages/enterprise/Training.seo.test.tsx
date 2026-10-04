@@ -111,11 +111,11 @@ describe("Training page SEO", () => {
         `<meta data-rh="true" property="og:description" content="Build workflow-driven .NET apps with Elsa: visual designer, C# code, and scale from small apps to enterprise systems. Open source." />`,
         `<meta data-rh="true" property="og:type" content="website" />`,
         `<meta data-rh="true" property="og:url" content="https://www.elsaworkflows.io/" />`,
-        `<meta data-rh="true" property="og:image" content="https://www.elsaworkflows.io/elsa-logo.png" />`,
+        `<meta data-rh="true" property="og:image" content="https://www.elsaworkflows.io/og-default.png" />`,
         `<meta data-rh="true" name="twitter:card" content="summary_large_image" />`,
         `<meta data-rh="true" name="twitter:title" content="The Workflow Engine for .NET" />`,
         `<meta data-rh="true" name="twitter:description" content="Build workflow-driven .NET apps with Elsa: visual designer, C# code, and scale from small apps to enterprise systems. Open source." />`,
-        `<meta data-rh="true" name="twitter:image" content="https://www.elsaworkflows.io/elsa-logo.png" />`,
+        `<meta data-rh="true" name="twitter:image" content="https://www.elsaworkflows.io/og-default.png" />`,
         buildTrainingHead(),
       ].join("\n"),
     );
