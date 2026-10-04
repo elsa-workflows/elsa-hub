@@ -17,14 +17,24 @@ export const TRAINING_OG_IMAGE_PATH = "/og-training.png";
 export const TRAINING_OG_IMAGE_URL = `${SITE_URL}${TRAINING_OG_IMAGE_PATH}`;
 export const TRAINING_CANONICAL_URL = `${SITE_URL}${TRAINING_PATH}`;
 
-/** Last calendar day of the launch price. Change this one value for the 1 Nov cutover. */
 export const TRAINING_LAUNCH_PRICE_EUR = 29;
 export const TRAINING_POST_LAUNCH_PRICE_EUR = 39;
+/** Last calendar day of the launch Solo Bundle price. Regular price starts the next day (1 Nov 2026). */
 export const TRAINING_PRICE_VALID_UNTIL = "2026-10-31";
+export const TRAINING_REGULAR_PRICE_VALID_FROM = nextUtcDay(TRAINING_PRICE_VALID_UNTIL);
 export const TRAINING_OFFER_PRICE = String(TRAINING_LAUNCH_PRICE_EUR);
 export const TRAINING_OFFER_CURRENCY = "EUR";
 export const TRAINING_LAUNCH_UNTIL_LABEL = formatDayMonthUtc(TRAINING_PRICE_VALID_UNTIL);
 export const TRAINING_PROVIDER_SAME_AS = "https://github.com/elsa-workflows";
+
+function nextUtcDay(isoDate: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (!match) {
+    throw new Error(`Invalid ISO date: ${isoDate}`);
+  }
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + 1));
+  return date.toISOString().slice(0, 10);
+}
 
 function formatDayMonthUtc(isoDate: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
@@ -87,15 +97,28 @@ export function trainingCourseJsonLd(): Record<string, unknown> {
       url: SITE_URL,
       sameAs: TRAINING_PROVIDER_SAME_AS,
     },
-    offers: {
-      "@type": "Offer",
-      category: "Paid",
-      price: TRAINING_OFFER_PRICE,
-      priceCurrency: TRAINING_OFFER_CURRENCY,
-      priceValidUntil: TRAINING_PRICE_VALID_UNTIL,
-      url: FUNDAMENTALS_CORE_GUMROAD_URL,
-      availability: "https://schema.org/InStock",
-    },
+    offers: [
+      {
+        "@type": "Offer",
+        category: "Paid",
+        name: "Launch price",
+        price: TRAINING_OFFER_PRICE,
+        priceCurrency: TRAINING_OFFER_CURRENCY,
+        priceValidUntil: TRAINING_PRICE_VALID_UNTIL,
+        url: FUNDAMENTALS_CORE_GUMROAD_URL,
+        availability: "https://schema.org/InStock",
+      },
+      {
+        "@type": "Offer",
+        category: "Paid",
+        name: "Regular price",
+        price: String(TRAINING_POST_LAUNCH_PRICE_EUR),
+        priceCurrency: TRAINING_OFFER_CURRENCY,
+        validFrom: TRAINING_REGULAR_PRICE_VALID_FROM,
+        url: FUNDAMENTALS_CORE_GUMROAD_URL,
+        availability: "https://schema.org/InStock",
+      },
+    ],
     hasCourseInstance: {
       "@type": "CourseInstance",
       courseMode: "Online",

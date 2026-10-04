@@ -13,6 +13,7 @@ import {
   fetchBlogIndex,
   formatBlogDate,
 } from "@/lib/blog";
+import { SITE_OG_IMAGE, SITE_TWITTER_CARD } from "@/lib/site";
 import { InlineNewsletter } from "@/components/newsletter";
 import { track } from "@/lib/analytics";
 
@@ -107,8 +108,11 @@ export default function Blog() {
         <meta property="og:description" content={description} />
         <meta property="og:url" content={BLOG_CANONICAL_BASE} />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content={SITE_OG_IMAGE} />
+        <meta name="twitter:card" content={SITE_TWITTER_CARD} />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={SITE_OG_IMAGE} />
       </Helmet>
 
       <section className="container py-16 md:py-24">

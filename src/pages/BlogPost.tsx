@@ -19,7 +19,7 @@ import { ShareExportMenu } from "@/components/blog/ShareExportMenu";
 import { BlogPostActions } from "@/components/blog/BlogPostActions";
 import { BlogPostViews } from "@/components/blog/BlogPostViews";
 
-import { SITE_URL } from "@/lib/site";
+import { SITE_TWITTER_CARD, SITE_URL, resolveSocialImage } from "@/lib/site";
 import { InlineNewsletter } from "@/components/newsletter";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -129,7 +129,7 @@ export default function BlogPost() {
   const canonical = post.canonicalUrl || `${BLOG_CANONICAL_BASE}/${post.slug}`;
   const seoTitle = post.seo?.title || post.title;
   const seoDescription = post.seo?.description || post.description || "";
-  const ogImage = post.seo?.openGraphImage || post.featuredImage;
+  const ogImage = resolveSocialImage(post.seo?.openGraphImage || post.featuredImage);
   const pageTitle = `${seoTitle} — Elsa Workflows`;
 
   const jsonLd = {
@@ -168,7 +168,7 @@ export default function BlogPost() {
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
         <meta property="og:url" content={canonical} />
-        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta property="og:image" content={ogImage} />
         {post.publishedAt && (
           <meta property="article:published_time" content={post.publishedAt} />
         )}
@@ -184,14 +184,10 @@ export default function BlogPost() {
         {(post.tags || []).map((t) => (
           <meta key={t} property="article:tag" content={t} />
         ))}
-        {ogImage ? (
-          <meta name="twitter:card" content="summary_large_image" />
-        ) : (
-          <meta name="twitter:card" content="summary" />
-        )}
+        <meta name="twitter:card" content={SITE_TWITTER_CARD} />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
-        {ogImage && <meta name="twitter:image" content={ogImage} />}
+        <meta name="twitter:image" content={ogImage} />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
       </Helmet>
