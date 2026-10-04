@@ -10,7 +10,7 @@ export const TRAINING_H1 = "Elsa Workflows Training for .NET Developers and Team
 export const TRAINING_INTRO_BEFORE = "The ";
 export const TRAINING_INTRO_EMPHASIS = "Solo Bundle";
 export const TRAINING_INTRO_AFTER =
-  " gives you every self-paced module and lab on Elsa 3.8.4 for one low price. Team packs cover 5 or 10 seats. Prefer a facilitator for your whole team? Request a private workshop.";
+  " gives you every self-paced module and lab on Elsa 3.9.0 for one low price. Team packs cover 5 or 10 seats. Prefer a facilitator for your whole team? Request a private workshop.";
 export const TRAINING_INTRO = `${TRAINING_INTRO_BEFORE}${TRAINING_INTRO_EMPHASIS}${TRAINING_INTRO_AFTER}`;
 
 export const TRAINING_OG_IMAGE_PATH = "/og-training.png";

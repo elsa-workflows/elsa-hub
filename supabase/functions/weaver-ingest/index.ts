@@ -168,7 +168,7 @@ const PAGE_DOCS: Doc[] = [
     external_id: "page:training",
     url: `${SITE_BASE}/elsa-plus/training`,
     title: "Elsa Workflows Fundamentals for Teams",
-    body: "Self-paced Elsa Workflows Solo Bundle for individual .NET developers, Team packs for 5 or 10 seats, on Elsa 3.8.4. Solo Bundle €29 at launch until 31 Oct, then €39. Team 5 €349 (5 seats, completion certificates, 90 days email Q&A). Team 10 €599 (adds 60-minute live team Q&A). 25+ seats by quote. Private team workshops from €3,200. EUR excl. VAT. Courses are later.",
+    body: "Self-paced Elsa Workflows Solo Bundle for individual .NET developers, Team packs for 5 or 10 seats, on Elsa 3.9.0. Solo Bundle €29 at launch until 31 Oct, then €39. Team 5 €349 (5 seats, completion certificates, 90 days email Q&A). Team 10 €599 (adds 60-minute live team Q&A). 25+ seats by quote. Private team workshops from €3,200. EUR excl. VAT. Courses are later.",
   },
   {
     source: "page",
