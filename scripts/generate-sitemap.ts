@@ -2,8 +2,9 @@
 
 import { writeFileSync } from "fs";
 import { resolve } from "path";
+import { SITE_URL } from "../src/lib/site";
 
-const BASE_URL = "https://www.elsa-workflows.io";
+const BASE_URL = SITE_URL;
 const BLOG_UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
 
 interface SitemapEntry {

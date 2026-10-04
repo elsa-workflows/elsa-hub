@@ -26,6 +26,14 @@ import {
   type TrainingQuoteVariant,
 } from "@/lib/trainingInterest";
 import {
+  TRAINING_DESCRIPTION,
+  TRAINING_H1,
+  TRAINING_OG_IMAGE_URL,
+  TRAINING_PATH,
+  TRAINING_TITLE,
+  trainingCourseJsonLd,
+} from "@/lib/trainingSeo";
+import {
   ArrowRight,
   Award,
   BookOpen,
@@ -112,9 +120,11 @@ export default function Training() {
   return (
     <Layout>
       <Seo
-        path="/elsa-plus/training"
-        title="Elsa Workflows Fundamentals for Teams: Elsa+"
-        description="Self-paced Elsa Workflows training for .NET teams adopting Elsa 3. The Solo Bundle covers Fundamentals Core and Complete, Advanced Patterns with Approval Lite, and the Elsa 3.8.4 lab kit. Team packs and private workshops available."
+        path={TRAINING_PATH}
+        title={TRAINING_TITLE}
+        description={TRAINING_DESCRIPTION}
+        image={TRAINING_OG_IMAGE_URL}
+        jsonLd={trainingCourseJsonLd()}
       />
 
       <section className="pt-8 pb-4">
@@ -139,7 +149,7 @@ export default function Training() {
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Elsa Workflows Fundamentals for Teams
+              {TRAINING_H1}
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed mb-8">
               The <strong>Solo Bundle</strong> gives you every self-paced module and lab on Elsa 3.8.4 for one low price. Team packs cover 5 or 10 seats. Prefer a facilitator for your whole team? Request a private workshop.

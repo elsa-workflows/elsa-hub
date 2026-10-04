@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://www.elsa-workflows.io/sitemap.xml
+Sitemap: https://www.elsaworkflows.io/sitemap.xml

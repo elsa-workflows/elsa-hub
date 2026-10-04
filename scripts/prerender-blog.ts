@@ -10,9 +10,11 @@
 
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { SITE_URL } from "../src/lib/site";
+import { prerenderTraining } from "./prerender-training";
 
 const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
-const SITE = "https://www.elsa-workflows.io";
+const SITE = SITE_URL;
 const DIST = resolve("dist");
 const SHELL_PATH = resolve(DIST, "index.html");
 
@@ -176,6 +178,7 @@ export async function prerenderBlog(): Promise<void> {
   }
 
   console.log(`[prerender-blog] wrote ${ok} post(s), ${failed} failed.`);
+  await prerenderTraining();
 }
 
 // Allow running this file directly via `tsx scripts/prerender-blog.ts`.
