@@ -57,7 +57,7 @@ export const quoteDialogCopy: Record<
   seat_quote: {
     title: "Request a 25+ seat quote",
     description:
-      "Share team size and how many seats you need. We will follow up with a Team pack quote for 25 or more people on Elsa 3.8.4.",
+      "Share team size and how many seats you need. We will follow up with a Team pack quote for 25 or more people on Elsa 3.9.0.",
     buttonText: "Request a quote",
     successMessage: "Thanks. We will follow up about a 25+ seat Team pack quote.",
   },

@@ -52,7 +52,7 @@ import {
 
 const fundamentalsOutcomes = [
   "Explain how Elsa 3 works in plain terms: workflow definitions and instances, activity outcomes and outputs, triggers and bookmarks.",
-  "Host Elsa 3.8.4 in an ASP.NET Core app with SQLite persistence, the Workflows API, and HTTP workflows.",
+  "Host Elsa 3.9.0 in an ASP.NET Core app with SQLite persistence, the Workflows API, and HTTP workflows.",
   "Build and publish a Flowchart in Elsa Studio with variables, expressions, and a Decision branch, then read the journal to see which branch ran.",
   "Publish an HTTP-triggered workflow that returns JSON, call it with curl, and follow the run in Studio.",
 ];
@@ -184,7 +184,7 @@ export default function Training() {
               What’s in Fundamentals
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-8">
-              The Solo Bundle on Elsa 3.8.4 starts with Core: Modules 0-5, a lab kit you download and unzip, and Labs A-C (about 5 to 6 hours solo).
+              The Solo Bundle on Elsa 3.9.0 starts with Core: Modules 0-5, a lab kit you download and unzip, and Labs A-C (about 5 to 6 hours solo).
             </p>
 
             <h3 className="text-xl font-semibold mb-4">What you'll learn</h3>
@@ -254,7 +254,7 @@ export default function Training() {
                       <Badge>Available</Badge>
                     </div>
                     <p className="text-muted-foreground mb-4">
-                      Everything self-paced in one purchase, on Elsa 3.8.4.
+                      Everything self-paced in one purchase, on Elsa 3.9.0.
                     </p>
                     <ul className="space-y-2 mb-6">
                       <li className="flex items-start gap-3 text-muted-foreground">
@@ -271,7 +271,7 @@ export default function Training() {
                       </li>
                       <li className="flex items-start gap-3 text-muted-foreground">
                         <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                        <span>The Elsa 3.8.4 lab kit</span>
+                        <span>The Elsa 3.9.0 lab kit</span>
                       </li>
                     </ul>
                     <p className="text-sm font-medium mb-6">
@@ -348,7 +348,7 @@ export default function Training() {
                         Approval Lite: self-paced in the Solo Bundle, or as a private workshop
                       </h4>
                       <p className="text-muted-foreground mb-3">
-                        Approval Lite is part of Advanced Patterns (AP0 to AP2) and is included in the Solo Bundle and every Team pack. Work through it at your own pace after the Core labs: learn the approval decision tree (AP1), then build a small multi-role approval workflow with a reject and resubmit loop on the Elsa 3.8.4 lab kit (AP2). Plan for about 3 hours. Team 5 and Team 10 include completion certificates.
+                        Approval Lite is part of Advanced Patterns (AP0 to AP2) and is included in the Solo Bundle and every Team pack. Work through it at your own pace after the Core labs: learn the approval decision tree (AP1), then build a small multi-role approval workflow with a reject and resubmit loop on the Elsa 3.9.0 lab kit (AP2). Plan for about 3 hours. Team 5 and Team 10 include completion certificates.
                       </p>
                       <p className="text-muted-foreground">
                         Prefer to learn it live? We also run Approval Lite as a half-day facilitated private workshop, on its own or after a Fundamentals workshop. Request a quote and mention &quot;Approval Lite&quot; in your message.
@@ -402,7 +402,7 @@ export default function Training() {
                     </p>
                     <p className="text-2xl font-bold mb-2">€{TRAINING_LAUNCH_PRICE_EUR}</p>
                     <p className="text-sm text-muted-foreground">
-                      Launch price until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} · Elsa 3.8.4
+                      Launch price until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} · Elsa 3.9.0
                     </p>
                   </div>
                   <div>
