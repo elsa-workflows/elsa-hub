@@ -54,9 +54,10 @@ verify_jwt = false
 [functions.copilot-ingest]
 verify_jwt = false
 
-[functions.blog-export]
-[functions.blog-export]
+[functions.weaver-ingest]
 verify_jwt = false
+
+[functions.blog-export]
 
 [functions.submit-radar-location]
 verify_jwt = false
