@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ElsaPlusDisclaimer } from "@/components/elsa-plus";
+import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 const criteria = [
   {
@@ -159,10 +160,10 @@ export default function Distributions() {
                 <tr className="border-t">
                   <td className="px-4 py-3">
                     <Link
-                      to="/elsa-plus/valence-runtime"
+                      to={ELSA_RUNTIME_PATH}
                       className="text-primary hover:underline font-medium"
                     >
-                      Valence Runtime
+                      {ELSA_RUNTIME_DISPLAY_NAME}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">Valence Works</td>

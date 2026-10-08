@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContainerImageArtwork } from "./ContainerImageArtwork";
 import type { DockerImage } from "@/data/dockerImages";
+import { elsaRuntimeImagePath } from "@/lib/elsaRuntime";
 
 interface DockerImageCardProps {
   image: DockerImage;
@@ -57,7 +58,7 @@ export function DockerImageCard({ image }: DockerImageCardProps) {
 
       <div className="mt-auto flex items-center gap-2">
         <Button asChild className="gap-2 flex-1">
-          <Link to={`/elsa-plus/valence-runtime/images/${image.slug}`}>
+          <Link to={elsaRuntimeImagePath(image.slug)}>
             View instructions
             <ArrowRight className="h-4 w-4" />
           </Link>

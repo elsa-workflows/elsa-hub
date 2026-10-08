@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PreviewBanner } from "@/components/runtime-builder/PreviewBanner";
 import { PreviewBadge } from "@/components/runtime-builder/PreviewBadge";
+import { ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 const FEATURES = [
   {
@@ -82,7 +83,7 @@ export default function RuntimeBuilderLanding() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link to="/elsa-plus/valence-runtime#images">Browse runtime images</Link>
+                <Link to={`${ELSA_RUNTIME_PATH}#images`}>Browse Elsa Runtime images</Link>
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">

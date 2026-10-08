@@ -56,22 +56,22 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.elsaworkflows.io/elsa-plus/valence-runtime</loc>
+    <loc>https://www.elsaworkflows.io/elsa-plus/elsa-runtime</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.elsaworkflows.io/elsa-plus/valence-runtime/images/runtime-server</loc>
+    <loc>https://www.elsaworkflows.io/elsa-plus/elsa-runtime/images/runtime-server</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.elsaworkflows.io/elsa-plus/valence-runtime/images/runtime-studio</loc>
+    <loc>https://www.elsaworkflows.io/elsa-plus/elsa-runtime/images/runtime-studio</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.elsaworkflows.io/elsa-plus/valence-runtime/images/runtime-combined</loc>
+    <loc>https://www.elsaworkflows.io/elsa-plus/elsa-runtime/images/runtime-combined</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -119,6 +119,18 @@
     <loc>https://www.elsaworkflows.io/blog</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/blog/elsa-4-modules-without-restart</loc>
+    <lastmod>2026-10-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/blog/human-approval-workflows-in-elsa-3</loc>
+    <lastmod>2026-10-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.elsaworkflows.io/blog/tenant-isolation-elsa-3-9-persistence</loc>
@@ -181,8 +193,8 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.elsaworkflows.io/blog/managing-elsa-users-and-roles-in-studio-3-8</loc>
-    <lastmod>2026-09-07</lastmod>
+    <loc>https://www.elsaworkflows.io/blog/managing-elsa-users-and-roles-in-studio-3-9</loc>
+    <lastmod>2026-10-05</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

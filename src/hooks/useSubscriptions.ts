@@ -17,7 +17,7 @@ export interface Subscription {
   updated_at: string;
   /** Display name: credit bundle name or product name */
   bundle_name: string;
-  /** Null for product subscriptions (e.g. Valence Runtime) which grant no hours */
+  /** Null for product subscriptions (e.g. Elsa Runtime) which grant no hours */
   monthly_hours: number | null;
   /** True when backed by a product rather than a credit bundle */
   is_product: boolean;
@@ -114,4 +114,3 @@ export function useSubscriptions(organizationId: string | undefined) {
     enabled: !!organizationId,
   });
 }
-

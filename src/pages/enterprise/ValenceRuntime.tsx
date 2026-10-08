@@ -28,9 +28,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { RuntimeEnquiryDialog, type EnquiryTier } from "@/components/enterprise/RuntimeEnquiryDialog";
 import { useRuntimeProducts, PublicProduct } from "@/hooks/useRuntimeProducts";
 import { PurchaseBundleDialog } from "@/components/organization/PurchaseBundleDialog";
+import {
+  ELSA_RUNTIME_DISPLAY_NAME,
+  ELSA_RUNTIME_NAME,
+  ELSA_RUNTIME_PATH,
+  ELSA_RUNTIME_SUBTITLE,
+} from "@/lib/elsaRuntime";
 
 const PROVIDER_SLUG = "valence-works";
-const RUNTIME_PAGE_PATH = "/elsa-plus/valence-runtime";
 
 const tiers = ["Community", "Runtime", "Runtime Priority", "Maintainer Access"] as const;
 
@@ -199,7 +204,7 @@ export default function ValenceRuntime() {
 
   const startSubscribe = (product: PublicProduct) => {
     if (!user) {
-      const returnUrl = `${RUNTIME_PAGE_PATH}?tier=${encodeURIComponent(product.slug)}`;
+      const returnUrl = `${ELSA_RUNTIME_PATH}?tier=${encodeURIComponent(product.slug)}`;
       navigate(`/login?redirect=${encodeURIComponent(returnUrl)}`);
       return;
     }
@@ -224,9 +229,9 @@ export default function ValenceRuntime() {
   return (
     <Layout>
       <Seo
-        path="/elsa-plus/valence-runtime"
-        title="Valence Runtime — an Elsa distribution from Valence Works"
-        description="Valence Runtime is an Elsa distribution from Valence Works: production-ready server, Studio and combined container images with a committed security-patch cadence and committed bug triage windows on paid tiers."
+        path={ELSA_RUNTIME_PATH}
+        title={`${ELSA_RUNTIME_DISPLAY_NAME} — ready-to-deploy Elsa Docker images`}
+        description={`${ELSA_RUNTIME_SUBTITLE} ${ELSA_RUNTIME_NAME} is an Elsa distribution provided by Valence Works, with a committed security-patch cadence and bug-triage windows on paid tiers.`}
       />
 
       <section className="pt-8 pb-4">
@@ -240,7 +245,7 @@ export default function ValenceRuntime() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Valence Runtime</BreadcrumbPage>
+                <BreadcrumbPage>{ELSA_RUNTIME_DISPLAY_NAME}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -255,12 +260,12 @@ export default function ValenceRuntime() {
               <Badge variant="secondary">Provided by Valence Works</Badge>
               <Badge variant="outline">Early Preview</Badge>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Valence Runtime</h1>
-            <p className="text-xl text-muted-foreground">
-              An Elsa distribution from Valence Works — production-ready container images for
-              server, Studio and combined deployments, built, hardened and patched by the
-              maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug
-              queue he actually works.
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">{ELSA_RUNTIME_DISPLAY_NAME}</h1>
+            <p className="text-xl text-muted-foreground">{ELSA_RUNTIME_SUBTITLE}</p>
+            <p className="text-base text-muted-foreground mt-3">
+              An Elsa distribution built, hardened and patched by the maintainer of Elsa.
+              Subscriptions add a committed security-patch cadence and a bug queue he actually
+              works.
             </p>
             <p className="text-sm text-muted-foreground mt-3">
               <Link to="/elsa-plus/distributions" className="text-primary hover:underline">
@@ -298,11 +303,12 @@ export default function ValenceRuntime() {
         <div className="container max-w-4xl space-y-4">
           <h2 className="text-3xl font-bold">What it is</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Elsa Workflows itself is open source under the MIT License and always will be. The
-            Valence Runtime container images and their packaging are licensed commercially and
-            require a subscription. Nothing has moved behind a paywall: Valence Runtime is the
-            assembled, production-ready distribution — pre-built container images, a committed
-            security-patch cadence, and, on paid tiers, direct access to the person who wrote Elsa.
+            Elsa Workflows itself is open source under the MIT License and always will be. Elsa
+            Runtime Community images remain publicly pullable. The paid images and
+            subscription-backed packaging are licensed commercially by Valence Works. Nothing has
+            moved behind a paywall: Elsa Runtime is the assembled, ready-to-deploy distribution —
+            pre-built container images, a committed security-patch cadence, and, on paid tiers,
+            direct access to the person who wrote Elsa.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Not yet a supported distribution — stable release guarantees are on the roadmap.
@@ -489,8 +495,8 @@ docker pull ghcr.io/valence-works/runtime-ce-studio:\${ELSA_STUDIO_VERSION}`}
           </p>
           <p className="text-muted-foreground leading-relaxed">
             You do not need a GitHub account, a Microsoft account, or an Azure account. You do not
-            need to join an organisation. The token is pull-only, scoped to the three Valence
-            Runtime images, and carries an expiry date aligned to your subscription period.
+            need to join an organisation. The token is pull-only, scoped to the three Elsa Runtime
+            images, and carries an expiry date aligned to your subscription period.
           </p>
           <p className="text-muted-foreground leading-relaxed">
             There are no licence keys and no activation in the software itself. Your registry
@@ -598,7 +604,7 @@ docker pull ghcr.io/valence-works/runtime-ce-studio:\${ELSA_STUDIO_VERSION}`}
 
           {!anySubscribable && (
             <p className="text-muted-foreground leading-relaxed">
-              Subscriptions are not open yet. Valence Runtime is in Early Preview — prices are
+              Subscriptions are not open yet. Elsa Runtime is in Early Preview — prices are
               published so you can plan and budget. Get in touch to discuss a tier or request
               preview access.
             </p>
@@ -823,7 +829,7 @@ docker pull ghcr.io/valence-works/runtime-ce-studio:\${ELSA_STUDIO_VERSION}`}
         onOpenChange={setEnquiryOpen}
         providerId={providerId}
         initialTier={enquiryTier}
-        sourcePage={RUNTIME_PAGE_PATH}
+        sourcePage={ELSA_RUNTIME_PATH}
       />
     </Layout>
   );
