@@ -14,6 +14,7 @@ import { NotificationBell } from "@/components/notifications";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import elsaLogo from "@/assets/elsa-logo.png";
 import { cn } from "@/lib/utils";
+import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 type NavItem = { label: string; to?: string; href?: string; badge?: string; external?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
@@ -48,7 +49,7 @@ const groups: NavGroup[] = [
     label: "Elsa+",
     items: [
       { label: "Overview", to: "/elsa-plus" },
-      { label: "Valence Runtime", to: "/elsa-plus/valence-runtime", badge: "Early Preview" },
+      { label: ELSA_RUNTIME_DISPLAY_NAME, to: ELSA_RUNTIME_PATH, badge: "Early Preview" },
       { label: "Runtime Builder", to: "/elsa-plus/runtime-builder", badge: "Preview" },
       { label: "Managed Cloud Hosting", to: "/elsa-plus/cloud-services", badge: "Waitlist" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },

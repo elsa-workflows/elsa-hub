@@ -16,6 +16,7 @@ import {
   ElsaPlusSectionCard,
   ElsaPlusDisclaimer,
 } from "@/components/elsa-plus";
+import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH, ELSA_RUNTIME_SUBTITLE } from "@/lib/elsaRuntime";
 
 const servicesAndSupport = [
   {
@@ -26,8 +27,8 @@ const servicesAndSupport = [
     href: "/elsa-plus/expert-services",
     note: {
       text: "Looking for ongoing support with a committed triage window instead of a project engagement? That's part of a",
-      linkLabel: "Valence Runtime subscription.",
-      linkHref: "/elsa-plus/valence-runtime",
+      linkLabel: `${ELSA_RUNTIME_DISPLAY_NAME} subscription.`,
+      linkHref: ELSA_RUNTIME_PATH,
     },
   },
 ];
@@ -43,12 +44,12 @@ const runtimeAndOperations = [
     badge: "Preview",
   },
   {
-    title: "Valence Runtime",
+    title: ELSA_RUNTIME_DISPLAY_NAME,
     description:
-      "An Elsa distribution from Valence Works — production-ready container images for server, Studio and combined deployments, built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug queue he actually works.",
+      `${ELSA_RUNTIME_SUBTITLE} An Elsa distribution built, hardened and patched by the maintainer of Elsa. Subscriptions add a committed security-patch cadence and a bug queue he actually works.`,
 
     icon: Container,
-    href: "/elsa-plus/valence-runtime",
+    href: ELSA_RUNTIME_PATH,
     badge: "Early Preview",
     docHref: "https://github.com/valence-works/runtime",
     note: {

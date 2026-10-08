@@ -26,6 +26,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 const includedFeatures = [
   {
@@ -124,10 +125,10 @@ const relatedOfferings = [
     icon: Server,
   },
   {
-    title: "Production Docker Images",
+    title: ELSA_RUNTIME_DISPLAY_NAME,
     description:
       "Production-ready container images for organizations running their own container platforms.",
-    href: "/elsa-plus/valence-runtime#images",
+    href: `${ELSA_RUNTIME_PATH}#images`,
     icon: Container,
   },
   {

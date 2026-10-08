@@ -19,6 +19,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
 import { SITE_URL } from "@/lib/site";
 import { track } from "@/lib/analytics";
+import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 import { HomeCodeSample } from "@/components/home";
 import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
 import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
@@ -221,7 +222,7 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground mb-5">
                   Run Elsa Server and Studio as a separately deployed workflow
                   system using the community quick-start image. A production-grade
-                  image is also available as part of Valence Runtime.
+                  image is also available as part of {ELSA_RUNTIME_DISPLAY_NAME}.
                 </p>
 
                 <HomeCodeSample
@@ -240,7 +241,7 @@ export default function Home() {
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" className="gap-1.5 px-0 hover:bg-transparent justify-start" asChild>
-                    <Link to="/elsa-plus/valence-runtime" onClick={() => track("home_cta_click", { cta: "valence_runtime" })}>
+                    <Link to={ELSA_RUNTIME_PATH} onClick={() => track("home_cta_click", { cta: "valence_runtime" })}>
                       Production-grade images
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>

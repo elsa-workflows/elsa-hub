@@ -214,7 +214,7 @@ function generateEmailContent(
               <td style="padding: 18px 20px;">
                 <p style="margin: 0 0 8px; font-weight: 600; color: #713f12;">Registry access changes at renewal</p>
                 <p style="margin: 0; color: #713f12; font-size: 14px; line-height: 1.6;">
-                  When this Valence Runtime subscription renews, a <strong>new registry token</strong> is issued
+                  When this Elsa Runtime subscription renews, a <strong>new registry token</strong> is issued
                   for your organization. The current token password stops working once the new one is issued,
                   so update any CI pipelines, Kubernetes pull secrets, or local Docker logins that use it.
                 </p>

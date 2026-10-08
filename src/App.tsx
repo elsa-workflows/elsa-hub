@@ -3,12 +3,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import {
+  ELSA_RUNTIME_PATH,
+  LEGACY_VALENCE_RUNTIME_PATH,
+  elsaRuntimeImagePath,
+  getLegacyElsaRuntimeRedirectTarget,
+} from "@/lib/elsaRuntime";
 
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
 
@@ -26,7 +32,7 @@ const Docker = lazy(() => import("./pages/get-started/Docker"));
 const ElsaPlus = lazy(() => import("./pages/ElsaPlus"));
 const ExpertServicesProviders = lazy(() => import("./pages/enterprise/ExpertServicesProviders"));
 const ExpertServiceProvider = lazy(() => import("./pages/enterprise/ExpertServiceProvider"));
-const ValenceRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
+const ElsaRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
 const Distributions = lazy(() => import("./pages/enterprise/Distributions"));
 const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
@@ -139,16 +145,18 @@ const App = () => (
               <Route path="/elsa-plus/distributions" element={<Distributions />} />
               <Route path="/elsa-plus/expert-services" element={<ExpertServicesProviders />} />
               <Route path="/elsa-plus/expert-services/:slug" element={<ExpertServiceProvider />} />
-              <Route path="/elsa-plus/valence-runtime" element={<ValenceRuntime />} />
-              <Route path="/elsa-plus/valence-runtime/images" element={<Navigate to="/elsa-plus/valence-runtime#images" replace />} />
-              <Route path="/elsa-plus/valence-runtime/images/:slug" element={<DockerImageDetail />} />
-              <Route path="/elsa-plus/docker-images" element={<Navigate to="/elsa-plus/valence-runtime" replace />} />
-              <Route path="/elsa-plus/docker-images/elsa-pro-studio-blazorserver" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-studio" replace />} />
+              <Route path={ELSA_RUNTIME_PATH} element={<ElsaRuntime />} />
+              <Route path={`${ELSA_RUNTIME_PATH}/images`} element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
+              <Route path={`${ELSA_RUNTIME_PATH}/images/:slug`} element={<DockerImageDetail />} />
+              <Route path={LEGACY_VALENCE_RUNTIME_PATH} element={<LegacyElsaRuntimeRedirect />} />
+              <Route path={`${LEGACY_VALENCE_RUNTIME_PATH}/*`} element={<LegacyElsaRuntimeRedirect />} />
+              <Route path="/elsa-plus/docker-images" element={<Navigate to={ELSA_RUNTIME_PATH} replace />} />
+              <Route path="/elsa-plus/docker-images/elsa-pro-studio-blazorserver" element={<Navigate to={elsaRuntimeImagePath("runtime-studio")} replace />} />
               <Route path="/elsa-plus/docker-images/:slug" element={<LegacyImageRedirect />} />
-              <Route path="/elsa-plus/valence-runtime/images/elsa-pro-server" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-server" replace />} />
-              <Route path="/elsa-plus/valence-runtime/images/elsa-pro-studio" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-studio" replace />} />
-              <Route path="/elsa-plus/valence-runtime/images/elsa-pro-combined" element={<Navigate to="/elsa-plus/valence-runtime/images/runtime-combined" replace />} />
-              <Route path="/elsa-plus/production-docker" element={<Navigate to="/elsa-plus/valence-runtime#images" replace />} />
+              <Route path={`${ELSA_RUNTIME_PATH}/images/elsa-pro-server`} element={<Navigate to={elsaRuntimeImagePath("runtime-server")} replace />} />
+              <Route path={`${ELSA_RUNTIME_PATH}/images/elsa-pro-studio`} element={<Navigate to={elsaRuntimeImagePath("runtime-studio")} replace />} />
+              <Route path={`${ELSA_RUNTIME_PATH}/images/elsa-pro-combined`} element={<Navigate to={elsaRuntimeImagePath("runtime-combined")} replace />} />
+              <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
               <Route path="/elsa-plus/training" element={<Training />} />
@@ -158,7 +166,7 @@ const App = () => (
               {/* Backward compatibility redirects */}
               <Route path="/enterprise" element={<Navigate to="/elsa-plus" replace />} />
               <Route path="/enterprise/expert-services" element={<Navigate to="/elsa-plus/expert-services" replace />} />
-              <Route path="/enterprise/docker-images" element={<Navigate to="/elsa-plus/valence-runtime#images" replace />} />
+              <Route path="/enterprise/docker-images" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
               <Route path="/enterprise/cloud-services" element={<Navigate to="/elsa-plus/cloud-services" replace />} />
               <Route path="/enterprise/training" element={<Navigate to="/elsa-plus/training" replace />} />
               <Route path="/marketplace" element={<Navigate to="/elsa-plus" replace />} />
@@ -250,5 +258,10 @@ export default App;
 
 function LegacyImageRedirect() {
   const { slug } = useParams<{ slug: string }>();
-  return <Navigate to={`/elsa-plus/valence-runtime/images/${slug ?? ""}`} replace />;
+  return <Navigate to={elsaRuntimeImagePath(slug ?? "")} replace />;
+}
+
+function LegacyElsaRuntimeRedirect() {
+  const location = useLocation();
+  return <Navigate to={getLegacyElsaRuntimeRedirectTarget(location)} replace />;
 }

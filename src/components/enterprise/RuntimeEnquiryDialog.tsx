@@ -190,7 +190,7 @@ export function RuntimeEnquiryDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Enquire about a Valence Runtime subscription</DialogTitle>
+              <DialogTitle>Enquire about an Elsa Runtime by Valence Works subscription</DialogTitle>
               <DialogDescription>
                 Tell us what you need. We'll confirm availability and reply by email — no booking
                 required first.

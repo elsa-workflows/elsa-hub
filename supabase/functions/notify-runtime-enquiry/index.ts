@@ -78,7 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         recipientUserIds,
         type: "runtime_enquiry",
-        title: `New Valence Runtime enquiry — ${tierLabel}`,
+        title: `New Elsa Runtime enquiry — ${tierLabel}`,
         message: `${enquiry.contact_name} at ${enquiry.organization_name} (${enquiry.contact_email}): ${excerpt}`,
         payload: {
           enquiry_id: enquiry.id,

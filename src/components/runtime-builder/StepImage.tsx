@@ -147,7 +147,7 @@ export function StepImage() {
             <p className="font-medium">Studio needs a running Elsa Server.</p>
             <p className="text-xs text-muted-foreground">
               The generated bundle will include both the Studio and an
-              accompanying Valence Runtime Server service so it boots out of the box.
+              accompanying Elsa Runtime Server service so it boots out of the box.
               Adjust env vars in <code>.env.example</code> before deploying.
             </p>
           </div>

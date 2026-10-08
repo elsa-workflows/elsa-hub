@@ -4,6 +4,7 @@ import { GuideBreadcrumb, PrerequisitesBox, DockerSection, CodeBlock } from "@/c
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, AlertTriangle, Boxes } from "lucide-react";
+import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 import {
   ELSA_DOCKER_PULL_COMMAND,
   ELSA_DOCKER_RUN_COMMAND,
@@ -99,10 +100,10 @@ export default function Docker() {
                   Container Registry. They are intended for exploration and evaluation. For
                   production deployments, use the{" "}
                   <Link
-                    to="/elsa-plus/valence-runtime"
+                    to={ELSA_RUNTIME_PATH}
                     className="text-primary hover:underline font-medium"
                   >
-                    Valence Runtime production-grade images from Valence Works
+                    {ELSA_RUNTIME_DISPLAY_NAME} ready-to-deploy images
                   </Link>
                   .
                 </p>

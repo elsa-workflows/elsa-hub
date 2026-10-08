@@ -350,7 +350,7 @@ async function handleSubscriptionCheckout(
   });
 
   // Resolve the purchased item: either a credit bundle (support hours) or a product
-  // (e.g. a Valence Runtime tier, which grants no hours at all).
+  // (e.g. an Elsa Runtime tier, which grants no hours at all).
   let bundle: { id: string; name: string; monthly_hours: number } | null = null;
   let product: { id: string; name: string } | null = null;
 
@@ -539,7 +539,7 @@ async function handleInvoicePaid(
   }
 
   // Credit-bundle subscriptions grant monthly hours; product subscriptions
-  // (e.g. Valence Runtime tiers) grant none — they only advance their period.
+  // (e.g. Elsa Runtime tiers) grant none — they only advance their period.
   const isCreditBundleSubscription = !!subscription.credit_bundle_id && !!subscription.credit_bundles;
 
   const periodStart = invoice.period_start 
@@ -625,7 +625,7 @@ async function handleInvoicePaid(
       providerId: subscription.service_provider_id,
       organizationId: subscription.organization_id,
       subscriptionRecordId: subscription.id,
-      productName: subscription.products?.name || "Valence Runtime",
+      productName: subscription.products?.name || "Elsa Runtime",
       tier: subscription.products?.tier || null,
       currentPeriodEnd: periodEnd,
     });

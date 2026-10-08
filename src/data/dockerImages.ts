@@ -200,7 +200,7 @@ volumes:
 export const dockerImages: DockerImage[] = [
   {
     slug: "runtime-server",
-    name: "Valence Runtime Server",
+    name: "Elsa Runtime Server",
     tagline: "Backend-only Elsa workflow runtime and management API.",
     description:
       "The Elsa 3.8 preview workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with `CShells`, load NuGet packages at startup with `Nuplane`, and supply settings via a mounted `config.json`.",
@@ -208,7 +208,7 @@ export const dockerImages: DockerImage[] = [
     paidImage: "valenceruntimeimages.azurecr.io/runtime-server",
     icon: Container,
     artwork: runtimeServerArtwork.url,
-    artworkAlt: "Valence Runtime Server container image",
+    artworkAlt: "Elsa Runtime Server container image by Valence Works",
     artworkLabel: "RUNTIME SERVER",
     artworkVariant: "server",
 
@@ -239,15 +239,15 @@ export const dockerImages: DockerImage[] = [
   },
   {
     slug: "runtime-studio",
-    name: "Valence Runtime Studio",
-    tagline: "Visual workflow designer — requires a running Valence Runtime Server.",
+    name: "Elsa Runtime Studio",
+    tagline: "Visual workflow designer — requires a running Elsa Runtime Server.",
     description:
       "The standalone Elsa Studio UI for designing and managing workflows in the browser. A single image now serves both hosting models — switch between Blazor WebAssembly (default) and Blazor Server with the `Studio__HostingModel` environment variable. Point it at your server via `Studio__Client__Backend__Url` (WebAssembly) or `Backend__Url` (Blazor Server).",
     image: "ghcr.io/valence-works/runtime-ce-studio",
     paidImage: "valenceruntimeimages.azurecr.io/runtime-studio",
     icon: LayoutDashboard,
     artwork: runtimeStudioArtwork.url,
-    artworkAlt: "Valence Runtime Studio container image",
+    artworkAlt: "Elsa Runtime Studio container image by Valence Works",
     artworkLabel: "RUNTIME STUDIO",
     artworkVariant: "studio",
 
@@ -255,7 +255,7 @@ export const dockerImages: DockerImage[] = [
     highlights: [
       "Browser-based visual designer",
       "Blazor WebAssembly or Blazor Server via one config flag",
-      "Connects to any Valence Runtime Server",
+      "Connects to any Elsa Runtime Server",
     ],
     defaultPort: 8080,
     hostPort: 8081,
@@ -293,7 +293,7 @@ export const dockerImages: DockerImage[] = [
   },
   {
     slug: "runtime-combined",
-    name: "Valence Runtime Combined",
+    name: "Elsa Runtime Combined",
     tagline: "Server + Studio in a single container, served from one origin.",
     description:
       "A single-container deployment that hosts both the Elsa workflow API and the Studio UI in one process. Studio is served at the root and the API at `/elsa/api` on the same origin — ideal for single-host deployments, demos, and self-contained appliances. Studio defaults to Blazor WebAssembly and can be switched to Blazor Server via `Studio__HostingModel`.",
@@ -301,7 +301,7 @@ export const dockerImages: DockerImage[] = [
     paidImage: "valenceruntimeimages.azurecr.io/runtime-combined",
     icon: Boxes,
     artwork: runtimeCombinedArtwork.url,
-    artworkAlt: "Valence Runtime Combined container image",
+    artworkAlt: "Elsa Runtime Combined container image by Valence Works",
     artworkLabel: "RUNTIME COMBINED",
     artworkVariant: "combined",
 

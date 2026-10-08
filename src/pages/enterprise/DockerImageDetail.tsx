@@ -29,13 +29,19 @@ import {
 import { renderInlineCode } from "@/lib/renderInlineCode";
 import { AlertCircle, ArrowRight, Boxes, ExternalLink } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  ELSA_RUNTIME_DISPLAY_NAME,
+  ELSA_RUNTIME_PATH,
+  ELSA_RUNTIME_PROVIDER,
+  elsaRuntimeImagePath,
+} from "@/lib/elsaRuntime";
 
 export default function DockerImageDetail() {
   const { slug } = useParams<{ slug: string }>();
   const image = slug ? getDockerImage(slug) : undefined;
 
   if (!image) {
-    return <Navigate to="/elsa-plus/valence-runtime#images" replace />;
+    return <Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />;
   }
 
   const Icon = image.icon;
@@ -52,8 +58,8 @@ networks:
   return (
     <Layout>
       <Seo
-        path={`/elsa-plus/valence-runtime/images/${image.slug}`}
-        title={`${image.name} — Valence Runtime container image`}
+        path={elsaRuntimeImagePath(image.slug)}
+        title={`${image.name} by ${ELSA_RUNTIME_PROVIDER} — container image`}
         description={`${image.name}: pull the free Community image (${image.image}) from GitHub Container Registry with no account and no login. Configuration, environment variables, docker run and Docker Compose snippets. The paid image is the same build with a subscription attached.`}
       />
 
@@ -69,7 +75,7 @@ networks:
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/elsa-plus/valence-runtime#images">Valence Runtime images</Link>
+                  <Link to={`${ELSA_RUNTIME_PATH}#images`}>{ELSA_RUNTIME_DISPLAY_NAME} images</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -103,7 +109,7 @@ networks:
           <p className="text-lg text-muted-foreground">{renderInlineCode(image.description)}</p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Button asChild className="gap-2">
-              <Link to="/elsa-plus/valence-runtime#tiers">Subscribe</Link>
+              <Link to={`${ELSA_RUNTIME_PATH}#tiers`}>Subscribe</Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
               <a href="https://github.com/valence-works/runtime" target="_blank" rel="noopener noreferrer">
@@ -158,15 +164,15 @@ networks:
           <div className="container max-w-4xl">
             <Alert className="border-warning/40 bg-warning/5">
               <AlertCircle className="h-4 w-4 text-warning" />
-              <AlertTitle>Requires a running Valence Runtime Server</AlertTitle>
+              <AlertTitle>Requires a running Elsa Runtime Server</AlertTitle>
               <AlertDescription className="text-muted-foreground">
                 Studio is a UI only — it cannot execute or persist workflows on its own. You need a reachable{" "}
-                <Link to="/elsa-plus/valence-runtime/images/runtime-server" className="text-primary hover:underline">
-                  Valence Runtime Server
+                <Link to={elsaRuntimeImagePath("runtime-server")} className="text-primary hover:underline">
+                  Elsa Runtime Server
                 </Link>{" "}
                 (or the all-in-one{" "}
-                <Link to="/elsa-plus/valence-runtime/images/runtime-combined" className="text-primary hover:underline">
-                  Valence Runtime Combined
+                <Link to={elsaRuntimeImagePath("runtime-combined")} className="text-primary hover:underline">
+                  Elsa Runtime Combined
                 </Link>{" "}
                 image) before Studio is useful. Sample commands for running the server are included below.
               </AlertDescription>
@@ -187,7 +193,7 @@ networks:
               "Docker 20.10 or later",
               `Free local port ${image.hostPort}`,
               ...(image.needsSharedNetwork ? ["A shared Docker network named 'elsa'"] : []),
-              ...(image.requiresServer ? ["A running Valence Runtime Server reachable from this container"] : []),
+              ...(image.requiresServer ? ["A running Elsa Runtime Server reachable from this container"] : []),
             ]}
           />
 
@@ -241,7 +247,7 @@ networks:
           {serverImage && (
             <div>
               <h3 className="font-semibold mb-2">
-                {image.needsSharedNetwork ? "2." : "1."} Run a Valence Runtime Server (skip if you already have one)
+                {image.needsSharedNetwork ? "2." : "1."} Run an Elsa Runtime Server (skip if you already have one)
               </h3>
               <p className="text-sm text-muted-foreground mb-2">
                 Studio will connect to this container. If you already have a server running, skip ahead.
@@ -297,7 +303,7 @@ networks:
           <h2 className="text-3xl font-bold">Quick start with Docker Compose</h2>
           <p className="text-muted-foreground">
             Drop this service into your <code className="font-mono">docker-compose.yml</code>. If you also run other
-            Valence Runtime images, add their service blocks alongside this one and keep them on the same{" "}
+            Elsa Runtime images, add their service blocks alongside this one and keep them on the same{" "}
             <code className="font-mono">elsa</code> network.
           </p>
           <CodeBlock code={composeFile} language="yaml" title="docker-compose.yml" />
@@ -427,8 +433,8 @@ networks:
               </a>
             </li>
             <li>
-              <Link to="/elsa-plus/valence-runtime#images" className="inline-flex items-center gap-2 text-primary hover:underline">
-                ← Back to all Valence Runtime images
+              <Link to={`${ELSA_RUNTIME_PATH}#images`} className="inline-flex items-center gap-2 text-primary hover:underline">
+                ← Back to all {ELSA_RUNTIME_DISPLAY_NAME} images
               </Link>
             </li>
           </ul>

@@ -170,7 +170,7 @@ export default function ProviderEnquiries() {
         <div>
           <h1 className="text-2xl font-bold">Enquiries</h1>
           <p className="text-muted-foreground">
-            Valence Runtime subscription enquiries, newest first
+            Elsa Runtime subscription enquiries, newest first
             {newCount > 0 ? ` · ${newCount} new` : ""}.
           </p>
         </div>
