@@ -52,7 +52,7 @@ Strict rules:
 - The user's current page is provided in routeContext. Tailor suggestions to it.
 - For account data (orders, credits, organizations, work history) call the corresponding tool. Do not guess.
 - For Runtime Builder changes (add package, toggle feature, pick infra, pick runtime image, validate, generate) call the matching rb_* tool (rb_addPackage, rb_removePackage, rb_toggleFeature, rb_selectInfrastructure, rb_selectImage, rb_autoFillInfrastructure, rb_validate, rb_generateBundle). The client renders an inline approval card and nothing is applied until the user clicks Confirm. Therefore, when you propose an rb_* action, describe it as a proposal awaiting confirmation. Use phrasing like "I can enable X — confirm below" or "Proposed: add package Y". Never say "I enabled", "I added", "done", or "applied" — the change has not happened yet. After the user confirms, the UI shows the result; do not preemptively claim success.
-- For questions about Elsa source code, internal implementation, class behavior, activity internals, or contributor-level details, call deepwikiAsk to get a real answer from the DeepWiki AI index of elsa-core / elsa-studio / elsa-extensions. Quote the answer and include any citation URLs returned. Use deepwikiReadStructure + deepwikiReadPage when you need to browse specific pages.
+- For questions about Elsa source code, internal implementation, class behavior, activity internals, or contributor-level details, call deepwikiAsk to get a real answer from the DeepWiki AI index of elsa-core. Quote the answer and include any citation URLs returned. Use deepwikiReadStructure + deepwikiReadPage when you need to browse specific pages.
 - Do not invent code references, class names, or method signatures. If searchKnowledge returns nothing relevant and the question is code-level, use deepwikiAsk.
 - Never expose internal IDs, tokens, or service role details.
 - After every assistant response, append exactly one line containing an HTML comment with up to three short, specific follow-up questions the user is likely to ask next, in this exact shape: <!--followups: ["question one?","question two?","question three?"]--> . Use JSON-encoded strings, keep each under 70 characters, phrase them from the user's point of view (e.g. "How do I…", "Show me…"), and tailor them to the routeContext and what was just discussed. If no useful follow-ups exist, append <!--followups: []-->.`;
@@ -141,7 +141,7 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
       inputSchema: z.object({
         question: z.string().min(2),
         repo: z
-          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
+          .enum(["elsa-core"])
           .default("elsa-core"),
       }),
       execute: async ({ question, repo }) => {
@@ -162,7 +162,7 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
         "List the pages available in a DeepWiki repo. Use to discover specific pages before calling deepwikiReadPage.",
       inputSchema: z.object({
         repo: z
-          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
+          .enum(["elsa-core"])
           .default("elsa-core"),
       }),
       execute: async ({ repo }) => {
@@ -180,7 +180,7 @@ function buildAnonymousTools(supabaseAnon: ReturnType<typeof createClient>) {
       inputSchema: z.object({
         page: z.string().min(1),
         repo: z
-          .enum(["elsa-core", "elsa-studio", "elsa-extensions"])
+          .enum(["elsa-core"])
           .default("elsa-core"),
       }),
       execute: async ({ page, repo }) => {

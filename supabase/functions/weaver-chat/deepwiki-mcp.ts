@@ -12,7 +12,7 @@ const MCP_URL = "https://mcp.deepwiki.com/mcp";
 const TIMEOUT_MS = 20_000;
 const MAX_TEXT = 6000;
 
-export type Repo = "elsa-core" | "elsa-studio" | "elsa-extensions";
+export type Repo = "elsa-core";
 
 export interface DeepWikiAnswer {
   answer: string;

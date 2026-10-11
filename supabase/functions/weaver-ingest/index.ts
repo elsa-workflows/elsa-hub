@@ -239,7 +239,7 @@ const FAQ_DOCS: Doc[] = [
     external_id: "faq:source-code-deepwiki",
     url: "https://deepwiki.com/elsa-workflows/elsa-core",
     title: "Exploring the Elsa source code",
-    body: "For code-level questions about Elsa internals — activity implementations, persistence stores, runtime behavior, class structure, or any 'how does X work under the hood' question — use DeepWiki. DeepWiki maintains an AI-indexed, LLM-summarized view of the elsa-core, elsa-studio, and elsa-extensions repositories. Weaver does not ingest the source code itself; it escalates code-level questions to DeepWiki via the recommendDeepWiki tool. Direct links: https://deepwiki.com/elsa-workflows/elsa-core, https://deepwiki.com/elsa-workflows/elsa-studio, https://deepwiki.com/elsa-workflows/elsa-extensions.",
+    body: "For code-level questions about Elsa internals — activity implementations, persistence stores, runtime behavior, class structure, or any 'how does X work under the hood' question — use DeepWiki. DeepWiki maintains an AI-indexed, LLM-summarized view of the elsa-core repository. Weaver does not ingest the source code itself; it escalates code-level questions to DeepWiki via the recommendDeepWiki tool. Direct link: https://deepwiki.com/elsa-workflows/elsa-core.",
   },
   {
     source: "faq",
