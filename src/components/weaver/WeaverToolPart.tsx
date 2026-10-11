@@ -973,7 +973,7 @@ function DeepWikiSuggestions({
 // Curated gallery of high-signal DeepWiki questions, grouped by repo. These
 // are written to match the structure of each Elsa repo so users see what
 // kinds of questions DeepWiki can actually answer well.
-const DEEPWIKI_EXAMPLES: { repo: "elsa-core" | "elsa-studio" | "elsa-extensions"; label: string; blurb: string; questions: string[] }[] = [
+const DEEPWIKI_EXAMPLES: { repo: "elsa-core"; label: string; blurb: string; questions: string[] }[] = [
   {
     repo: "elsa-core",
     label: "elsa-core",
@@ -985,28 +985,6 @@ const DEEPWIKI_EXAMPLES: { repo: "elsa-core" | "elsa-studio" | "elsa-extensions"
       "Explain the SendHttpRequest activity end-to-end.",
       "How does the EF Core persistence store handle workflow state?",
       "What does the default scheduling pipeline look like?",
-    ],
-  },
-  {
-    repo: "elsa-studio",
-    label: "elsa-studio",
-    blurb: "Designer, Blazor UI, modules",
-    questions: [
-      "How is the workflow designer canvas rendered in Studio?",
-      "Where are Studio modules registered?",
-      "How does the Studio client talk to the Elsa Server API?",
-      "How are custom activity descriptors loaded into the toolbox?",
-    ],
-  },
-  {
-    repo: "elsa-extensions",
-    label: "elsa-extensions",
-    blurb: "Identity, integrations, optional packages",
-    questions: [
-      "How is OpenIddict wired into the Identity package?",
-      "What does the MassTransit integration register?",
-      "How are AzureServiceBus activities implemented?",
-      "Show the structure of the Email package.",
     ],
   },
 ];

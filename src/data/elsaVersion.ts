@@ -22,8 +22,8 @@ export const ELSA_RELEASE_DATE = "2026-09-05";
 /** Official release notes for the pinned release line. */
 export const ELSA_RELEASE_LINKS = {
   core: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
-  studio: `https://github.com/elsa-workflows/elsa-studio/releases/tag/${ELSA_VERSION}`,
-  extensions: `https://github.com/elsa-workflows/elsa-extensions/releases/tag/${ELSA_VERSION}`,
+  studio: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
+  extensions: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
 } as const;
 
 /**
