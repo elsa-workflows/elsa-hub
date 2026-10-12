@@ -15,6 +15,24 @@ import {
   ELSA4_PREVIEW_TITLE,
 } from "@/lib/elsa4Preview";
 
+const ELSA4_SCREENSHOTS = [
+  {
+    src: "/elsa-4/elsa4-04-designer_studio-7cb2f2c2_act-4.0.5-preview.png",
+    alt: "Elsa Studio designer with a Flowchart containing a single Write Line activity",
+    caption: "Design a workflow in Studio",
+  },
+  {
+    src: "/elsa-4/elsa4-06-executables_studio-7cb2f2c2_act-4.0.5-preview.png",
+    alt: "Elsa Studio Executables list showing a published workflow artifact with Inspect, Run and Export actions",
+    caption: "Run a published artifact",
+  },
+  {
+    src: "/elsa-4/elsa4-07-run-timeline_studio-7cb2f2c2_act-4.0.5-preview.png",
+    alt: "Completed workflow run 14J7GJS3fOg with the Write Line activity marked Completed and its execution timeline",
+    caption: "Inspect a completed run",
+  },
+] as const;
+
 export default function Elsa4Preview() {
   return (
     <Layout>
@@ -130,6 +148,31 @@ export default function Elsa4Preview() {
                 </li>
               ))}
             </ul>
+
+            <div className="mt-10">
+              <div className="grid gap-5 md:grid-cols-3">
+                {ELSA4_SCREENSHOTS.map((shot) => (
+                  <figure key={shot.src} className="overflow-hidden rounded-xl border border-border bg-card">
+                    <img
+                      src={shot.src}
+                      alt={shot.alt}
+                      width={1600}
+                      height={1000}
+                      sizes="(min-width: 768px) 33vw, 100vw"
+                      loading="lazy"
+                      decoding="async"
+                      className="block h-auto w-full"
+                    />
+                    <figcaption className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
+                      {shot.caption}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">
+                Screenshots: Elsa Studio rev 7cb2f2c2; Write Line 4.0.5-preview, Flowchart 4.0.3-preview. The preview UI may change.
+              </p>
+            </div>
           </div>
         </section>
 
