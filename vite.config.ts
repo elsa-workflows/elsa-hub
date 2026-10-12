@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 import { prerenderBlog } from "./scripts/prerender-blog";
+import { prerenderElsa4Preview } from "./scripts/prerender-elsa4-preview";
 import { prerenderTraining } from "./scripts/prerender-training";
 
 // Runs the blog prerender script after vite finishes the production bundle.
@@ -47,6 +48,22 @@ function prerenderTrainingPlugin(): Plugin {
   };
 }
 
+// Elsa 4 has no external content fetch, so its crawler artifact is generated
+// independently of the best-effort blog prerender.
+function prerenderElsa4PreviewPlugin(): Plugin {
+  return {
+    name: "elsa-prerender-elsa4-preview",
+    apply: "build",
+    closeBundle: {
+      sequential: true,
+      order: "post",
+      async handler() {
+        await prerenderElsa4Preview();
+      },
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -62,6 +79,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     mode !== "development" && prerenderBlogPlugin(),
     mode !== "development" && prerenderTrainingPlugin(),
+    mode !== "development" && prerenderElsa4PreviewPlugin(),
   ].filter(Boolean),
   resolve: {
     alias: {

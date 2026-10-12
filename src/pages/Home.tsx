@@ -402,6 +402,12 @@ export default function Home() {
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
+              <Button variant="ghost" className="gap-2" asChild>
+                <Link to="/elsa-4">
+                  Explore the Elsa 4 preview
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
