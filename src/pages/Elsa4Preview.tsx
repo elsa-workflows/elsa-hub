@@ -17,18 +17,18 @@ import {
 
 const ELSA4_SCREENSHOTS = [
   {
-    src: "/elsa-4/elsa4-04-designer_studio-7cb2f2c2_act-4.0.4-preview.png",
+    src: "/elsa-4/elsa4-04-designer_studio-7cb2f2c2_act-4.0.5-preview.png",
     alt: "Elsa Studio designer with a Flowchart containing a single Write Line activity",
     caption: "Design a workflow in Studio",
   },
   {
-    src: "/elsa-4/elsa4-05-review-and-publish_studio-7cb2f2c2_act-4.0.4-preview.png",
-    alt: "Review and publish dialog showing publication channel, version and captured changes",
-    caption: "Review and publish an artifact",
+    src: "/elsa-4/elsa4-06-executables_studio-7cb2f2c2_act-4.0.5-preview.png",
+    alt: "Elsa Studio Executables list showing a published workflow artifact with Inspect, Run and Export actions",
+    caption: "Run a published artifact",
   },
   {
-    src: "/elsa-4/elsa4-07-run-timeline_studio-7cb2f2c2_act-4.0.4-preview.png",
-    alt: "Completed workflow run with the Write Line activity marked Completed and its execution timeline",
+    src: "/elsa-4/elsa4-07-run-timeline_studio-7cb2f2c2_act-4.0.5-preview.png",
+    alt: "Completed workflow run 14J7GJS3fOg with the Write Line activity marked Completed and its execution timeline",
     caption: "Inspect a completed run",
   },
 ] as const;
@@ -156,8 +156,9 @@ export default function Elsa4Preview() {
                     <img
                       src={shot.src}
                       alt={shot.alt}
-                      width={1280}
-                      height={720}
+                      width={1600}
+                      height={1000}
+                      sizes="(min-width: 768px) 33vw, 100vw"
                       loading="lazy"
                       decoding="async"
                       className="block h-auto w-full"
@@ -169,7 +170,7 @@ export default function Elsa4Preview() {
                 ))}
               </div>
               <p className="mt-4 text-xs text-muted-foreground">
-                Screenshots: Elsa Studio rev 7cb2f2c2, activities 4.0.4-preview. The preview UI may change.
+                Screenshots: Elsa Studio rev 7cb2f2c2; Write Line 4.0.5-preview, Flowchart 4.0.3-preview. The preview UI may change.
               </p>
             </div>
           </div>
