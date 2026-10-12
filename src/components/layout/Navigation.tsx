@@ -25,13 +25,15 @@ const groups: NavGroup[] = [
     items: [
       { label: "Overview", to: "/" },
       { label: "Features", to: "/features" },
+      { label: "Elsa 4", to: "/elsa-4", badge: "Preview" },
     ],
   },
   {
     label: "Developers",
     items: [
       { label: "Get Started", to: "/get-started" },
-      { label: "Documentation", href: "https://docs.elsaworkflows.io/", external: true },
+      { label: "Elsa 3 documentation", href: "https://docs.elsaworkflows.io/", external: true },
+      { label: "Elsa 4 documentation", href: "https://v4.elsaworkflows.io/", external: true, badge: "Preview" },
       { label: "GitHub", href: "https://github.com/elsa-workflows/elsa-core", external: true },
     ],
   },

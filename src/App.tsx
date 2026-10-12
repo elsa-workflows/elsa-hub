@@ -23,6 +23,7 @@ import Home from "./pages/Home";
 
 // All other routes are code-split to keep the initial bundle small
 const Features = lazy(() => import("./pages/Features"));
+const Elsa4Preview = lazy(() => import("./pages/Elsa4Preview"));
 const RadarMap = lazy(() => import("./pages/RadarMap"));
 const GetStarted = lazy(() => import("./pages/GetStarted"));
 const ElsaServer = lazy(() => import("./pages/get-started/ElsaServer"));
@@ -134,6 +135,9 @@ const App = () => (
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/elsa-4" element={<Elsa4Preview />} />
+              {/* The crawler-readable page is emitted as /elsa-4.html. */}
+              <Route path="/elsa-4.html" element={<Navigate to="/elsa-4" replace />} />
               <Route path="/features" element={<Features />} />
               <Route path="/community/radar" element={<RadarMap />} />
               <Route path="/get-started" element={<GetStarted />} />
