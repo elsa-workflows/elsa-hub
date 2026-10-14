@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Github, Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PasswordlessAuth } from "@/components/auth/PasswordlessAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { describeAuthError } from "@/lib/authErrors";
 
 const signupSchema = z
   .object({
@@ -35,8 +37,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isGitHubLoading, setIsGitHubLoading] = useState(false);
-  const { signUp, signInWithGitHub } = useAuth();
+  const { signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -58,26 +59,12 @@ export default function Signup() {
       toast({
         variant: "destructive",
         title: "Sign up failed",
-        description: error.message,
+        description: describeAuthError(error, error.message),
       });
     } else {
       // Redirect to confirm email page instead of home
       navigate(`/signup/confirm-email?email=${encodeURIComponent(values.email)}`);
     }
-  };
-
-  const handleGitHubSignup = async () => {
-    setIsGitHubLoading(true);
-    const { error } = await signInWithGitHub();
-    if (error) {
-      setIsGitHubLoading(false);
-      toast({
-        variant: "destructive",
-        title: "Sign up failed",
-        description: error.message,
-      });
-    }
-    // Note: GitHub OAuth will redirect, so we don't need to handle success here
   };
 
   return (
@@ -92,19 +79,7 @@ export default function Signup() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              onClick={handleGitHubSignup}
-              disabled={isGitHubLoading}
-            >
-              {isGitHubLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Github className="h-4 w-4" />
-              )}
-              Continue with GitHub
-            </Button>
+            <PasswordlessAuth redirectTo="/dashboard" />
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -112,7 +87,7 @@ export default function Signup() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">
-                  Or continue with email
+                  Or create a password
                 </span>
               </div>
             </div>

@@ -3,6 +3,8 @@ import { UserIdentity } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthCallbackUrl } from "@/lib/authRedirect";
+import { describeAuthError } from "@/lib/authErrors";
 
 export type ProviderConfig = {
   id: string;
@@ -14,10 +16,7 @@ export type ProviderConfig = {
 export const AUTH_PROVIDERS: ProviderConfig[] = [
   { id: "email", name: "Email & Password", type: "email" },
   { id: "github", name: "GitHub", type: "oauth" },
-  // Future providers:
-  // { id: "google", name: "Google", type: "oauth" },
-  // { id: "apple", name: "Apple", type: "oauth" },
-  // { id: "azure", name: "Microsoft", type: "oauth" },
+  { id: "google", name: "Google", type: "oauth" },
 ];
 
 export function useAuthProviders() {
@@ -59,14 +58,14 @@ export function useAuthProviders() {
         const { error } = await supabase.auth.linkIdentity({
           provider,
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: getAuthCallbackUrl(),
           },
         });
 
         if (error) {
           toast({
             title: "Failed to connect",
-            description: error.message,
+            description: describeAuthError(error, error.message),
             variant: "destructive",
           });
           sessionStorage.removeItem("authRedirect");
