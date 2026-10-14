@@ -41,6 +41,9 @@ describe("PasswordlessAuth magic-link cooldown", () => {
 
     expect(signInWithMagicLink).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/check your inbox/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/open the link in the same browser where you requested it/i),
+    ).toBeInTheDocument();
     expect(sessionStorage.getItem("authRedirect")).toBe("/courses?x=1");
 
     await act(async () => {

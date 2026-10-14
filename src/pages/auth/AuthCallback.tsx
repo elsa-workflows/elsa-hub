@@ -38,6 +38,8 @@ export default function AuthCallback() {
 
         // PKCE: supabase-js exchanges ?code= during client init (detectSessionInUrl).
         // getSession() waits for that initialize and returns the session.
+        // If the user opened the link in another browser, init fails with a
+        // missing code verifier. Exchange again so that error is mapped.
         const { data, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -47,7 +49,22 @@ export default function AuthCallback() {
           return;
         }
 
-        if (data.session) {
+        const code = new URLSearchParams(window.location.search).get("code");
+        let session = data.session;
+        if (code && !session) {
+          const { data: exchanged, error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            setErrorMessage(describeAuthError(exchangeError));
+            setStatus("error");
+            sessionStorage.removeItem("linkingProvider");
+            sessionStorage.removeItem("authRedirect");
+            return;
+          }
+          session = exchanged.session;
+        }
+
+        if (session) {
           // Honour the page the user was trying to reach (OAuth + magic link).
           const redirectTo = consumeAuthRedirect();
 
@@ -61,10 +78,13 @@ export default function AuthCallback() {
               navigate(redirectTo);
             }, 2000);
           } else if (type === "recovery") {
-            // Password recovery - redirect to password reset page
+            // Dead under PKCE: recovery used to arrive as #type=recovery on the
+            // implicit hash. PKCE callbacks are ?code= only, so this branch
+            // does not run for current magic-link or confirm emails.
             navigate("/reset-password");
           } else if (type === "signup") {
-            // Password sign-up confirmation. The user now has a session.
+            // Dead under PKCE: signup confirmation used to arrive as
+            // #type=signup. PKCE confirmations take the default navigate path.
             setStatus("success");
             setTimeout(() => {
               navigate(redirectTo);
@@ -137,6 +157,7 @@ export default function AuthCallback() {
             </>
           )}
 
+          {/* success is only set by the implicit #type=signup branch above. */}
           {status === "success" && (
             <>
               <CardHeader className="space-y-4">

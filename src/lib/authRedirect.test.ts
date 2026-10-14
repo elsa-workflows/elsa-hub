@@ -34,6 +34,12 @@ describe("sanitizeAuthRedirect", () => {
   it("allows a same-site path with a query string", () => {
     expect(sanitizeAuthRedirect("/courses?x=1")).toBe("/courses?x=1");
   });
+
+  it("returns the original value so encoded query strings survive", () => {
+    const original = "/search?q=%2Fcourses%3Fx%3D1";
+    expect(sanitizeAuthRedirect(original)).toBe(original);
+    expect(sanitizeAuthRedirect(original)).not.toBe("/search?q=/courses?x=1");
+  });
 });
 
 describe("authRedirect session storage", () => {

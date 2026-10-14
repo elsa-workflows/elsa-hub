@@ -80,6 +80,9 @@ describe("Login", () => {
 
     expect(await screen.findByText(/check your inbox/i)).toBeInTheDocument();
     expect(screen.getByText("qa@example.com")).toBeInTheDocument();
+    expect(
+      screen.getByText(/open the link in the same browser where you requested it/i),
+    ).toBeInTheDocument();
     expect(signInWithMagicLink).toHaveBeenCalledWith("qa@example.com");
   });
 

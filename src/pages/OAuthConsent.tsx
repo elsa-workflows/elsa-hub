@@ -5,6 +5,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { describeAuthError } from "@/lib/authErrors";
 
 // Typed thin wrapper over the beta supabase.auth.oauth namespace so we don't
 // have to hit `/oauth/authorizations` directly.
@@ -52,7 +53,7 @@ export default function OAuthConsent() {
       }
       const { data, error } = await oauthApi.getAuthorizationDetails(authorizationId);
       if (!active) return;
-      if (error) return setError(error.message);
+      if (error) return setError(describeAuthError(error));
       const immediate = data?.redirect_url ?? data?.redirect_to;
       if (immediate && !data?.client) {
         window.location.href = immediate;
@@ -72,7 +73,7 @@ export default function OAuthConsent() {
       : await oauthApi.denyAuthorization(authorizationId);
     if (error) {
       setBusy(false);
-      return setError(error.message);
+      return setError(describeAuthError(error));
     }
     const target = data?.redirect_url ?? data?.redirect_to;
     if (!target) {

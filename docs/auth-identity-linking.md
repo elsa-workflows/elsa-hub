@@ -46,6 +46,12 @@ Settings → Connected accounts calls `linkIdentity()` for GitHub and Google (re
 
 The login/signup screens and `/auth/callback` show those mapped messages instead of a raw GoTrue string or a URL `error_description`.
 
+## PKCE same-browser links
+
+The Hub Auth client uses `flowType: "pkce"`. supabase-js stores a code verifier in the browser that requested the magic link or confirmation email. Opening that link in a different browser (or after storage was cleared) fails with a missing or invalid code verifier, or a `flow_state_*` error.
+
+The callback maps those errors to: "Open the link in the same browser where you requested it." The magic-link sent screen shows the same hint. A new link must be requested in the browser the user will open.
+
 ## Redirects
 
 GitHub, Google, magic link and email confirmation all use `redirectTo` / `emailRedirectTo` = `{origin}/auth/callback`. After a session exists, the callback honours a validated same-site `sessionStorage.authRedirect` (from `?redirect=` on `/login`) or `/dashboard`.

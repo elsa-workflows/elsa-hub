@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 
 const navigate = vi.fn();
 const getSession = vi.fn();
+const exchangeCodeForSession = vi.fn();
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -22,6 +23,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       getSession: () => getSession(),
+      exchangeCodeForSession: (code: string) => exchangeCodeForSession(code),
       onAuthStateChange: () => ({
         data: { subscription: { unsubscribe: () => {} } },
       }),
@@ -45,6 +47,7 @@ describe("AuthCallback", () => {
   beforeEach(() => {
     navigate.mockClear();
     getSession.mockReset();
+    exchangeCodeForSession.mockReset();
     sessionStorage.clear();
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -100,5 +103,28 @@ describe("AuthCallback", () => {
     renderCallback();
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/dashboard"));
+  });
+
+  it("explains a PKCE code-verifier miss from another browser", async () => {
+    window.location.search = "?code=pkce-from-other-browser";
+    getSession.mockResolvedValue({ data: { session: null }, error: null });
+    exchangeCodeForSession.mockResolvedValue({
+      data: { session: null },
+      error: {
+        name: "AuthPKCECodeVerifierMissingError",
+        code: "pkce_code_verifier_not_found",
+        message:
+          "PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device.",
+      },
+    });
+
+    renderCallback();
+
+    expect(await screen.findByText(/verification failed/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/open the link in the same browser where you requested it/i),
+    ).toBeInTheDocument();
+    expect(exchangeCodeForSession).toHaveBeenCalledWith("pkce-from-other-browser");
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

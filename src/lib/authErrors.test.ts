@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { describeAuthError, parseAuthCallbackError } from "./authErrors";
+import {
+  describeAuthError,
+  parseAuthCallbackError,
+  SAME_BROWSER_AUTH_MESSAGE,
+} from "./authErrors";
 
 describe("describeAuthError", () => {
   it("explains magic-link rate limits", () => {
@@ -34,8 +38,24 @@ describe("describeAuthError", () => {
       /expired or was already used/i,
     );
     expect(describeAuthError({ code: "otp_expired" })).toMatch(/expired or was already used/i);
-    expect(describeAuthError({ code: "flow_state_expired" })).toMatch(/expired or was already used/i);
     expect(describeAuthError({ code: "bad_jwt" })).toMatch(/expired or was already used/i);
+  });
+
+  it("tells the user to reopen a PKCE link in the same browser", () => {
+    expect(
+      describeAuthError({
+        name: "AuthPKCECodeVerifierMissingError",
+        code: "pkce_code_verifier_not_found",
+        message:
+          "PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device.",
+      }),
+    ).toBe(SAME_BROWSER_AUTH_MESSAGE);
+    expect(describeAuthError({ message: "both auth code and code verifier should be non-empty" })).toBe(
+      SAME_BROWSER_AUTH_MESSAGE,
+    );
+    expect(describeAuthError({ code: "bad_code_verifier" })).toBe(SAME_BROWSER_AUTH_MESSAGE);
+    expect(describeAuthError({ code: "flow_state_not_found" })).toBe(SAME_BROWSER_AUTH_MESSAGE);
+    expect(describeAuthError({ code: "flow_state_expired" })).toBe(SAME_BROWSER_AUTH_MESSAGE);
   });
 
   it("does not treat every invalid-link message as an expired OTP", () => {
@@ -78,6 +98,15 @@ describe("parseAuthCallbackError", () => {
 
   it("returns null when the callback succeeded", () => {
     expect(parseAuthCallbackError("?code=abc", "#access_token=tok")).toBeNull();
+  });
+
+  it("maps PKCE and flow-state callback errors to the same-browser hint", () => {
+    const parsed = parseAuthCallbackError(
+      "?error=server_error&error_code=flow_state_not_found&error_description=Flow+state+not+found",
+      "",
+    );
+    expect(parsed?.code).toBe("flow_state_not_found");
+    expect(parsed?.message).toBe(SAME_BROWSER_AUTH_MESSAGE);
   });
 
   it("does not echo a crafted URL error_description", () => {

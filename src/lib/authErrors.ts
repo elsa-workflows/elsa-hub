@@ -1,5 +1,6 @@
 type AuthLikeError = {
   message?: string;
+  name?: string;
   code?: string;
   error?: string;
   error_code?: string;
@@ -20,6 +21,7 @@ function collectText(error: AuthLikeError): { code: string; message: string } {
     error?.code ||
     error?.error_code ||
     error?.error ||
+    error?.name ||
     ""
   ).toLowerCase();
   const message = (
@@ -31,6 +33,9 @@ function collectText(error: AuthLikeError): { code: string; message: string } {
 }
 
 const GENERIC_AUTH_ERROR = "Something went wrong while signing in. Please try again.";
+
+export const SAME_BROWSER_AUTH_MESSAGE =
+  "Open the link in the same browser where you requested it.";
 
 /**
  * Map Supabase Auth / OAuth callback errors to a short message users can act on.
@@ -71,8 +76,18 @@ export function describeAuthError(error: AuthLikeError, fallback?: string): stri
   }
 
   if (
+    blob.includes("code verifier") ||
+    blob.includes("code_verifier") ||
+    blob.includes("pkce_code_verifier") ||
+    blob.includes("authpkcecodeverifier") ||
+    blob.includes("flow_state") ||
+    blob.includes("bad_code_verifier")
+  ) {
+    return SAME_BROWSER_AUTH_MESSAGE;
+  }
+
+  if (
     blob.includes("otp_expired") ||
-    blob.includes("flow_state_expired") ||
     blob.includes("bad_jwt") ||
     blob.includes("token has expired")
   ) {

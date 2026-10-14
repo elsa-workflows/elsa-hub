@@ -3,7 +3,16 @@ export const AUTH_REDIRECT_STORAGE_KEY = "authRedirect";
 export const DEFAULT_POST_AUTH_PATH = "/dashboard";
 
 const SCHEME_AFTER_DECODE = /^[a-zA-Z][a-zA-Z+\-.]*:/;
-const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
+
+function hasControlChars(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Decode a redirect value until it stops changing, so encoded open-redirect
@@ -28,7 +37,8 @@ export function decodeUntilStable(value: string): string {
 
 /**
  * Allow only same-site paths: a single leading "/", no "//", no "/\", and no
- * scheme after repeated URL-decoding. Returns the stable decoded path, or null.
+ * scheme after repeated URL-decoding. Validation uses the decoded form.
+ * Returns the original value when it is safe, so encoded query strings survive.
  */
 export function sanitizeAuthRedirect(redirectTo?: string | null): string | null {
   if (redirectTo == null || redirectTo === "") {
@@ -49,7 +59,7 @@ export function sanitizeAuthRedirect(redirectTo?: string | null): string | null 
   if (decoded.includes("//") || decoded.includes("/\\")) {
     return null;
   }
-  if (CONTROL_CHARS.test(decoded)) {
+  if (hasControlChars(decoded)) {
     return null;
   }
 
@@ -64,7 +74,7 @@ export function sanitizeAuthRedirect(redirectTo?: string | null): string | null 
     }
   }
 
-  return decoded;
+  return redirectTo;
 }
 
 export function getAuthCallbackUrl(origin: string = window.location.origin): string {

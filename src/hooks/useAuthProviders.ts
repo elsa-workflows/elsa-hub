@@ -106,7 +106,7 @@ export function useAuthProviders() {
         if (error) {
           toast({
             title: "Failed to disconnect",
-            description: error.message,
+            description: describeAuthError(error),
             variant: "destructive",
           });
           return { success: false };
@@ -140,7 +140,7 @@ export function useAuthProviders() {
         if (error) {
           toast({
             title: "Failed to set password",
-            description: error.message,
+            description: describeAuthError(error),
             variant: "destructive",
           });
           return { success: false };
