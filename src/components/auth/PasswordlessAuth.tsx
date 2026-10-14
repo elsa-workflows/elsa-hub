@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -16,8 +16,10 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { describeAuthError } from "@/lib/authErrors";
-import { rememberAuthRedirect } from "@/lib/authRedirect";
+import { rememberAuthRedirect, sanitizeAuthRedirect } from "@/lib/authRedirect";
 import { GoogleIcon } from "./GoogleIcon";
+
+export const MAGIC_LINK_RESEND_COOLDOWN_MS = 60_000;
 
 const magicLinkSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -38,18 +40,36 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
   const [magicStatus, setMagicStatus] = useState<MagicLinkStatus>("idle");
   const [magicError, setMagicError] = useState<string | null>(null);
   const [sentEmail, setSentEmail] = useState("");
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const form = useForm<MagicLinkValues>({
     resolver: zodResolver(magicLinkSchema),
     defaultValues: { email: "" },
   });
 
+  useEffect(() => {
+    if (cooldownUntil == null) return;
+    const id = window.setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (t >= cooldownUntil) {
+        setCooldownUntil(null);
+      }
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [cooldownUntil]);
+
+  const cooldownSeconds =
+    cooldownUntil == null ? 0 : Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const onCooldown = cooldownSeconds > 0;
   const busy = oauthProvider !== null || magicStatus === "loading";
+  const safeRedirect = sanitizeAuthRedirect(redirectTo);
 
   const handleOAuth = async (provider: OAuthProvider) => {
     setOauthProvider(provider);
     setOauthError(null);
-    rememberAuthRedirect(redirectTo);
+    rememberAuthRedirect(safeRedirect);
 
     const { error } = await (provider === "github" ? signInWithGitHub() : signInWithGoogle());
     if (error) {
@@ -60,9 +80,13 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
   };
 
   const onMagicLink = async (values: MagicLinkValues) => {
+    if (Date.now() < (cooldownUntil ?? 0)) {
+      return;
+    }
+
     setMagicStatus("loading");
     setMagicError(null);
-    rememberAuthRedirect(redirectTo);
+    rememberAuthRedirect(safeRedirect);
 
     const { error } = await signInWithMagicLink(values.email);
     if (error) {
@@ -74,6 +98,7 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
 
     setSentEmail(values.email);
     setMagicStatus("sent");
+    setCooldownUntil(Date.now() + MAGIC_LINK_RESEND_COOLDOWN_MS);
   };
 
   return (
@@ -162,13 +187,15 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" variant="outline" className="w-full gap-2" disabled={busy}>
+            <Button type="submit" variant="outline" className="w-full gap-2" disabled={busy || onCooldown}>
               {magicStatus === "loading" ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Mail className="h-4 w-4" />
               )}
-              Email me a sign-in link
+              {onCooldown
+                ? `Wait ${cooldownSeconds}s to resend`
+                : "Email me a sign-in link"}
             </Button>
           </form>
         </Form>

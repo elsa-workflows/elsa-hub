@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { describeAuthError, parseAuthCallbackError } from "./authErrors";
 
 describe("describeAuthError", () => {
@@ -33,6 +33,28 @@ describe("describeAuthError", () => {
     expect(describeAuthError({ message: "Token has expired or is invalid" })).toMatch(
       /expired or was already used/i,
     );
+    expect(describeAuthError({ code: "otp_expired" })).toMatch(/expired or was already used/i);
+    expect(describeAuthError({ code: "flow_state_expired" })).toMatch(/expired or was already used/i);
+    expect(describeAuthError({ code: "bad_jwt" })).toMatch(/expired or was already used/i);
+  });
+
+  it("does not treat every invalid-link message as an expired OTP", () => {
+    expect(describeAuthError({ message: "invalid redirect link" })).not.toMatch(/expired/i);
+    expect(describeAuthError({ message: "invalid redirect link" })).toMatch(
+      /something went wrong while signing in/i,
+    );
+  });
+
+  it("returns a generic mapped message instead of raw GoTrue text", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(describeAuthError({ message: "weird internal gotrue detail" })).toMatch(
+      /something went wrong while signing in/i,
+    );
+    expect(describeAuthError({ message: "weird internal gotrue detail" })).not.toMatch(
+      /gotrue/i,
+    );
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 
@@ -56,5 +78,17 @@ describe("parseAuthCallbackError", () => {
 
   it("returns null when the callback succeeded", () => {
     expect(parseAuthCallbackError("?code=abc", "#access_token=tok")).toBeNull();
+  });
+
+  it("does not echo a crafted URL error_description", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const parsed = parseAuthCallbackError(
+      "?error=server_error&error_description=Please+reset+your+password+at+evil.com",
+      "",
+    );
+    expect(parsed?.message).not.toMatch(/evil\.com/);
+    expect(parsed?.message).not.toMatch(/reset your password/i);
+    expect(parsed?.message).toMatch(/something went wrong while signing in/i);
+    warn.mockRestore();
   });
 });

@@ -65,7 +65,7 @@ export function useAuthProviders() {
         if (error) {
           toast({
             title: "Failed to connect",
-            description: describeAuthError(error, error.message),
+            description: describeAuthError(error),
             variant: "destructive",
           });
           sessionStorage.removeItem("authRedirect");

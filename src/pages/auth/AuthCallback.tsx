@@ -36,11 +36,12 @@ export default function AuthCallback() {
           return;
         }
 
-        // Let Supabase handle the session from the URL
+        // PKCE: supabase-js exchanges ?code= during client init (detectSessionInUrl).
+        // getSession() waits for that initialize and returns the session.
         const { data, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
-          setErrorMessage(describeAuthError(sessionError, sessionError.message));
+          setErrorMessage(describeAuthError(sessionError));
           setStatus("error");
           sessionStorage.removeItem("linkingProvider");
           return;

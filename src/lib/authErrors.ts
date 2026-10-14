@@ -30,10 +30,12 @@ function collectText(error: AuthLikeError): { code: string; message: string } {
   return { code, message };
 }
 
+const GENERIC_AUTH_ERROR = "Something went wrong while signing in. Please try again.";
+
 /**
  * Map Supabase Auth / OAuth callback errors to a short message users can act on.
- * Identity linking is automatic only when both emails are verified — see
- * docs/auth-identity-linking.md.
+ * Supabase auto-links identities by matching email and strips unconfirmed
+ * identities. See docs/auth-identity-linking.md.
  */
 export function describeAuthError(error: AuthLikeError, fallback?: string): string {
   const { code, message } = collectText(error);
@@ -65,13 +67,16 @@ export function describeAuthError(error: AuthLikeError, fallback?: string): stri
     blob.includes("already been registered") ||
     blob.includes("user already exists")
   ) {
-    return "An account with this email already exists. Sign in with the method you used before (GitHub, Google, or email). Verified emails are linked automatically to one profile; unverified ones cannot be merged.";
+    return "An account with this email already exists. Sign in with the method you used before (GitHub, Google, or email). Matching emails are linked automatically to one profile; unconfirmed identities are removed.";
   }
 
-  if (blob.includes("otp_expired") || blob.includes("token has expired") || blob.includes("invalid")) {
-    if (blob.includes("token") || blob.includes("otp") || blob.includes("link")) {
-      return "This sign-in link has expired or was already used. Request a new one.";
-    }
+  if (
+    blob.includes("otp_expired") ||
+    blob.includes("flow_state_expired") ||
+    blob.includes("bad_jwt") ||
+    blob.includes("token has expired")
+  ) {
+    return "This sign-in link has expired or was already used. Request a new one.";
   }
 
   if (blob.includes("email_not_confirmed") || blob.includes("not confirmed")) {
@@ -90,12 +95,17 @@ export function describeAuthError(error: AuthLikeError, fallback?: string): stri
     return "New accounts are not being accepted right now. If you already have an account, sign in with GitHub, Google, or email.";
   }
 
-  const original = error?.message || error?.error_description;
-  if (original && original.trim()) {
-    return original.trim();
+  const original = (error?.message || error?.error_description || "").trim();
+  if (original) {
+    console.warn("Unmapped auth error:", original);
   }
 
-  return fallback || "Something went wrong while signing in. Please try again.";
+  const safeFallback = fallback?.trim();
+  if (safeFallback && safeFallback !== original) {
+    return safeFallback;
+  }
+
+  return GENERIC_AUTH_ERROR;
 }
 
 export function parseAuthCallbackError(

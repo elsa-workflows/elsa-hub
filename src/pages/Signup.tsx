@@ -59,7 +59,7 @@ export default function Signup() {
       toast({
         variant: "destructive",
         title: "Sign up failed",
-        description: describeAuthError(error, error.message),
+        description: describeAuthError(error),
       });
     } else {
       // Redirect to confirm email page instead of home

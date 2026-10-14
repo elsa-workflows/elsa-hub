@@ -5,6 +5,7 @@ import {
   consumeAuthRedirect,
   getAuthCallbackUrl,
   rememberAuthRedirect,
+  sanitizeAuthRedirect,
 } from "./authRedirect";
 
 describe("getAuthCallbackUrl", () => {
@@ -16,6 +17,22 @@ describe("getAuthCallbackUrl", () => {
       "http://localhost:8080/auth/callback",
     );
     expect(AUTH_CALLBACK_PATH).toBe("/auth/callback");
+  });
+});
+
+describe("sanitizeAuthRedirect", () => {
+  it.each([
+    ["//evil.com"],
+    ["/\\evil.com"],
+    ["https://evil.com"],
+    ["%2F%2Fevil.com"],
+    ["javascript:alert(1)"],
+  ])("rejects %s", (payload) => {
+    expect(sanitizeAuthRedirect(payload)).toBeNull();
+  });
+
+  it("allows a same-site path with a query string", () => {
+    expect(sanitizeAuthRedirect("/courses?x=1")).toBe("/courses?x=1");
   });
 });
 
@@ -34,5 +51,34 @@ describe("authRedirect session storage", () => {
   it("ignores the site root so callers fall back to /dashboard", () => {
     rememberAuthRedirect("/");
     expect(consumeAuthRedirect()).toBe("/dashboard");
+  });
+
+  it.each([
+    ["//evil.com"],
+    ["/\\evil.com"],
+    ["https://evil.com"],
+    ["%2F%2Fevil.com"],
+    ["javascript:alert(1)"],
+  ])("does not store %s", (payload) => {
+    rememberAuthRedirect(payload);
+    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBeNull();
+  });
+
+  it.each([
+    ["//evil.com"],
+    ["/\\evil.com"],
+    ["https://evil.com"],
+    ["%2F%2Fevil.com"],
+    ["javascript:alert(1)"],
+  ])("does not return planted %s on read", (payload) => {
+    sessionStorage.setItem(AUTH_REDIRECT_STORAGE_KEY, payload);
+    expect(consumeAuthRedirect()).toBe("/dashboard");
+    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBeNull();
+  });
+
+  it("stores and returns a valid path with a query string", () => {
+    rememberAuthRedirect("/courses?x=1");
+    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe("/courses?x=1");
+    expect(consumeAuthRedirect()).toBe("/courses?x=1");
   });
 });

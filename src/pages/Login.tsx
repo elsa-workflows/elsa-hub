@@ -21,6 +21,7 @@ import { PasswordlessAuth } from "@/components/auth/PasswordlessAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { describeAuthError } from "@/lib/authErrors";
+import { sanitizeAuthRedirect } from "@/lib/authRedirect";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -36,8 +37,7 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // Get redirect URL from query params, default to dashboard
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = sanitizeAuthRedirect(searchParams.get("redirect")) ?? "/dashboard";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -56,7 +56,7 @@ export default function Login() {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: describeAuthError(error, error.message),
+        description: describeAuthError(error),
       });
     } else {
       toast({

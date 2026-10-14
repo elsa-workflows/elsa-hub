@@ -6,13 +6,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
+const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
-      onAuthStateChange: () => ({
-        data: { subscription: { unsubscribe: () => {} } },
-      }),
+      onAuthStateChange: (cb: (event: string, session: unknown) => void) => {
+        authStateListeners.push(cb);
+        return {
+          data: { subscription: { unsubscribe: () => {} } },
+        };
+      },
       getSession: async () => ({ data: { session: null } }),
       signInWithPassword: async () => ({ error: null }),
       signUp: (args: unknown) => signUp(args),
@@ -40,6 +44,8 @@ describe("AuthContext passwordless methods", () => {
     signInWithOAuth.mockClear();
     signInWithOtp.mockClear();
     signUp.mockClear();
+    authStateListeners.length = 0;
+    sessionStorage.clear();
   });
 
   it("sends GitHub and Google OAuth through /auth/callback, not the site root", async () => {
@@ -79,6 +85,37 @@ describe("AuthContext passwordless methods", () => {
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
+    });
+  });
+
+  it("uses / on SIGNED_IN when the stored redirect is not a same-site path", async () => {
+    sessionStorage.setItem("authRedirect", "//evil.com");
+    let assigned = "";
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        ...original,
+        origin: original.origin,
+        get href() {
+          return assigned || original.href;
+        },
+        set href(value: string) {
+          assigned = value;
+        },
+      },
+    });
+
+    renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(assigned).toBe("/"));
+    expect(sessionStorage.getItem("authRedirect")).toBeNull();
+
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: original,
     });
   });
 });

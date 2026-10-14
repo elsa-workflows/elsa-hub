@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import { User, Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getAuthCallbackUrl } from "@/lib/authRedirect";
+import { AUTH_REDIRECT_STORAGE_KEY, getAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/authRedirect";
 
 export type OAuthSignInProvider = "github" | "google";
 
@@ -62,10 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Handle OAuth redirect - check for stored redirect URL
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
-          const redirectUrl = sessionStorage.getItem("authRedirect");
-          if (redirectUrl) {
+          const stored = sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY);
+          if (stored) {
             hasHandledRedirect.current = true;
-            sessionStorage.removeItem("authRedirect");
+            sessionStorage.removeItem(AUTH_REDIRECT_STORAGE_KEY);
+            const redirectUrl = sanitizeAuthRedirect(stored) ?? "/";
             // Use setTimeout to ensure this happens after React renders
             setTimeout(() => {
               window.location.href = redirectUrl;

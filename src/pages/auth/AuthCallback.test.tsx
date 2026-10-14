@@ -88,4 +88,17 @@ describe("AuthCallback", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/dashboard/org/acme"));
     expect(sessionStorage.getItem("authRedirect")).toBeNull();
   });
+
+  it("falls back to /dashboard when the stored redirect is off-site", async () => {
+    sessionStorage.setItem("authRedirect", "//evil.com");
+    window.location.hash = "#type=magiclink";
+    getSession.mockResolvedValue({
+      data: { session: { user: { id: "user-1" } } },
+      error: null,
+    });
+
+    renderCallback();
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/dashboard"));
+  });
 });

@@ -64,6 +64,13 @@ describe("Login", () => {
     expect(sessionStorage.getItem("authRedirect")).toBe("/dashboard/settings");
   });
 
+  it("does not store an open-redirect payload from ?redirect=", async () => {
+    renderLogin("?redirect=//evil.com");
+    fireEvent.click(screen.getByRole("button", { name: /continue with github/i }));
+    await waitFor(() => expect(signInWithGitHub).toHaveBeenCalled());
+    expect(sessionStorage.getItem("authRedirect")).toBe("/dashboard");
+  });
+
   it("shows a check-inbox state after a magic link is sent", async () => {
     renderLogin();
     fireEvent.change(screen.getByLabelText(/email for magic link/i), {
