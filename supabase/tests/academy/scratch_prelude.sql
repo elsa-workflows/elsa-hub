@@ -28,6 +28,12 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
 
+-- Match Supabase default privileges so REVOKE ALL in later migrations is real.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
+
 CREATE TABLE IF NOT EXISTS auth.users (
   id uuid PRIMARY KEY,
   email text

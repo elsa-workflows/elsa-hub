@@ -73,6 +73,7 @@ export type Database = {
           is_published: boolean
           price_cents: number
           product_code: string
+          product_codes: string[]
           slug: string
           sort_order: number
           stripe_price_id: string | null
@@ -87,6 +88,7 @@ export type Database = {
           is_published?: boolean
           price_cents?: number
           product_code: string
+          product_codes?: string[]
           slug: string
           sort_order?: number
           stripe_price_id?: string | null
@@ -101,6 +103,7 @@ export type Database = {
           is_published?: boolean
           price_cents?: number
           product_code?: string
+          product_codes?: string[]
           slug?: string
           sort_order?: number
           stripe_price_id?: string | null

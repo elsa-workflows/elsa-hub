@@ -63,7 +63,9 @@ INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-4000-8000-000000000003', 'unentitled@example.com'),
   ('00000000-0000-4000-8000-000000000004', 'org-admin@example.com'),
   ('00000000-0000-4000-8000-000000000005', 'org-seat@example.com'),
-  ('00000000-0000-4000-8000-000000000006', 'org-member@example.com');
+  ('00000000-0000-4000-8000-000000000006', 'org-member@example.com'),
+  ('00000000-0000-4000-8000-000000000007', 'unknown-sku@example.com'),
+  ('00000000-0000-4000-8000-000000000008', 'bundle-match@example.com');
 
 INSERT INTO public.platform_admins (user_id)
 VALUES ('00000000-0000-4000-8000-000000000001');
@@ -77,7 +79,8 @@ INSERT INTO public.organization_members (organization_id, user_id, role) VALUES
   ('00000000-0000-4000-8000-000000001001', '00000000-0000-4000-8000-000000000006', 'member');
 
 INSERT INTO public.academy_courses (
-  id, slug, title, summary, sort_order, is_published, price_cents, currency, product_code
+  id, slug, title, summary, sort_order, is_published, price_cents, currency,
+  product_code, product_codes
 ) VALUES
   (
     '00000000-0000-4000-8000-000000002001',
@@ -88,7 +91,8 @@ INSERT INTO public.academy_courses (
     true,
     4900,
     'eur',
-    'solo_bundle'
+    'solo_bundle',
+    ARRAY['solo_bundle', 'team_5', 'team_10']
   ),
   (
     '00000000-0000-4000-8000-000000002002',
@@ -99,7 +103,8 @@ INSERT INTO public.academy_courses (
     false,
     4900,
     'eur',
-    'team_5'
+    'team_5',
+    ARRAY['team_5', 'solo_bundle']
   );
 
 INSERT INTO public.academy_lessons (
@@ -134,6 +139,16 @@ INSERT INTO public.academy_lessons (
     'UNPUBLISHED PREVIEW BODY',
     true,
     5
+  ),
+  (
+    '00000000-0000-4000-8000-000000003004',
+    '00000000-0000-4000-8000-000000002002',
+    'draft-paid',
+    'Draft Paid Lesson',
+    2,
+    'DRAFT PAID BODY',
+    false,
+    15
   );
 
 INSERT INTO public.academy_assets (
@@ -193,6 +208,32 @@ INSERT INTO public.academy_entitlements (
     NULL,
     now(),
     now()
+  ),
+  (
+    '00000000-0000-4000-8000-000000004004',
+    NULL,
+    'anything_at_all',
+    'user',
+    '00000000-0000-4000-8000-000000000007',
+    NULL,
+    1,
+    'manual',
+    NULL,
+    now(),
+    NULL
+  ),
+  (
+    '00000000-0000-4000-8000-000000004005',
+    NULL,
+    'solo_bundle',
+    'user',
+    '00000000-0000-4000-8000-000000000008',
+    NULL,
+    1,
+    'manual',
+    NULL,
+    now(),
+    NULL
   );
 
 INSERT INTO public.academy_seat_assignments (entitlement_id, user_id)
@@ -372,10 +413,20 @@ SELECT pg_temp.ok(
   'anon cannot read unpublished preview lesson'
 );
 
-SELECT pg_temp.ok(
-  NOT EXISTS (SELECT 1 FROM public.academy_assets),
-  'anon cannot read assets'
-);
+DO $$
+BEGIN
+  BEGIN
+    PERFORM 1 FROM public.academy_assets;
+    PERFORM pg_temp.ok(
+      NOT EXISTS (SELECT 1 FROM public.academy_assets),
+      'anon cannot read assets'
+    );
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      PERFORM pg_temp.ok(true, 'anon cannot read assets');
+  END;
+END
+$$;
 
 DO $$
 BEGIN
@@ -661,6 +712,17 @@ SELECT pg_temp.ok(
   public.has_academy_access('00000000-0000-4000-8000-000000002001'),
   'newly seated member has access'
 );
+SELECT pg_temp.ok(
+  NOT public.has_academy_access('00000000-0000-4000-8000-000000002002'),
+  'draft course gets no access via seat for non-admins'
+);
+SELECT pg_temp.ok(
+  NOT EXISTS (
+    SELECT 1 FROM public.academy_lessons
+    WHERE id = '00000000-0000-4000-8000-000000003004'
+  ),
+  'draft paid body is hidden from seated non-admin'
+);
 RESET ROLE;
 
 SELECT pg_temp.set_jwt('00000000-0000-4000-8000-000000000005');
@@ -699,7 +761,133 @@ SELECT pg_temp.ok(
   'platform admin reads paid lesson body'
 );
 
+SELECT pg_temp.ok(
+  public.has_academy_access('00000000-0000-4000-8000-000000002002'),
+  'platform admin can access draft course'
+);
+
 RESET ROLE;
+SELECT pg_temp.clear_jwt();
+
+-- ---------------------------------------------------------------------------
+-- Bundle SKU matching
+-- ---------------------------------------------------------------------------
+
+SELECT pg_temp.set_jwt('00000000-0000-4000-8000-000000000007');
+SET ROLE authenticated;
+SELECT pg_temp.ok(
+  NOT public.has_academy_access('00000000-0000-4000-8000-000000002001'),
+  'unknown product_code gets no access'
+);
+SELECT pg_temp.ok(
+  NOT public.has_academy_access('00000000-0000-4000-8000-000000002002'),
+  'unknown product_code gets no draft access'
+);
+SELECT pg_temp.ok(
+  NOT EXISTS (
+    SELECT 1 FROM public.academy_lessons
+    WHERE body_md IN ('PAID BODY', 'DRAFT PAID BODY')
+  ),
+  'unknown product_code cannot read paid bodies'
+);
+RESET ROLE;
+
+SELECT pg_temp.set_jwt('00000000-0000-4000-8000-000000000008');
+SET ROLE authenticated;
+SELECT pg_temp.ok(
+  public.has_academy_access('00000000-0000-4000-8000-000000002001'),
+  'matching product_code gets access'
+);
+SELECT pg_temp.ok(
+  (
+    SELECT body_md FROM public.academy_lessons
+    WHERE id = '00000000-0000-4000-8000-000000003002'
+  ) = 'PAID BODY',
+  'matching product_code reads paid lesson body'
+);
+SELECT pg_temp.ok(
+  NOT public.has_academy_access('00000000-0000-4000-8000-000000002002'),
+  'draft course gets no access via bundle for non-admins'
+);
+RESET ROLE;
+
+-- Unentitled caller is rejected before entitlement lookup
+SELECT pg_temp.set_jwt('00000000-0000-4000-8000-000000000003');
+SET ROLE authenticated;
+DO $$
+BEGIN
+  BEGIN
+    PERFORM public.assign_academy_seat(
+      '00000000-0000-4000-8000-000000004002',
+      '00000000-0000-4000-8000-000000000005'
+    );
+    PERFORM pg_temp.ok(false, 'unentitled user cannot assign seats');
+  EXCEPTION
+    WHEN others THEN
+      PERFORM pg_temp.ok(
+        SQLERRM LIKE 'not authorized%',
+        'unentitled user cannot assign seats',
+        SQLERRM
+      );
+  END;
+END
+$$;
+RESET ROLE;
+
+-- Removing org membership drops seat access; the assignment row can remain
+DELETE FROM public.organization_members
+WHERE organization_id = '00000000-0000-4000-8000-000000001001'
+  AND user_id = '00000000-0000-4000-8000-000000000006';
+
+SELECT pg_temp.set_jwt('00000000-0000-4000-8000-000000000006');
+SET ROLE authenticated;
+SELECT pg_temp.ok(
+  NOT public.has_academy_access('00000000-0000-4000-8000-000000002001'),
+  'removed member loses access'
+);
+RESET ROLE;
+
+SELECT pg_temp.ok(
+  EXISTS (
+    SELECT 1 FROM public.academy_seat_assignments
+    WHERE entitlement_id = '00000000-0000-4000-8000-000000004002'
+      AND user_id = '00000000-0000-4000-8000-000000000006'
+  ),
+  'removed member seat row remains until unassigned'
+);
+
+SELECT pg_temp.ok(
+  NOT has_function_privilege('anon', 'public.has_academy_access(uuid)', 'execute'),
+  'anon cannot execute has_academy_access'
+);
+SELECT pg_temp.ok(
+  NOT has_function_privilege('anon', 'public.assign_academy_seat(uuid,uuid)', 'execute'),
+  'anon cannot execute assign_academy_seat'
+);
+SELECT pg_temp.ok(
+  NOT has_function_privilege('anon', 'public.unassign_academy_seat(uuid,uuid)', 'execute'),
+  'anon cannot execute unassign_academy_seat'
+);
+SELECT pg_temp.ok(
+  (
+    SELECT
+      CASE
+        WHEN p.proacl IS NULL THEN false
+        ELSE NOT EXISTS (
+          SELECT 1
+          FROM aclexplode(p.proacl) AS grant_row
+          WHERE grant_row.grantee = 0
+            AND grant_row.privilege_type = 'EXECUTE'
+        )
+      END
+    FROM pg_proc AS p
+    JOIN pg_namespace AS n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'assign_academy_seat'
+  ),
+  'PUBLIC cannot execute assign_academy_seat'
+);
+
 SELECT pg_temp.clear_jwt();
 
 -- ---------------------------------------------------------------------------
