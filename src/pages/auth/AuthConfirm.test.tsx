@@ -91,12 +91,11 @@ describe("AuthConfirm", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("sends recovery through verifyOtp then /reset-password", async () => {
+  it("rejects type=recovery with the generic error and does not verify", () => {
     renderConfirm("?token_hash=rec&type=recovery");
     fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
-    await waitFor(() =>
-      expect(verifyOtp).toHaveBeenCalledWith({ token_hash: "rec", type: "recovery" }),
-    );
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/reset-password"));
+    expect(screen.getByText(/something went wrong while signing in/i)).toBeInTheDocument();
+    expect(verifyOtp).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

@@ -48,7 +48,7 @@ The login/signup screens, `/auth/callback`, and `/auth/confirm` show those mappe
 
 ## Email links vs PKCE
 
-Magic link, signup confirmation, and password recovery emails must use `/auth/confirm?token_hash=...&type=...` as described in `docs/auth-email-templates.md`. That click-to-verify page is not consumed by Safe Links, and it does not need a PKCE code verifier, so those emails work in any browser.
+Magic link and signup confirmation emails must use `/auth/confirm?token_hash=...&type=...` as described in `docs/auth-email-templates.md`. That click-to-verify page is not consumed by Safe Links, and it does not need a PKCE code verifier, so those emails work in any browser.
 
 GitHub and Google still use `flowType: "pkce"` and `{origin}/auth/callback`. A missing code verifier there still maps to: "Open the link in the same browser where you requested it." A server exchange failure for an expired or already-used `code` maps to the expired-link message, not the same-browser hint.
 

@@ -1,4 +1,4 @@
-# Auth email templates (magic link, signup, recovery)
+# Auth email templates (magic link, signup)
 
 Microsoft 365 Safe Links (and similar scanners) pre-fetch the default Supabase confirmation URL, which is a GET to `/auth/v1/verify`. That call consumes the one-time token, so the real click fails with `otp_expired`.
 
@@ -20,14 +20,8 @@ Change these templates in the Supabase Auth email settings for project `tehhrjep
 {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup
 ```
 
-## Reset password
+`SiteURL` must be the Hub origin (production or the matching preview origin). Optional query `redirect` is honoured by `/auth/confirm` when it is a same-site path; otherwise the page falls back to `/dashboard`.
 
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery
-```
-
-`SiteURL` must be the Hub origin (production or the matching preview origin). Optional query `redirect` is honoured by `/auth/confirm` when it is a same-site path; otherwise the page falls back to `/dashboard`. Recovery navigates to `/reset-password` after a successful verify.
-
-Do not use `{{ .ConfirmationURL }}` for these three templates. That URL hits `/auth/v1/verify` and is what Safe Links consume.
+Do not use `{{ .ConfirmationURL }}` for these two templates. That URL hits `/auth/v1/verify` and is what Safe Links consume.
 
 `/auth/confirm` does not need to be on the Supabase Redirect URLs allow list. The Hub page talks to GoTrue from the browser. Keep `{origin}/auth/callback` on that list for GitHub and Google.

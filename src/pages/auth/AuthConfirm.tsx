@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { describeAuthError } from "@/lib/authErrors";
 import { DEFAULT_POST_AUTH_PATH, sanitizeAuthRedirect } from "@/lib/authRedirect";
 
-const OTP_TYPES = new Set<string>(["email", "magiclink", "signup", "recovery"]);
+const OTP_TYPES = new Set<string>(["email", "magiclink", "signup"]);
 
 function parseOtpType(value: string | null): EmailOtpType | null {
   if (!value) return null;
@@ -32,7 +32,6 @@ export default function AuthConfirm() {
   );
 
   const isSignup = otpType === "signup";
-  const isRecovery = otpType === "recovery";
   const buttonLabel = isSignup ? "Confirm" : "Sign in";
 
   const onConfirm = async () => {
@@ -41,7 +40,7 @@ export default function AuthConfirm() {
       return;
     }
     if (!otpType) {
-      setErrorMessage("This sign-in link is missing its type. Request a new one.");
+      setErrorMessage(describeAuthError(null));
       return;
     }
 
@@ -56,11 +55,6 @@ export default function AuthConfirm() {
     if (error) {
       setBusy(false);
       setErrorMessage(describeAuthError(error));
-      return;
-    }
-
-    if (isRecovery) {
-      navigate("/reset-password");
       return;
     }
 
@@ -80,7 +74,7 @@ export default function AuthConfirm() {
               )}
             </div>
             <CardTitle className="text-2xl">
-              {isSignup ? "Confirm your email" : isRecovery ? "Reset your password" : "Sign in"}
+              {isSignup ? "Confirm your email" : "Sign in"}
             </CardTitle>
             <CardDescription className="text-base">
               {isSignup
