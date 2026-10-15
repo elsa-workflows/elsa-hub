@@ -16,6 +16,7 @@ import {
   readStoredStripeCustomerId,
   requireCloudOrganizationId,
   resolveControlOrganizationId,
+  selectLinkedHubOrganization,
   stripeWebhookRoute,
 } from "./cloud-billing.ts";
 
@@ -72,18 +73,39 @@ Deno.test("personal Cloud checkout is rejected", () => {
   assertEquals(threw, true);
 });
 
-Deno.test("client-supplied Control organization id is ignored", () => {
-  assertEquals(
-    controlOrganizationIdFromHubOrg("hub-org-1", "attacker-control-org"),
-    "hub-org-1",
-  );
+Deno.test("Control organization id comes from the linked Hub org", () => {
+  assertEquals(controlOrganizationIdFromHubOrg("hub-org-1"), "hub-org-1");
   assertEquals(
     resolveControlOrganizationId({
       hubOrganizationId: "hub-org-1",
-      controlOrganizationId: "attacker-control-org",
     }),
     "hub-org-1",
   );
+});
+
+Deno.test("linked Hub org is the membership row, not a client foreign id", () => {
+  const linked = selectLinkedHubOrganization(
+    [{ organization_id: "org-b", role: "admin" }],
+    "org-foreign",
+  );
+  assertEquals("organizationId" in linked, false);
+  if ("error" in linked) {
+    assertEquals(linked.status, 403);
+    assertEquals(linked.code, "cloud_org_not_linked");
+  }
+
+  const missing = selectLinkedHubOrganization([], "org-b");
+  assertEquals("organizationId" in missing, false);
+  if ("error" in missing) {
+    assertEquals(missing.status, 403);
+    assertEquals(missing.code, "cloud_org_not_linked");
+  }
+
+  const matched = selectLinkedHubOrganization(
+    [{ organization_id: "org-b", role: "admin" }],
+    "org-b",
+  );
+  assertEquals(matched, { organizationId: "org-b" });
 });
 
 Deno.test("org B never resolves to org A's customer or the admin's personal customer", async () => {

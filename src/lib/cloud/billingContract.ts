@@ -4,6 +4,7 @@ export const CLOUD_KIND = "cloud";
 export const ACADEMY_KIND = "academy";
 export const CLOUD_PRODUCT_TYPE = "cloud";
 export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
+export const CLOUD_ORG_NOT_LINKED_CODE = "cloud_org_not_linked";
 
 /** Control's StripeBillingProvider organization correlation key (elsa-control#825). */
 export const CONTROL_ORGANIZATION_METADATA_KEY = "elsa_control_organization_id";
@@ -106,25 +107,70 @@ export function requireCloudOrganizationId(organizationId?: string | null): stri
   return resolved;
 }
 
-/**
- * Same mapping cloud-bff (#53 / #44) uses until Hub↔Control org linking exists:
- * the Hub organization id is the Control organization named in Stripe metadata.
- * Client-supplied Control ids are ignored.
- */
-export function controlOrganizationIdFromHubOrg(
-  hubOrganizationId: string,
-  _clientControlOrganizationId?: string | null,
-): string {
+export type HubOrganizationMembership = {
+  organization_id: string;
+  role?: string;
+};
+
+export type LinkedHubOrganization =
+  | { organizationId: string }
+  | { status: number; error: string; code?: string };
+
+function isAdminMembershipRole(role?: string): boolean {
+  return role === "admin" || role === "owner" || role === undefined;
+}
+
+export function selectLinkedHubOrganization(
+  memberships: HubOrganizationMembership[],
+  clientOrganizationId?: string | null,
+): LinkedHubOrganization {
+  const linkedIds = [
+    ...new Set(
+      memberships
+        .filter((row) => isAdminMembershipRole(row.role) && row.organization_id)
+        .map((row) => row.organization_id),
+    ),
+  ];
+
+  if (linkedIds.length === 0) {
+    return {
+      status: 403,
+      code: CLOUD_ORG_NOT_LINKED_CODE,
+      error: "No organization is linked to this account",
+    };
+  }
+
+  let requested: string;
+  try {
+    requested = requireCloudOrganizationId(clientOrganizationId);
+  } catch (error) {
+    return {
+      status: 400,
+      error: error instanceof Error ? error.message : "Cloud checkout requires an organization",
+    };
+  }
+
+  const matched = linkedIds.find((id) => id === requested);
+  if (!matched) {
+    return {
+      status: 403,
+      code: CLOUD_ORG_NOT_LINKED_CODE,
+      error: "No organization is linked to this account",
+    };
+  }
+
+  return { organizationId: matched };
+}
+
+export function controlOrganizationIdFromHubOrg(hubOrganizationId: string): string {
   return requireCloudOrganizationId(hubOrganizationId);
 }
 
 export function resolveControlOrganizationId(input: {
-  controlOrganizationId?: string | null;
   hubOrganizationId?: string | null;
 }): string {
   return controlOrganizationIdFromHubOrg(
     requireCloudOrganizationId(input.hubOrganizationId),
-    input.controlOrganizationId,
   );
 }
 

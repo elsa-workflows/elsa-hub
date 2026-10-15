@@ -7,8 +7,8 @@
  *   (`elsa_control_organization_id` on the session and subscription)
  * - cloud-bff (#53 / #44) Hub-org → Control-org mapping
  *
- * Cloud checkout is org-only. The Control organization id is derived on the
- * server from the admin-checked Hub org. Client-supplied ids are ignored.
+ * Cloud checkout is org-only. Stripe org identifiers come from
+ * organization_members for the signed-in user.
  */
 
 export const CLOUD_KIND = "cloud";
@@ -47,6 +47,7 @@ export type StoredStripeCustomerStore = {
 };
 
 export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
+export const CLOUD_ORG_NOT_LINKED_CODE = "cloud_org_not_linked";
 
 export function isCloudCheckoutRequest(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
@@ -134,16 +135,90 @@ export function requireCloudOrganizationId(organizationId?: string | null): stri
   return resolved;
 }
 
-/**
- * Same mapping cloud-bff (#53 / #44) uses until Hub↔Control org linking exists:
- * the Hub organization id is the Control organization named in Stripe metadata.
- * Client-supplied Control ids are ignored. Replace the identity function with
- * the linked Control id once bootstrap exposes it for a Hub org.
- */
-export function controlOrganizationIdFromHubOrg(
-  hubOrganizationId: string,
-  _clientControlOrganizationId?: string | null,
-): string {
+export type HubOrganizationMembership = {
+  organization_id: string;
+  role?: string;
+};
+
+export type LinkedHubOrganization =
+  | { organizationId: string }
+  | { status: number; error: string; code?: string };
+
+function isAdminMembershipRole(role?: string): boolean {
+  return role === "admin" || role === "owner" || role === undefined;
+}
+
+export function selectLinkedHubOrganization(
+  memberships: HubOrganizationMembership[],
+  clientOrganizationId?: string | null,
+): LinkedHubOrganization {
+  const linkedIds = [
+    ...new Set(
+      memberships
+        .filter((row) => isAdminMembershipRole(row.role) && row.organization_id)
+        .map((row) => row.organization_id),
+    ),
+  ];
+
+  if (linkedIds.length === 0) {
+    return {
+      status: 403,
+      code: CLOUD_ORG_NOT_LINKED_CODE,
+      error: "No organization is linked to this account",
+    };
+  }
+
+  let requested: string;
+  try {
+    requested = requireCloudOrganizationId(clientOrganizationId);
+  } catch (error) {
+    return {
+      status: 400,
+      error: error instanceof Error ? error.message : "Cloud checkout requires an organization",
+    };
+  }
+
+  const matched = linkedIds.find((id) => id === requested);
+  if (!matched) {
+    return {
+      status: 403,
+      code: CLOUD_ORG_NOT_LINKED_CODE,
+      error: "No organization is linked to this account",
+    };
+  }
+
+  return { organizationId: matched };
+}
+
+export type HubOrganizationMembershipStore = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => PromiseLike<{
+        data: HubOrganizationMembership[] | null;
+        error: { message: string } | null;
+      }>;
+    };
+  };
+};
+
+export async function readLinkedHubAdminOrganizations(
+  supabase: unknown,
+  userId: string,
+): Promise<HubOrganizationMembership[]> {
+  const store = supabase as HubOrganizationMembershipStore;
+  const { data, error } = await store
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new Error(`Failed to read organization membership: ${error.message}`);
+  }
+
+  return (data ?? []).filter((row) => isAdminMembershipRole(row.role) && row.organization_id);
+}
+
+export function controlOrganizationIdFromHubOrg(hubOrganizationId: string): string {
   const resolved = hubOrganizationId.trim();
   if (!resolved) {
     throw new Error("A Control organization is required for Cloud checkout");
@@ -151,14 +226,11 @@ export function controlOrganizationIdFromHubOrg(
   return resolved;
 }
 
-/** @deprecated Use controlOrganizationIdFromHubOrg. Client ids are ignored. */
 export function resolveControlOrganizationId(input: {
-  controlOrganizationId?: string | null;
   hubOrganizationId?: string | null;
 }): string {
   return controlOrganizationIdFromHubOrg(
     requireCloudOrganizationId(input.hubOrganizationId),
-    input.controlOrganizationId,
   );
 }
 

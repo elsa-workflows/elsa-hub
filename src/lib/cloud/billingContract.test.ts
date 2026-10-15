@@ -16,6 +16,7 @@ import {
   isCloudCheckoutRequest,
   requireCloudOrganizationId,
   resolveControlOrganizationId,
+  selectLinkedHubOrganization,
   shouldRecordHubOrder,
   stripeWebhookRoute,
 } from "./billingContract";
@@ -46,14 +47,23 @@ describe("Cloud billing contract", () => {
     expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).toBe("hub-org-1");
   });
 
-  it("derives the Control org from the Hub org and ignores a client-supplied id", () => {
-    expect(controlOrganizationIdFromHubOrg("hub-org-1", "attacker-control-org")).toBe("hub-org-1");
+  it("derives the Control org from the linked Hub org", () => {
+    expect(controlOrganizationIdFromHubOrg("hub-org-1")).toBe("hub-org-1");
     expect(
       resolveControlOrganizationId({
         hubOrganizationId: "hub-org-1",
-        controlOrganizationId: "attacker-control-org",
       }),
     ).toBe("hub-org-1");
+    expect(
+      selectLinkedHubOrganization([{ organization_id: "org-b", role: "admin" }], "org-foreign"),
+    ).toMatchObject({ status: 403, code: "cloud_org_not_linked" });
+    expect(selectLinkedHubOrganization([], "org-b")).toMatchObject({
+      status: 403,
+      code: "cloud_org_not_linked",
+    });
+    expect(
+      selectLinkedHubOrganization([{ organization_id: "org-b", role: "admin" }], "org-b"),
+    ).toEqual({ organizationId: "org-b" });
   });
 
   it("does not record Hub orders or credits for Cloud subscription events", () => {
