@@ -126,7 +126,7 @@ const resources = [
 export default function GetStarted() {
   return (
     <Layout>
-      <Seo path="/get-started" title={`Get started with Elsa Workflows ${ELSA_VERSION}`} description={`Setup guides for Elsa Workflows ${ELSA_VERSION}: Elsa Server, Elsa Studio, a combined host, or Docker — plus the ${ELSA_VERSION} upgrade notes.`} />
+      <Seo path="/get-started" title="Get started with the workflow and BPMN engine for .NET" description="Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.9.0 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks." />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
@@ -134,6 +134,10 @@ export default function GetStarted() {
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Get Started with Elsa</h1>
             <p className="text-xl text-muted-foreground">
               Whether you want to explore Elsa quickly or build a production solution, we have you covered.
+              Elsa 3.9.0 ships <code className="font-mono text-base">Elsa.Bpmn</code>,{" "}
+              <code className="font-mono text-base">Elsa.Bpmn.Interchange</code>, and User Tasks in Core —
+              register them on the server when you need BPMN execution,{" "}
+              <code className="font-mono text-base">.bpmn</code> import and export, or human tasks.
             </p>
           </div>
         </div>
