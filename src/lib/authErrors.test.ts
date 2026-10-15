@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  AUTH_RATE_LIMIT_MESSAGE,
   describeAuthError,
+  EMAIL_HOURLY_RATE_LIMIT_MESSAGE,
   EMAIL_SEND_RATE_LIMIT_MESSAGE,
   isEmailSendRateLimit,
   OTP_EXPIRED_AUTH_MESSAGE,
@@ -10,7 +12,7 @@ import {
 } from "./authErrors";
 
 describe("describeAuthError", () => {
-  it("explains magic-link rate limits", () => {
+  it("uses the email-send wording only for over_email_send_rate_limit", () => {
     expect(
       describeAuthError({
         code: "over_email_send_rate_limit",
@@ -20,12 +22,46 @@ describe("describeAuthError", () => {
     expect(
       describeAuthError({
         status: 429,
-        message: "Too many requests",
+        code: "over_email_send_rate_limit",
+        message: "Email rate limit exceeded",
       }),
     ).toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
     expect(isEmailSendRateLimit({ code: "over_email_send_rate_limit" })).toBe(true);
-    expect(isEmailSendRateLimit({ status: 429 })).toBe(true);
+    expect(isEmailSendRateLimit({ message: "For security purposes, you can only request this after 14 seconds." })).toBe(
+      true,
+    );
+    expect(isEmailSendRateLimit({ status: 429 })).toBe(false);
     expect(isEmailSendRateLimit({ message: "invalid login credentials" })).toBe(false);
+  });
+
+  it("keeps verifyOtp, OAuth, and hourly-cap 429s on their own wording", () => {
+    expect(
+      describeAuthError({
+        status: 429,
+        code: "over_request_rate_limit",
+        message: "Too many requests",
+      }),
+    ).toBe(AUTH_RATE_LIMIT_MESSAGE);
+    expect(
+      describeAuthError({
+        status: 429,
+        message: "Too many requests",
+      }),
+    ).toBe(AUTH_RATE_LIMIT_MESSAGE);
+    expect(
+      describeAuthError({
+        status: 429,
+        message: "Email rate limit exceeded",
+      }),
+    ).toBe(EMAIL_HOURLY_RATE_LIMIT_MESSAGE);
+    expect(describeAuthError({ status: 429 })).toBe(AUTH_RATE_LIMIT_MESSAGE);
+    expect(describeAuthError({ status: 429 })).not.toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
+    expect(
+      describeAuthError({
+        status: 429,
+        message: "Email rate limit exceeded",
+      }),
+    ).not.toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
   });
 
   it("reads retry-after seconds from the GoTrue message, headers, or retryAfter", () => {

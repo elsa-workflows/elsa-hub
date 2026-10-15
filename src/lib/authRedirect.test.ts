@@ -6,6 +6,7 @@ import {
   consumeAuthRedirect,
   getAuthCallbackUrl,
   getAuthConfirmUrl,
+  isAuthConfirmPath,
   peekAuthRedirect,
   PROFILE_SETTINGS_PATH,
   rememberAuthRedirect,
@@ -33,6 +34,18 @@ describe("getAuthConfirmUrl", () => {
       "http://localhost:8080/auth/confirm",
     );
     expect(AUTH_CONFIRM_PATH).toBe("/auth/confirm");
+  });
+});
+
+describe("isAuthConfirmPath", () => {
+  it("matches /auth/confirm with or without a trailing slash", () => {
+    expect(isAuthConfirmPath("/auth/confirm")).toBe(true);
+    expect(isAuthConfirmPath("/auth/confirm/")).toBe(true);
+    expect(isAuthConfirmPath("/auth/confirm///")).toBe(true);
+    expect(isAuthConfirmPath("/auth/callback")).toBe(false);
+    expect(isAuthConfirmPath("/auth/confirm/extra")).toBe(false);
+    expect(isAuthConfirmPath("/")).toBe(false);
+    expect(isAuthConfirmPath("")).toBe(false);
   });
 });
 

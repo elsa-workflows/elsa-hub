@@ -121,7 +121,7 @@ describe("AuthContext passwordless methods", () => {
     });
   });
 
-  it("does not consume the stored redirect on SIGNED_IN while /auth/confirm is open", async () => {
+  async function expectConfirmPathSkipsRedirect(pathname: string) {
     sessionStorage.setItem("authRedirect", "/dashboard/org/acme");
     let assigned = "";
     const original = window.location;
@@ -130,7 +130,7 @@ describe("AuthContext passwordless methods", () => {
       value: {
         ...original,
         origin: original.origin,
-        pathname: "/auth/confirm",
+        pathname,
         get href() {
           return assigned || original.href;
         },
@@ -152,14 +152,22 @@ describe("AuthContext passwordless methods", () => {
       configurable: true,
       value: original,
     });
+  }
+
+  it("does not consume the stored redirect on SIGNED_IN while /auth/confirm is open", async () => {
+    await expectConfirmPathSkipsRedirect("/auth/confirm");
   });
 
-  it("does not call refreshSession inside onAuthStateChange; it defers with setTimeout(0)", async () => {
+  it("treats /auth/confirm/ as the confirm page when skipping the SIGNED_IN redirect", async () => {
+    await expectConfirmPathSkipsRedirect("/auth/confirm/");
+  });
+
+  it("does not call refreshSession from onAuthStateChange", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await new Promise((resolve) => setTimeout(resolve, 20));
     expect(refreshSession).not.toHaveBeenCalled();
-    await waitFor(() => expect(refreshSession).toHaveBeenCalledTimes(1));
   });
 });

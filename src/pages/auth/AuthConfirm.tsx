@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { Loader2, Mail, MailCheck } from "lucide-react";
@@ -49,6 +49,7 @@ export default function AuthConfirm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     tokenHash ? null : "This sign-in link is missing its token. Request a new one.",
   );
+  const cancelBannerNav = useRef(false);
 
   useEffect(() => {
     stripTokenFromUrl();
@@ -57,6 +58,7 @@ export default function AuthConfirm() {
   useEffect(() => {
     if (!signedInEmail || !destination) return;
     const id = window.setTimeout(() => {
+      if (cancelBannerNav.current) return;
       navigate(destination);
     }, AUTH_CONFIRM_SIGNED_IN_MS);
     return () => window.clearTimeout(id);
@@ -104,9 +106,10 @@ export default function AuthConfirm() {
   };
 
   const onSignOut = async () => {
-    await supabase.auth.signOut();
+    cancelBannerNav.current = true;
     setSignedInEmail(null);
     setDestination(null);
+    await supabase.auth.signOut();
     navigate("/login");
   };
 

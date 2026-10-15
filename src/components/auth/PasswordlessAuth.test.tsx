@@ -1,6 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { EMAIL_SEND_RATE_LIMIT_MESSAGE } from "@/lib/authErrors";
+import {
+  AUTH_RATE_LIMIT_MESSAGE,
+  EMAIL_HOURLY_RATE_LIMIT_MESSAGE,
+  EMAIL_SEND_RATE_LIMIT_MESSAGE,
+} from "@/lib/authErrors";
 import {
   MAGIC_LINK_RESEND_COOLDOWN_MS,
   MAGIC_LINK_STILL_SENDING_MS,
@@ -115,6 +119,45 @@ describe("PasswordlessAuth magic-link cooldown", () => {
 
     expect(screen.getByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /wait 33s to resend/i })).toBeDisabled();
+  });
+
+  it("does not use the email-send wording for the hourly email cap", async () => {
+    signInWithMagicLink.mockResolvedValueOnce({
+      error: {
+        name: "AuthApiError",
+        status: 429,
+        message: "Email rate limit exceeded",
+      } as Error,
+    });
+    render(<PasswordlessAuth />);
+    fireEvent.change(screen.getByLabelText(/email for magic link/i), {
+      target: { value: "qa@example.com" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /email me a sign-in link/i }));
+    });
+
+    expect(screen.getByText(EMAIL_HOURLY_RATE_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /wait \d+s to resend/i })).not.toBeInTheDocument();
+  });
+
+  it("does not use the email-send wording for an OAuth 429", async () => {
+    signInWithGoogle.mockResolvedValueOnce({
+      error: {
+        name: "AuthApiError",
+        status: 429,
+        code: "over_request_rate_limit",
+        message: "Too many requests",
+      } as Error,
+    });
+    render(<PasswordlessAuth />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    });
+
+    expect(screen.getByText(AUTH_RATE_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).not.toBeInTheDocument();
   });
 
   it("shows Still sending after 8s while the OTP request is in flight", async () => {

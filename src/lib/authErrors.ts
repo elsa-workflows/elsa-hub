@@ -51,18 +51,45 @@ export const OTP_EXPIRED_AUTH_MESSAGE = "This link has expired, request a new on
 export const EMAIL_SEND_RATE_LIMIT_MESSAGE =
   "We just sent you an email. Wait a minute before requesting another one.";
 
+export const EMAIL_HOURLY_RATE_LIMIT_MESSAGE =
+  "This address has reached the hourly email limit. Try again later.";
+
+export const AUTH_RATE_LIMIT_MESSAGE =
+  "Too many attempts, wait a moment and try again.";
+
 export const EMAIL_SEND_RATE_LIMIT_DEFAULT_MS = 60_000;
 
+/**
+ * Per-address email-send cooldown from signInWithOtp, signUp, and resend
+ * (`over_email_send_rate_limit`). Not verifyOtp, OAuth, or the hourly cap.
+ */
 export function isEmailSendRateLimit(error: AuthLikeError): boolean {
   if (error == null) return false;
-  if (error.status === 429) return true;
   const { code, message } = collectText(error);
   const blob = `${code} ${message}`;
   return (
     blob.includes("over_email_send_rate_limit") ||
-    blob.includes("rate limit") ||
-    blob.includes("for security purposes") ||
-    blob.includes("too many requests")
+    blob.includes("for security purposes")
+  );
+}
+
+function isEmailHourlyRateLimit(error: AuthLikeError): boolean {
+  if (error == null || isEmailSendRateLimit(error)) return false;
+  const { code, message } = collectText(error);
+  return `${code} ${message}`.includes("email rate limit exceeded");
+}
+
+function isAuthRateLimit(error: AuthLikeError): boolean {
+  if (error == null || isEmailSendRateLimit(error) || isEmailHourlyRateLimit(error)) {
+    return false;
+  }
+  if (error.status === 429) return true;
+  const { code, message } = collectText(error);
+  const blob = `${code} ${message}`;
+  return (
+    blob.includes("over_request_rate_limit") ||
+    blob.includes("too many requests") ||
+    blob.includes("rate limit")
   );
 }
 
@@ -132,6 +159,14 @@ export function describeAuthError(error: AuthLikeError, fallback?: string): stri
 
   if (isEmailSendRateLimit(error)) {
     return EMAIL_SEND_RATE_LIMIT_MESSAGE;
+  }
+
+  if (isEmailHourlyRateLimit(error)) {
+    return EMAIL_HOURLY_RATE_LIMIT_MESSAGE;
+  }
+
+  if (isAuthRateLimit(error)) {
+    return AUTH_RATE_LIMIT_MESSAGE;
   }
 
   if (

@@ -8,6 +8,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import {
   DASHBOARD_AVATAR_MENU_LINKS,
   LEGACY_PROFILE_PATHS,
+  PROFILE_ROUTE_TABLE,
   PROFILE_SETTINGS_PATH,
 } from "@/lib/authRedirect";
 import { DashboardHeader } from "./DashboardHeader";
@@ -49,15 +50,34 @@ function renderHeader() {
   );
 }
 
-function ExistingAppRoutes() {
+function routesFromProfileTable() {
   return (
     <Routes>
       <Route path="/" element={<div>home</div>} />
       <Route path="/dashboard" element={<Outlet />}>
-        <Route path="settings" element={<div data-testid="profile-settings">settings</div>} />
-        <Route path="settings/profile" element={<Navigate to={PROFILE_SETTINGS_PATH} replace />} />
+        {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "dashboard").map((route) => (
+          <Route
+            key={route.path}
+            path={route.childPath}
+            element={
+              route.kind === "redirect" ? (
+                <Navigate to={route.to} replace />
+              ) : (
+                <div data-testid="profile-settings">settings</div>
+              )
+            }
+          />
+        ))}
       </Route>
-      <Route path="/profile" element={<Navigate to={PROFILE_SETTINGS_PATH} replace />} />
+      {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "root").map((route) => (
+        <Route
+          key={route.path}
+          path={route.path}
+          element={
+            route.kind === "redirect" ? <Navigate to={route.to} replace /> : null
+          }
+        />
+      ))}
       <Route path="*" element={<div data-testid="not-found">404</div>} />
     </Routes>
   );
@@ -75,16 +95,13 @@ describe("DashboardHeader avatar menu", () => {
 
   it("resolves every avatar menu link to an existing route", () => {
     const appSrc = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
-    expect(appSrc).toContain('path="/profile"');
-    expect(appSrc).toContain('path="settings/profile"');
-    expect(appSrc).toContain("PROFILE_SETTINGS_PATH");
-    expect(appSrc).toContain('path="settings"');
+    expect(appSrc).toContain("PROFILE_ROUTE_TABLE");
 
     expect(DASHBOARD_AVATAR_MENU_LINKS.length).toBeGreaterThan(0);
     for (const item of DASHBOARD_AVATAR_MENU_LINKS) {
       const { getByTestId, queryByTestId, unmount } = render(
         <MemoryRouter initialEntries={[item.to]}>
-          <ExistingAppRoutes />
+          {routesFromProfileTable()}
         </MemoryRouter>,
       );
       expect(getByTestId("profile-settings")).toBeInTheDocument();
@@ -97,7 +114,7 @@ describe("DashboardHeader avatar menu", () => {
     for (const path of LEGACY_PROFILE_PATHS) {
       const { getByTestId, queryByTestId, unmount } = render(
         <MemoryRouter initialEntries={[path]}>
-          <ExistingAppRoutes />
+          {routesFromProfileTable()}
         </MemoryRouter>,
       );
       expect(getByTestId("profile-settings")).toBeInTheDocument();

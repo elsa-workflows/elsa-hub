@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { OTP_EXPIRED_AUTH_MESSAGE } from "@/lib/authErrors";
+import { AUTH_RATE_LIMIT_MESSAGE, EMAIL_SEND_RATE_LIMIT_MESSAGE, OTP_EXPIRED_AUTH_MESSAGE } from "@/lib/authErrors";
 import { AUTH_REDIRECT_STORAGE_KEY } from "@/lib/authRedirect";
 
 const navigate = vi.fn();
@@ -172,6 +172,45 @@ describe("AuthConfirm", () => {
     fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
     expect(await screen.findByText(OTP_EXPIRED_AUTH_MESSAGE)).toBeInTheDocument();
     expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe("/dashboard/org/acme");
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("does not jump to the destination when Sign out is clicked near the end of the banner", async () => {
+    let releaseSignOut: () => void = () => {};
+    signOut.mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseSignOut = () => resolve({ error: null });
+      }),
+    );
+    renderConfirm("?token_hash=abc&type=email");
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^sign out$/i })).toBeInTheDocument(),
+    );
+    expect(navigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
+    await act(async () => {
+      vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS);
+    });
+    expect(navigate).not.toHaveBeenCalledWith("/dashboard");
+
+    await act(async () => {
+      releaseSignOut();
+    });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/login"));
+    expect(navigate).not.toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("does not use the email-send wording for a verifyOtp 429", async () => {
+    verifyOtp.mockResolvedValueOnce({
+      data: { session: null },
+      error: { status: 429, code: "over_request_rate_limit", message: "Too many requests" },
+    });
+    renderConfirm("?token_hash=abc&type=email");
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+    expect(await screen.findByText(AUTH_RATE_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).not.toBeInTheDocument();
     expect(navigate).not.toHaveBeenCalled();
   });
 

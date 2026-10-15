@@ -39,7 +39,7 @@ Settings → Connected accounts calls `linkIdentity()` for GitHub and Google (re
 
 `src/lib/authErrors.ts` maps Auth / callback errors:
 
-- Rate-limited magic link → wait and retry.
+- Email-send rate limit (`over_email_send_rate_limit` from signInWithOtp, signUp, resend) → we just sent you an email; wait before requesting another. verifyOtp and OAuth 429s, and the hourly email cap, use their own wording.
 - `identity_already_exists` → this Google/GitHub identity belongs to another Hub user.
 - `email_exists` / already registered → sign in with the method already on that email. Automatic linking by email means this code is rarely returned for GitHub, Google, or magic-link sign-in.
 - Unverified email → confirm the inbox link first.
@@ -62,6 +62,8 @@ GitHub and Google use `redirectTo` = `{origin}/auth/callback`. After a session e
 
 Prod logs showed a ~30s (one case 86s) pause before `POST /auth/v1/otp`. The request reached Supabase only after that client silence and was answered in about 1.25s. There were no retries, no 5xx, and no slow SMTP. The delay is therefore client-side or on the network before Supabase.
 
-Prime cause: the supabase-js exclusive auth lock. `onAuthStateChange` runs inside that lock. AuthContext used to call `refreshSession()` from the callback, which can block `signInWithOtp` from sending until the lock is released. supabase-js guidance is not to await (or even call) other auth APIs in that callback; defer them with `setTimeout(0)`. AuthContext now does that. The `/auth/callback` listener stays synchronous and does not call supabase.auth.
+The cause of that stall is unknown. In `@supabase/auth-js` 2.93.1 the email path of `signInWithOtp` does not take the auth lock and does not await initialization, so an `onAuthStateChange` lock cannot explain a signed-out visitor on `/login`. The old `refreshSession()` inside that callback also cannot explain it: it ran only when a sign-in changed the user, which a signed-out visitor never hits.
 
-The form stays on the in-flight request and, after about 8 seconds, still shows "Still sending..." in case a remaining network stall happens.
+`onAuthStateChange` still uses `setTimeout(0)` for the post-sign-in redirect. That follows supabase-js guidance: do not await supabase calls inside `onAuthStateChange`. AuthContext does not call other auth APIs from that callback. The `/auth/callback` listener stays synchronous and does not call supabase.auth.
+
+The form stays on the in-flight request and, after about 8 seconds, still shows "Still sending...". That mitigates a remaining stall; it does not fix the unknown cause.
