@@ -14,7 +14,12 @@ import {
   hasCloudSetupMarker,
   setCloudSetupMarker,
 } from "@/lib/cloudClient/setupMarker";
-import { cloudWorkspaceView, fetchCloudWorkspaces, useCloudWorkspace } from "./useCloudWorkspace";
+import {
+  cloudWorkspaceView,
+  fetchCloudWorkspaces,
+  pickCloudWorkspace,
+  useCloudWorkspace,
+} from "./useCloudWorkspace";
 
 const authState = vi.hoisted(() => ({
   user: { id: "user-1" } as { id: string } | null,
@@ -55,6 +60,18 @@ describe("cloudWorkspaceView", () => {
     expect(
       cloudWorkspaceView({ ok: true, state: "ready", workspaces: [workspace] }, false),
     ).toEqual({ kind: "ready", workspace });
+  });
+
+  it("keeps an explicit workspace selection when it is still in the list", () => {
+    const other = {
+      ...workspace,
+      id: "ws-other",
+      organizationId: "org-other",
+      organizationRole: "member",
+      role: "member",
+    };
+    expect(pickCloudWorkspace([other, workspace], other.id)).toEqual(other);
+    expect(pickCloudWorkspace([other, workspace], "missing")).toEqual(workspace);
   });
 
   it("picks the owner-org workspace the way Control bootstrap does", () => {

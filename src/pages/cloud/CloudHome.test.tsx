@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import {
   CLOUD_EMPTY_MESSAGE,
+  CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
+  CLOUD_MANAGE_LINK,
+  CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
   CLOUD_UPDATING_HEADING,
   CLOUD_UPDATING_MESSAGE,
@@ -16,6 +19,9 @@ const viewState = vi.hoisted(() => ({
   setupCloud: vi.fn(),
   setupPending: false,
   refetch: vi.fn(),
+  workspaces: [] as { id: string; name: string }[],
+  selectWorkspace: vi.fn(),
+  selectedWorkspace: undefined as { id: string; name: string } | undefined,
 }));
 
 vi.mock("@/hooks/useCloudEngines", () => ({
@@ -24,16 +30,23 @@ vi.mock("@/hooks/useCloudEngines", () => ({
     setupCloud: viewState.setupCloud,
     setupPending: viewState.setupPending,
     refetch: viewState.refetch,
+    workspaces: viewState.workspaces,
+    selectWorkspace: viewState.selectWorkspace,
+    selectedWorkspace: viewState.selectedWorkspace,
   }),
 }));
 
 import CloudHome from "./CloudHome";
 
-function renderHome() {
+function renderHome(path = "/dashboard/org/acme/cloud") {
   return render(
     <HelmetProvider>
-      <MemoryRouter>
-        <CloudHome />
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
+          <Route path="/dashboard/cloud" element={<CloudHome />} />
+          <Route path="/cloud" element={<CloudHome />} />
+        </Routes>
       </MemoryRouter>
     </HelmetProvider>,
   );
@@ -56,7 +69,13 @@ describe("CloudHome", () => {
   it("shows the empty state", () => {
     viewState.current = { kind: "empty" };
     renderHome();
+    expect(screen.getByRole("heading", { name: CLOUD_PAGE_TITLE })).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_ENGINES_INTRO)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_EMPTY_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: CLOUD_MANAGE_LINK })).toHaveAttribute(
+      "href",
+      "https://elsacloud.app",
+    );
     expect(screen.queryByRole("button", { name: /create|delete|billing/i })).not.toBeInTheDocument();
   });
 
@@ -79,7 +98,7 @@ describe("CloudHome", () => {
     expect(screen.getByText("Release 3.8.4")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /production/i })).toHaveAttribute(
       "href",
-      "/cloud/engines/11111111-1111-4111-8111-111111111111",
+      "/dashboard/org/acme/cloud/engines/11111111-1111-4111-8111-111111111111",
     );
   });
 

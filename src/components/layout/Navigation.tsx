@@ -19,9 +19,7 @@ import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime"
 type NavItem = { label: string; to?: string; href?: string; badge?: string; external?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
 
-const leaves: NavItem[] = [
-  { label: "Cloud", to: "/cloud" },
-];
+const leaves: NavItem[] = [];
 
 const groups: NavGroup[] = [
   {

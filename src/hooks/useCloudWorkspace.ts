@@ -17,6 +17,39 @@ import { selectPreferredCloudWorkspace } from "@/lib/cloudClient/workspace";
 
 export const CLOUD_WORKSPACE_QUERY_KEY = ["cloud", "workspaces"] as const;
 export const CLOUD_WORKSPACE_STALE_TIME = 5 * 60_000;
+export const CLOUD_WORKSPACE_SELECTION_PREFIX = "elsa.cloud.workspace:";
+
+export function cloudWorkspaceSelectionKey(userId: string) {
+  return `${CLOUD_WORKSPACE_SELECTION_PREFIX}${userId}`;
+}
+
+export function readSelectedCloudWorkspaceId(userId: string | undefined): string | null {
+  if (!userId) return null;
+  try {
+    return sessionStorage.getItem(cloudWorkspaceSelectionKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+export function writeSelectedCloudWorkspaceId(userId: string, workspaceId: string) {
+  try {
+    sessionStorage.setItem(cloudWorkspaceSelectionKey(userId), workspaceId);
+  } catch {
+    // Private mode / quota: selection lasts for this page only.
+  }
+}
+
+export function pickCloudWorkspace(
+  workspaces: CloudWorkspace[],
+  selectedId?: string | null,
+): CloudWorkspace | undefined {
+  if (selectedId) {
+    const selected = workspaces.find((workspace) => workspace.id === selectedId);
+    if (selected) return selected;
+  }
+  return selectPreferredCloudWorkspace(workspaces);
+}
 
 export type CloudWorkspaceView =
   | { kind: "loading" }
@@ -32,6 +65,7 @@ export async function fetchCloudWorkspaces(): Promise<CloudBffResponse> {
 export function cloudWorkspaceView(
   result: CloudBffResponse | undefined,
   isPending: boolean,
+  selectedId?: string | null,
 ): CloudWorkspaceView {
   if (isPending || result === undefined) {
     return { kind: "loading" };
@@ -43,7 +77,7 @@ export function cloudWorkspaceView(
     return { kind: "error", message: result.error };
   }
   if ("workspaces" in result) {
-    const workspace = selectPreferredCloudWorkspace(result.workspaces);
+    const workspace = pickCloudWorkspace(result.workspaces, selectedId);
     if (!workspace) return { kind: "needsSetup" };
     return { kind: "ready", workspace };
   }
@@ -60,6 +94,12 @@ export function useCloudWorkspace() {
 
   useEffect(() => {
     setSetupReady(Boolean(userId && hasCloudSetupMarker(userId)));
+  }, [userId]);
+
+  const [selectedId, setSelectedId] = useState(() => readSelectedCloudWorkspaceId(userId));
+
+  useEffect(() => {
+    setSelectedId(readSelectedCloudWorkspaceId(userId));
   }, [userId]);
 
   const canLoad = Boolean(userId && setupReady);
@@ -95,9 +135,16 @@ export function useCloudWorkspace() {
     },
   });
 
+  const workspaces =
+    query.data && "workspaces" in query.data ? query.data.workspaces : [];
+
   let view: CloudWorkspaceView = !canLoad
     ? { kind: "needsSetup" }
-    : cloudWorkspaceView(query.data, query.isPending || query.data === undefined);
+    : cloudWorkspaceView(
+        query.data,
+        query.isPending || query.data === undefined,
+        selectedId,
+      );
   if (bootstrap.isPending) {
     view = { kind: "loading" };
   } else if (bootstrap.data && !bootstrap.data.ok) {
@@ -114,6 +161,11 @@ export function useCloudWorkspace() {
   return {
     ...query,
     view,
+    workspaces,
+    selectWorkspace: (workspaceId: string) => {
+      setSelectedId(workspaceId);
+      if (userId) writeSelectedCloudWorkspaceId(userId, workspaceId);
+    },
     setupCloud: () => bootstrap.mutate(),
     setupPending: bootstrap.isPending,
     refetch: async () => {

@@ -81,6 +81,9 @@ export function useCloudEngineOverview(engineId: string | undefined) {
   return {
     ...query,
     view: resolveCloudEngineOverviewView(workspace.view, query.data, waitingForEngine || !engineId),
+    workspaces: workspace.workspaces,
+    selectWorkspace: workspace.selectWorkspace,
+    selectedWorkspace: workspace.view.kind === "ready" ? workspace.view.workspace : undefined,
     setupCloud: workspace.setupCloud,
     setupPending: workspace.setupPending,
     refetch: async () => {

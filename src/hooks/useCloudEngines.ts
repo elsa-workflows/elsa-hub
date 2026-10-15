@@ -77,6 +77,9 @@ export function useCloudEngines() {
       query.data,
       Boolean(workspaceId) && (query.isPending || query.data === undefined),
     ),
+    workspaces: workspace.workspaces,
+    selectWorkspace: workspace.selectWorkspace,
+    selectedWorkspace: workspace.view.kind === "ready" ? workspace.view.workspace : undefined,
     setupCloud: workspace.setupCloud,
     setupPending: workspace.setupPending,
     refetch: async () => {

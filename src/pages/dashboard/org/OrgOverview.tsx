@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
+import { ElsaCloudOverviewCard } from "@/components/dashboard/ElsaCloudOverviewCard";
 import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder, PurchaseBundleDialog, RegistryAccessCard } from "@/components/organization";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
@@ -145,10 +146,12 @@ export default function OrgOverview() {
         />
       )}
 
+      <ElsaCloudOverviewCard orgSlug={slug} />
+
       {/* Quick Links */}
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <QuickLinkCard title="Orders" description="View purchase history" href={`/dashboard/org/${slug}/orders`} />
-        <QuickLinkCard title="Credits" description="Track usage & expiration" href={`/dashboard/org/${slug}/credits`} />
+        <QuickLinkCard title="Credits & Hours" description="Track usage & expiration" href={`/dashboard/org/${slug}/credits`} />
         <QuickLinkCard title="Team" description="Manage members" href={`/dashboard/org/${slug}/team`} />
         <QuickLinkCard title="Settings" description="Organization settings" href={`/dashboard/org/${slug}/settings`} />
         {isAdmin && (

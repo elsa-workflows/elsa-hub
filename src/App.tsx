@@ -37,11 +37,14 @@ const ElsaRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
 const Distributions = lazy(() => import("./pages/enterprise/Distributions"));
 const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
-const CloudAuthGuard = lazy(() =>
-  import("@/components/cloud/CloudAuthGuard").then((m) => ({ default: m.CloudAuthGuard }))
-);
 const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
 const CloudEngineOverview = lazy(() => import("./pages/cloud/CloudEngineOverview"));
+const CloudIndexRedirect = lazy(() =>
+  import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.CloudIndexRedirect }))
+);
+const CloudEngineRedirect = lazy(() =>
+  import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.CloudEngineRedirect }))
+);
 const Training = lazy(() => import("./pages/enterprise/Training"));
 const RuntimeBuilderLanding = lazy(() => import("./pages/enterprise/RuntimeBuilderLanding"));
 const RuntimeBuilderComposer = lazy(() => import("./pages/enterprise/RuntimeBuilderComposer"));
@@ -169,10 +172,8 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
-              <Route path="/cloud" element={<CloudAuthGuard />}>
-                <Route index element={<CloudHome />} />
-                <Route path="engines/:engineId" element={<CloudEngineOverview />} />
-              </Route>
+              <Route path="/cloud" element={<CloudIndexRedirect />} />
+              <Route path="/cloud/engines/:engineId" element={<CloudEngineRedirect />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />
@@ -207,7 +208,11 @@ const App = () => (
                 <Route index element={<DashboardHome />} />
                 <Route path="settings" element={<ProfileSettings />} />
                 <Route path="settings/notifications" element={<NotificationSettings />} />
+                <Route path="cloud" element={<CloudHome />} />
+                <Route path="cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug" element={<OrgOverview />} />
+                <Route path="org/:slug/cloud" element={<CloudHome />} />
+                <Route path="org/:slug/cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug/orders" element={<OrgOrders />} />
                 <Route path="org/:slug/credits" element={<OrgCredits />} />
                 <Route path="org/:slug/team" element={<OrgTeam />} />

@@ -1,36 +1,48 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
 import { CloudLoadingState } from "@/components/cloud/CloudLoadingState";
+import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
+import { useCloudConsolePaths } from "@/lib/cloudPaths";
+import { CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 
 export default function CloudEngineOverviewPage() {
   const { engineId } = useParams<{ engineId: string }>();
-  const { view, refetch, setupCloud, setupPending } = useCloudEngineOverview(engineId);
+  const { pathname } = useLocation();
+  const { home } = useCloudConsolePaths();
+  const { view, refetch, setupCloud, setupPending, workspaces, selectWorkspace, selectedWorkspace } =
+    useCloudEngineOverview(engineId);
   const titleName = view.kind === "ready" ? view.engine.name : "Engine";
+  const inDashboard = pathname.startsWith("/dashboard");
 
   return (
     <>
       <Seo
-        path={`/cloud/engines/${engineId ?? ""}`}
-        title={`${titleName} — Cloud — Elsa Workflows`}
+        path={pathname}
+        title={`${titleName} — ${CLOUD_PAGE_TITLE} — Elsa Workflows`}
         description="Read-only overview of an Elsa Cloud engine."
         noIndex
       />
-      <section className="py-10 md:py-16">
-        <div className="container max-w-3xl space-y-6">
+      <section className={inDashboard ? "p-6" : "py-10 md:py-16"}>
+        <div className={inDashboard ? "space-y-6" : "container max-w-3xl space-y-6"}>
+          <CloudPageHeader
+            workspaces={workspaces}
+            selectedWorkspace={selectedWorkspace}
+            onSelectWorkspace={selectWorkspace}
+          />
           <Link
-            to="/cloud"
+            to={home}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Cloud
+            Back to {CLOUD_PAGE_TITLE}
           </Link>
 
           {view.kind === "loading" && <CloudLoadingState />}
