@@ -65,9 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // /auth/confirm owns its own redirect after verifyOtp so it can
         // keep the stored path when verify fails, and show the signed-in
         // banner before navigating.
-        // setTimeout(0) follows supabase-js guidance: do not await supabase
-        // calls inside onAuthStateChange. The cause of the magic-link send
-        // stall is unknown; this callback stays synchronous either way.
+        // Keep this callback synchronous: supabase-js guidance is not to
+        // await supabase calls inside onAuthStateChange. setTimeout(0) only
+        // defers window.location until after React renders. The cause of
+        // the magic-link send stall is unknown.
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
           if (isAuthConfirmPath(window.location.pathname)) {
             return;
@@ -132,9 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = () => signInWithOAuth("google");
 
   const signInWithMagicLink = async (email: string) => {
-    // Single signInWithOtp, no extra awaits. supabase-js guidance is not
-    // to await supabase calls inside onAuthStateChange (see setTimeout(0)
-    // on the listener above). The cause of the POST /otp stall is unknown.
+    // Single signInWithOtp, no extra awaits. The listener above stays
+    // synchronous (supabase-js: do not await supabase calls inside
+    // onAuthStateChange). The cause of the POST /otp stall is unknown.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {

@@ -79,13 +79,13 @@ describe("PasswordlessAuth magic-link cooldown", () => {
     expect(signInWithMagicLink).toHaveBeenCalledTimes(2);
   });
 
-  it("starts a 60s resend countdown when GoTrue rate-limits without a retry time", async () => {
+  it("starts a 60s resend countdown when the per-address cooldown has no retry time", async () => {
     signInWithMagicLink.mockResolvedValueOnce({
       error: {
         name: "AuthApiError",
         status: 429,
         code: "over_email_send_rate_limit",
-        message: "Email rate limit exceeded",
+        message: "For security purposes, you can only request this.",
       } as Error,
     });
     render(<PasswordlessAuth />);
@@ -126,6 +126,7 @@ describe("PasswordlessAuth magic-link cooldown", () => {
       error: {
         name: "AuthApiError",
         status: 429,
+        code: "over_email_send_rate_limit",
         message: "Email rate limit exceeded",
       } as Error,
     });

@@ -52,31 +52,34 @@ export const EMAIL_SEND_RATE_LIMIT_MESSAGE =
   "We just sent you an email. Wait a minute before requesting another one.";
 
 export const EMAIL_HOURLY_RATE_LIMIT_MESSAGE =
-  "This address has reached the hourly email limit. Try again later.";
+  "The hourly email send limit has been reached. Try again later.";
 
 export const AUTH_RATE_LIMIT_MESSAGE =
   "Too many attempts, wait a moment and try again.";
 
 export const EMAIL_SEND_RATE_LIMIT_DEFAULT_MS = 60_000;
 
+const AFTER_N_SECONDS = /after\s+\d+\s+seconds?/i;
+
 /**
- * Per-address email-send cooldown from signInWithOtp, signUp, and resend
- * (`over_email_send_rate_limit`). Not verifyOtp, OAuth, or the hourly cap.
+ * Per-address cooldown from signInWithOtp, signUp, and resend.
+ * GoTrue uses `over_email_send_rate_limit` for both this cooldown
+ * (`...after N seconds`) and the project-wide hourly cap
+ * (`email rate limit exceeded`), so the message is classified first.
  */
 export function isEmailSendRateLimit(error: AuthLikeError): boolean {
   if (error == null) return false;
-  const { code, message } = collectText(error);
-  const blob = `${code} ${message}`;
-  return (
-    blob.includes("over_email_send_rate_limit") ||
-    blob.includes("for security purposes")
-  );
+  const { message } = collectText(error);
+  if (AFTER_N_SECONDS.test(message)) return true;
+  if (message.includes("email rate limit exceeded")) return false;
+  return message.includes("for security purposes");
 }
 
 function isEmailHourlyRateLimit(error: AuthLikeError): boolean {
-  if (error == null || isEmailSendRateLimit(error)) return false;
-  const { code, message } = collectText(error);
-  return `${code} ${message}`.includes("email rate limit exceeded");
+  if (error == null) return false;
+  const { message } = collectText(error);
+  if (AFTER_N_SECONDS.test(message)) return false;
+  return message.includes("email rate limit exceeded");
 }
 
 function isAuthRateLimit(error: AuthLikeError): boolean {
