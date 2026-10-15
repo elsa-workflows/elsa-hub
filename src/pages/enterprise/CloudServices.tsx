@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,8 @@ const relatedOfferings = [
 ];
 
 export default function CloudServices() {
+  const { user } = useAuth();
+
   return (
     <Layout>
       <Seo path="/elsa-plus/cloud-services" title="Managed cloud hosting for Elsa — Elsa+" description="Managed Elsa hosting providers: hand off operations, upgrades, and scaling so your team can focus on building workflows." />
@@ -369,21 +372,35 @@ export default function CloudServices() {
               Managed hosting is not live yet.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                variant="outline"
-                className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary"
-                asChild
-              >
-                <a
-                  href="https://elsacloud.app/request-trial"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {user ? (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary"
+                  asChild
                 >
-                  Join the waitlist
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
+                  <Link to="/cloud">
+                    Open Elsa Cloud
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary"
+                  asChild
+                >
+                  <a
+                    href="https://elsacloud.app/request-trial"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Join the waitlist
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
               <Button variant="outline" size="lg" className="gap-2" asChild>
                 <a
                   href="https://docs.elsaworkflows.io/"
