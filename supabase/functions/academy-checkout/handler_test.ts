@@ -357,6 +357,55 @@ Deno.test("AC2 second Solo purchase attaches the existing customer to the sessio
   assertEquals(stripe.created.length, 0);
 });
 
+Deno.test("Solo checkout fails closed when published solo_bundle prices differ", async () => {
+  const stripe = createStripeMock();
+  const res = await runAcademyCheckout({
+    user: USER,
+    body: { courseId: SOLO_COURSE.id },
+    origin: "https://hub.example",
+    deps: {
+      userClient: createUserClient(false),
+      serviceClient: createServiceClient({
+        courses: [
+          SOLO_COURSE,
+          {
+            ...SOLO_COURSE,
+            id: "00000000-0000-4000-8000-000000002002",
+            slug: "other-published",
+            stripe_price_id: "price_other_solo",
+          },
+        ],
+      }),
+      stripe: stripe.stripe,
+    },
+  });
+  const { status, body } = await parseJson(res);
+  assertEquals(status, 409);
+  assertEquals(body.error, "Published Solo courses have conflicting Stripe prices");
+  assertEquals(stripe.sessions.length, 0);
+});
+
+Deno.test("Team checkout fails closed when the SKU row product_code does not match", async () => {
+  const stripe = createStripeMock();
+  const res = await runAcademyCheckout({
+    user: USER,
+    body: { productCode: "team_5", organizationId: ORG_ID },
+    origin: "https://hub.example",
+    deps: {
+      userClient: createUserClient(true),
+      serviceClient: createServiceClient({
+        billingProfile: BILLING_PROFILE,
+        courses: [{ ...TEAM5_COURSE, product_code: "solo_bundle" }],
+      }),
+      stripe: stripe.stripe,
+    },
+  });
+  const { status, body } = await parseJson(res);
+  assertEquals(status, 409);
+  assertEquals(body.error, "Team SKU row product_code does not match the requested SKU");
+  assertEquals(stripe.sessions.length, 0);
+});
+
 Deno.test("course without stripe_price_id is rejected and never hardcodes a price", async () => {
   const stripe = createStripeMock();
   const res = await runAcademyCheckout({
