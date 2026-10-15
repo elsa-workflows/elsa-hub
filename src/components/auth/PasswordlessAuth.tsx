@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { describeAuthError, SAME_BROWSER_AUTH_MESSAGE } from "@/lib/authErrors";
+import { describeAuthError } from "@/lib/authErrors";
 import { rememberAuthRedirect, sanitizeAuthRedirect } from "@/lib/authRedirect";
 import { GoogleIcon } from "./GoogleIcon";
 
@@ -84,7 +84,10 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
       return;
     }
 
-    setMagicStatus("loading");
+    const stayOnSent = magicStatus === "sent";
+    if (!stayOnSent) {
+      setMagicStatus("loading");
+    }
     setMagicError(null);
     rememberAuthRedirect(safeRedirect);
 
@@ -155,22 +158,36 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
         <Alert>
           <MailCheck className="h-4 w-4" />
           <AlertTitle>Check your inbox</AlertTitle>
-          <AlertDescription>
-            We sent a sign-in link to <span className="font-medium text-foreground">{sentEmail}</span>.
-            Open it to continue. The link expires shortly and can only be used once.
-            {" "}
-            {SAME_BROWSER_AUTH_MESSAGE}
-            <Button
-              type="button"
-              variant="link"
-              className="h-auto p-0 ml-1"
-              onClick={() => {
-                setMagicStatus("idle");
-                setSentEmail("");
-              }}
-            >
-              Use a different email
-            </Button>
+          <AlertDescription className="space-y-3">
+            <p>
+              We sent a sign-in link to <span className="font-medium text-foreground">{sentEmail}</span>.
+              Open it to continue. The link expires shortly and can only be used once.
+              You can open it in this browser or another device.
+            </p>
+            <div className="flex flex-col items-start gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-auto"
+                disabled={onCooldown}
+                onClick={() => {
+                  void onMagicLink({ email: sentEmail });
+                }}
+              >
+                {onCooldown ? `Wait ${cooldownSeconds}s to resend` : "Resend link"}
+              </Button>
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto p-0"
+                onClick={() => {
+                  setMagicStatus("idle");
+                  setSentEmail("");
+                }}
+              >
+                Use a different email
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       ) : (

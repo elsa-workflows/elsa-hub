@@ -1,4 +1,5 @@
 export const AUTH_CALLBACK_PATH = "/auth/callback";
+export const AUTH_CONFIRM_PATH = "/auth/confirm";
 export const AUTH_REDIRECT_STORAGE_KEY = "authRedirect";
 export const DEFAULT_POST_AUTH_PATH = "/dashboard";
 
@@ -18,14 +19,14 @@ function hasControlChars(value: string): boolean {
  * Decode a redirect value until it stops changing, so encoded open-redirect
  * payloads such as %2F%2Fevil.com are judged in their final form.
  */
-export function decodeUntilStable(value: string): string {
+export function decodeUntilStable(value: string): string | null {
   let current = value;
   for (let i = 0; i < 8; i++) {
     let next: string;
     try {
       next = decodeURIComponent(current);
     } catch {
-      return current;
+      return null;
     }
     if (next === current) {
       return current;
@@ -46,6 +47,9 @@ export function sanitizeAuthRedirect(redirectTo?: string | null): string | null 
   }
 
   const decoded = decodeUntilStable(redirectTo);
+  if (decoded == null) {
+    return null;
+  }
 
   if (SCHEME_AFTER_DECODE.test(decoded)) {
     return null;

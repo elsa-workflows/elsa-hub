@@ -44,14 +44,14 @@ Settings → Connected accounts calls `linkIdentity()` for GitHub and Google (re
 - `email_exists` / already registered → sign in with the method already on that email. Automatic linking by email means this code is rarely returned for GitHub, Google, or magic-link sign-in.
 - Unverified email → confirm the inbox link first.
 
-The login/signup screens and `/auth/callback` show those mapped messages instead of a raw GoTrue string or a URL `error_description`.
+The login/signup screens, `/auth/callback`, and `/auth/confirm` show those mapped messages instead of a raw GoTrue string or a URL `error_description`. Expired or already-used email links (`otp_expired`, and a used PKCE auth code) show: "This link has expired, request a new one."
 
-## PKCE same-browser links
+## Email links vs PKCE
 
-The Hub Auth client uses `flowType: "pkce"`. supabase-js stores a code verifier in the browser that requested the magic link or confirmation email. Opening that link in a different browser (or after storage was cleared) fails with a missing or invalid code verifier, or a `flow_state_*` error.
+Magic link, signup confirmation, and password recovery emails must use `/auth/confirm?token_hash=...&type=...` as described in `docs/auth-email-templates.md`. That click-to-verify page is not consumed by Safe Links, and it does not need a PKCE code verifier, so those emails work in any browser.
 
-The callback maps those errors to: "Open the link in the same browser where you requested it." The magic-link sent screen shows the same hint. A new link must be requested in the browser the user will open.
+GitHub and Google still use `flowType: "pkce"` and `{origin}/auth/callback`. A missing code verifier there still maps to: "Open the link in the same browser where you requested it." A server exchange failure for an expired or already-used `code` maps to the expired-link message, not the same-browser hint.
 
 ## Redirects
 
-GitHub, Google, magic link and email confirmation all use `redirectTo` / `emailRedirectTo` = `{origin}/auth/callback`. After a session exists, the callback honours a validated same-site `sessionStorage.authRedirect` (from `?redirect=` on `/login`) or `/dashboard`.
+GitHub and Google use `redirectTo` = `{origin}/auth/callback`. After a session exists, the callback honours a validated same-site `sessionStorage.authRedirect` (from `?redirect=` on `/login`) or `/dashboard`. Email templates point at `/auth/confirm`, which honours an optional same-site `redirect` query or `/dashboard`.

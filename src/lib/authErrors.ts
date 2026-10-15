@@ -37,6 +37,8 @@ const GENERIC_AUTH_ERROR = "Something went wrong while signing in. Please try ag
 export const SAME_BROWSER_AUTH_MESSAGE =
   "Open the link in the same browser where you requested it.";
 
+export const OTP_EXPIRED_AUTH_MESSAGE = "This link has expired, request a new one.";
+
 /**
  * Map Supabase Auth / OAuth callback errors to a short message users can act on.
  * Supabase auto-links identities by matching email and strips unconfirmed
@@ -80,7 +82,6 @@ export function describeAuthError(error: AuthLikeError, fallback?: string): stri
     blob.includes("code_verifier") ||
     blob.includes("pkce_code_verifier") ||
     blob.includes("authpkcecodeverifier") ||
-    blob.includes("flow_state") ||
     blob.includes("bad_code_verifier")
   ) {
     return SAME_BROWSER_AUTH_MESSAGE;
@@ -88,10 +89,13 @@ export function describeAuthError(error: AuthLikeError, fallback?: string): stri
 
   if (
     blob.includes("otp_expired") ||
+    blob.includes("flow_state_expired") ||
+    blob.includes("flow_state_not_found") ||
     blob.includes("bad_jwt") ||
-    blob.includes("token has expired")
+    blob.includes("token has expired") ||
+    blob.includes("already used")
   ) {
-    return "This sign-in link has expired or was already used. Request a new one.";
+    return OTP_EXPIRED_AUTH_MESSAGE;
   }
 
   if (blob.includes("email_not_confirmed") || blob.includes("not confirmed")) {

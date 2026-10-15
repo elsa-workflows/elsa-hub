@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   describeAuthError,
+  OTP_EXPIRED_AUTH_MESSAGE,
   parseAuthCallbackError,
   SAME_BROWSER_AUTH_MESSAGE,
 } from "./authErrors";
@@ -34,11 +35,13 @@ describe("describeAuthError", () => {
   });
 
   it("explains expired magic links", () => {
-    expect(describeAuthError({ message: "Token has expired or is invalid" })).toMatch(
-      /expired or was already used/i,
+    expect(describeAuthError({ message: "Token has expired or is invalid" })).toBe(
+      OTP_EXPIRED_AUTH_MESSAGE,
     );
-    expect(describeAuthError({ code: "otp_expired" })).toMatch(/expired or was already used/i);
-    expect(describeAuthError({ code: "bad_jwt" })).toMatch(/expired or was already used/i);
+    expect(describeAuthError({ code: "otp_expired" })).toBe(OTP_EXPIRED_AUTH_MESSAGE);
+    expect(describeAuthError({ code: "bad_jwt" })).toBe(OTP_EXPIRED_AUTH_MESSAGE);
+    expect(describeAuthError({ code: "flow_state_expired" })).toBe(OTP_EXPIRED_AUTH_MESSAGE);
+    expect(describeAuthError({ code: "flow_state_not_found" })).toBe(OTP_EXPIRED_AUTH_MESSAGE);
   });
 
   it("tells the user to reopen a PKCE link in the same browser", () => {
@@ -54,8 +57,6 @@ describe("describeAuthError", () => {
       SAME_BROWSER_AUTH_MESSAGE,
     );
     expect(describeAuthError({ code: "bad_code_verifier" })).toBe(SAME_BROWSER_AUTH_MESSAGE);
-    expect(describeAuthError({ code: "flow_state_not_found" })).toBe(SAME_BROWSER_AUTH_MESSAGE);
-    expect(describeAuthError({ code: "flow_state_expired" })).toBe(SAME_BROWSER_AUTH_MESSAGE);
   });
 
   it("does not treat every invalid-link message as an expired OTP", () => {
@@ -100,13 +101,13 @@ describe("parseAuthCallbackError", () => {
     expect(parseAuthCallbackError("?code=abc", "#access_token=tok")).toBeNull();
   });
 
-  it("maps PKCE and flow-state callback errors to the same-browser hint", () => {
+  it("maps a used or expired PKCE code to the expired-link message", () => {
     const parsed = parseAuthCallbackError(
-      "?error=server_error&error_code=flow_state_not_found&error_description=Flow+state+not+found",
+      "?error=server_error&error_code=flow_state_expired&error_description=Flow+state+has+expired",
       "",
     );
-    expect(parsed?.code).toBe("flow_state_not_found");
-    expect(parsed?.message).toBe(SAME_BROWSER_AUTH_MESSAGE);
+    expect(parsed?.code).toBe("flow_state_expired");
+    expect(parsed?.message).toBe(OTP_EXPIRED_AUTH_MESSAGE);
   });
 
   it("does not echo a crafted URL error_description", () => {

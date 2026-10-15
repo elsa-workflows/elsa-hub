@@ -41,18 +41,8 @@ describe("PasswordlessAuth magic-link cooldown", () => {
 
     expect(signInWithMagicLink).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/check your inbox/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/open the link in the same browser where you requested it/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/same browser/i)).not.toBeInTheDocument();
     expect(sessionStorage.getItem("authRedirect")).toBe("/courses?x=1");
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /use a different email/i }));
-    });
-
-    fireEvent.change(screen.getByLabelText(/email for magic link/i), {
-      target: { value: "qa@example.com" },
-    });
 
     const waiting = screen.getByRole("button", { name: /wait 60s to resend/i });
     expect(waiting).toBeDisabled();
@@ -71,7 +61,7 @@ describe("PasswordlessAuth magic-link cooldown", () => {
       vi.advanceTimersByTime(1);
     });
 
-    const ready = screen.getByRole("button", { name: /email me a sign-in link/i });
+    const ready = screen.getByRole("button", { name: /resend link/i });
     expect(ready).not.toBeDisabled();
 
     await act(async () => {

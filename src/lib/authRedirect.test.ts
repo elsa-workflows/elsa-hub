@@ -40,6 +40,10 @@ describe("sanitizeAuthRedirect", () => {
     expect(sanitizeAuthRedirect(original)).toBe(original);
     expect(sanitizeAuthRedirect(original)).not.toBe("/search?q=/courses?x=1");
   });
+
+  it("rejects a path when decodeURIComponent throws", () => {
+    expect(sanitizeAuthRedirect("/%ZZ")).toBeNull();
+  });
 });
 
 describe("authRedirect session storage", () => {

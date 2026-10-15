@@ -127,4 +127,20 @@ describe("AuthCallback", () => {
     expect(exchangeCodeForSession).toHaveBeenCalledWith("pkce-from-other-browser");
     expect(navigate).not.toHaveBeenCalled();
   });
+
+  it("maps a same-browser expired or used code to the expired-link message", async () => {
+    window.location.search = "?code=already-used";
+    getSession.mockResolvedValue({ data: { session: null }, error: null });
+    exchangeCodeForSession.mockResolvedValue({
+      data: { session: null },
+      error: { code: "flow_state_expired", message: "Flow state has expired" },
+    });
+
+    renderCallback();
+
+    expect(await screen.findByText(/verification failed/i)).toBeInTheDocument();
+    expect(screen.getByText(/this link has expired, request a new one/i)).toBeInTheDocument();
+    expect(screen.queryByText(/same browser/i)).not.toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });

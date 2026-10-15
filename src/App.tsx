@@ -48,6 +48,7 @@ const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ConfirmEmail = lazy(() => import("./pages/signup/ConfirmEmail"));
 const AuthCallback = lazy(() => import("./pages/auth/AuthCallback"));
+const AuthConfirm = lazy(() => import("./pages/auth/AuthConfirm"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -187,6 +188,7 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
               <Route path="/invite/:token" element={<AcceptInvitation />} />
               <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
