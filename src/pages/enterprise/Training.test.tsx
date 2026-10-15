@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Training from "./Training";
-import { FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
+import { ACADEMY_GUMROAD_CLAIM_LIVE, FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
+import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_PATH } from "@/lib/trainingSeo";
 
 vi.mock("@/components/layout/Layout", () => ({
   Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -47,16 +48,32 @@ function renderTraining() {
 }
 
 describe("Training page", () => {
-  it("sends every Buy the Solo Bundle and Buy a Team pack CTA to the live Gumroad product", () => {
+  it("sends every Buy the Solo Bundle CTA to the Academy Solo Bundle panel in the same tab", () => {
     renderTraining();
 
-    const buyLinks = screen.getAllByRole("link", { name: /buy the solo bundle|buy a team pack/i });
-    expect(buyLinks.length).toBeGreaterThanOrEqual(4);
-    for (const link of buyLinks) {
-      expect(link).toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    const soloLinks = screen.getAllByRole("link", { name: /buy the solo bundle/i });
+    expect(soloLinks).toHaveLength(4);
+    for (const link of soloLinks) {
+      expect(link).toHaveAttribute("href", ACADEMY_SOLO_BUNDLE_PATH);
+      expect(link).not.toHaveAttribute("target");
+      expect(link).not.toHaveAttribute("rel");
     }
+    expect(
+      screen.getAllByText(/checkout is in elsa hub\. sign in or create a free account to buy\./i),
+    ).toHaveLength(4);
+  });
+
+  it("keeps Buy a Team pack on the live Gumroad product in a new tab", () => {
+    renderTraining();
+
+    const teamLinks = screen.getAllByRole("link", { name: /buy a team pack/i });
+    expect(teamLinks).toHaveLength(1);
+    expect(teamLinks[0]).toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
+    expect(teamLinks[0]).toHaveAttribute("target", "_blank");
+    expect(teamLinks[0]).toHaveAttribute("rel", "noopener noreferrer");
+    expect(
+      screen.getByText(/team packs are still sold on gumroad for now\. pick team 5 or team 10 at checkout\./i),
+    ).toBeInTheDocument();
   });
 
   it("does not link to unpublished Gumroad products and shows Solo Bundle pricing", () => {
@@ -250,5 +267,45 @@ describe("Training page", () => {
       screen.queryByText(/self-paced → private workshop → certifications/i),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/certification/i)).not.toBeInTheDocument();
+  });
+
+  it("lists Academy courses as available and links to the Hub catalogue", () => {
+    renderTraining();
+
+    expect(screen.getByRole("heading", { name: /academy courses/i })).toBeInTheDocument();
+    expect(
+      screen.getByText(/lessons and lab kit downloads in elsa hub, unlocked by the solo bundle/i),
+    ).toBeInTheDocument();
+    const browse = screen.getByRole("link", { name: /browse the academy/i });
+    expect(browse).toHaveAttribute("href", ACADEMY_PATH);
+    expect(browse).not.toHaveAttribute("target");
+    expect(screen.queryByRole("heading", { name: /^courses$/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/structured learning paths are not sold yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^later$/i)).not.toBeInTheDocument();
+  });
+
+  it("points the closing paragraph at the Hub Academy for Solo", () => {
+    renderTraining();
+
+    expect(
+      screen.getByText(
+        /buy the solo bundle in the elsa hub academy or a team pack now, or leave your details/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the Gumroad claim line in source but hidden until ACADEMY_GUMROAD_CLAIM_LIVE", () => {
+    expect(ACADEMY_GUMROAD_CLAIM_LIVE).toBe(false);
+
+    const source = readFileSync(
+      path.join(process.cwd(), "src/pages/enterprise/Training.tsx"),
+      "utf8",
+    );
+    expect(source).toContain(
+      "Bought on Gumroad? Sign in to Elsa Hub with the same verified email and your access is waiting.",
+    );
+
+    renderTraining();
+    expect(screen.queryByText(/bought on gumroad\?/i)).not.toBeInTheDocument();
   });
 });
