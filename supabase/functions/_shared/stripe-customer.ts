@@ -8,10 +8,14 @@
  *     deps?: GetOrCreateStripeCustomerDeps,
  *   ): Promise<string>
  *
- * Returns the stored Stripe customer id for that owner. When none exists, creates
- * one in Stripe and stores it. Concurrent creates rely on unique owner constraints
- * and an on-conflict re-read. Runtime callers must not look up Stripe customers
- * by email; email is only sent when creating a new customer.
+ * Returns the stored Stripe customer id for that owner and livemode. When none
+ * exists, creates one in Stripe with metadata only (idempotency key
+ * cust:org:<id>:<livemode> or cust:user:<id>:<livemode>), stores the ref, then
+ * updates email, name, and address. Concurrent creates rely on unique
+ * (owner, livemode) plus an on-conflict re-read. If this call created a
+ * different Stripe customer than the stored winner, that orphan is deleted.
+ *
+ * livemode is derived from the Stripe secret key prefix (sk_live_ is live).
  *
  * deps.stripe and deps.supabase are required in tests. In edge functions they
  * may be omitted and are then built from STRIPE_SECRET_KEY, SUPABASE_URL, and
@@ -40,7 +44,12 @@ export type StripeCustomerCreateParams = {
 
 export type StripeCustomerClient = {
   customers: {
-    create: (params: StripeCustomerCreateParams) => Promise<{ id: string }>;
+    create: (
+      params: { metadata?: Record<string, string> },
+      options?: { idempotencyKey?: string },
+    ) => Promise<{ id: string }>;
+    update: (id: string, params: StripeCustomerCreateParams) => Promise<{ id: string }>;
+    del: (id: string) => Promise<{ id: string }>;
   };
 };
 
@@ -52,15 +61,16 @@ export type StripeCustomerQueryError = { message: string; code?: string };
 
 export type StripeCustomerStore = {
   from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        maybeSingle: () => PromiseLike<{ data: StripeCustomerRow | null; error: StripeCustomerQueryError | null }>;
-      };
-    };
+    select: (columns: string) => StripeCustomerFilter;
     insert: (
-      row: Record<string, string>,
+      row: Record<string, string | boolean>,
     ) => PromiseLike<{ error: StripeCustomerQueryError | null }>;
   };
+};
+
+export type StripeCustomerFilter = {
+  eq: (column: string, value: string | boolean) => StripeCustomerFilter;
+  maybeSingle: () => PromiseLike<{ data: StripeCustomerRow | null; error: StripeCustomerQueryError | null }>;
 };
 
 export type GetOrCreateStripeCustomerDeps = {
@@ -70,6 +80,7 @@ export type GetOrCreateStripeCustomerDeps = {
   name?: string;
   address?: StripeCustomerAddress;
   metadata?: Record<string, string>;
+  stripeSecretKey?: string;
 };
 
 const ORG_TABLE = "org_stripe_customers";
@@ -91,33 +102,50 @@ function ownerValue(owner: StripeCustomerOwner): string {
   return isOrgOwner(owner) ? owner.orgId : owner.userId;
 }
 
+function livemodeFromStripeKey(key: string | undefined): boolean {
+  return (key ?? "").startsWith("sk_live_");
+}
+
+function idempotencyKey(owner: StripeCustomerOwner, livemode: boolean): string {
+  return isOrgOwner(owner)
+    ? `cust:org:${owner.orgId}:${livemode}`
+    : `cust:user:${owner.userId}:${livemode}`;
+}
+
 function isUniqueViolation(error: { message: string; code?: string }): boolean {
   if (error.code === "23505") return true;
   const message = error.message.toLowerCase();
   return message.includes("duplicate") || message.includes("unique");
 }
 
+function envGet(name: string): string | undefined {
+  return (globalThis as { Deno?: { env: { get: (key: string) => string | undefined } } }).Deno?.env.get(name);
+}
+
 type ResolvedStripeCustomerDeps = GetOrCreateStripeCustomerDeps & {
   stripe: StripeCustomerClient;
   supabase: StripeCustomerStore;
+  stripeSecretKey?: string;
 };
 
 async function resolveDeps(
   deps?: GetOrCreateStripeCustomerDeps,
 ): Promise<ResolvedStripeCustomerDeps> {
+  const stripeSecretKey = deps?.stripeSecretKey ?? envGet("STRIPE_SECRET_KEY");
+
   if (deps?.stripe && deps?.supabase) {
     return {
       ...deps,
       stripe: deps.stripe,
       supabase: deps.supabase as StripeCustomerStore,
+      stripeSecretKey,
     };
   }
 
-  const stripeKey = (globalThis as { Deno?: { env: { get: (key: string) => string | undefined } } }).Deno?.env.get("STRIPE_SECRET_KEY");
-  const supabaseUrl = (globalThis as { Deno?: { env: { get: (key: string) => string | undefined } } }).Deno?.env.get("SUPABASE_URL");
-  const serviceRoleKey = (globalThis as { Deno?: { env: { get: (key: string) => string | undefined } } }).Deno?.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseUrl = envGet("SUPABASE_URL");
+  const serviceRoleKey = envGet("SUPABASE_SERVICE_ROLE_KEY");
 
-  if (!stripeKey || !supabaseUrl || !serviceRoleKey) {
+  if (!stripeSecretKey || !supabaseUrl || !serviceRoleKey) {
     throw new Error("getOrCreateStripeCustomer requires deps.stripe and deps.supabase, or Stripe and Supabase env vars");
   }
 
@@ -128,19 +156,22 @@ async function resolveDeps(
 
   return {
     ...deps,
-    stripe: new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" }) as StripeCustomerClient,
+    stripe: new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" }) as StripeCustomerClient,
     supabase: createClient(supabaseUrl, serviceRoleKey) as unknown as StripeCustomerStore,
+    stripeSecretKey,
   };
 }
 
 async function readStoredCustomerId(
   supabase: StripeCustomerStore,
   owner: StripeCustomerOwner,
+  livemode: boolean,
 ): Promise<string | null> {
   const { data, error } = await supabase
     .from(ownerTable(owner))
     .select("stripe_customer_id")
     .eq(ownerColumn(owner), ownerValue(owner))
+    .eq("livemode", livemode)
     .maybeSingle();
 
   if (error) {
@@ -153,16 +184,30 @@ async function readStoredCustomerId(
 async function storeCustomerId(
   supabase: StripeCustomerStore,
   owner: StripeCustomerOwner,
+  livemode: boolean,
   stripeCustomerId: string,
 ): Promise<"ok" | "conflict"> {
-  const row: Record<string, string> = isOrgOwner(owner)
-    ? { organization_id: owner.orgId, stripe_customer_id: stripeCustomerId }
-    : { user_id: owner.userId, stripe_customer_id: stripeCustomerId };
+  const row: Record<string, string | boolean> = isOrgOwner(owner)
+    ? { organization_id: owner.orgId, livemode, stripe_customer_id: stripeCustomerId }
+    : { user_id: owner.userId, livemode, stripe_customer_id: stripeCustomerId };
 
   const { error } = await supabase.from(ownerTable(owner)).insert(row);
   if (!error) return "ok";
   if (isUniqueViolation(error)) return "conflict";
   throw new Error(`Failed to store Stripe customer: ${error.message}`);
+}
+
+async function deleteOrphan(
+  stripe: StripeCustomerClient,
+  createdId: string,
+  storedId: string,
+): Promise<void> {
+  if (!createdId || createdId === storedId) return;
+  try {
+    await stripe.customers.del(createdId);
+  } catch (error) {
+    console.error("Failed to delete orphan Stripe customer:", error);
+  }
 }
 
 export async function getOrCreateStripeCustomer(
@@ -174,7 +219,8 @@ export async function getOrCreateStripeCustomer(
   }
 
   const resolved = await resolveDeps(deps);
-  const stored = await readStoredCustomerId(resolved.supabase, owner);
+  const livemode = livemodeFromStripeKey(resolved.stripeSecretKey);
+  const stored = await readStoredCustomerId(resolved.supabase, owner, livemode);
   if (stored) return stored;
 
   const metadata: Record<string, string> = {
@@ -185,23 +231,33 @@ export async function getOrCreateStripeCustomer(
   } else {
     metadata.user_id = owner.userId;
   }
+  metadata.livemode = String(livemode);
 
-  const created = await resolved.stripe.customers.create({
+  const created = await resolved.stripe.customers.create(
+    { metadata },
+    { idempotencyKey: idempotencyKey(owner, livemode) },
+  );
+
+  if (!created?.id) {
+    throw new Error("Stripe customer create returned no id");
+  }
+
+  const write = await storeCustomerId(resolved.supabase, owner, livemode, created.id);
+  if (write === "conflict") {
+    const raced = await readStoredCustomerId(resolved.supabase, owner, livemode);
+    if (raced) {
+      await deleteOrphan(resolved.stripe, created.id, raced);
+      return raced;
+    }
+    throw new Error("Stripe customer store conflicted and no stored id could be re-read");
+  }
+
+  await resolved.stripe.customers.update(created.id, {
     ...(resolved.email ? { email: resolved.email } : {}),
     ...(resolved.name ? { name: resolved.name } : {}),
     ...(resolved.address ? { address: resolved.address } : {}),
     metadata,
   });
 
-  if (!created?.id) {
-    throw new Error("Stripe customer create returned no id");
-  }
-
-  const write = await storeCustomerId(resolved.supabase, owner, created.id);
-  if (write === "ok") return created.id;
-
-  const raced = await readStoredCustomerId(resolved.supabase, owner);
-  if (raced) return raced;
-
-  throw new Error("Stripe customer store conflicted and no stored id could be re-read");
+  return created.id;
 }
