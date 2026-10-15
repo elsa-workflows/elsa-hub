@@ -71,7 +71,9 @@ INSERT INTO auth.users (id, email, email_confirmed_at) VALUES
   ('00000000-0000-4000-8000-000000000019', 'colleague2@example.com', now()),
   ('00000000-0000-4000-8000-00000000001a', 'colleague3@example.com', now()),
   ('00000000-0000-4000-8000-00000000001b', 'colleague4@example.com', now()),
-  ('00000000-0000-4000-8000-00000000001c', 'team-full@example.com', now());
+  ('00000000-0000-4000-8000-00000000001c', 'team-full@example.com', now()),
+  ('00000000-0000-4000-8000-00000000001d', 'Mixed.Case@Example.com', now()),
+  ('00000000-0000-4000-8000-00000000001e', 'Unconfirmed.Buyer@Example.com', NULL);
 
 INSERT INTO public.organizations (id, name, slug) VALUES
   ('00000000-0000-4000-8000-000000001101', 'Buyer Org', 'buyer-org'),
@@ -152,6 +154,35 @@ SELECT pg_temp.claim_ok(
   'unconfirmed email creates no entitlement'
 );
 
+INSERT INTO public.academy_pending_grants (
+  email, product_code, seats, kind, gumroad_sale_id
+) VALUES (
+  'unconfirmed@example.com', 'team_5', 5, 'team', 'sale_unconfirmed_team'
+);
+
+SELECT pg_temp.set_claim_jwt(
+  '00000000-0000-4000-8000-000000000011',
+  'unconfirmed@example.com'
+);
+SET ROLE authenticated;
+
+SELECT pg_temp.claim_ok(
+  (public.academy_claim_pending_team_grant('00000000-0000-4000-8000-000000001101') ->> 'status')
+    = 'unconfirmed',
+  'unconfirmed email team claim returns unconfirmed'
+);
+
+RESET ROLE;
+SELECT pg_temp.clear_claim_jwt();
+
+SELECT pg_temp.claim_ok(
+  NOT EXISTS (
+    SELECT 1 FROM public.academy_entitlements
+    WHERE gumroad_sale_id = 'sale_unconfirmed_team'
+  ),
+  'unconfirmed email team claim creates no entitlement'
+);
+
 -- ---------------------------------------------------------------------------
 -- Confirmed solo match: grant + access only to mapped courses
 -- ---------------------------------------------------------------------------
@@ -210,6 +241,36 @@ SELECT pg_temp.claim_ok(
       AND user_id = '00000000-0000-4000-8000-000000000012'
   ),
   'confirmed solo entitlement uses solo_bundle'
+);
+
+-- Mixed-case JWT / auth.users email matches a lower-case pending row.
+INSERT INTO public.academy_pending_grants (
+  email, product_code, seats, kind, gumroad_sale_id
+) VALUES (
+  'mixed.case@example.com', 'solo_bundle', 1, 'solo', 'sale_mixed_claim'
+);
+
+SELECT pg_temp.set_claim_jwt(
+  '00000000-0000-4000-8000-00000000001d',
+  'Mixed.Case@Example.com'
+);
+SET ROLE authenticated;
+
+SELECT pg_temp.claim_ok(
+  (public.academy_claim_pending_grants() ->> 'personal_claimed')::integer = 1,
+  'mixed-case email claim matches the normalized buyer email'
+);
+
+RESET ROLE;
+SELECT pg_temp.clear_claim_jwt();
+
+SELECT pg_temp.claim_ok(
+  EXISTS (
+    SELECT 1 FROM public.academy_entitlements
+    WHERE gumroad_sale_id = 'sale_mixed_claim'
+      AND user_id = '00000000-0000-4000-8000-00000000001d'
+  ),
+  'mixed-case email claim creates the personal entitlement'
 );
 
 -- ---------------------------------------------------------------------------
@@ -474,6 +535,44 @@ SELECT pg_temp.claim_ok(
 
 SELECT pg_temp.claim_ok(
   public.academy_grant_gumroad_sale(
+    'Unconfirmed.Buyer@Example.com', 'solo_bundle', 1, 'sale_unconf_import', NULL, NULL, 'solo', false
+  ) = 'pending',
+  'grant rpc leaves an unconfirmed existing user pending'
+);
+
+SELECT pg_temp.claim_ok(
+  NOT EXISTS (
+    SELECT 1 FROM public.academy_entitlements
+    WHERE gumroad_sale_id = 'sale_unconf_import'
+  )
+  AND EXISTS (
+    SELECT 1 FROM public.academy_pending_grants
+    WHERE gumroad_sale_id = 'sale_unconf_import'
+      AND claimed_at IS NULL
+      AND email = 'unconfirmed.buyer@example.com'
+  ),
+  'grant rpc does not attach a solo grant to an unconfirmed account'
+);
+
+SELECT pg_temp.claim_ok(
+  public.academy_grant_gumroad_sale(
+    'MIXED.CASE@EXAMPLE.COM', 'solo_bundle', 1, 'sale_mixed_grant', NULL, NULL, 'solo', false
+  ) = 'granted',
+  'grant rpc matches a mixed-case confirmed email'
+);
+
+SELECT pg_temp.claim_ok(
+  EXISTS (
+    SELECT 1 FROM public.academy_entitlements
+    WHERE gumroad_sale_id = 'sale_mixed_grant'
+      AND user_id = '00000000-0000-4000-8000-00000000001d'
+      AND product_code = 'solo_bundle'
+  ),
+  'grant rpc mixed-case match attaches the personal entitlement'
+);
+
+SELECT pg_temp.claim_ok(
+  public.academy_grant_gumroad_sale(
     'existing@example.com', 'solo_bundle', 1, 'sale_exist_1', NULL, NULL, 'solo', false
   ) = 'granted',
   'grant rpc grants immediately when a solo user exists'
@@ -553,6 +652,116 @@ BEGIN
       WHERE gumroad_sale_id = 'sale_dry_1'
     ),
     'grant rpc dry-run does not write'
+  );
+END
+$$;
+
+DO $$
+DECLARE
+  v_result text;
+BEGIN
+  v_result := public.academy_grant_gumroad_sale(
+    'existing@example.com',
+    'solo_bundle',
+    1,
+    'sale_bad_parent',
+    NULL,
+    'sale_does_not_exist',
+    'redemption',
+    false
+  );
+  PERFORM pg_temp.claim_ok(
+    v_result = 'granted'
+    AND EXISTS (
+      SELECT 1 FROM public.academy_pending_grants
+      WHERE gumroad_sale_id = 'sale_bad_parent'
+        AND counts_against_sale_id IS NULL
+        AND kind = 'redemption'
+    ),
+    'grant rpc treats a missing parent sale as unmapped'
+  );
+END
+$$;
+
+DO $$
+DECLARE
+  v_result text;
+BEGIN
+  v_result := public.academy_grant_gumroad_sale(
+    'existing@example.com',
+    'solo_bundle',
+    1,
+    'sale_late_red',
+    NULL,
+    'sale_team_zero',
+    'redemption',
+    false
+  );
+  PERFORM pg_temp.claim_ok(
+    v_result = 'linked_after_claim'
+    AND EXISTS (
+      SELECT 1 FROM public.academy_entitlements
+      WHERE gumroad_sale_id = 'sale_team_zero'
+        AND seats = 4
+        AND gumroad_redemption_count = 1
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.academy_entitlements
+      WHERE gumroad_sale_id = 'sale_late_red'
+        AND subject_type = 'user'
+        AND product_code = 'solo_bundle'
+    ),
+    'late redemption after team claim recomputes seats'
+  );
+END
+$$;
+
+DO $$
+BEGIN
+  BEGIN
+    INSERT INTO public.academy_entitlements (
+      product_code, subject_type, user_id, seats, source
+    ) VALUES (
+      'solo_bundle',
+      'user',
+      '00000000-0000-4000-8000-000000000012',
+      0,
+      'stripe'
+    );
+    PERFORM pg_temp.claim_ok(false, 'stripe seats=0 is rejected');
+  EXCEPTION
+    WHEN check_violation THEN
+      PERFORM pg_temp.claim_ok(true, 'stripe seats=0 is rejected');
+  END;
+END
+$$;
+
+DO $$
+BEGIN
+  INSERT INTO public.academy_entitlements (
+    product_code,
+    subject_type,
+    organization_id,
+    seats,
+    source,
+    gumroad_sale_id
+  ) VALUES (
+    'team_5',
+    'org',
+    '00000000-0000-4000-8000-000000001101',
+    0,
+    'gumroad_migration',
+    'sale_zero_seat_constraint'
+  );
+  PERFORM pg_temp.claim_ok(
+    EXISTS (
+      SELECT 1 FROM public.academy_entitlements
+      WHERE gumroad_sale_id = 'sale_zero_seat_constraint'
+        AND seats = 0
+        AND subject_type = 'org'
+        AND source = 'gumroad_migration'
+    ),
+    'org gumroad_migration seats=0 is allowed'
   );
 END
 $$;
