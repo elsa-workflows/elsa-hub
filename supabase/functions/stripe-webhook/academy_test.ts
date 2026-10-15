@@ -100,7 +100,27 @@ Deno.test("AC4 webhook grants a Solo user entitlement", async () => {
   assertEquals(store.rows[0].organization_id, null);
   assertEquals(store.rows[0].seats, 1);
   assertEquals(store.rows[0].source, "stripe");
+  assertEquals(store.rows[0].product_code, "solo_bundle");
+  assertEquals(store.rows[0].course_id, null);
   assertEquals(store.rows[0].stripe_checkout_session_id, "cs_test_solo");
+});
+
+Deno.test("AC4 solo_bundle grant matches courses that list that SKU", async () => {
+  const store = createEntitlementStore();
+  await handleAcademyCheckout(store.client, SOLO_SESSION);
+  const grant = store.rows[0];
+  const publishedCourse = {
+    id: "00000000-0000-4000-8000-000000002001",
+    product_codes: ["solo_bundle", "team_5", "team_10"],
+  };
+  const unpublishedCourse = {
+    id: "00000000-0000-4000-8000-000000002002",
+    product_codes: ["team_5", "solo_bundle"],
+  };
+  assertEquals(grant.product_code, "solo_bundle");
+  assertEquals(grant.course_id, null);
+  assertEquals(publishedCourse.product_codes.includes(grant.product_code!), true);
+  assertEquals(unpublishedCourse.product_codes.includes(grant.product_code!), true);
 });
 
 Deno.test("AC4 Team 5 purchase creates an org entitlement with 5 seats", async () => {
@@ -120,6 +140,8 @@ Deno.test("AC4 Team 5 purchase creates an org entitlement with 5 seats", async (
   assertEquals(store.rows[0].subject_type, "org");
   assertEquals(store.rows[0].seats, 5);
   assertEquals(store.rows[0].user_id, null);
+  assertEquals(store.rows[0].product_code, "team_5");
+  assertEquals(store.rows[0].course_id, null);
 });
 
 Deno.test("AC4 Team purchase creates an org entitlement with 10 seats", async () => {
@@ -130,6 +152,8 @@ Deno.test("AC4 Team purchase creates an org entitlement with 10 seats", async ()
   assertEquals(store.rows[0].user_id, null);
   assertEquals(store.rows[0].organization_id, TEAM_SESSION.metadata!.organization_id);
   assertEquals(store.rows[0].seats, 10);
+  assertEquals(store.rows[0].product_code, "team_10");
+  assertEquals(store.rows[0].course_id, null);
 });
 
 Deno.test("AC4 replay of the same checkout session inserts exactly one row", async () => {
@@ -141,29 +165,63 @@ Deno.test("AC4 replay of the same checkout session inserts exactly one row", asy
   assertEquals(store.rows.length, 1);
 });
 
-Deno.test("AC5 refund sets revoked_at on the academy entitlement", async () => {
-  const store = createEntitlementStore();
-  await handleAcademyCheckout(store.client, SOLO_SESSION);
-  assertEquals(store.rows[0].revoked_at, null);
-
-  const stripe = {
+function academyStripeFor(session: AcademySession, paymentIntent = "pi_test_solo") {
+  return {
     checkout: {
       sessions: {
         list: async (params: { payment_intent: string }) => {
-          assertEquals(params.payment_intent, "pi_test_solo");
-          return { data: [SOLO_SESSION] };
+          assertEquals(params.payment_intent, paymentIntent);
+          return { data: [session] };
         },
       },
     },
   };
+}
 
-  const result = await handleAcademyRefund(store.client, stripe, {
-    id: "ch_test",
+Deno.test("AC5 full refund (charge.refunded === true) sets revoked_at", async () => {
+  const store = createEntitlementStore();
+  await handleAcademyCheckout(store.client, SOLO_SESSION);
+  assertEquals(store.rows[0].revoked_at, null);
+
+  const result = await handleAcademyRefund(store.client, academyStripeFor(SOLO_SESSION), {
+    id: "ch_full",
     payment_intent: "pi_test_solo",
     refunded: true,
+    amount: 2900,
+    amount_refunded: 2900,
   });
   assertEquals(result, { handled: true, reason: "revoked" });
   assertEquals(typeof store.rows[0].revoked_at, "string");
+});
+
+Deno.test("AC5 full refund (amount_refunded >= amount) sets revoked_at", async () => {
+  const store = createEntitlementStore();
+  await handleAcademyCheckout(store.client, SOLO_SESSION);
+
+  const result = await handleAcademyRefund(store.client, academyStripeFor(SOLO_SESSION), {
+    id: "ch_full_amounts",
+    payment_intent: "pi_test_solo",
+    refunded: false,
+    amount: 2900,
+    amount_refunded: 2900,
+  });
+  assertEquals(result, { handled: true, reason: "revoked" });
+  assertEquals(typeof store.rows[0].revoked_at, "string");
+});
+
+Deno.test("AC5 partial refund logs and leaves access in place", async () => {
+  const store = createEntitlementStore();
+  await handleAcademyCheckout(store.client, SOLO_SESSION);
+
+  const result = await handleAcademyRefund(store.client, academyStripeFor(SOLO_SESSION), {
+    id: "ch_partial",
+    payment_intent: "pi_test_solo",
+    refunded: false,
+    amount: 2900,
+    amount_refunded: 500,
+  });
+  assertEquals(result, { handled: true, reason: "partial_refund" });
+  assertEquals(store.rows[0].revoked_at, null);
 });
 
 Deno.test("AC3/AC5 non-academy refund leaves academy rows untouched", async () => {

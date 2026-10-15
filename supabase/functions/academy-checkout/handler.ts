@@ -1,3 +1,4 @@
+import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
 import { academyProductSpec, isTeamAcademyProduct } from "./product.ts";
 import {
   invoiceCustomFields,
@@ -6,20 +7,12 @@ import {
   type StripeCustomerLike,
 } from "./stripeCustomer.ts";
 
+export type { AcademyCourseRow };
+
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-export type AcademyCourseRow = {
-  id: string;
-  slug: string;
-  title: string;
-  product_code: string;
-  stripe_price_id: string | null;
-  price_cents: number;
-  currency: string;
 };
 
 export type AcademyAuthUser = {
@@ -93,51 +86,6 @@ function jsonResponse(status: number, body: Record<string, unknown>): Response {
   });
 }
 
-async function loadCourse(
-  serviceClient: AcademyCheckoutServiceClient,
-  body: AcademyCheckoutBody,
-): Promise<{ course?: AcademyCourseRow; error?: Response }> {
-  if (body.courseId && body.productCode) {
-    return {
-      error: jsonResponse(400, { error: "Provide either courseId or productCode, not both" }),
-    };
-  }
-  if (!body.courseId && !body.productCode) {
-    return {
-      error: jsonResponse(400, { error: "Either courseId or productCode is required" }),
-    };
-  }
-
-  if (body.courseId) {
-    const { data, error } = await serviceClient
-      .from("academy_courses")
-      .select("id, slug, title, product_code, stripe_price_id, price_cents, currency")
-      .eq("id", body.courseId)
-      .maybeSingle();
-    if (error || !data) {
-      return { error: jsonResponse(404, { error: "Course not found" }) };
-    }
-    return { course: data as AcademyCourseRow };
-  }
-
-  const query = serviceClient
-    .from("academy_courses")
-    .select("id, slug, title, product_code, stripe_price_id, price_cents, currency")
-    .eq("product_code", body.productCode!);
-
-  const ordered = typeof query.order === "function"
-    ? query.order("sort_order", { ascending: true }).limit(1)
-    : typeof query.limit === "function"
-    ? query.limit(1)
-    : query;
-
-  const { data, error } = await ordered.maybeSingle();
-  if (error || !data) {
-    return { error: jsonResponse(404, { error: "Course not found" }) };
-  }
-  return { course: data as AcademyCourseRow };
-}
-
 export async function runAcademyCheckout(params: {
   user: AcademyAuthUser;
   body: AcademyCheckoutBody;
@@ -152,8 +100,8 @@ export async function runAcademyCheckout(params: {
     return jsonResponse(400, { error: "User email not found" });
   }
 
-  const loaded = await loadCourse(deps.serviceClient, body);
-  if (loaded.error) return loaded.error;
+  const loaded = await loadAcademyCourse(deps.serviceClient, body);
+  if (loaded.error) return jsonResponse(loaded.error.status, loaded.error.body);
   const course = loaded.course!;
 
   const spec = academyProductSpec(course.product_code);

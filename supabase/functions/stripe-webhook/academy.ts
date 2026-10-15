@@ -83,8 +83,8 @@ export async function handleAcademyCheckout(
 
   const metadata = session.metadata ?? {};
   const productCode = metadata.product_code;
-  if (!productCode && !metadata.course_id) {
-    console.error("Academy checkout missing product_code and course_id");
+  if (!productCode) {
+    console.error("Academy checkout missing product_code");
     return { handled: true, reason: "missing_grant_target" };
   }
 
@@ -103,8 +103,12 @@ export async function handleAcademyCheckout(
   }
 
   const row: AcademyEntitlementRow = {
-    course_id: metadata.course_id || null,
-    product_code: productCode || null,
+    // SKU grant: has_academy_access matches product_code against
+    // academy_courses.product_codes. Do not pin course_id or a Team
+    // purchase of team_5 would only unlock the catalog row, not every
+    // course that lists that SKU.
+    course_id: null,
+    product_code: productCode,
     subject_type: subjectType,
     user_id: subjectType === "user" ? userId : null,
     organization_id: subjectType === "org" ? organizationId : null,
@@ -128,6 +132,15 @@ export async function handleAcademyCheckout(
   return { handled: true, reason: "granted" };
 }
 
+export function isFullAcademyRefund(charge: AcademyCharge): boolean {
+  if (charge.refunded === true) return true;
+  const amount = charge.amount;
+  const amountRefunded = charge.amount_refunded;
+  return typeof amount === "number" &&
+    typeof amountRefunded === "number" &&
+    amountRefunded >= amount;
+}
+
 export async function handleAcademyRefund(
   supabase: AcademySupabase,
   stripe: AcademyStripeRefundLookup,
@@ -148,6 +161,13 @@ export async function handleAcademyRefund(
   const session = sessions.data[0];
   if (!isAcademySession(session)) {
     return { handled: false, reason: "not_academy" };
+  }
+
+  if (!isFullAcademyRefund(charge)) {
+    console.log(
+      `Academy charge ${charge.id} is a partial refund; leaving entitlement for session ${session.id}`,
+    );
+    return { handled: true, reason: "partial_refund" };
   }
 
   const { error } = await supabase
