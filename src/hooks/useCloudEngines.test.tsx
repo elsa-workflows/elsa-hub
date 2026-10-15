@@ -6,10 +6,11 @@ import {
   cloudClient,
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
+  type CloudBffRequest,
   type CloudBffResponse,
+  type CloudWorkspace,
 } from "@/lib/cloudClient";
 import { setCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
-import { setCloudStubScenario, STUB_WORKSPACE } from "@/lib/cloudClient/stub";
 import {
   cloudEngineListView,
   fetchCloudEngines,
@@ -26,6 +27,16 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => authState,
 }));
 
+const workspace: CloudWorkspace = {
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  name: "Default",
+  kind: "cloud",
+  role: "owner",
+  organizationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  organizationName: "Example",
+  organizationRole: "owner",
+};
+
 const engine = {
   id: "11111111-1111-4111-8111-111111111111",
   name: "Production",
@@ -39,6 +50,10 @@ function wrapper({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
+function mockInvoke(handler: (body: CloudBffRequest) => CloudBffResponse) {
+  return vi.spyOn(cloudClient, "invoke").mockImplementation(async (body) => handler(body));
+}
+
 describe("cloudEngineListView", () => {
   it("is loading while the query is pending", () => {
     expect(cloudEngineListView(undefined, true)).toEqual({ kind: "loading" });
@@ -48,7 +63,7 @@ describe("cloudEngineListView", () => {
     const result: CloudBffResponse = {
       ok: true,
       state: "empty",
-      workspaceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      workspaceId: workspace.id,
       engines: [],
     };
     expect(cloudEngineListView(result, false)).toEqual({ kind: "empty" });
@@ -58,7 +73,7 @@ describe("cloudEngineListView", () => {
     const result: CloudBffResponse = {
       ok: true,
       state: "ready",
-      workspaceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      workspaceId: workspace.id,
       engines: [engine],
     };
     expect(cloudEngineListView(result, false)).toEqual({
@@ -100,25 +115,28 @@ describe("resolveCloudEngineListView", () => {
 
 describe("fetchCloudEngines", () => {
   afterEach(() => {
-    setCloudStubScenario("list");
     vi.restoreAllMocks();
   });
 
   it("lists engines without calling bootstrap", async () => {
-    const invoke = vi.spyOn(cloudClient, "invoke");
-    const result = await fetchCloudEngines(STUB_WORKSPACE.id);
+    const invoke = mockInvoke((body) => {
+      if (body.action === "listEngines") {
+        return { ok: true, state: "ready", workspaceId: body.workspaceId, engines: [engine] };
+      }
+      return { ok: false, code: "unknown_action", error: "unexpected" };
+    });
+    const result = await fetchCloudEngines(workspace.id);
     expect(result).toMatchObject({ ok: true, engines: expect.any(Array) });
     expect(invoke).toHaveBeenCalledTimes(1);
     expect(invoke).toHaveBeenCalledWith({
       action: "listEngines",
-      workspaceId: STUB_WORKSPACE.id,
+      workspaceId: workspace.id,
     });
   });
 });
 
 describe("useCloudEngines", () => {
   afterEach(() => {
-    setCloudStubScenario("list");
     localStorage.clear();
     vi.restoreAllMocks();
   });
@@ -133,7 +151,15 @@ describe("useCloudEngines", () => {
 
   it("lists engines after the setup marker is present", async () => {
     setCloudSetupMarker("user-1");
-    const invoke = vi.spyOn(cloudClient, "invoke");
+    const invoke = mockInvoke((body) => {
+      if (body.action === "listWorkspaces") {
+        return { ok: true, state: "ready", workspaces: [workspace] };
+      }
+      if (body.action === "listEngines") {
+        return { ok: true, state: "ready", workspaceId: workspace.id, engines: [engine] };
+      }
+      return { ok: false, code: "unknown_action", error: "unexpected" };
+    });
     const { result } = renderHook(() => useCloudEngines(), { wrapper });
 
     await waitFor(() => expect(result.current.view.kind).toBe("list"));

@@ -2,12 +2,18 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cloudClient, CLOUD_UPDATING_CODE, CLOUD_UPDATING_MESSAGE } from "@/lib/cloudClient";
+import {
+  cloudClient,
+  CLOUD_UPDATING_CODE,
+  CLOUD_UPDATING_MESSAGE,
+  type CloudBffRequest,
+  type CloudBffResponse,
+  type CloudWorkspace,
+} from "@/lib/cloudClient";
 import {
   hasCloudSetupMarker,
   setCloudSetupMarker,
 } from "@/lib/cloudClient/setupMarker";
-import { setCloudStubScenario, STUB_WORKSPACE } from "@/lib/cloudClient/stub";
 import { cloudWorkspaceView, fetchCloudWorkspaces, useCloudWorkspace } from "./useCloudWorkspace";
 
 const authState = vi.hoisted(() => ({
@@ -19,9 +25,23 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => authState,
 }));
 
+const workspace: CloudWorkspace = {
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  name: "Default",
+  kind: "cloud",
+  role: "owner",
+  organizationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  organizationName: "Example",
+  organizationRole: "owner",
+};
+
 function wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+function mockInvoke(handler: (body: CloudBffRequest) => CloudBffResponse) {
+  return vi.spyOn(cloudClient, "invoke").mockImplementation(async (body) => handler(body));
 }
 
 describe("cloudWorkspaceView", () => {
@@ -33,21 +53,21 @@ describe("cloudWorkspaceView", () => {
 
   it("is ready when a workspace exists", () => {
     expect(
-      cloudWorkspaceView({ ok: true, state: "ready", workspaces: [STUB_WORKSPACE] }, false),
-    ).toEqual({ kind: "ready", workspace: STUB_WORKSPACE });
+      cloudWorkspaceView({ ok: true, state: "ready", workspaces: [workspace] }, false),
+    ).toEqual({ kind: "ready", workspace });
   });
 
   it("picks the owner-org workspace the way Control bootstrap does", () => {
     const other = {
-      ...STUB_WORKSPACE,
+      ...workspace,
       id: "ws-other",
       organizationId: "org-other",
       organizationRole: "member",
       role: "member",
     };
     expect(
-      cloudWorkspaceView({ ok: true, state: "ready", workspaces: [other, STUB_WORKSPACE] }, false),
-    ).toEqual({ kind: "ready", workspace: STUB_WORKSPACE });
+      cloudWorkspaceView({ ok: true, state: "ready", workspaces: [other, workspace] }, false),
+    ).toEqual({ kind: "ready", workspace });
   });
 
   it("is an error, not updating, for forbidden", () => {
@@ -76,13 +96,11 @@ describe("cloudWorkspaceView", () => {
 
 describe("fetchCloudWorkspaces", () => {
   afterEach(() => {
-    setCloudStubScenario("list");
     vi.restoreAllMocks();
   });
 
   it("only calls listWorkspaces and never bootstrap", async () => {
-    const invoke = vi.spyOn(cloudClient, "invoke");
-    setCloudStubScenario("needsSetup");
+    const invoke = mockInvoke(() => ({ ok: true, state: "ready", workspaces: [] }));
     const result = await fetchCloudWorkspaces();
     expect(result).toMatchObject({ ok: true, workspaces: [] });
     expect(invoke).toHaveBeenCalledTimes(1);
@@ -92,7 +110,6 @@ describe("fetchCloudWorkspaces", () => {
 
 describe("useCloudWorkspace", () => {
   afterEach(() => {
-    setCloudStubScenario("list");
     localStorage.clear();
     authState.user = { id: "user-1" };
     vi.restoreAllMocks();
@@ -109,20 +126,37 @@ describe("useCloudWorkspace", () => {
 
   it("loads workspaces directly when the setup marker is present", async () => {
     setCloudSetupMarker("user-1");
-    const invoke = vi.spyOn(cloudClient, "invoke");
+    const invoke = mockInvoke((body) => {
+      if (body.action === "listWorkspaces") {
+        return { ok: true, state: "ready", workspaces: [workspace] };
+      }
+      return { ok: false, code: "unknown_action", error: "unexpected" };
+    });
     const { result } = renderHook(() => useCloudWorkspace(), { wrapper });
 
     await waitFor(() => expect(result.current.view.kind).toBe("ready"));
     expect(result.current.view).toMatchObject({
       kind: "ready",
-      workspace: { id: STUB_WORKSPACE.id },
+      workspace: { id: workspace.id },
     });
     expect(invoke.mock.calls.map(([body]) => body.action)).toEqual(["listWorkspaces"]);
   });
 
   it("bootstraps only when setupCloud is called, then sets the marker", async () => {
-    setCloudStubScenario("needsSetup");
-    const invoke = vi.spyOn(cloudClient, "invoke");
+    const invoke = mockInvoke((body) => {
+      if (body.action === "bootstrap") {
+        return {
+          ok: true,
+          state: "ready",
+          organizationId: workspace.organizationId,
+          workspaceId: workspace.id,
+        };
+      }
+      if (body.action === "listWorkspaces") {
+        return { ok: true, state: "ready", workspaces: [workspace] };
+      }
+      return { ok: false, code: "unknown_action", error: "unexpected" };
+    });
     const { result } = renderHook(() => useCloudWorkspace(), { wrapper });
 
     expect(result.current.view.kind).toBe("needsSetup");

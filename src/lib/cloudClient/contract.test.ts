@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   CLOUD_BFF_ACTIONS,
   CLOUD_BFF_FUNCTION,
@@ -6,14 +6,15 @@ import {
   CLOUD_UPDATING_MESSAGE,
   isCloudBffError,
   isCloudUpdating,
-  type CloudBffRequest,
   type CloudBffResponse,
-} from "@/lib/cloud";
-import { setCloudStubScenario, stubCloudClient, STUB_WORKSPACE } from "./stub";
+} from "@/lib/cloudClient";
 
-describe("cloud-bff contract via the DEV stub", () => {
-  afterEach(() => {
-    setCloudStubScenario("list");
+describe("cloud-bff contract via @/lib/cloud", () => {
+  it("does not re-export a stub from the barrel", async () => {
+    const barrel = await import("@/lib/cloudClient");
+    expect("stubCloudClient" in barrel).toBe(false);
+    expect("setCloudStubScenario" in barrel).toBe(false);
+    expect("STUB_ENGINES" in barrel).toBe(false);
   });
 
   it("exports the six read actions from #53", () => {
@@ -37,50 +38,5 @@ describe("cloud-bff contract via the DEV stub", () => {
     };
     expect(isCloudUpdating(updating)).toBe(true);
     expect(isCloudBffError(updating)).toBe(false);
-  });
-
-  it("accepts the #53 request shapes on the stub", async () => {
-    setCloudStubScenario("list");
-    const requests: CloudBffRequest[] = [
-      { action: "compatibility" },
-      { action: "bootstrap" },
-      { action: "listWorkspaces" },
-      { action: "selectWorkspace", workspaceId: STUB_WORKSPACE.id },
-      { action: "listEngines", workspaceId: STUB_WORKSPACE.id },
-      {
-        action: "engineOverview",
-        workspaceId: STUB_WORKSPACE.id,
-        engineId: "11111111-1111-4111-8111-111111111111",
-      },
-    ];
-    for (const body of requests) {
-      const response = await stubCloudClient.invoke(body);
-      expect(response.ok).toBe(true);
-    }
-  });
-
-  it("returns the #53 listEngines empty and updating states", async () => {
-    setCloudStubScenario("empty");
-    const empty = await stubCloudClient.invoke({
-      action: "listEngines",
-      workspaceId: STUB_WORKSPACE.id,
-    });
-    expect(empty).toMatchObject({ ok: true, state: "empty", engines: [] });
-
-    setCloudStubScenario("updating");
-    const updating = await stubCloudClient.invoke({ action: "bootstrap" });
-    expect(isCloudUpdating(updating)).toBe(true);
-  });
-
-  it("lists no workspaces until bootstrap in the needsSetup scenario", async () => {
-    setCloudStubScenario("needsSetup");
-    const listed = await stubCloudClient.invoke({ action: "listWorkspaces" });
-    expect(listed).toMatchObject({ ok: true, workspaces: [] });
-
-    const boot = await stubCloudClient.invoke({ action: "bootstrap" });
-    expect(boot).toMatchObject({ ok: true, workspaceId: STUB_WORKSPACE.id });
-
-    const after = await stubCloudClient.invoke({ action: "listWorkspaces" });
-    expect(after).toMatchObject({ ok: true, workspaces: [STUB_WORKSPACE] });
   });
 });

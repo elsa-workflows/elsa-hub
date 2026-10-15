@@ -16,17 +16,10 @@ async function currentHubUserId(): Promise<string | undefined> {
   }
 }
 
-/**
- * Production always uses the cloud-bff client. The stub is loaded only when
- * `import.meta.env.DEV` is true (Vite drops that branch from the prod graph).
- */
+/** Production and local both talk to cloud-bff. There is no fixture stub. */
 export const cloudClient: CloudClient = {
   async invoke(body) {
-    const response =
-      import.meta.env.DEV
-        ? (await import("./stub")).stubCloudClient.invoke(body)
-        : bffCloudClient.invoke(body);
-    const resolved = await response;
+    const resolved = await bffCloudClient.invoke(body);
     const userId = await currentHubUserId();
     if (userId) {
       forgetCloudSetupIfUserGone(userId, resolved, body.action);
