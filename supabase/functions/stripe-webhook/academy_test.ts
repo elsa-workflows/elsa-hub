@@ -1,5 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.190.0/testing/asserts.ts";
 import {
+  handleAcademyAsyncPaymentFailed,
   handleAcademyCheckout,
   handleAcademyRefund,
   isAcademySession,
@@ -252,5 +253,65 @@ Deno.test("unpaid academy session does not grant an entitlement", async () => {
     payment_status: "unpaid",
   });
   assertEquals(result, { handled: true, reason: "unpaid" });
+  assertEquals(store.rows.length, 0);
+});
+
+Deno.test("async_payment_succeeded grants the same idempotent Solo row", async () => {
+  const store = createEntitlementStore();
+  const first = await handleAcademyCheckout(store.client, {
+    ...SOLO_SESSION,
+    payment_status: "paid",
+  });
+  const second = await handleAcademyCheckout(store.client, {
+    ...SOLO_SESSION,
+    payment_status: "paid",
+  });
+  assertEquals(first.reason, "granted");
+  assertEquals(second.reason, "replay");
+  assertEquals(store.rows.length, 1);
+});
+
+Deno.test("async_payment_failed is a no-op with no grant", async () => {
+  const store = createEntitlementStore();
+  const result = handleAcademyAsyncPaymentFailed({
+    ...SOLO_SESSION,
+    payment_status: "unpaid",
+  });
+  assertEquals(result, { handled: true, reason: "async_failed" });
+  assertEquals(store.rows.length, 0);
+});
+
+Deno.test("webhook ignores Solo metadata that is not 1 seat and user-only", async () => {
+  const store = createEntitlementStore();
+  const seats = await handleAcademyCheckout(store.client, {
+    ...SOLO_SESSION,
+    metadata: { ...SOLO_SESSION.metadata, seats: "5" },
+  });
+  const withOrg = await handleAcademyCheckout(store.client, {
+    ...SOLO_SESSION,
+    metadata: { ...SOLO_SESSION.metadata, organization_id: "org-1" },
+  });
+  assertEquals(seats.reason, "seats_mismatch");
+  assertEquals(withOrg.reason, "org_on_solo");
+  assertEquals(store.rows.length, 0);
+});
+
+Deno.test("webhook ignores Team metadata that is not 5 or 10 seats with an org", async () => {
+  const store = createEntitlementStore();
+  const noOrg = await handleAcademyCheckout(store.client, {
+    ...TEAM_SESSION,
+    metadata: { ...TEAM_SESSION.metadata, organization_id: undefined, seats: "10" },
+  });
+  const badSeats = await handleAcademyCheckout(store.client, {
+    ...TEAM_SESSION,
+    metadata: { ...TEAM_SESSION.metadata, seats: "1" },
+  });
+  const unknown = await handleAcademyCheckout(store.client, {
+    ...TEAM_SESSION,
+    metadata: { ...TEAM_SESSION.metadata, product_code: "anything_at_all" },
+  });
+  assertEquals(noOrg.reason, "missing_org");
+  assertEquals(badSeats.reason, "seats_mismatch");
+  assertEquals(unknown.reason, "unknown_sku");
   assertEquals(store.rows.length, 0);
 });

@@ -22,6 +22,7 @@ export type AcademyAuthUser = {
 
 export type AcademyCheckoutBody = {
   courseId?: string;
+  courseSlug?: string;
   productCode?: string;
   organizationId?: string;
 };
@@ -48,21 +49,16 @@ export type AcademyCheckoutServiceClient = {
     }>;
   };
   from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        order?: (column: string, options: { ascending: boolean }) => {
-          limit: (n: number) => {
-            maybeSingle: () => Promise<AcademyQueryResult<unknown>>;
-          };
-        };
-        limit?: (n: number) => {
-          maybeSingle: () => Promise<AcademyQueryResult<unknown>>;
-        };
-        maybeSingle: () => Promise<AcademyQueryResult<unknown>>;
-        single: () => Promise<AcademyQueryResult<unknown>>;
-      };
-    };
+    select: (columns: string) => AcademyCheckoutFilter;
   };
+};
+
+export type AcademyCheckoutFilter = {
+  eq: (column: string, value: string | boolean) => AcademyCheckoutFilter;
+  order?: (column: string, options: { ascending: boolean }) => AcademyCheckoutFilter;
+  limit: (n: number) => Promise<AcademyQueryResult<unknown[]>>;
+  maybeSingle: () => Promise<AcademyQueryResult<unknown>>;
+  single: () => Promise<AcademyQueryResult<unknown>>;
 };
 
 export type AcademyStripeLike = StripeCustomerLike & {
@@ -116,23 +112,25 @@ export async function runAcademyCheckout(params: {
   const teamProduct = isTeamAcademyProduct(course.product_code);
   const organizationId = body.organizationId;
 
+  if (!teamProduct && organizationId) {
+    return jsonResponse(400, { error: "organizationId is not valid for Solo purchases" });
+  }
+
   if (teamProduct && !organizationId) {
     return jsonResponse(400, { error: "organizationId is required for Team purchases" });
   }
 
-  if (teamProduct) {
+  let organizationName: string | undefined;
+  let billingProfile: AcademyBillingProfile | null = null;
+
+  if (teamProduct && organizationId) {
     const { data: isAdmin, error: adminError } = await deps.userClient.rpc("is_org_admin", {
       p_org_id: organizationId,
     });
     if (adminError || !isAdmin) {
       return jsonResponse(403, { error: "Only organization admins can purchase Team seats" });
     }
-  }
 
-  let organizationName: string | undefined;
-  let billingProfile: AcademyBillingProfile | null = null;
-
-  if (organizationId) {
     const { data: org, error: orgError } = await deps.serviceClient
       .from("organizations")
       .select("slug, name")

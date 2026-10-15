@@ -2,6 +2,8 @@
 // through service_role. Support-hours and runtime handlers must not run for
 // sessions with metadata.kind === "academy".
 
+import { academyProductSpec } from "../_shared/academyProduct.ts";
+
 export type AcademySession = {
   id: string;
   payment_status?: string | null;
@@ -57,16 +59,68 @@ export type AcademyHandleResult = {
   reason?: string;
 };
 
-function seatsForProductCode(productCode: string | undefined, rawSeats: string | undefined): number {
-  const fromMeta = rawSeats ? Number.parseInt(rawSeats, 10) : NaN;
-  if (Number.isFinite(fromMeta) && fromMeta > 0) return fromMeta;
-  if (productCode === "team_10") return 10;
-  if (productCode === "team_5") return 5;
-  return 1;
-}
-
 export function isAcademySession(session: AcademySession | null | undefined): boolean {
   return session?.metadata?.kind === "academy";
+}
+
+export function academyGrantFromMetadata(session: AcademySession): {
+  row?: Omit<AcademyEntitlementRow, "source" | "stripe_checkout_session_id">;
+  reason?: string;
+} {
+  const metadata = session.metadata ?? {};
+  const productCode = metadata.product_code;
+  const spec = productCode ? academyProductSpec(productCode) : null;
+  if (!productCode || !spec) {
+    console.error(`Academy grant ignored: unknown product_code ${productCode ?? "(missing)"}`);
+    return { reason: "unknown_sku" };
+  }
+
+  const seats = Number.parseInt(metadata.seats ?? "", 10);
+  if (seats !== spec.seats) {
+    console.error(
+      `Academy grant ignored: seats ${metadata.seats ?? "(missing)"} != ${spec.seats} for ${productCode}`,
+    );
+    return { reason: "seats_mismatch" };
+  }
+
+  const userId = metadata.user_id || null;
+  const organizationId = metadata.organization_id || null;
+
+  if (spec.subjectType === "user") {
+    if (organizationId) {
+      console.error(`Academy grant ignored: Solo SKU ${productCode} must not include organization_id`);
+      return { reason: "org_on_solo" };
+    }
+    if (!userId) {
+      console.error(`Academy grant ignored: Solo SKU ${productCode} missing user_id`);
+      return { reason: "missing_user" };
+    }
+    return {
+      row: {
+        course_id: null,
+        product_code: productCode,
+        subject_type: "user",
+        user_id: userId,
+        organization_id: null,
+        seats: spec.seats,
+      },
+    };
+  }
+
+  if (!organizationId) {
+    console.error(`Academy grant ignored: Team SKU ${productCode} missing organization_id`);
+    return { reason: "missing_org" };
+  }
+  return {
+    row: {
+      course_id: null,
+      product_code: productCode,
+      subject_type: "org",
+      user_id: null,
+      organization_id: organizationId,
+      seats: spec.seats,
+    },
+  };
 }
 
 export async function handleAcademyCheckout(
@@ -81,38 +135,13 @@ export async function handleAcademyCheckout(
     return { handled: true, reason: "unpaid" };
   }
 
-  const metadata = session.metadata ?? {};
-  const productCode = metadata.product_code;
-  if (!productCode) {
-    console.error("Academy checkout missing product_code");
-    return { handled: true, reason: "missing_grant_target" };
-  }
-
-  const organizationId = metadata.organization_id || null;
-  const userId = metadata.user_id || null;
-  const seats = seatsForProductCode(productCode, metadata.seats);
-  const subjectType = organizationId ? "org" : "user";
-
-  if (subjectType === "user" && !userId) {
-    console.error("Academy user grant missing user_id");
-    return { handled: true, reason: "missing_user" };
-  }
-  if (subjectType === "org" && !organizationId) {
-    console.error("Academy org grant missing organization_id");
-    return { handled: true, reason: "missing_org" };
+  const grant = academyGrantFromMetadata(session);
+  if (!grant.row) {
+    return { handled: true, reason: grant.reason };
   }
 
   const row: AcademyEntitlementRow = {
-    // SKU grant: has_academy_access matches product_code against
-    // academy_courses.product_codes. Do not pin course_id or a Team
-    // purchase of team_5 would only unlock the catalog row, not every
-    // course that lists that SKU.
-    course_id: null,
-    product_code: productCode,
-    subject_type: subjectType,
-    user_id: subjectType === "user" ? userId : null,
-    organization_id: subjectType === "org" ? organizationId : null,
-    seats,
+    ...grant.row,
     source: "stripe",
     stripe_checkout_session_id: session.id,
   };
@@ -183,4 +212,14 @@ export async function handleAcademyRefund(
 
   console.log(`Academy entitlement revoked for session ${session.id}`);
   return { handled: true, reason: "revoked" };
+}
+
+export function handleAcademyAsyncPaymentFailed(
+  session: AcademySession,
+): AcademyHandleResult {
+  if (!isAcademySession(session)) {
+    return { handled: false, reason: "not_academy" };
+  }
+  console.log(`Academy async payment failed for session ${session.id}; no grant`);
+  return { handled: true, reason: "async_failed" };
 }

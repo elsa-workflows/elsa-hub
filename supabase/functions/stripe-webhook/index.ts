@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { handleAcademyCheckout, handleAcademyRefund } from "./academy.ts";
+import {
+  handleAcademyAsyncPaymentFailed,
+  handleAcademyCheckout,
+  handleAcademyRefund,
+} from "./academy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,6 +97,16 @@ serve(async (req) => {
           // Handle one-time payment checkout completion
           await handleOneTimePaymentCheckout(supabase, stripe, session);
         }
+      }
+    } else if (event.type === "checkout.session.async_payment_succeeded") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.kind === "academy") {
+        await handleAcademyCheckout(supabase, session);
+      }
+    } else if (event.type === "checkout.session.async_payment_failed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.kind === "academy") {
+        handleAcademyAsyncPaymentFailed(session);
       }
     } else if (event.type === "checkout.session.expired") {
       const session = event.data.object as Stripe.Checkout.Session;

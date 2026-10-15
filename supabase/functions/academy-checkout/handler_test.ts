@@ -10,22 +10,24 @@ const SOLO_COURSE = {
   stripe_price_id: "price_solo_test",
   price_cents: 2900,
   currency: "eur",
+  is_published: true,
 };
 
 const TEAM5_COURSE = {
   id: "00000000-0000-4000-8000-000000002005",
-  slug: "team-five",
+  slug: "team-5",
   title: "Team 5",
   product_code: "team_5",
   stripe_price_id: "price_team5_test",
   price_cents: 9900,
   currency: "eur",
+  is_published: false,
 };
 
 const TEAM10_COURSE = {
   ...TEAM5_COURSE,
   id: "00000000-0000-4000-8000-000000002010",
-  slug: "team-ten",
+  slug: "team-10",
   title: "Team 10",
   product_code: "team_10",
   stripe_price_id: "price_team10_test",
@@ -49,6 +51,9 @@ const BILLING_PROFILE = {
 };
 
 type SessionCreate = Record<string, unknown>;
+type CourseRow = Omit<typeof SOLO_COURSE, "stripe_price_id"> & {
+  stripe_price_id: string | null;
+};
 
 function createStripeMock(options?: {
   existingCustomerId?: string;
@@ -97,68 +102,81 @@ function createStripeMock(options?: {
 }
 
 function createServiceClient(options: {
-  courses?: Record<string, typeof SOLO_COURSE | { stripe_price_id: string | null } & Omit<typeof SOLO_COURSE, "stripe_price_id">>;
-  coursesByCode?: Record<string, typeof SOLO_COURSE>;
+  courses?: CourseRow[];
   org?: { name: string; slug: string } | null;
   billingProfile?: typeof BILLING_PROFILE | null;
   user?: { id: string; email?: string | null } | null;
-}) {
-  const courses = options.courses ?? { [SOLO_COURSE.id]: SOLO_COURSE };
-  const coursesByCode = options.coursesByCode ?? {
-    [SOLO_COURSE.product_code]: SOLO_COURSE,
-    [TEAM5_COURSE.product_code]: TEAM5_COURSE,
-    [TEAM10_COURSE.product_code]: TEAM10_COURSE,
-  };
+} = {}) {
+  const courses = options.courses ?? [SOLO_COURSE, TEAM5_COURSE, TEAM10_COURSE];
+  const tableReads: string[] = [];
 
   return {
+    tableReads,
     auth: {
       getUser: async () => ({
         data: { user: options.user === undefined ? USER : options.user },
         error: options.user === null ? { message: "nope" } : null,
       }),
     },
-    from: (table: string) => ({
-      select: (_columns: string) => ({
-        eq: (column: string, value: string) => {
-          const maybeSingle = async () => {
-            if (table === "academy_courses" && column === "id") {
-              return { data: courses[value] ?? null, error: null };
-            }
-            if (table === "academy_courses" && column === "product_code") {
-              return { data: coursesByCode[value] ?? null, error: null };
-            }
-            if (table === "org_billing_profiles" && column === "organization_id") {
-              return { data: options.billingProfile ?? null, error: null };
-            }
-            return { data: null, error: null };
-          };
-          return {
-            maybeSingle,
-            single: async () => {
-              if (table === "organizations" && column === "id") {
-                const org = options.org === undefined
-                  ? { name: "Academy Org", slug: "academy-org" }
-                  : options.org;
-                return org
-                  ? { data: org, error: null }
-                  : { data: null, error: { message: "not found" } };
-              }
-              return maybeSingle();
-            },
-            order: () => ({
-              limit: () => ({ maybeSingle }),
-            }),
-            limit: () => ({ maybeSingle }),
-          };
+    from: (table: string) => {
+      tableReads.push(table);
+      const filters: Array<[string, unknown]> = [];
+      const api = {
+        select: (_columns: string) => api,
+        eq: (column: string, value: unknown) => {
+          filters.push([column, value]);
+          return api;
         },
-      }),
-    }),
+        order: () => api,
+        limit: async (_n: number) => ({ data: match(), error: null }),
+        maybeSingle: async () => {
+          const rows = match();
+          if (rows.length > 1) {
+            return { data: null, error: { code: "PGRST116", message: "multiple rows" } };
+          }
+          return { data: rows[0] ?? null, error: null };
+        },
+        single: async () => {
+          const rows = match();
+          if (rows.length !== 1) {
+            return { data: null, error: { message: "not found" } };
+          }
+          return { data: rows[0], error: null };
+        },
+      };
+      function match(): unknown[] {
+        if (table === "academy_courses") {
+          return courses.filter((row) =>
+            filters.every(([column, value]) => (row as Record<string, unknown>)[column] === value)
+          );
+        }
+        if (table === "organizations") {
+          const org = options.org === undefined
+            ? { id: ORG_ID, name: "Academy Org", slug: "academy-org" }
+            : options.org;
+          if (!org) return [];
+          if (filters.some(([column, value]) => column === "id" && value !== ORG_ID)) return [];
+          return [org];
+        }
+        if (table === "org_billing_profiles") {
+          if (!options.billingProfile) return [];
+          return [options.billingProfile];
+        }
+        return [];
+      }
+      return api;
+    },
   };
 }
 
 function createUserClient(isAdmin: boolean, error: { message: string } | null = null) {
+  let called = false;
   return {
+    get called() {
+      return called;
+    },
     rpc: async (fn: string, args?: Record<string, unknown>) => {
+      called = true;
       assertEquals(fn, "is_org_admin");
       assertEquals(args?.p_org_id, ORG_ID);
       return { data: isAdmin, error };
@@ -178,7 +196,7 @@ Deno.test("AC1 Solo: session uses course price, payment mode, tax, invoice and m
     origin: "https://hub.example",
     deps: {
       userClient: createUserClient(false),
-      serviceClient: createServiceClient({}),
+      serviceClient: createServiceClient(),
       stripe: stripe.stripe,
     },
   });
@@ -204,6 +222,29 @@ Deno.test("AC1 Solo: session uses course price, payment mode, tax, invoice and m
   assertEquals((session.metadata as Record<string, string>).organization_id, undefined);
 });
 
+Deno.test("AC1 Solo with organizationId is rejected with 400 and does not read org billing", async () => {
+  const stripe = createStripeMock();
+  const userClient = createUserClient(true);
+  const service = createServiceClient({ billingProfile: BILLING_PROFILE });
+  const res = await runAcademyCheckout({
+    user: USER,
+    body: { courseSlug: SOLO_COURSE.slug, organizationId: ORG_ID },
+    origin: "https://hub.example",
+    deps: {
+      userClient,
+      serviceClient: service,
+      stripe: stripe.stripe,
+    },
+  });
+  const { status, body } = await parseJson(res);
+  assertEquals(status, 400);
+  assertEquals(body.error, "organizationId is not valid for Solo purchases");
+  assertEquals(stripe.sessions.length, 0);
+  assertEquals(userClient.called, false);
+  assertEquals(service.tableReads.includes("organizations"), false);
+  assertEquals(service.tableReads.includes("org_billing_profiles"), false);
+});
+
 Deno.test("AC1 Team 5: org admin gets seats 5 and organization_id metadata", async () => {
   const stripe = createStripeMock();
   const res = await runAcademyCheckout({
@@ -212,10 +253,7 @@ Deno.test("AC1 Team 5: org admin gets seats 5 and organization_id metadata", asy
     origin: "https://hub.example",
     deps: {
       userClient: createUserClient(true),
-      serviceClient: createServiceClient({
-        coursesByCode: { team_5: TEAM5_COURSE },
-        billingProfile: BILLING_PROFILE,
-      }),
+      serviceClient: createServiceClient({ billingProfile: BILLING_PROFILE }),
       stripe: stripe.stripe,
     },
   });
@@ -228,35 +266,34 @@ Deno.test("AC1 Team 5: org admin gets seats 5 and organization_id metadata", asy
   assertEquals(session.line_items, [{ price: "price_team5_test", quantity: 1 }]);
 });
 
-Deno.test("AC1 Team 10: org admin gets seats 10", async () => {
+Deno.test("AC1 Team 10: org admin gets seats 10 from the team-10 SKU row", async () => {
   const stripe = createStripeMock();
   const res = await runAcademyCheckout({
     user: USER,
-    body: { courseId: TEAM10_COURSE.id, organizationId: ORG_ID },
+    body: { productCode: "team_10", organizationId: ORG_ID },
     origin: "https://hub.example",
     deps: {
       userClient: createUserClient(true),
-      serviceClient: createServiceClient({
-        courses: { [TEAM10_COURSE.id]: TEAM10_COURSE },
-        billingProfile: BILLING_PROFILE,
-      }),
+      serviceClient: createServiceClient({ billingProfile: BILLING_PROFILE }),
       stripe: stripe.stripe,
     },
   });
   const { status } = await parseJson(res);
   assertEquals(status, 200);
   assertEquals((stripe.sessions[0].metadata as Record<string, string>).seats, "10");
+  assertEquals(stripe.sessions[0].line_items, [{ price: "price_team10_test", quantity: 1 }]);
 });
 
-Deno.test("AC1 Team: non-admin is rejected with 403", async () => {
+Deno.test("AC1 Team: non-admin is rejected with 403 and no org data is read", async () => {
   const stripe = createStripeMock();
+  const service = createServiceClient({ billingProfile: BILLING_PROFILE });
   const res = await runAcademyCheckout({
     user: USER,
     body: { productCode: "team_5", organizationId: ORG_ID },
     origin: "https://hub.example",
     deps: {
       userClient: createUserClient(false),
-      serviceClient: createServiceClient({ coursesByCode: { team_5: TEAM5_COURSE } }),
+      serviceClient: service,
       stripe: stripe.stripe,
     },
   });
@@ -264,6 +301,8 @@ Deno.test("AC1 Team: non-admin is rejected with 403", async () => {
   assertEquals(status, 403);
   assertEquals(body.error, "Only organization admins can purchase Team seats");
   assertEquals(stripe.sessions.length, 0);
+  assertEquals(service.tableReads.includes("organizations"), false);
+  assertEquals(service.tableReads.includes("org_billing_profiles"), false);
 });
 
 Deno.test("AC1 Team: missing organizationId is rejected with 400", async () => {
@@ -274,7 +313,7 @@ Deno.test("AC1 Team: missing organizationId is rejected with 400", async () => {
     origin: "https://hub.example",
     deps: {
       userClient: createUserClient(true),
-      serviceClient: createServiceClient({ coursesByCode: { team_10: TEAM10_COURSE } }),
+      serviceClient: createServiceClient(),
       stripe: stripe.stripe,
     },
   });
@@ -309,7 +348,7 @@ Deno.test("AC2 second Solo purchase attaches the existing customer to the sessio
     origin: "https://hub.example",
     deps: {
       userClient: createUserClient(false),
-      serviceClient: createServiceClient({}),
+      serviceClient: createServiceClient(),
       stripe: stripe.stripe,
     },
   });
@@ -327,7 +366,7 @@ Deno.test("course without stripe_price_id is rejected and never hardcodes a pric
     deps: {
       userClient: createUserClient(false),
       serviceClient: createServiceClient({
-        courses: { [SOLO_COURSE.id]: { ...SOLO_COURSE, stripe_price_id: null } },
+        courses: [{ ...SOLO_COURSE, stripe_price_id: null }],
       }),
       stripe: stripe.stripe,
     },
@@ -365,7 +404,7 @@ Deno.test("HTTP handler creates a Solo session for a signed-in user", async () =
   });
   const res = await handleAcademyCheckoutRequest(req, async () => ({
     userClient: createUserClient(false),
-    serviceClient: createServiceClient({}),
+    serviceClient: createServiceClient(),
     stripe: stripe.stripe,
   }));
   const { status, body } = await parseJson(res);
