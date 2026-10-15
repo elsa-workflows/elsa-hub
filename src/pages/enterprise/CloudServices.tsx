@@ -31,7 +31,7 @@ const includedFeatures = [
   {
     title: "Hosted Elsa Workflows runtime",
     description:
-      "The complete Elsa engine deployed and configured for production use.",
+      "The Elsa engine, deployed and configured for you.",
     icon: Server,
   },
   {
@@ -47,7 +47,7 @@ const includedFeatures = [
     icon: Cloud,
   },
   {
-    title: "Managed updates and maintenance",
+    title: "Updates",
     description:
       "Updates to Elsa and the infrastructure it runs on.",
     icon: RefreshCw,
