@@ -1,6 +1,6 @@
 import { Cloud } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { CLOUD_EMPTY_MESSAGE } from "@/lib/cloudClient/copy";
+import { CLOUD_EMPTY_MESSAGE } from "@/lib/cloudClient";
 
 export function CloudEmptyState() {
   return (

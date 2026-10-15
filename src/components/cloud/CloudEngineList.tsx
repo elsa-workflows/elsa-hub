@@ -2,14 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Server } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { CloudEngineSummary } from "@/lib/cloudClient/contract";
-
-function statusVariant(status: string) {
-  if (status === "Ready") return "default" as const;
-  if (status === "Failed" || status === "Degraded") return "destructive" as const;
-  if (status === "Provisioning" || status === "Updating") return "warning" as const;
-  return "secondary" as const;
-}
+import type { CloudEngineSummary } from "@/lib/cloudClient";
+import { cloudEngineStatusVariant } from "./engineStatus";
 
 export function CloudEngineList({ engines }: { engines: CloudEngineSummary[] }) {
   return (
@@ -28,7 +22,7 @@ export function CloudEngineList({ engines }: { engines: CloudEngineSummary[] }) 
                     Release {engine.release ?? "unknown"}
                   </p>
                 </div>
-                <Badge variant={statusVariant(engine.status)}>{engine.status}</Badge>
+                <Badge variant={cloudEngineStatusVariant(engine.status)}>{engine.status}</Badge>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
               </CardContent>
             </Card>

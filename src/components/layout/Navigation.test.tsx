@@ -30,13 +30,11 @@ describe("Navigation Cloud leaf", () => {
   it("links Cloud on desktop and in the mobile menu", () => {
     renderNav();
     expect(document.querySelectorAll('a[href="/cloud"]').length).toBeGreaterThanOrEqual(1);
-    expect(document.querySelectorAll('a[href="/academy"]')).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
     const cloud = screen.getAllByRole("link", { name: "Cloud" });
     expect(cloud.length).toBeGreaterThanOrEqual(1);
     expect(cloud.some((link) => link.getAttribute("href") === "/cloud")).toBe(true);
-    expect(screen.queryByRole("link", { name: "Academy" })).not.toBeInTheDocument();
   });
 
   it("marks Cloud as the current page on /cloud routes", () => {

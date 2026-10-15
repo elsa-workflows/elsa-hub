@@ -10,9 +10,9 @@ import {
   type CloudEngineSummary,
   type CloudUpdatingState,
   type CloudWorkspace,
-} from "./contract";
+} from "@/lib/cloud";
 
-export type CloudStubScenario = "empty" | "list" | "updating";
+export type CloudStubScenario = "empty" | "list" | "updating" | "needsSetup";
 
 export const STUB_WORKSPACE: CloudWorkspace = {
   id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -84,6 +84,9 @@ export const stubCloudClient = {
           capabilities: [...CLOUD_REQUIRED_CAPABILITIES],
         };
       case "bootstrap":
+        if (scenario === "needsSetup") {
+          scenario = "empty";
+        }
         return {
           ok: true,
           state: "ready",
@@ -91,6 +94,9 @@ export const stubCloudClient = {
           workspaceId: STUB_WORKSPACE.id,
         };
       case "listWorkspaces":
+        if (scenario === "needsSetup") {
+          return { ok: true, state: "ready", workspaces: [] };
+        }
         return { ok: true, state: "ready", workspaces: [STUB_WORKSPACE] };
       case "selectWorkspace": {
         const missing = requireWorkspace(body.workspaceId);

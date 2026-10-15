@@ -1,29 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { cloudClient } from "@/lib/cloudClient/client";
 import {
+  cloudClient,
   isCloudBffError,
   isCloudUpdating,
   type CloudBffResponse,
   type CloudEngineSummary,
-} from "@/lib/cloudClient/contract";
+} from "@/lib/cloudClient";
+import { useCloudWorkspace, type CloudWorkspaceView } from "./useCloudWorkspace";
 
 export type CloudEngineListView =
   | { kind: "loading" }
   | { kind: "updating"; message: string }
+  | { kind: "needsSetup" }
   | { kind: "empty" }
   | { kind: "list"; engines: CloudEngineSummary[] }
   | { kind: "error"; message: string };
-
-function isBootstrapReady(
-  response: CloudBffResponse,
-): response is Extract<CloudBffResponse, { ok: true; organizationId: string; workspaceId: string }> {
-  return (
-    response.ok === true &&
-    "organizationId" in response &&
-    "workspaceId" in response &&
-    !("engines" in response)
-  );
-}
 
 export function cloudEngineListView(
   result: CloudBffResponse | undefined,
@@ -47,25 +38,50 @@ export function cloudEngineListView(
   return { kind: "error", message: "Unexpected cloud-bff response." };
 }
 
-export async function fetchCloudEngines(): Promise<CloudBffResponse> {
-  const boot = await cloudClient.invoke({ action: "bootstrap" });
-  if (!boot.ok) return boot;
-  if (!isBootstrapReady(boot)) {
-    return { ok: false, code: "invalid_request", error: "Unexpected bootstrap response." };
+export function resolveCloudEngineListView(
+  workspace: CloudWorkspaceView,
+  engines: CloudBffResponse | undefined,
+  enginesPending: boolean,
+): CloudEngineListView {
+  switch (workspace.kind) {
+    case "loading":
+    case "updating":
+    case "error":
+    case "needsSetup":
+      return workspace;
+    case "ready":
+      return cloudEngineListView(engines, enginesPending);
   }
-  return cloudClient.invoke({ action: "listEngines", workspaceId: boot.workspaceId });
+}
+
+export async function fetchCloudEngines(workspaceId: string): Promise<CloudBffResponse> {
+  return cloudClient.invoke({ action: "listEngines", workspaceId });
 }
 
 export function useCloudEngines() {
+  const workspace = useCloudWorkspace();
+  const workspaceId = workspace.view.kind === "ready" ? workspace.view.workspace.id : undefined;
+
   const query = useQuery({
-    queryKey: ["cloud", "engines"],
-    queryFn: fetchCloudEngines,
+    queryKey: ["cloud", "engines", workspaceId],
+    queryFn: () => fetchCloudEngines(workspaceId!),
+    enabled: Boolean(workspaceId),
     staleTime: 30_000,
     retry: false,
   });
 
   return {
     ...query,
-    view: cloudEngineListView(query.data, query.isPending),
+    view: resolveCloudEngineListView(
+      workspace.view,
+      query.data,
+      Boolean(workspaceId) && (query.isPending || query.data === undefined),
+    ),
+    setupCloud: workspace.setupCloud,
+    setupPending: workspace.setupPending,
+    refetch: async () => {
+      await workspace.refetch();
+      if (workspaceId) await query.refetch();
+    },
   };
 }

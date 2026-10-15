@@ -8,10 +8,10 @@ import {
   isCloudUpdating,
   type CloudBffRequest,
   type CloudBffResponse,
-} from "./contract";
+} from "@/lib/cloud";
 import { setCloudStubScenario, stubCloudClient, STUB_WORKSPACE } from "./stub";
 
-describe("mirrored #53 cloud-bff contract", () => {
+describe("cloud-bff contract via the DEV stub", () => {
   afterEach(() => {
     setCloudStubScenario("list");
   });
@@ -70,5 +70,17 @@ describe("mirrored #53 cloud-bff contract", () => {
     setCloudStubScenario("updating");
     const updating = await stubCloudClient.invoke({ action: "bootstrap" });
     expect(isCloudUpdating(updating)).toBe(true);
+  });
+
+  it("lists no workspaces until bootstrap in the needsSetup scenario", async () => {
+    setCloudStubScenario("needsSetup");
+    const listed = await stubCloudClient.invoke({ action: "listWorkspaces" });
+    expect(listed).toMatchObject({ ok: true, workspaces: [] });
+
+    const boot = await stubCloudClient.invoke({ action: "bootstrap" });
+    expect(boot).toMatchObject({ ok: true, workspaceId: STUB_WORKSPACE.id });
+
+    const after = await stubCloudClient.invoke({ action: "listWorkspaces" });
+    expect(after).toMatchObject({ ok: true, workspaces: [STUB_WORKSPACE] });
   });
 });
