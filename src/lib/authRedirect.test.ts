@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   AUTH_CALLBACK_PATH,
   AUTH_REDIRECT_STORAGE_KEY,
+  AUTH_CONFIRM_PATH,
   consumeAuthRedirect,
   getAuthCallbackUrl,
+  getAuthConfirmUrl,
   rememberAuthRedirect,
   sanitizeAuthRedirect,
 } from "./authRedirect";
@@ -17,6 +19,18 @@ describe("getAuthCallbackUrl", () => {
       "http://localhost:8080/auth/callback",
     );
     expect(AUTH_CALLBACK_PATH).toBe("/auth/callback");
+  });
+});
+
+describe("getAuthConfirmUrl", () => {
+  it("appends /auth/confirm to the current origin", () => {
+    expect(getAuthConfirmUrl("https://www.elsaworkflows.io")).toBe(
+      "https://www.elsaworkflows.io/auth/confirm",
+    );
+    expect(getAuthConfirmUrl("http://localhost:8080")).toBe(
+      "http://localhost:8080/auth/confirm",
+    );
+    expect(AUTH_CONFIRM_PATH).toBe("/auth/confirm");
   });
 });
 

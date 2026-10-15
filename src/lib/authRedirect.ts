@@ -85,6 +85,10 @@ export function getAuthCallbackUrl(origin: string = window.location.origin): str
   return `${origin}${AUTH_CALLBACK_PATH}`;
 }
 
+export function getAuthConfirmUrl(origin: string = window.location.origin): string {
+  return `${origin}${AUTH_CONFIRM_PATH}`;
+}
+
 export function rememberAuthRedirect(redirectTo?: string | null): void {
   const safe = sanitizeAuthRedirect(redirectTo);
   if (!safe || safe === "/") {

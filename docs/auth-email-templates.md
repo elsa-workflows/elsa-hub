@@ -8,20 +8,43 @@ Because this uses `token_hash` instead of a PKCE `?code=` exchange, email links 
 
 Change these templates in the Supabase Auth email settings for project `tehhrjepyfnhmsgtwzkf`. Use the confirmation link href exactly as follows.
 
-## Magic Link
+## Magic Link (production default)
 
 ```
 {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
 ```
 
-## Confirm signup
+## Confirm signup (production default)
 
 ```
 {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup
 ```
 
-`SiteURL` must be the Hub origin (production or the matching preview origin). Optional query `redirect` is honoured by `/auth/confirm` when it is a same-site path; otherwise the page falls back to `/dashboard`.
+`SiteURL` must be the Hub origin for that environment. Optional query `redirect` is honoured by `/auth/confirm` when it is a same-site path; otherwise the page falls back to `/dashboard`.
 
 Do not use `{{ .ConfirmationURL }}` for these two templates. That URL hits `/auth/v1/verify` and is what Safe Links consume.
 
-`/auth/confirm` does not need to be on the Supabase Redirect URLs allow list. The Hub page talks to GoTrue from the browser. Keep `{origin}/auth/callback` on that list for GitHub and Google.
+## Preview origins: `{{ .RedirectTo }}`
+
+`SiteURL` is a single project setting, usually production. A Magic Link or Confirm signup template that uses `SiteURL` therefore sends preview users to the production `/auth/confirm` page.
+
+`{{ .RedirectTo }}` is filled from the request's `emailRedirectTo`. Hub sets that to `{origin}/auth/confirm` for magic-link and signup (not `/auth/callback`, and not the site root). A template of:
+
+```
+{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email
+```
+
+or, for signup:
+
+```
+{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup
+```
+
+then follows the origin that requested the email.
+
+Tradeoff:
+
+- `{{ .SiteURL }}` is the production default. One href, and `/auth/confirm` does not need to be on the Redirect URLs allow list when the template never uses `RedirectTo`. Preview users land on production confirm.
+- `{{ .RedirectTo }}` supports preview origins, but only when both of these are true: (1) `emailRedirectTo` is `{origin}/auth/confirm` (Hub already sends that for magic-link and signup), and (2) each origin's `/auth/confirm` is on the Redirect URLs allow list. A loose allow list plus `RedirectTo` is an open-redirect risk. Keep `SiteURL` unless those two conditions are met.
+
+Keep `{origin}/auth/callback` on the Redirect URLs allow list for GitHub and Google regardless of which email template you use. The Hub confirm page talks to GoTrue from the browser; it does not need to be listed unless you switch the templates to `RedirectTo`.

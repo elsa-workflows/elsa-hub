@@ -65,7 +65,7 @@ describe("AuthContext passwordless methods", () => {
     });
   });
 
-  it("sends magic-link and email sign-up confirmations to /auth/callback", async () => {
+  it("sends magic-link and email sign-up confirmations to /auth/confirm", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -75,7 +75,7 @@ describe("AuthContext passwordless methods", () => {
     expect(signInWithOtp).toHaveBeenCalledWith({
       email: "qa@example.com",
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
         shouldCreateUser: true,
       },
     });
@@ -83,7 +83,7 @@ describe("AuthContext passwordless methods", () => {
       email: "qa@example.com",
       password: "password123",
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
       },
     });
   });

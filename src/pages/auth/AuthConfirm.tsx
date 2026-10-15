@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { Loader2, Mail, MailCheck } from "lucide-react";
@@ -7,9 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { describeAuthError } from "@/lib/authErrors";
-import { DEFAULT_POST_AUTH_PATH, sanitizeAuthRedirect } from "@/lib/authRedirect";
+import {
+  consumeAuthRedirect,
+  DEFAULT_POST_AUTH_PATH,
+  sanitizeAuthRedirect,
+} from "@/lib/authRedirect";
 
-const OTP_TYPES = new Set<string>(["email", "magiclink", "signup"]);
+const OTP_TYPES = new Set<string>(["email", "signup"]);
+
+export const AUTH_CONFIRM_SIGNED_IN_MS = 1500;
 
 function parseOtpType(value: string | null): EmailOtpType | null {
   if (!value) return null;
@@ -20,16 +26,40 @@ function parseOtpType(value: string | null): EmailOtpType | null {
   return null;
 }
 
+function stripTokenFromUrl() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("token_hash") && !url.searchParams.has("type")) {
+    return;
+  }
+  url.searchParams.delete("token_hash");
+  url.searchParams.delete("type");
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 export default function AuthConfirm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const tokenHash = searchParams.get("token_hash") ?? "";
-  const otpType = parseOtpType(searchParams.get("type"));
-  const redirectParam = searchParams.get("redirect");
+  const [tokenHash] = useState(() => searchParams.get("token_hash") ?? "");
+  const [otpType] = useState(() => parseOtpType(searchParams.get("type")));
+  const [redirectParam] = useState(() => searchParams.get("redirect"));
   const [busy, setBusy] = useState(false);
+  const [signedInEmail, setSignedInEmail] = useState<string | null>(null);
+  const [destination, setDestination] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(
     tokenHash ? null : "This sign-in link is missing its token. Request a new one.",
   );
+
+  useEffect(() => {
+    stripTokenFromUrl();
+  }, []);
+
+  useEffect(() => {
+    if (!signedInEmail || !destination) return;
+    const id = window.setTimeout(() => {
+      navigate(destination);
+    }, AUTH_CONFIRM_SIGNED_IN_MS);
+    return () => window.clearTimeout(id);
+  }, [signedInEmail, destination, navigate]);
 
   const isSignup = otpType === "signup";
   const buttonLabel = isSignup ? "Confirm" : "Sign in";
@@ -47,7 +77,11 @@ export default function AuthConfirm() {
     setBusy(true);
     setErrorMessage(null);
 
-    const { error } = await supabase.auth.verifyOtp({
+    const dest = consumeAuthRedirect(
+      sanitizeAuthRedirect(redirectParam) ?? DEFAULT_POST_AUTH_PATH,
+    );
+
+    const { data, error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: otpType,
     });
@@ -58,7 +92,18 @@ export default function AuthConfirm() {
       return;
     }
 
-    navigate(sanitizeAuthRedirect(redirectParam) ?? DEFAULT_POST_AUTH_PATH);
+    const email =
+      data.user?.email || data.session?.user?.email || "your account";
+    setDestination(dest);
+    setSignedInEmail(email);
+    setBusy(false);
+  };
+
+  const onSignOut = async () => {
+    await supabase.auth.signOut();
+    setSignedInEmail(null);
+    setDestination(null);
+    navigate("/login");
   };
 
   return (
@@ -74,19 +119,25 @@ export default function AuthConfirm() {
               )}
             </div>
             <CardTitle className="text-2xl">
-              {isSignup ? "Confirm your email" : "Sign in"}
+              {signedInEmail ? "Signed in" : isSignup ? "Confirm your email" : "Sign in"}
             </CardTitle>
             <CardDescription className="text-base">
-              {isSignup
-                ? "Click Confirm to activate your account. This page does not verify the link until you click."
-                : "Click Sign in to continue. This page does not verify the link until you click."}
+              {signedInEmail
+                ? `Signed in as ${signedInEmail}. Not you? Sign out`
+                : isSignup
+                  ? "Click Confirm to activate your account. This page does not verify the link until you click."
+                  : "Click Sign in to continue. This page does not verify the link until you click."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {errorMessage ? (
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
-            {tokenHash ? (
+            {signedInEmail ? (
+              <Button className="w-full" variant="outline" onClick={() => void onSignOut()}>
+                Sign out
+              </Button>
+            ) : tokenHash ? (
               <Button className="w-full" onClick={() => void onConfirm()} disabled={busy}>
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {buttonLabel}
