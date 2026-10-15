@@ -1068,6 +1068,38 @@ export type Database = {
           },
         ]
       }
+      org_stripe_customers: {
+        Row: {
+          created_at: string
+          livemode: boolean
+          organization_id: string
+          stripe_customer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          livemode: boolean
+          organization_id: string
+          stripe_customer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          livemode?: boolean
+          organization_id?: string
+          stripe_customer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_stripe_customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -1910,6 +1942,30 @@ export type Database = {
           id?: string
           token_hash?: string
           used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_stripe_customers: {
+        Row: {
+          created_at: string
+          livemode: boolean
+          stripe_customer_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          livemode: boolean
+          stripe_customer_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          livemode?: boolean
+          stripe_customer_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

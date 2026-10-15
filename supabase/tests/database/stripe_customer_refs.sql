@@ -1,25 +1,7 @@
--- pgTAP-style RLS and uniqueness tests for org and user Stripe customer refs.
+-- Valid TAP (plan/ok/finish) RLS and uniqueness tests for Stripe customer refs.
 -- AC4: non-admins cannot read the org customer ref.
--- Writes are service_role only (no INSERT/UPDATE/DELETE policies for authenticated).
--- Fake buyer emails only (buyer@example.test).
---
--- Intended for `supabase test db`. Each check raises on failure, same idea as
--- pgTAP ok()/is() without requiring the extension to already be installed.
-
-CREATE OR REPLACE FUNCTION public.stripe_customer_refs_test_ok(
-  condition boolean,
-  message text
-)
-RETURNS void
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  IF condition IS NOT TRUE THEN
-    RAISE EXCEPTION 'not ok - %', message;
-  END IF;
-  RAISE NOTICE 'ok - %', message;
-END;
-$$;
+-- Writes are service_role only. Fake buyer emails only (buyer@example.test).
+-- Run with: pg_prove supabase/tests/database/stripe_customer_refs.sql
 
 CREATE OR REPLACE FUNCTION public.stripe_customer_refs_put_user(
   p_id uuid,
@@ -79,166 +61,323 @@ BEGIN
 END;
 $$;
 
-DO $$
-DECLARE
-  org_a uuid := '11111111-1111-4111-8111-111111111111';
-  org_b uuid := '22222222-2222-4222-8222-222222222222';
-  org_c uuid := '33333333-3333-4333-8333-333333333333';
-  admin_a uuid := 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-  member_a uuid := 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-  admin_b uuid := 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
-  personal uuid := 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
-  seen_count integer;
-  write_error text;
+CREATE OR REPLACE FUNCTION public.stripe_customer_refs_throws_unique(p_sql text)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
 BEGIN
-  PERFORM public.stripe_customer_refs_put_user(admin_a, 'buyer@example.test');
-  PERFORM public.stripe_customer_refs_put_user(member_a, 'member@example.test');
-  PERFORM public.stripe_customer_refs_put_user(admin_b, 'buyer@example.test');
-  PERFORM public.stripe_customer_refs_put_user(personal, 'personal@example.test');
-
-  INSERT INTO public.organizations (id, name, slug)
-  VALUES
-    (org_a, 'Org A', 'org-a-stripe-customer-refs'),
-    (org_b, 'Org B', 'org-b-stripe-customer-refs'),
-    (org_c, 'Org C', 'org-c-stripe-customer-refs')
-  ON CONFLICT (id) DO NOTHING;
-
-  INSERT INTO public.organization_members (organization_id, user_id, role)
-  VALUES
-    (org_a, admin_a, 'admin'),
-    (org_a, member_a, 'member'),
-    (org_b, admin_b, 'admin')
-  ON CONFLICT (organization_id, user_id) DO NOTHING;
-
-  INSERT INTO public.org_stripe_customers (organization_id, stripe_customer_id)
-  VALUES
-    (org_a, 'cus_test_org_a'),
-    (org_b, 'cus_test_org_b');
-
-  INSERT INTO public.user_stripe_customers (user_id, stripe_customer_id)
-  VALUES
-    (personal, 'cus_test_personal'),
-    (admin_a, 'cus_test_admin_a_personal');
-
-  BEGIN
-    INSERT INTO public.org_stripe_customers (organization_id, stripe_customer_id)
-    VALUES (org_a, 'cus_test_org_a_dup');
-    PERFORM public.stripe_customer_refs_test_ok(false, 'org owner unique rejects a second row');
-  EXCEPTION
-    WHEN unique_violation THEN
-      PERFORM public.stripe_customer_refs_test_ok(true, 'org owner unique rejects a second row');
-  END;
-
-  BEGIN
-    INSERT INTO public.org_stripe_customers (organization_id, stripe_customer_id)
-    VALUES (org_c, 'cus_test_org_a');
-    PERFORM public.stripe_customer_refs_test_ok(false, 'org stripe_customer_id is unique');
-  EXCEPTION
-    WHEN unique_violation THEN
-      PERFORM public.stripe_customer_refs_test_ok(true, 'org stripe_customer_id is unique');
-  END;
-
-  BEGIN
-    INSERT INTO public.user_stripe_customers (user_id, stripe_customer_id)
-    VALUES (personal, 'cus_test_personal_dup');
-    PERFORM public.stripe_customer_refs_test_ok(false, 'user owner unique rejects a second row');
-  EXCEPTION
-    WHEN unique_violation THEN
-      PERFORM public.stripe_customer_refs_test_ok(true, 'user owner unique rejects a second row');
-  END;
-
-  PERFORM public.stripe_customer_refs_set_jwt(admin_a);
-  EXECUTE 'SET LOCAL ROLE authenticated';
-
-  SELECT count(*) INTO seen_count
-  FROM public.org_stripe_customers
-  WHERE organization_id = org_a;
-  PERFORM public.stripe_customer_refs_test_ok(seen_count = 1, 'org admin can read own org customer ref');
-
-  SELECT count(*) INTO seen_count
-  FROM public.org_stripe_customers
-  WHERE organization_id = org_b;
-  PERFORM public.stripe_customer_refs_test_ok(seen_count = 0, 'org admin cannot read another org customer ref');
-
-  EXECUTE 'RESET ROLE';
-  PERFORM public.stripe_customer_refs_set_jwt(member_a);
-  EXECUTE 'SET LOCAL ROLE authenticated';
-
-  SELECT count(*) INTO seen_count
-  FROM public.org_stripe_customers
-  WHERE organization_id = org_a;
-  PERFORM public.stripe_customer_refs_test_ok(seen_count = 0, 'AC4 non-admin cannot read org customer ref');
-
-  EXECUTE 'RESET ROLE';
-  PERFORM public.stripe_customer_refs_set_jwt(personal);
-  EXECUTE 'SET LOCAL ROLE authenticated';
-
-  SELECT count(*) INTO seen_count
-  FROM public.user_stripe_customers
-  WHERE user_id = personal;
-  PERFORM public.stripe_customer_refs_test_ok(seen_count = 1, 'user can read own customer ref');
-
-  SELECT count(*) INTO seen_count
-  FROM public.user_stripe_customers
-  WHERE user_id = admin_a;
-  PERFORM public.stripe_customer_refs_test_ok(seen_count = 0, 'user cannot read another user customer ref');
-
-  write_error := NULL;
-  BEGIN
-    INSERT INTO public.org_stripe_customers (organization_id, stripe_customer_id)
-    VALUES (org_c, 'cus_test_should_fail');
-  EXCEPTION
-    WHEN OTHERS THEN
-      write_error := SQLERRM;
-  END;
-  PERFORM public.stripe_customer_refs_test_ok(write_error IS NOT NULL, 'authenticated cannot insert org customer ref');
-
-  write_error := NULL;
-  BEGIN
-    UPDATE public.org_stripe_customers
-    SET stripe_customer_id = 'cus_test_updated'
-    WHERE organization_id = org_a;
-    IF NOT FOUND THEN
-      write_error := '0 rows';
-    END IF;
-  EXCEPTION
-    WHEN OTHERS THEN
-      write_error := SQLERRM;
-  END;
-  PERFORM public.stripe_customer_refs_test_ok(write_error IS NOT NULL, 'authenticated cannot update org customer ref');
-
-  write_error := NULL;
-  BEGIN
-    DELETE FROM public.org_stripe_customers WHERE organization_id = org_a;
-    IF NOT FOUND THEN
-      write_error := '0 rows';
-    END IF;
-  EXCEPTION
-    WHEN OTHERS THEN
-      write_error := SQLERRM;
-  END;
-  PERFORM public.stripe_customer_refs_test_ok(write_error IS NOT NULL, 'authenticated cannot delete org customer ref');
-
-  write_error := NULL;
-  BEGIN
-    INSERT INTO public.user_stripe_customers (user_id, stripe_customer_id)
-    VALUES (member_a, 'cus_test_user_should_fail');
-  EXCEPTION
-    WHEN OTHERS THEN
-      write_error := SQLERRM;
-  END;
-  PERFORM public.stripe_customer_refs_test_ok(write_error IS NOT NULL, 'authenticated cannot insert user customer ref');
-
-  EXECUTE 'RESET ROLE';
-  SELECT count(*) INTO seen_count
-  FROM public.org_stripe_customers
-  WHERE organization_id = org_a AND stripe_customer_id = 'cus_test_org_a';
-  PERFORM public.stripe_customer_refs_test_ok(seen_count = 1, 'org customer ref unchanged after denied writes');
-
-  PERFORM public.stripe_customer_refs_test_ok(true, 'plan finished');
+  EXECUTE p_sql;
+  RETURN false;
+EXCEPTION
+  WHEN unique_violation THEN
+    RETURN true;
 END;
 $$;
 
-DROP FUNCTION public.stripe_customer_refs_set_jwt(uuid);
-DROP FUNCTION public.stripe_customer_refs_put_user(uuid, text);
-DROP FUNCTION public.stripe_customer_refs_test_ok(boolean, text);
+CREATE OR REPLACE FUNCTION public.stripe_customer_refs_write_error(p_sql text)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  affected integer;
+BEGIN
+  EXECUTE p_sql;
+  GET DIAGNOSTICS affected = ROW_COUNT;
+  RETURN affected = 0;
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN true;
+END;
+$$;
+
+DO $tap$
+BEGIN
+  IF to_regprocedure('plan(integer)') IS NULL THEN
+    CREATE FUNCTION plan(integer)
+    RETURNS text
+    LANGUAGE plpgsql
+    AS $fn$
+    BEGIN
+      PERFORM set_config('tap.planned', $1::text, true);
+      PERFORM set_config('tap.ran', '0', true);
+      PERFORM set_config('tap.failed', '0', true);
+      RETURN '1..' || $1;
+    END;
+    $fn$;
+  END IF;
+
+  IF to_regprocedure('ok(boolean,text)') IS NULL THEN
+    CREATE FUNCTION ok(boolean, text)
+    RETURNS text
+    LANGUAGE plpgsql
+    AS $fn$
+    DECLARE
+      n integer;
+    BEGIN
+      n := COALESCE(NULLIF(current_setting('tap.ran', true), ''), '0')::integer + 1;
+      PERFORM set_config('tap.ran', n::text, true);
+      IF $1 IS TRUE THEN
+        RETURN 'ok ' || n || ' - ' || $2;
+      END IF;
+      PERFORM set_config(
+        'tap.failed',
+        (COALESCE(NULLIF(current_setting('tap.failed', true), ''), '0')::integer + 1)::text,
+        true
+      );
+      RETURN 'not ok ' || n || ' - ' || $2;
+    END;
+    $fn$;
+  END IF;
+
+  IF to_regprocedure('finish()') IS NULL THEN
+    CREATE FUNCTION finish()
+    RETURNS SETOF text
+    LANGUAGE plpgsql
+    AS $fn$
+    DECLARE
+      planned integer;
+      ran integer;
+      failed integer;
+    BEGIN
+      planned := COALESCE(NULLIF(current_setting('tap.planned', true), ''), '0')::integer;
+      ran := COALESCE(NULLIF(current_setting('tap.ran', true), ''), '0')::integer;
+      failed := COALESCE(NULLIF(current_setting('tap.failed', true), ''), '0')::integer;
+      IF ran <> planned THEN
+        RETURN NEXT 'not ok - planned ' || planned || ' but ran ' || ran;
+        failed := failed + 1;
+      END IF;
+      IF failed = 0 THEN
+        RETURN NEXT '# pass ' || ran;
+      ELSE
+        RETURN NEXT '# fail ' || failed;
+      END IF;
+    END;
+    $fn$;
+  END IF;
+END;
+$tap$;
+
+BEGIN;
+
+SELECT plan(16);
+
+SELECT public.stripe_customer_refs_put_user(
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,
+  'buyer@example.test'
+);
+SELECT public.stripe_customer_refs_put_user(
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,
+  'member@example.test'
+);
+SELECT public.stripe_customer_refs_put_user(
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid,
+  'buyer@example.test'
+);
+SELECT public.stripe_customer_refs_put_user(
+  'dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid,
+  'personal@example.test'
+);
+
+INSERT INTO public.organizations (id, name, slug)
+VALUES
+  ('11111111-1111-4111-8111-111111111111', 'Org A', 'org-a-stripe-customer-refs'),
+  ('22222222-2222-4222-8222-222222222222', 'Org B', 'org-b-stripe-customer-refs'),
+  ('33333333-3333-4333-8333-333333333333', 'Org C', 'org-c-stripe-customer-refs')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.organization_members (organization_id, user_id, role)
+VALUES
+  ('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'admin'),
+  ('11111111-1111-4111-8111-111111111111', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'member'),
+  ('22222222-2222-4222-8222-222222222222', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'admin')
+ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+INSERT INTO public.org_stripe_customers (organization_id, livemode, stripe_customer_id)
+VALUES
+  ('11111111-1111-4111-8111-111111111111', false, 'cus_test_org_a'),
+  ('22222222-2222-4222-8222-222222222222', false, 'cus_test_org_b');
+
+INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
+VALUES
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', false, 'cus_test_personal'),
+  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', false, 'cus_test_admin_a_personal');
+
+SELECT ok(
+  public.stripe_customer_refs_throws_unique(
+    $sql$
+      INSERT INTO public.org_stripe_customers (organization_id, livemode, stripe_customer_id)
+      VALUES ('11111111-1111-4111-8111-111111111111', false, 'cus_test_org_a_dup')
+    $sql$
+  ),
+  'org owner unique rejects a second row for the same livemode'
+);
+
+INSERT INTO public.org_stripe_customers (organization_id, livemode, stripe_customer_id)
+VALUES ('11111111-1111-4111-8111-111111111111', true, 'cus_live_org_a');
+
+SELECT ok(
+  (
+    SELECT count(*) = 2
+    FROM public.org_stripe_customers
+    WHERE organization_id = '11111111-1111-4111-8111-111111111111'
+  ),
+  'same org can store test and live customers'
+);
+
+SELECT ok(
+  public.stripe_customer_refs_throws_unique(
+    $sql$
+      INSERT INTO public.org_stripe_customers (organization_id, livemode, stripe_customer_id)
+      VALUES ('33333333-3333-4333-8333-333333333333', false, 'cus_test_org_a')
+    $sql$
+  ),
+  'org stripe_customer_id is unique'
+);
+
+SELECT ok(
+  public.stripe_customer_refs_throws_unique(
+    $sql$
+      INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
+      VALUES ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', false, 'cus_test_personal_dup')
+    $sql$
+  ),
+  'user owner unique rejects a second row for the same livemode'
+);
+
+INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
+VALUES ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', true, 'cus_live_personal');
+
+SELECT ok(
+  (
+    SELECT count(*) = 2
+    FROM public.user_stripe_customers
+    WHERE user_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  ),
+  'same user can store test and live customers'
+);
+
+SELECT ok(
+  public.stripe_customer_refs_throws_unique(
+    $sql$
+      INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
+      VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', false, 'cus_test_personal')
+    $sql$
+  ),
+  'user stripe_customer_id is unique'
+);
+
+SELECT public.stripe_customer_refs_set_jwt('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET LOCAL ROLE authenticated;
+
+SELECT ok(
+  (
+    SELECT count(*) = 2
+    FROM public.org_stripe_customers
+    WHERE organization_id = '11111111-1111-4111-8111-111111111111'
+  ),
+  'org admin can read own org customer ref'
+);
+
+SELECT ok(
+  (
+    SELECT count(*) = 0
+    FROM public.org_stripe_customers
+    WHERE organization_id = '22222222-2222-4222-8222-222222222222'
+  ),
+  'org admin cannot read another org customer ref'
+);
+
+RESET ROLE;
+SELECT public.stripe_customer_refs_set_jwt('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+SET LOCAL ROLE authenticated;
+
+SELECT ok(
+  (
+    SELECT count(*) = 0
+    FROM public.org_stripe_customers
+    WHERE organization_id = '11111111-1111-4111-8111-111111111111'
+  ),
+  'AC4 non-admin cannot read org customer ref'
+);
+
+RESET ROLE;
+SELECT public.stripe_customer_refs_set_jwt('dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+SET LOCAL ROLE authenticated;
+
+SELECT ok(
+  (
+    SELECT count(*) = 2
+    FROM public.user_stripe_customers
+    WHERE user_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  ),
+  'user can read own customer ref'
+);
+
+SELECT ok(
+  (
+    SELECT count(*) = 0
+    FROM public.user_stripe_customers
+    WHERE user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  ),
+  'user cannot read another user customer ref'
+);
+
+SELECT ok(
+  public.stripe_customer_refs_write_error(
+    $sql$
+      INSERT INTO public.org_stripe_customers (organization_id, livemode, stripe_customer_id)
+      VALUES ('33333333-3333-4333-8333-333333333333', false, 'cus_test_should_fail')
+    $sql$
+  ),
+  'authenticated cannot insert org customer ref'
+);
+
+SELECT ok(
+  public.stripe_customer_refs_write_error(
+    $sql$
+      UPDATE public.org_stripe_customers
+      SET stripe_customer_id = 'cus_test_updated'
+      WHERE organization_id = '11111111-1111-4111-8111-111111111111'
+        AND livemode = false
+    $sql$
+  ),
+  'authenticated cannot update org customer ref'
+);
+
+SELECT ok(
+  public.stripe_customer_refs_write_error(
+    $sql$
+      DELETE FROM public.org_stripe_customers
+      WHERE organization_id = '11111111-1111-4111-8111-111111111111'
+        AND livemode = false
+    $sql$
+  ),
+  'authenticated cannot delete org customer ref'
+);
+
+SELECT ok(
+  public.stripe_customer_refs_write_error(
+    $sql$
+      INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
+      VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', false, 'cus_test_user_should_fail')
+    $sql$
+  ),
+  'authenticated cannot insert user customer ref'
+);
+
+RESET ROLE;
+
+SELECT ok(
+  (
+    SELECT count(*) = 1
+    FROM public.org_stripe_customers
+    WHERE organization_id = '11111111-1111-4111-8111-111111111111'
+      AND livemode = false
+      AND stripe_customer_id = 'cus_test_org_a'
+  ),
+  'org customer ref unchanged after denied writes'
+);
+
+SELECT * FROM finish();
+
+ROLLBACK;
