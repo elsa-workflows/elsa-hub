@@ -86,7 +86,11 @@ describe("Academy course page", () => {
     expect(screen.getByText("Host Elsa in ASP.NET Core")).toBeInTheDocument();
     expect(screen.getByText("Preview")).toBeInTheDocument();
     expect(screen.getByLabelText("Locked")).toBeInTheDocument();
-    expect(screen.getByTestId("academy-buy-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
+    expect(screen.getByTestId("academy-solo-cta")).not.toHaveAttribute("id", "solo-bundle");
+    expect(screen.getByRole("heading", { name: "Solo Bundle" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Buy" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Unlocked")).not.toBeInTheDocument();
   });
 
@@ -114,7 +118,7 @@ describe("Academy course page", () => {
 
     expect(screen.getByLabelText("Unlocked")).toBeInTheDocument();
     expect(screen.queryByLabelText("Locked")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("academy-buy-panel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
     expect(screen.getByText("You have access to this course.")).toBeInTheDocument();
     expect(screen.getByTestId("academy-kit-downloads")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Downloads" })).toBeInTheDocument();

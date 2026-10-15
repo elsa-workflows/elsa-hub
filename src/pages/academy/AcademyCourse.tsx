@@ -1,7 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
-import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,8 +9,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { AcademyBuyPanel } from "@/components/academy/AcademyBuyPanel";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
+import { AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyLessonList } from "@/components/academy/AcademyLessonList";
 import {
   AcademyEmptyState,
@@ -103,15 +102,7 @@ export default function AcademyCourse() {
           <h1 className="text-4xl font-bold">{course.title}</h1>
           {course.summary && <p className="text-lg text-muted-foreground">{course.summary}</p>}
           <p className="text-lg font-semibold">{formatAcademyPrice(course.price_cents, course.currency)}</p>
-          {hasAccess ? (
-            <p className="text-sm text-primary">You have access to this course.</p>
-          ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="button" onClick={() => handleBuyCourse(course)}>
-                Buy
-              </Button>
-            </div>
-          )}
+          {hasAccess && <p className="text-sm text-primary">You have access to this course.</p>}
         </header>
 
         <div className="space-y-4">
@@ -128,7 +119,7 @@ export default function AcademyCourse() {
 
         {hasAccess && <AcademyKitDownload assets={kitAssets} title="Downloads" />}
 
-        {!hasAccess && <AcademyBuyPanel course={course} onBuyCourse={handleBuyCourse} />}
+        {!hasAccess && <AcademySoloCta locked onBuyCourse={handleBuyCourse} />}
       </section>
     </Layout>
   );

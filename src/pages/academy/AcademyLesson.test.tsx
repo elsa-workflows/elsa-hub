@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
-const { useAcademyLesson } = vi.hoisted(() => ({
+const { handleBuyCourse, useAcademyLesson } = vi.hoisted(() => ({
+  handleBuyCourse: vi.fn(),
   useAcademyLesson: vi.fn(),
 }));
 
@@ -23,6 +24,14 @@ vi.mock("@/components/Seo", () => ({
 vi.mock("@/hooks/useAcademyLesson", () => ({
   useAcademyLesson: () => useAcademyLesson(),
 }));
+
+vi.mock("@/lib/academy", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
+  return {
+    ...actual,
+    handleBuyCourse,
+  };
+});
 
 import AcademyLesson from "./AcademyLesson";
 
@@ -100,7 +109,7 @@ describe("Academy lesson page", () => {
         "login?redirect=%2Facademy%2Felsa-3-solo-bundle%2Fhost-elsa-in-aspnet-core",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByTestId("academy-buy-panel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
   });
 
   it("renders a preview lesson body for an anonymous visitor", () => {
@@ -124,11 +133,11 @@ describe("Academy lesson page", () => {
 
     expect(screen.getByRole("heading", { name: previewLesson.title })).toBeInTheDocument();
     expect(screen.getByText("This preview lesson is free.")).toBeInTheDocument();
-    expect(screen.queryByTestId("academy-buy-panel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
     expect(screen.getByTestId("seo")).toHaveAttribute("data-noindex", "true");
   });
 
-  it("shows the lock and buy panel for a signed-in unentitled user", () => {
+  it("renders the Solo CTA on a locked lesson for a signed-in unentitled user", () => {
     useAcademyLesson.mockReturnValue({
       course,
       lesson: paidLesson,
@@ -148,8 +157,14 @@ describe("Academy lesson page", () => {
     renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");
 
     expect(screen.getByRole("heading", { name: paidLesson.title })).toBeInTheDocument();
-    expect(screen.getByTestId("academy-buy-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
+    expect(screen.getByTestId("academy-solo-cta")).not.toHaveAttribute("id", "solo-bundle");
+    expect(screen.getByRole("heading", { name: "Solo Bundle" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Buy" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Team licences" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Buy" }));
+    expect(handleBuyCourse).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Host Elsa 3.9.0")).not.toBeInTheDocument();
     expect(screen.queryByTestId("academy-kit-downloads")).not.toBeInTheDocument();
   });
@@ -186,6 +201,6 @@ describe("Academy lesson page", () => {
     expect(screen.getByText("Host Elsa 3.9.0 in an ASP.NET Core app.")).toBeInTheDocument();
     expect(screen.getByTestId("academy-kit-downloads")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Hosting lab kit" })).toBeInTheDocument();
-    expect(screen.queryByTestId("academy-buy-panel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
   });
 });

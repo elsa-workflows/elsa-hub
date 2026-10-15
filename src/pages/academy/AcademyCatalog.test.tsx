@@ -30,6 +30,7 @@ vi.mock("@/lib/academy", async () => {
 });
 
 import AcademyCatalog from "./AcademyCatalog";
+import { ACADEMY_TEAM_LICENCES_URL } from "@/lib/academy";
 
 const course = {
   id: "course-1",
@@ -44,34 +45,48 @@ const course = {
   product_code: "solo_bundle",
 };
 
-function renderCatalog() {
-  return render(
+function catalogTree(path = "/academy") {
+  return (
     <HelmetProvider>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
         <AcademyCatalog />
       </MemoryRouter>
-    </HelmetProvider>,
+    </HelmetProvider>
   );
 }
 
+function renderCatalog(path = "/academy") {
+  return render(catalogTree(path));
+}
+
+function loadedCatalog() {
+  return {
+    courses: [course],
+    myCourses: [],
+    accessByCourseId: {},
+    isLoading: false,
+    isError: false,
+    error: null,
+  };
+}
+
 describe("Academy catalog", () => {
-  it("shows title, summary, price and Buy for an anonymous visitor", () => {
-    useAcademyCatalog.mockReturnValue({
-      courses: [course],
-      myCourses: [],
-      accessByCourseId: {},
-      isLoading: false,
-      isError: false,
-      error: null,
-    });
+  it("shows the Solo Bundle panel and catalogue cards without a per-course Buy button", () => {
+    useAcademyCatalog.mockReturnValue(loadedCatalog());
 
     renderCatalog();
 
     expect(screen.getByRole("heading", { name: "Academy" })).toBeInTheDocument();
+    expect(screen.getByTestId("academy-solo-cta")).toHaveAttribute("id", "solo-bundle");
+    expect(screen.getByRole("heading", { name: "Solo Bundle" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Team licences" })).toHaveAttribute(
+      "href",
+      ACADEMY_TEAM_LICENCES_URL,
+    );
     expect(screen.getByRole("heading", { name: course.title })).toBeInTheDocument();
     expect(screen.getByText(course.summary)).toBeInTheDocument();
     expect(screen.getByText("€29.00")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /continue/i })).not.toBeInTheDocument();
     expect(screen.queryByText("My courses")).not.toBeInTheDocument();
   });
@@ -90,22 +105,43 @@ describe("Academy catalog", () => {
 
     expect(screen.getByRole("heading", { name: "My courses" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /continue/i }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByRole("button", { name: "Buy" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
   });
 
-  it("calls handleBuyCourse from the catalog Buy CTA", () => {
-    useAcademyCatalog.mockReturnValue({
-      courses: [course],
-      myCourses: [],
-      accessByCourseId: {},
-      isLoading: false,
-      isError: false,
-      error: null,
-    });
+  it("scrolls to #solo-bundle after the catalogue loads", () => {
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      useAcademyCatalog.mockReturnValue({
+        courses: [],
+        myCourses: [],
+        accessByCourseId: {},
+        isLoading: true,
+        isError: false,
+        error: null,
+      });
+
+      const { rerender } = renderCatalog("/academy#solo-bundle");
+      expect(screen.getByTestId("academy-solo-cta")).toHaveAttribute("id", "solo-bundle");
+      expect(scrollIntoView).toHaveBeenCalled();
+
+      scrollIntoView.mockClear();
+      useAcademyCatalog.mockReturnValue(loadedCatalog());
+      rerender(catalogTree("/academy#solo-bundle"));
+      expect(scrollIntoView).toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
+  it("calls handleBuyCourse from the Solo Bundle Buy CTA", () => {
+    useAcademyCatalog.mockReturnValue(loadedCatalog());
 
     renderCatalog();
     fireEvent.click(screen.getByRole("button", { name: "Buy" }));
-    expect(handleBuyCourse).toHaveBeenCalledWith(course);
+    expect(handleBuyCourse).toHaveBeenCalledTimes(1);
   });
 
   it("renders empty and error states", () => {
@@ -118,7 +154,8 @@ describe("Academy catalog", () => {
       error: null,
     });
     const { unmount } = renderCatalog();
-    expect(screen.getByText("No courses yet")).toBeInTheDocument();
+    expect(screen.getByText("Courses are coming soon.")).toBeInTheDocument();
+    expect(screen.getByTestId("academy-solo-cta")).toHaveAttribute("id", "solo-bundle");
     unmount();
 
     useAcademyCatalog.mockReturnValue({

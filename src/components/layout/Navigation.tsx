@@ -56,6 +56,7 @@ const groups: NavGroup[] = [
       { label: "Managed Cloud Hosting", to: "/elsa-plus/cloud-services", badge: "Waitlist" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
+      { label: "Academy", to: "/academy" },
     ],
   },
 ];

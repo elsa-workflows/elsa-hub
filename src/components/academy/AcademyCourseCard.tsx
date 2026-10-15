@@ -2,24 +2,14 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  coursePath,
-  formatAcademyPrice,
-  handleBuyCourse,
-  type Course,
-} from "@/lib/academy";
+import { coursePath, formatAcademyPrice, type Course } from "@/lib/academy";
 
 type AcademyCourseCardProps = {
   course: Course;
   entitled: boolean;
-  onBuyCourse?: typeof handleBuyCourse;
 };
 
-export function AcademyCourseCard({
-  course,
-  entitled,
-  onBuyCourse = handleBuyCourse,
-}: AcademyCourseCardProps) {
+export function AcademyCourseCard({ course, entitled }: AcademyCourseCardProps) {
   const href = coursePath(course.slug);
 
   return (
@@ -35,20 +25,16 @@ export function AcademyCourseCard({
       <CardContent className="mt-auto">
         <p className="text-lg font-semibold">{formatAcademyPrice(course.price_cents, course.currency)}</p>
       </CardContent>
-      <CardFooter>
-        {entitled ? (
+      {entitled && (
+        <CardFooter>
           <Button asChild className="w-full">
             <Link to={href}>
               Continue
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
-        ) : (
-          <Button type="button" className="w-full" onClick={() => onBuyCourse(course)}>
-            Buy
-          </Button>
-        )}
-      </CardFooter>
+        </CardFooter>
+      )}
     </Card>
   );
 }

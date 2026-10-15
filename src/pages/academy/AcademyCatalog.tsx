@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useLayoutEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { GraduationCap } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
@@ -8,13 +9,24 @@ import {
   AcademyErrorState,
   AcademyLoadingState,
 } from "@/components/academy/AcademyPageState";
+import { AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { useAcademyCatalog } from "@/hooks/useAcademyCatalog";
-import { ACADEMY_PATH, handleBuyCourse } from "@/lib/academy";
+import {
+  ACADEMY_PATH,
+  ACADEMY_SOLO_BUNDLE_ID,
+  handleBuyCourse,
+  scrollAcademySoloBundleIntoView,
+} from "@/lib/academy";
 import { ACADEMY_DESCRIPTION, ACADEMY_TITLE, academyCatalogJsonLd } from "@/lib/academySeo";
 import { SITE_URL } from "@/lib/site";
 
 export default function AcademyCatalog() {
+  const { hash } = useLocation();
   const { courses, myCourses, accessByCourseId, isLoading, isError, error } = useAcademyCatalog();
+
+  useLayoutEffect(() => {
+    scrollAcademySoloBundleIntoView(hash);
+  }, [hash, isLoading, isError, courses.length]);
 
   return (
     <Layout>
@@ -37,60 +49,62 @@ export default function AcademyCatalog() {
         </div>
       </section>
 
-      {isLoading ? (
-        <AcademyLoadingState label="Loading published courses..." />
-      ) : isError ? (
-        <AcademyErrorState
-          message={error instanceof Error ? error.message : "The course catalogue could not be loaded."}
-        />
-      ) : (
-        <section className="container max-w-5xl pb-20 space-y-12">
-          {myCourses.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold">My courses</h2>
-              <div className="grid gap-6 sm:grid-cols-2">
-                {myCourses.map((course) => (
-                  <AcademyCourseCard
-                    key={course.id}
-                    course={course}
-                    entitled
-                    onBuyCourse={handleBuyCourse}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Published courses</h2>
-            {courses.length === 0 ? (
-              <AcademyEmptyState
-                title="No courses yet"
-                message="Published Academy courses will appear here once they are available."
+      <section className="container max-w-5xl pb-20">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+          <div className="space-y-12">
+            {isLoading ? (
+              <AcademyLoadingState label="Loading published courses..." />
+            ) : isError ? (
+              <AcademyErrorState
+                message={error instanceof Error ? error.message : "The course catalogue could not be loaded."}
               />
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2">
-                {courses.map((course) => (
-                  <AcademyCourseCard
-                    key={course.id}
-                    course={course}
-                    entitled={Boolean(accessByCourseId[course.id])}
-                    onBuyCourse={handleBuyCourse}
-                  />
-                ))}
-              </div>
+              <>
+                {myCourses.length > 0 && (
+                  <div className="space-y-4">
+                    <h2 className="text-2xl font-bold">My courses</h2>
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      {myCourses.map((course) => (
+                        <AcademyCourseCard key={course.id} course={course} entitled />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold">Published courses</h2>
+                  {courses.length === 0 ? (
+                    <AcademyEmptyState
+                      title="Courses are coming soon."
+                      message="Published Academy courses will appear here once they are available."
+                    />
+                  ) : (
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      {courses.map((course) => (
+                        <AcademyCourseCard
+                          key={course.id}
+                          course={course}
+                          entitled={Boolean(accessByCourseId[course.id])}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
-          <p className="text-sm text-muted-foreground text-center">
-            Looking for live workshops? See{" "}
-            <Link to="/elsa-plus/training" className="text-primary hover:underline">
-              Training
-            </Link>
-            .
-          </p>
-        </section>
-      )}
+          <AcademySoloCta id={ACADEMY_SOLO_BUNDLE_ID} onBuyCourse={handleBuyCourse} />
+        </div>
+
+        <p className="text-sm text-muted-foreground text-center mt-12">
+          Looking for live workshops? See{" "}
+          <Link to="/elsa-plus/training" className="text-primary hover:underline">
+            Training
+          </Link>
+          .
+        </p>
+      </section>
     </Layout>
   );
 }

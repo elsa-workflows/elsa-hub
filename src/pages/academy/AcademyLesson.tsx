@@ -10,8 +10,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { AcademyBuyPanel } from "@/components/academy/AcademyBuyPanel";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
+import { AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyMarkdown } from "@/components/academy/AcademyMarkdown";
 import {
   AcademyErrorState,
@@ -139,7 +139,7 @@ export default function AcademyLesson() {
             {hasAccess && <AcademyKitDownload assets={assets} title="Lesson files" />}
           </>
         ) : (
-          <AcademyBuyPanel course={course} onBuyCourse={handleBuyCourse} />
+          <AcademySoloCta locked onBuyCourse={handleBuyCourse} />
         )}
       </article>
     </Layout>

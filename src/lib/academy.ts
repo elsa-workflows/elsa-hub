@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isAcademyStubEnabled } from "@/lib/academyEnv";
 import {
   ACADEMY_STUB_ASSETS,
   ACADEMY_STUB_COURSES,
@@ -138,16 +139,48 @@ export function isMissingAcademyRelation(error: { code?: string; message?: strin
   );
 }
 
+export const ACADEMY_SOLO_PRODUCT_CODE = "solo_bundle";
+export const ACADEMY_SOLO_BUNDLE_ID = "solo-bundle";
+export const ACADEMY_SOLO_BUNDLE_HASH = `#${ACADEMY_SOLO_BUNDLE_ID}`;
+
+/** Placeholder. Issue #42 will point this at the Gumroad Team URL. */
+export const ACADEMY_TEAM_LICENCES_URL = "/elsa-plus/training";
+
+export function scrollAcademySoloBundleIntoView(
+  hash: string,
+  findElement: (id: string) => { scrollIntoView: () => void } | null = (id) =>
+    typeof document === "undefined" ? null : document.getElementById(id),
+): boolean {
+  if (hash !== ACADEMY_SOLO_BUNDLE_HASH) return false;
+  const target = findElement(ACADEMY_SOLO_BUNDLE_ID);
+  if (!target) return false;
+  target.scrollIntoView();
+  return true;
+}
+
 /**
- * Placeholder until Stripe checkout lands. Wire the checkout session into this
- * handler in the follow-up PR.
+ * Fields Stripe checkout will need. Always the Solo Bundle.
+ * #43 / 12dbfd0 stores bundle SKUs on academy_courses.product_codes.
  */
-export function handleBuyCourse(
-  _course: Pick<Course, "id" | "slug" | "title" | "stripe_price_id" | "product_code">,
-): void {
+export function academyCheckoutFields() {
+  return {
+    product_codes: [ACADEMY_SOLO_PRODUCT_CODE],
+  };
+}
+
+/**
+ * Placeholder until Stripe checkout lands. Always buys the Solo Bundle.
+ */
+export function handleBuyCourse(): void {
+  academyCheckoutFields();
   toast.message("Checkout is coming soon", {
-    description: "Stripe checkout for Academy courses will land in a follow-up.",
+    description: "Stripe checkout for the Solo Bundle will land in a follow-up.",
   });
+}
+
+function onMissingAcademyRelation<T>(error: { code?: string; message?: string }, stubValue: T, emptyValue: T): T {
+  if (!isMissingAcademyRelation(error)) throw error;
+  return isAcademyStubEnabled() ? stubValue : emptyValue;
 }
 
 export async function listPublishedCourses(): Promise<Course[]> {
@@ -158,8 +191,7 @@ export async function listPublishedCourses(): Promise<Course[]> {
     .order("sort_order", { ascending: true });
 
   if (error) {
-    if (isMissingAcademyRelation(error)) return ACADEMY_STUB_COURSES;
-    throw error;
+    return onMissingAcademyRelation(error, ACADEMY_STUB_COURSES, []);
   }
 
   return (data ?? []) as Course[];
@@ -174,10 +206,11 @@ export async function getPublishedCourseBySlug(slug: string): Promise<Course | n
     .maybeSingle();
 
   if (error) {
-    if (isMissingAcademyRelation(error)) {
-      return ACADEMY_STUB_COURSES.find((course) => course.slug === slug) ?? null;
-    }
-    throw error;
+    return onMissingAcademyRelation(
+      error,
+      ACADEMY_STUB_COURSES.find((course) => course.slug === slug) ?? null,
+      null,
+    );
   }
 
   return (data as Course | null) ?? null;
@@ -191,10 +224,11 @@ export async function listCourseLessons(courseId: string): Promise<LessonSummary
     .order("sort_order", { ascending: true });
 
   if (error) {
-    if (isMissingAcademyRelation(error)) {
-      return ACADEMY_STUB_LESSONS.filter((lesson) => lesson.course_id === courseId);
-    }
-    throw error;
+    return onMissingAcademyRelation(
+      error,
+      ACADEMY_STUB_LESSONS.filter((lesson) => lesson.course_id === courseId),
+      [],
+    );
   }
 
   return (data ?? []) as LessonSummary[];
@@ -215,13 +249,14 @@ export async function getLessonPageMeta(
     .maybeSingle();
 
   if (error) {
-    if (isMissingAcademyRelation(error)) {
-      const lesson = ACADEMY_STUB_LESSONS.find(
-        (row) => row.course_id === course.id && row.slug === lessonSlug,
-      );
-      return lesson ? { course, lesson } : null;
-    }
-    throw error;
+    const stubLesson = ACADEMY_STUB_LESSONS.find(
+      (row) => row.course_id === course.id && row.slug === lessonSlug,
+    );
+    return onMissingAcademyRelation(
+      error,
+      stubLesson ? { course, lesson: stubLesson } : null,
+      null,
+    );
   }
 
   if (!data) return null;
@@ -236,10 +271,7 @@ export async function fetchLessonBody(lessonId: string): Promise<string | null> 
     .maybeSingle();
 
   if (error) {
-    if (isMissingAcademyRelation(error)) {
-      return ACADEMY_STUB_LESSON_BODIES[lessonId] ?? null;
-    }
-    throw error;
+    return onMissingAcademyRelation(error, ACADEMY_STUB_LESSON_BODIES[lessonId] ?? null, null);
   }
 
   const row = data as { body_md: string | null } | null;
@@ -276,12 +308,11 @@ export async function listCourseKitAssets(courseId: string): Promise<AcademyAsse
     .order("label", { ascending: true });
 
   if (error) {
-    if (isMissingAcademyRelation(error)) {
-      return ACADEMY_STUB_ASSETS.filter(
-        (asset) => asset.course_id === courseId && asset.lesson_id === null,
-      );
-    }
-    throw error;
+    return onMissingAcademyRelation(
+      error,
+      ACADEMY_STUB_ASSETS.filter((asset) => asset.course_id === courseId && asset.lesson_id === null),
+      [],
+    );
   }
 
   return (data ?? []) as AcademyAsset[];
@@ -299,12 +330,11 @@ export async function listLessonAssets(
     .order("label", { ascending: true });
 
   if (error) {
-    if (isMissingAcademyRelation(error)) {
-      return ACADEMY_STUB_ASSETS.filter(
-        (asset) => asset.course_id === courseId && asset.lesson_id === lessonId,
-      );
-    }
-    throw error;
+    return onMissingAcademyRelation(
+      error,
+      ACADEMY_STUB_ASSETS.filter((asset) => asset.course_id === courseId && asset.lesson_id === lessonId),
+      [],
+    );
   }
 
   return (data ?? []) as AcademyAsset[];
