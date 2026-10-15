@@ -30,17 +30,29 @@ function renderPage() {
 }
 
 describe("CloudServices call to action", () => {
-  it("keeps the waitlist for anonymous visitors", () => {
+  it("keeps the waitlist for anonymous visitors and signs in on Elsa Cloud", () => {
     authState.user = null;
     renderPage();
     const waitlist = screen.getByRole("link", { name: /join the waitlist/i });
     expect(waitlist).toHaveAttribute("href", "https://elsacloud.app/request-trial");
+    expect(screen.getByRole("link", { name: /already have access\? sign in/i })).toHaveAttribute(
+      "href",
+      "https://elsacloud.app",
+    );
+    expect(screen.getByText("Elsa Cloud is in early access.")).toBeInTheDocument();
   });
 
-  it("sends signed-in users to /cloud", () => {
+  it("keeps the waitlist for signed-in users and sends them to the Hub dashboard", () => {
     authState.user = { id: "user-1" };
     renderPage();
-    expect(screen.getByRole("link", { name: /open elsa cloud/i })).toHaveAttribute("href", "/cloud");
-    expect(screen.queryByRole("link", { name: /join the waitlist/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /join the waitlist/i })).toHaveAttribute(
+      "href",
+      "https://elsacloud.app/request-trial",
+    );
+    expect(screen.getByRole("link", { name: /already have access\? sign in/i })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+    expect(screen.queryByRole("link", { name: /open elsa cloud/i })).not.toBeInTheDocument();
   });
 });
