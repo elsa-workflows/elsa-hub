@@ -1,0 +1,40 @@
+import { Link } from "react-router-dom";
+import { ArrowRight, Server } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import type { CloudEngineSummary } from "@/lib/cloudClient/contract";
+
+function statusVariant(status: string) {
+  if (status === "Ready") return "default" as const;
+  if (status === "Failed" || status === "Degraded") return "destructive" as const;
+  if (status === "Provisioning" || status === "Updating") return "warning" as const;
+  return "secondary" as const;
+}
+
+export function CloudEngineList({ engines }: { engines: CloudEngineSummary[] }) {
+  return (
+    <ul className="grid gap-3">
+      {engines.map((engine) => (
+        <li key={engine.id}>
+          <Link to={`/cloud/engines/${engine.id}`} className="block">
+            <Card className="hover:border-primary/50 transition-colors">
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Server className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{engine.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Release {engine.release ?? "unknown"}
+                  </p>
+                </div>
+                <Badge variant={statusVariant(engine.status)}>{engine.status}</Badge>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
