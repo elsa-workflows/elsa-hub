@@ -26,6 +26,10 @@ import {
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
   ELSA_TEMPLATES_CSHELLS_VERSION,
   ELSA_UPGRADE_GUIDE_URL,
+  ELSA_LATEST_STABLE_VERSION,
+  ELSA_LATEST_STABLE_RELEASE_DATE,
+  ELSA_LATEST_STABLE_RELEASE_LINKS,
+  ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL,
 } from "@/data/elsaVersion";
 
 
@@ -144,7 +148,41 @@ export default function GetStarted() {
         <div className="container">
           <div className="max-w-4xl rounded-lg border bg-card p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <h2 className="text-2xl font-bold">Latest stable release: Elsa {ELSA_VERSION}</h2>
+              <h2 className="text-2xl font-bold">Latest stable release: Elsa {ELSA_LATEST_STABLE_VERSION}</h2>
+              <Badge variant="secondary" className="font-mono">{ELSA_LATEST_STABLE_RELEASE_DATE}</Badge>
+            </div>
+            <p className="text-muted-foreground mb-4">
+              Elsa {ELSA_LATEST_STABLE_VERSION} ships Core, Studio and Extensions together, so upgrade all three at
+              once. It moves permissions to a <code className="font-mono">resource:verb</code> model, opens a
+              permission-gated dashboard to every signed-in user, adds a sign-out that revokes the session, and adds
+              User Tasks and BPMN modules.
+            </p>
+            <p className="text-sm text-muted-foreground mb-5 rounded-md border border-border/70 bg-background p-4">
+              <strong className="text-foreground">The setup guides are still pinned to Elsa {ELSA_VERSION}</strong>, the
+              version they were last verified against. Elsa {ELSA_LATEST_STABLE_VERSION} removes{" "}
+              <code className="font-mono">EnableLocalHostPermissionGrantForSecurityRoot()</code> and renames
+              permissions, so follow the{" "}
+              <a href={ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                upgrade guide for {ELSA_LATEST_STABLE_VERSION}
+              </a>{" "}
+              before you move a guide project to {ELSA_LATEST_STABLE_VERSION}.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 text-sm mb-8">
+              <a href={ELSA_LATEST_STABLE_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
+                <Github className="h-4 w-4" /> Elsa Core {ELSA_LATEST_STABLE_VERSION} release notes <ArrowRight className="h-4 w-4" />
+              </a>
+              <span className="text-muted-foreground">·</span>
+              <a href={ELSA_LATEST_STABLE_RELEASE_LINKS.studio} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
+                <Github className="h-4 w-4" /> Elsa Studio {ELSA_LATEST_STABLE_VERSION} <ArrowRight className="h-4 w-4" />
+              </a>
+              <span className="text-muted-foreground">·</span>
+              <a href={ELSA_LATEST_STABLE_RELEASE_LINKS.extensions} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
+                <Github className="h-4 w-4" /> Elsa Extensions {ELSA_LATEST_STABLE_VERSION} <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <h3 className="text-lg font-semibold">Elsa {ELSA_VERSION}, the version the guides use</h3>
               <Badge variant="secondary" className="font-mono">{ELSA_RELEASE_DATE}</Badge>
             </div>
             <p className="text-muted-foreground mb-5">
@@ -156,7 +194,7 @@ export default function GetStarted() {
               packages: existing hosts do not opt into them automatically.
             </p>
 
-            <h3 className="font-semibold mb-2 text-sm">Before you upgrade</h3>
+            <h3 className="font-semibold mb-2 text-sm">Before you upgrade to {ELSA_VERSION}</h3>
             <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1.5 mb-5">
               <li>
                 <strong className="text-foreground">Identity secrets are required.</strong> The reference
@@ -258,7 +296,7 @@ export default function GetStarted() {
                 </a>{" "}
                 and tagged in{" "}
                 <a href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                  the 3.8.0 release
+                  the {ELSA_TEMPLATES_VERSION} release
                 </a>.
               </p>
 
