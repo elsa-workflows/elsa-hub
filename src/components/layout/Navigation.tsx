@@ -57,7 +57,7 @@ const groups: NavGroup[] = [
       { label: "Overview", to: "/elsa-plus" },
       { label: ELSA_RUNTIME_DISPLAY_NAME, to: ELSA_RUNTIME_PATH, badge: "Early Preview" },
       { label: "Runtime Builder", to: "/elsa-plus/runtime-builder", badge: "Preview" },
-      { label: "Managed Cloud Hosting", to: "/elsa-plus/cloud-services", badge: "Waitlist" },
+      { label: "Elsa Cloud", to: "/elsa-plus/cloud-services", badge: "Early access" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
     ],
