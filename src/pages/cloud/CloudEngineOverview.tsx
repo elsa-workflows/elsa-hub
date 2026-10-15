@@ -1,5 +1,4 @@
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { Seo } from "@/components/Seo";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,16 @@ import { CloudLoadingState } from "@/components/cloud/CloudLoadingState";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
+import { ELSA_CLOUD_PATH, elsaCloudEnginePath } from "@/lib/elsaCloud";
 
 export default function CloudEngineOverviewPage() {
   const { engineId } = useParams<{ engineId: string }>();
@@ -18,21 +26,36 @@ export default function CloudEngineOverviewPage() {
   return (
     <>
       <Seo
-        path={`/cloud/engines/${engineId ?? ""}`}
-        title={`${titleName} — Cloud — Elsa Workflows`}
+        path={engineId ? elsaCloudEnginePath(engineId) : ELSA_CLOUD_PATH}
+        title={`${titleName} — Elsa Cloud — Elsa+`}
         description="Read-only overview of an Elsa Cloud engine."
         noIndex
       />
+      <section className="pt-8 pb-4">
+        <div className="container max-w-3xl">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/elsa-plus">Elsa+</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to={ELSA_CLOUD_PATH}>Elsa Cloud</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{titleName}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </section>
       <section className="py-10 md:py-16">
         <div className="container max-w-3xl space-y-6">
-          <Link
-            to="/cloud"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Cloud
-          </Link>
-
           {view.kind === "loading" && <CloudLoadingState />}
           {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
           {view.kind === "error" && (

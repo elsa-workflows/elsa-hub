@@ -1,5 +1,5 @@
 /**
- * Typed cloud-bff client for the /cloud shell.
+ * Typed cloud-bff client for the /elsa-plus/cloud shell.
  *
  * Types come from `@/lib/cloud` (the #53 / #44 action contract). App and test
  * code should import from this barrel. The production client invokes

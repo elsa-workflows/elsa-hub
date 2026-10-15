@@ -141,7 +141,7 @@ describe("useCloudEngines", () => {
     vi.restoreAllMocks();
   });
 
-  it("makes zero cloud-bff calls when opening /cloud with no setup marker", async () => {
+  it("makes zero cloud-bff calls when opening /elsa-plus/cloud with no setup marker", async () => {
     const invoke = vi.spyOn(cloudClient, "invoke");
     const { result } = renderHook(() => useCloudEngines(), { wrapper });
 

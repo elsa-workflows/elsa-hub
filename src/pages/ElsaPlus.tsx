@@ -8,7 +8,7 @@ import {
   FileCode2,
   Handshake,
   Boxes,
-  
+  Server,
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {
@@ -16,6 +16,7 @@ import {
   ElsaPlusSectionCard,
   ElsaPlusDisclaimer,
 } from "@/components/elsa-plus";
+import { ELSA_CLOUD_PATH } from "@/lib/elsaCloud";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH, ELSA_RUNTIME_SUBTITLE } from "@/lib/elsaRuntime";
 
 const servicesAndSupport = [
@@ -57,6 +58,13 @@ const runtimeAndOperations = [
       linkLabel: "What is an Elsa distribution?",
       linkHref: "/elsa-plus/distributions",
     },
+  },
+  {
+    title: "Elsa Cloud",
+    description:
+      "A read-only list of your Elsa Cloud engines.",
+    icon: Server,
+    href: ELSA_CLOUD_PATH,
   },
   {
     title: "Managed Cloud Hosting",

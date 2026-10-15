@@ -22,12 +22,12 @@ function LocationProbe() {
   return <div data-testid="location">{`${location.pathname}${location.search}`}</div>;
 }
 
-function renderGuard(initial = "/cloud") {
+function renderGuard(initial = "/elsa-plus/cloud") {
   return render(
     <MemoryRouter initialEntries={[initial]}>
       <Routes>
         <Route path="/login" element={<LocationProbe />} />
-        <Route path="/cloud" element={<CloudAuthGuard />}>
+        <Route path="/elsa-plus/cloud" element={<CloudAuthGuard />}>
           <Route index element={<div>signed-in cloud</div>} />
           <Route path="engines/:engineId" element={<div>signed-in overview</div>} />
         </Route>
@@ -37,11 +37,11 @@ function renderGuard(initial = "/cloud") {
 }
 
 describe("CloudAuthGuard", () => {
-  it("redirects anonymous users to login and returns them to /cloud", () => {
+  it("redirects anonymous users to login and returns them to /elsa-plus/cloud", () => {
     authState.user = null;
     authState.loading = false;
-    renderGuard("/cloud/engines/11111111-1111-4111-8111-111111111111");
-    expect(screen.getByTestId("location")).toHaveTextContent("/login?redirect=/cloud");
+    renderGuard("/elsa-plus/cloud/engines/11111111-1111-4111-8111-111111111111");
+    expect(screen.getByTestId("location")).toHaveTextContent("/login?redirect=/elsa-plus/cloud");
     expect(screen.queryByText("signed-in overview")).not.toBeInTheDocument();
   });
 

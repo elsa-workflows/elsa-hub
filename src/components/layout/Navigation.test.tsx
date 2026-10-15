@@ -26,20 +26,43 @@ function renderNav(path = "/") {
   );
 }
 
-describe("Navigation Cloud leaf", () => {
-  it("links Cloud on desktop and in the mobile menu", () => {
-    renderNav();
-    expect(document.querySelectorAll('a[href="/cloud"]').length).toBeGreaterThanOrEqual(1);
+function openMobileMenu() {
+  fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
+}
 
-    fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
-    const cloud = screen.getAllByRole("link", { name: "Cloud" });
+describe("Navigation Elsa Cloud item", () => {
+  it("lists Elsa Cloud under Elsa+ on desktop and in the mobile menu", () => {
+    renderNav();
+    expect(document.querySelectorAll('a[href="/cloud"]').length).toBe(0);
+    expect(screen.getByRole("button", { name: /^elsa\+$/i })).toBeInTheDocument();
+
+    openMobileMenu();
+    const cloud = screen.getAllByRole("link", { name: "Elsa Cloud" });
     expect(cloud.length).toBeGreaterThanOrEqual(1);
-    expect(cloud.some((link) => link.getAttribute("href") === "/cloud")).toBe(true);
+    expect(cloud.every((link) => link.getAttribute("href") === "/elsa-plus/cloud")).toBe(true);
+    expect(
+      screen
+        .getAllByRole("link", { name: /managed cloud hosting/i })
+        .some((link) => link.getAttribute("href") === "/elsa-plus/cloud-services"),
+    ).toBe(true);
   });
 
-  it("marks Cloud as the current page on /cloud routes", () => {
-    renderNav("/cloud/engines/1");
-    const cloud = screen.getAllByRole("link", { name: "Cloud" });
+  it("marks Elsa Cloud as the current page on /elsa-plus/cloud routes", () => {
+    renderNav("/elsa-plus/cloud/engines/1");
+    openMobileMenu();
+    const cloud = screen.getAllByRole("link", { name: "Elsa Cloud" });
     expect(cloud.some((link) => link.getAttribute("aria-current") === "page")).toBe(true);
+  });
+
+  it("does not treat managed hosting as Elsa Cloud", () => {
+    renderNav("/elsa-plus/cloud-services");
+    openMobileMenu();
+    const cloud = screen.getAllByRole("link", { name: "Elsa Cloud" });
+    expect(cloud.every((link) => link.getAttribute("aria-current") !== "page")).toBe(true);
+    expect(
+      screen
+        .getAllByRole("link", { name: /managed cloud hosting/i })
+        .some((link) => link.getAttribute("aria-current") === "page"),
+    ).toBe(true);
   });
 });

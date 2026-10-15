@@ -37,10 +37,10 @@ describe("CloudServices call to action", () => {
     expect(waitlist).toHaveAttribute("href", "https://elsacloud.app/request-trial");
   });
 
-  it("sends signed-in users to /cloud", () => {
+  it("sends signed-in users to /elsa-plus/cloud", () => {
     authState.user = { id: "user-1" };
     renderPage();
-    expect(screen.getByRole("link", { name: /open elsa cloud/i })).toHaveAttribute("href", "/cloud");
+    expect(screen.getByRole("link", { name: /open elsa cloud/i })).toHaveAttribute("href", "/elsa-plus/cloud");
     expect(screen.queryByRole("link", { name: /join the waitlist/i })).not.toBeInTheDocument();
   });
 });

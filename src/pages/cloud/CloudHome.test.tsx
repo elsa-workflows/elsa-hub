@@ -79,8 +79,10 @@ describe("CloudHome", () => {
     expect(screen.getByText("Release 3.8.4")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /production/i })).toHaveAttribute(
       "href",
-      "/cloud/engines/11111111-1111-4111-8111-111111111111",
+      "/elsa-plus/cloud/engines/11111111-1111-4111-8111-111111111111",
     );
+    expect(screen.getByRole("link", { name: "Elsa+" })).toHaveAttribute("href", "/elsa-plus");
+    expect(screen.getByRole("heading", { name: "Elsa Cloud" })).toBeInTheDocument();
   });
 
   it("shows the Control updating state", () => {

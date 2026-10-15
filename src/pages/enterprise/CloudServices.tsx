@@ -27,6 +27,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ELSA_CLOUD_PATH } from "@/lib/elsaCloud";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 const includedFeatures = [
@@ -379,7 +380,7 @@ export default function CloudServices() {
                   className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary"
                   asChild
                 >
-                  <Link to="/cloud">
+                  <Link to={ELSA_CLOUD_PATH}>
                     Open Elsa Cloud
                     <ArrowRight className="h-4 w-4" />
                   </Link>

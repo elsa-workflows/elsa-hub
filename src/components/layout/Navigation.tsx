@@ -14,14 +14,11 @@ import { NotificationBell } from "@/components/notifications";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import elsaLogo from "@/assets/elsa-logo.png";
 import { cn } from "@/lib/utils";
+import { ELSA_CLOUD_PATH } from "@/lib/elsaCloud";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 type NavItem = { label: string; to?: string; href?: string; badge?: string; external?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
-
-const leaves: NavItem[] = [
-  { label: "Cloud", to: "/cloud" },
-];
 
 const groups: NavGroup[] = [
   {
@@ -57,6 +54,7 @@ const groups: NavGroup[] = [
       { label: "Overview", to: "/elsa-plus" },
       { label: ELSA_RUNTIME_DISPLAY_NAME, to: ELSA_RUNTIME_PATH, badge: "Early Preview" },
       { label: "Runtime Builder", to: "/elsa-plus/runtime-builder", badge: "Preview" },
+      { label: "Elsa Cloud", to: ELSA_CLOUD_PATH },
       { label: "Managed Cloud Hosting", to: "/elsa-plus/cloud-services", badge: "Waitlist" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
@@ -64,36 +62,13 @@ const groups: NavGroup[] = [
   },
 ];
 
+function isNavPathActive(to: string, pathname: string) {
+  if (to === "/") return pathname === "/";
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
 function isGroupActive(group: NavGroup, pathname: string) {
-  return group.items.some((it) => it.to && (it.to === "/" ? pathname === "/" : pathname.startsWith(it.to)));
-}
-
-function isLeafActive(item: NavItem, pathname: string) {
-  return !!item.to && (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to));
-}
-
-function LeafLink({
-  item,
-  pathname,
-  className,
-  onClick,
-}: {
-  item: NavItem;
-  pathname: string;
-  className: string;
-  onClick?: () => void;
-}) {
-  const active = isLeafActive(item, pathname);
-  return (
-    <Link
-      to={item.to!}
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={className}
-    >
-      {item.label}
-    </Link>
-  );
+  return group.items.some((it) => it.to && isNavPathActive(it.to, pathname));
 }
 
 function GroupTrigger({ group, pathname }: { group: NavGroup; pathname: string }) {
@@ -115,7 +90,7 @@ function GroupTrigger({ group, pathname }: { group: NavGroup; pathname: string }
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-56">
         {group.items.map((item) => {
-          const isActive = !!item.to && (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to));
+          const isActive = !!item.to && isNavPathActive(item.to, pathname);
           return item.href ? (
             <DropdownMenuItem key={item.label} asChild>
               <a href={item.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3">
@@ -189,19 +164,6 @@ export function Navigation() {
           {groups.map((g) => (
             <GroupTrigger key={g.label} group={g} pathname={pathname} />
           ))}
-          {leaves.map((item) => (
-            <LeafLink
-              key={item.label}
-              item={item}
-              pathname={pathname}
-              className={cn(
-                "inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
-                isLeafActive(item, pathname)
-                  ? "text-brand bg-primary/5"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
-              )}
-            />
-          ))}
         </nav>
 
         <div className="hidden lg:flex items-center gap-2">
@@ -268,7 +230,7 @@ export function Navigation() {
                     {group.label}
                   </div>
                   {group.items.map((item) => {
-                    const isActive = !!item.to && (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to));
+                    const isActive = !!item.to && isNavPathActive(item.to, pathname);
                     return item.href ? (
                       <a
                         key={item.label}
@@ -308,21 +270,6 @@ export function Navigation() {
                 </div>
 
               ))}
-
-              <div className="flex flex-col gap-1">
-                {leaves.map((item) => (
-                  <LeafLink
-                    key={item.label}
-                    item={item}
-                    pathname={pathname}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "px-3 py-2 text-base rounded-lg hover:bg-muted transition-colors",
-                      isLeafActive(item, pathname) && "text-brand bg-primary/5",
-                    )}
-                  />
-                ))}
-              </div>
 
               <hr />
 

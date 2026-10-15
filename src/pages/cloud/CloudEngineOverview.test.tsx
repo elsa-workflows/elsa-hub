@@ -31,9 +31,9 @@ import CloudEngineOverviewPage from "./CloudEngineOverview";
 function renderOverview() {
   return render(
     <HelmetProvider>
-      <MemoryRouter initialEntries={["/cloud/engines/11111111-1111-4111-8111-111111111111"]}>
+      <MemoryRouter initialEntries={["/elsa-plus/cloud/engines/11111111-1111-4111-8111-111111111111"]}>
         <Routes>
-          <Route path="/cloud/engines/:engineId" element={<CloudEngineOverviewPage />} />
+          <Route path="/elsa-plus/cloud/engines/:engineId" element={<CloudEngineOverviewPage />} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>,
@@ -61,9 +61,11 @@ describe("CloudEngineOverview", () => {
       },
     };
     renderOverview();
-    expect(screen.getByText("Production")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /production/i })).toBeInTheDocument();
     expect(screen.getAllByText("Ready").length).toBeGreaterThan(0);
     expect(screen.getByText("3.8.4")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Elsa+" })).toHaveAttribute("href", "/elsa-plus");
+    expect(screen.getByRole("link", { name: "Elsa Cloud" })).toHaveAttribute("href", "/elsa-plus/cloud");
     expect(screen.queryByRole("button", { name: /create|delete|billing/i })).not.toBeInTheDocument();
   });
 

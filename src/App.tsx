@@ -15,6 +15,11 @@ import {
   elsaRuntimeImagePath,
   getLegacyElsaRuntimeRedirectTarget,
 } from "@/lib/elsaRuntime";
+import {
+  ELSA_CLOUD_PATH,
+  LEGACY_CLOUD_PATH,
+  getLegacyCloudRedirectTarget,
+} from "@/lib/elsaCloud";
 
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
 
@@ -169,10 +174,12 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
-              <Route path="/cloud" element={<CloudAuthGuard />}>
+              <Route path={ELSA_CLOUD_PATH} element={<CloudAuthGuard />}>
                 <Route index element={<CloudHome />} />
                 <Route path="engines/:engineId" element={<CloudEngineOverview />} />
               </Route>
+              <Route path={LEGACY_CLOUD_PATH} element={<LegacyCloudRedirect />} />
+              <Route path={`${LEGACY_CLOUD_PATH}/*`} element={<LegacyCloudRedirect />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />
@@ -279,4 +286,9 @@ function LegacyImageRedirect() {
 function LegacyElsaRuntimeRedirect() {
   const location = useLocation();
   return <Navigate to={getLegacyElsaRuntimeRedirectTarget(location)} replace />;
+}
+
+function LegacyCloudRedirect() {
+  const location = useLocation();
+  return <Navigate to={getLegacyCloudRedirectTarget(location)} replace />;
 }
