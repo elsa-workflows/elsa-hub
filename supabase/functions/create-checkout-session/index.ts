@@ -303,12 +303,15 @@ serve(async (req) => {
         }
       : undefined;
 
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     const stripeCustomerId = await getOrCreateStripeCustomer(
       { orgId: organizationId },
       {
         stripe: {
           customers: {
-            create: (params) => stripe.customers.create(params),
+            create: (params, options) => stripe.customers.create(params, options),
+            update: (id, params) => stripe.customers.update(id, params),
+            del: (id) => stripe.customers.del(id),
           },
         },
         supabase: serviceClient,
@@ -319,6 +322,7 @@ serve(async (req) => {
           organization_id: organizationId,
           user_id: userId,
         },
+        stripeSecretKey,
       },
     );
 
