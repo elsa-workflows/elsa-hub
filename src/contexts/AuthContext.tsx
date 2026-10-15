@@ -6,6 +6,7 @@ import {
   AUTH_REDIRECT_STORAGE_KEY,
   getAuthCallbackUrl,
   getAuthConfirmUrl,
+  isAuthConfirmPath,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
 
@@ -58,21 +59,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Clear stale organization context from localStorage
           localStorage.removeItem("selected_organization");
-
-          // Force refresh session to ensure the Supabase client has the latest token
-          if (event === "SIGNED_IN" && session) {
-            supabase.auth.refreshSession();
-          }
         }
 
-        // Handle OAuth redirect - check for stored redirect URL
+        // Handle OAuth redirect - check for stored redirect URL.
+        // /auth/confirm owns its own redirect after verifyOtp so it can
+        // keep the stored path when verify fails, and show the signed-in
+        // banner before navigating.
+        // Keep this callback synchronous: supabase-js guidance is not to
+        // await supabase calls inside onAuthStateChange. setTimeout(0) only
+        // defers window.location until after React renders. The cause of
+        // the magic-link send stall is unknown.
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
+          if (isAuthConfirmPath(window.location.pathname)) {
+            return;
+          }
           const stored = sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY);
           if (stored) {
             hasHandledRedirect.current = true;
             sessionStorage.removeItem(AUTH_REDIRECT_STORAGE_KEY);
             const redirectUrl = sanitizeAuthRedirect(stored) ?? "/";
-            // Use setTimeout to ensure this happens after React renders
             setTimeout(() => {
               window.location.href = redirectUrl;
             }, 0);
@@ -128,6 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = () => signInWithOAuth("google");
 
   const signInWithMagicLink = async (email: string) => {
+    // Single signInWithOtp, no extra awaits. The listener above stays
+    // synchronous (supabase-js: do not await supabase calls inside
+    // onAuthStateChange). The cause of the POST /otp stall is unknown.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {

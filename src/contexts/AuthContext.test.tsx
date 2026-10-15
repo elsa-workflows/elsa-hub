@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
+const refreshSession = vi.fn(async () => ({ error: null }));
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -23,7 +24,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       signInWithOAuth: (args: unknown) => signInWithOAuth(args),
       signInWithOtp: (args: unknown) => signInWithOtp(args),
       signOut: async () => ({ error: null }),
-      refreshSession: async () => ({ error: null }),
+      refreshSession: () => refreshSession(),
     },
   },
 }));
@@ -44,6 +45,7 @@ describe("AuthContext passwordless methods", () => {
     signInWithOAuth.mockClear();
     signInWithOtp.mockClear();
     signUp.mockClear();
+    refreshSession.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
   });
@@ -117,5 +119,55 @@ describe("AuthContext passwordless methods", () => {
       configurable: true,
       value: original,
     });
+  });
+
+  async function expectConfirmPathSkipsRedirect(pathname: string) {
+    sessionStorage.setItem("authRedirect", "/dashboard/org/acme");
+    let assigned = "";
+    const original = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        ...original,
+        origin: original.origin,
+        pathname,
+        get href() {
+          return assigned || original.href;
+        },
+        set href(value: string) {
+          assigned = value;
+        },
+      },
+    });
+
+    renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(assigned).toBe("");
+    expect(sessionStorage.getItem("authRedirect")).toBe("/dashboard/org/acme");
+
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: original,
+    });
+  }
+
+  it("does not consume the stored redirect on SIGNED_IN while /auth/confirm is open", async () => {
+    await expectConfirmPathSkipsRedirect("/auth/confirm");
+  });
+
+  it("treats /auth/confirm/ as the confirm page when skipping the SIGNED_IN redirect", async () => {
+    await expectConfirmPathSkipsRedirect("/auth/confirm/");
+  });
+
+  it("does not call refreshSession from onAuthStateChange", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(refreshSession).not.toHaveBeenCalled();
   });
 });

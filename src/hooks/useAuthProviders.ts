@@ -3,7 +3,7 @@ import { UserIdentity } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { getAuthCallbackUrl } from "@/lib/authRedirect";
+import { getAuthCallbackUrl, PROFILE_SETTINGS_PATH, rememberAuthRedirect } from "@/lib/authRedirect";
 import { describeAuthError } from "@/lib/authErrors";
 
 export type ProviderConfig = {
@@ -52,7 +52,7 @@ export function useAuthProviders() {
       setIsLinking(true);
       try {
         // Store redirect URL to return to profile settings after linking
-        sessionStorage.setItem("authRedirect", "/dashboard/settings/profile");
+        rememberAuthRedirect(PROFILE_SETTINGS_PATH);
         sessionStorage.setItem("linkingProvider", provider);
 
         const { error } = await supabase.auth.linkIdentity({

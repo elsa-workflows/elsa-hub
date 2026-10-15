@@ -1,3 +1,8 @@
+type AuthLikeHeaders = {
+  get?: (name: string) => string | null | undefined;
+  [key: string]: unknown;
+};
+
 type AuthLikeError = {
   message?: string;
   name?: string;
@@ -5,6 +10,10 @@ type AuthLikeError = {
   error?: string;
   error_code?: string;
   error_description?: string;
+  status?: number;
+  retryAfter?: number | string;
+  retry_after?: number | string;
+  headers?: AuthLikeHeaders;
 } | null | undefined;
 
 function decodeParam(value: string | null): string {
@@ -39,6 +48,105 @@ export const SAME_BROWSER_AUTH_MESSAGE =
 
 export const OTP_EXPIRED_AUTH_MESSAGE = "This link has expired, request a new one.";
 
+export const EMAIL_SEND_RATE_LIMIT_MESSAGE =
+  "We just sent you an email. Wait a minute before requesting another one.";
+
+export const EMAIL_HOURLY_RATE_LIMIT_MESSAGE =
+  "The hourly email send limit has been reached. Try again later.";
+
+export const AUTH_RATE_LIMIT_MESSAGE =
+  "Too many attempts, wait a moment and try again.";
+
+export const EMAIL_SEND_RATE_LIMIT_DEFAULT_MS = 60_000;
+
+const AFTER_N_SECONDS = /after\s+\d+\s+seconds?/i;
+
+/**
+ * Per-address cooldown from signInWithOtp, signUp, and resend.
+ * GoTrue uses `over_email_send_rate_limit` for both this cooldown
+ * (`...after N seconds`) and the project-wide hourly cap
+ * (`email rate limit exceeded`), so the message is classified first.
+ */
+export function isEmailSendRateLimit(error: AuthLikeError): boolean {
+  if (error == null) return false;
+  const { message } = collectText(error);
+  if (AFTER_N_SECONDS.test(message)) return true;
+  if (message.includes("email rate limit exceeded")) return false;
+  return message.includes("for security purposes");
+}
+
+function isEmailHourlyRateLimit(error: AuthLikeError): boolean {
+  if (error == null) return false;
+  const { message } = collectText(error);
+  if (AFTER_N_SECONDS.test(message)) return false;
+  return message.includes("email rate limit exceeded");
+}
+
+function isAuthRateLimit(error: AuthLikeError): boolean {
+  if (error == null || isEmailSendRateLimit(error) || isEmailHourlyRateLimit(error)) {
+    return false;
+  }
+  if (error.status === 429) return true;
+  const { code, message } = collectText(error);
+  const blob = `${code} ${message}`;
+  return (
+    blob.includes("over_request_rate_limit") ||
+    blob.includes("too many requests") ||
+    blob.includes("rate limit")
+  );
+}
+
+function headerValue(headers: AuthLikeHeaders | undefined, name: string): string | null {
+  if (!headers) return null;
+  if (typeof headers.get === "function") {
+    const fromGet = headers.get(name) ?? headers.get(name.toLowerCase());
+    if (fromGet) return String(fromGet);
+  }
+  const direct = headers[name] ?? headers[name.toLowerCase()] ?? headers["Retry-After"];
+  return direct == null || typeof direct === "function" ? null : String(direct);
+}
+
+function retryAfterHeaderToMs(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const seconds = Number(trimmed);
+    if (!Number.isFinite(seconds) || seconds < 0) return null;
+    return Math.ceil(seconds) * 1000;
+  }
+  const when = Date.parse(trimmed);
+  if (Number.isNaN(when)) return null;
+  return Math.max(0, when - Date.now());
+}
+
+/**
+ * Remaining wait before another sign-in email is allowed, in milliseconds.
+ * Reads Retry-After (header, retryAfter, retry_after) or "after N seconds"
+ * from the GoTrue message. Returns null when the error does not say.
+ */
+export function parseEmailSendRetryAfterMs(error: AuthLikeError): number | null {
+  if (error == null) return null;
+
+  const fromField = error.retryAfter ?? error.retry_after;
+  if (fromField != null && String(fromField).trim() !== "") {
+    const fromHeader = retryAfterHeaderToMs(String(fromField));
+    if (fromHeader != null) return fromHeader;
+  }
+
+  const header = headerValue(error.headers, "Retry-After");
+  if (header) {
+    const fromHeader = retryAfterHeaderToMs(header);
+    if (fromHeader != null) return fromHeader;
+  }
+
+  const text = `${error.message || ""} ${error.error_description || ""}`;
+  const match = text.match(/after\s+(\d+)\s+seconds?/i);
+  if (match) {
+    return Number(match[1]) * 1000;
+  }
+  return null;
+}
+
 /**
  * Map Supabase Auth / OAuth callback errors to a short message users can act on.
  * Supabase auto-links identities by matching email and strips unconfirmed
@@ -52,13 +160,16 @@ export function describeAuthError(error: AuthLikeError, fallback?: string): stri
     return "Sign-in was cancelled. You can try again when you are ready.";
   }
 
-  if (
-    blob.includes("over_email_send_rate_limit") ||
-    blob.includes("rate limit") ||
-    blob.includes("for security purposes") ||
-    blob.includes("too many requests")
-  ) {
-    return "Too many sign-in emails were sent. Wait a minute and try again.";
+  if (isEmailSendRateLimit(error)) {
+    return EMAIL_SEND_RATE_LIMIT_MESSAGE;
+  }
+
+  if (isEmailHourlyRateLimit(error)) {
+    return EMAIL_HOURLY_RATE_LIMIT_MESSAGE;
+  }
+
+  if (isAuthRateLimit(error)) {
+    return AUTH_RATE_LIMIT_MESSAGE;
   }
 
   if (

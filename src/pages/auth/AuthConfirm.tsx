@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { Loader2, Mail, MailCheck } from "lucide-react";
@@ -10,12 +10,13 @@ import { describeAuthError } from "@/lib/authErrors";
 import {
   consumeAuthRedirect,
   DEFAULT_POST_AUTH_PATH,
+  peekAuthRedirect,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
 
 const OTP_TYPES = new Set<string>(["email", "signup"]);
 
-export const AUTH_CONFIRM_SIGNED_IN_MS = 1500;
+export const AUTH_CONFIRM_SIGNED_IN_MS = 3000;
 
 function parseOtpType(value: string | null): EmailOtpType | null {
   if (!value) return null;
@@ -48,6 +49,7 @@ export default function AuthConfirm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     tokenHash ? null : "This sign-in link is missing its token. Request a new one.",
   );
+  const cancelBannerNav = useRef(false);
 
   useEffect(() => {
     stripTokenFromUrl();
@@ -56,6 +58,7 @@ export default function AuthConfirm() {
   useEffect(() => {
     if (!signedInEmail || !destination) return;
     const id = window.setTimeout(() => {
+      if (cancelBannerNav.current) return;
       navigate(destination);
     }, AUTH_CONFIRM_SIGNED_IN_MS);
     return () => window.clearTimeout(id);
@@ -77,9 +80,10 @@ export default function AuthConfirm() {
     setBusy(true);
     setErrorMessage(null);
 
-    const dest = consumeAuthRedirect(
-      sanitizeAuthRedirect(redirectParam) ?? DEFAULT_POST_AUTH_PATH,
-    );
+    const dest =
+      peekAuthRedirect() ??
+      sanitizeAuthRedirect(redirectParam) ??
+      DEFAULT_POST_AUTH_PATH;
 
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
@@ -92,6 +96,8 @@ export default function AuthConfirm() {
       return;
     }
 
+    consumeAuthRedirect(dest);
+
     const email =
       data.user?.email || data.session?.user?.email || "your account";
     setDestination(dest);
@@ -100,9 +106,10 @@ export default function AuthConfirm() {
   };
 
   const onSignOut = async () => {
-    await supabase.auth.signOut();
+    cancelBannerNav.current = true;
     setSignedInEmail(null);
     setDestination(null);
+    await supabase.auth.signOut();
     navigate("/login");
   };
 

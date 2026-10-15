@@ -1,19 +1,94 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  AUTH_RATE_LIMIT_MESSAGE,
   describeAuthError,
+  EMAIL_HOURLY_RATE_LIMIT_MESSAGE,
+  EMAIL_SEND_RATE_LIMIT_MESSAGE,
+  isEmailSendRateLimit,
   OTP_EXPIRED_AUTH_MESSAGE,
   parseAuthCallbackError,
+  parseEmailSendRetryAfterMs,
   SAME_BROWSER_AUTH_MESSAGE,
 } from "./authErrors";
 
 describe("describeAuthError", () => {
-  it("explains magic-link rate limits", () => {
+  it("uses the email-send wording for the per-address cooldown message", () => {
     expect(
       describeAuthError({
+        status: 429,
         code: "over_email_send_rate_limit",
         message: "For security purposes, you can only request this after 60 seconds.",
       }),
-    ).toMatch(/wait a minute/i);
+    ).toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
+    expect(
+      isEmailSendRateLimit({
+        code: "over_email_send_rate_limit",
+        message: "For security purposes, you can only request this after 14 seconds.",
+      }),
+    ).toBe(true);
+    expect(isEmailSendRateLimit({ code: "over_email_send_rate_limit" })).toBe(false);
+    expect(isEmailSendRateLimit({ status: 429 })).toBe(false);
+    expect(isEmailSendRateLimit({ message: "invalid login credentials" })).toBe(false);
+  });
+
+  it("uses hourly wording when GoTrue reuses over_email_send_rate_limit for the cap", () => {
+    expect(
+      describeAuthError({
+        status: 429,
+        code: "over_email_send_rate_limit",
+        message: "Email rate limit exceeded",
+      }),
+    ).toBe(EMAIL_HOURLY_RATE_LIMIT_MESSAGE);
+    expect(
+      isEmailSendRateLimit({
+        status: 429,
+        code: "over_email_send_rate_limit",
+        message: "Email rate limit exceeded",
+      }),
+    ).toBe(false);
+    expect(EMAIL_HOURLY_RATE_LIMIT_MESSAGE).not.toMatch(/this address/i);
+    expect(EMAIL_HOURLY_RATE_LIMIT_MESSAGE).not.toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
+  });
+
+  it("keeps verifyOtp and OAuth 429s on their own wording", () => {
+    expect(
+      describeAuthError({
+        status: 429,
+        code: "over_request_rate_limit",
+        message: "Too many requests",
+      }),
+    ).toBe(AUTH_RATE_LIMIT_MESSAGE);
+    expect(
+      describeAuthError({
+        status: 429,
+        message: "Too many requests",
+      }),
+    ).toBe(AUTH_RATE_LIMIT_MESSAGE);
+    expect(describeAuthError({ status: 429 })).toBe(AUTH_RATE_LIMIT_MESSAGE);
+    expect(describeAuthError({ status: 429 })).not.toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
+  });
+
+  it("reads retry-after seconds from the GoTrue message, headers, or retryAfter", () => {
+    expect(
+      parseEmailSendRetryAfterMs({
+        status: 429,
+        code: "over_email_send_rate_limit",
+        message: "For security purposes, you can only request this after 33 seconds.",
+      }),
+    ).toBe(33_000);
+    expect(
+      parseEmailSendRetryAfterMs({
+        message: "For security purposes, you can only request this after 14 seconds.",
+      }),
+    ).toBe(14_000);
+    expect(
+      parseEmailSendRetryAfterMs({
+        status: 429,
+        headers: { get: (name: string) => (name.toLowerCase() === "retry-after" ? "8" : null) },
+      }),
+    ).toBe(8_000);
+    expect(parseEmailSendRetryAfterMs({ retryAfter: 12 })).toBe(12_000);
+    expect(parseEmailSendRetryAfterMs({ status: 429, message: "rate limit exceeded" })).toBeNull();
   });
 
   it("explains identity-already-linked conflicts", () => {
