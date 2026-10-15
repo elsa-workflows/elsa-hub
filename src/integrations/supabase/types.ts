@@ -117,6 +117,8 @@ export type Database = {
         Row: {
           course_id: string | null
           granted_at: string
+          gumroad_redemption_count: number | null
+          gumroad_sale_id: string | null
           id: string
           organization_id: string | null
           product_code: string | null
@@ -130,6 +132,8 @@ export type Database = {
         Insert: {
           course_id?: string | null
           granted_at?: string
+          gumroad_redemption_count?: number | null
+          gumroad_sale_id?: string | null
           id?: string
           organization_id?: string | null
           product_code?: string | null
@@ -143,6 +147,8 @@ export type Database = {
         Update: {
           course_id?: string | null
           granted_at?: string
+          gumroad_redemption_count?: number | null
+          gumroad_sale_id?: string | null
           id?: string
           organization_id?: string | null
           product_code?: string | null
@@ -213,6 +219,56 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "academy_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_pending_grants: {
+        Row: {
+          claimed_at: string | null
+          claimed_entitlement_id: string | null
+          counts_against_sale_id: string | null
+          created_at: string
+          email: string
+          gumroad_sale_id: string
+          id: string
+          kind: string
+          organization_name_hint: string | null
+          product_code: string
+          seats: number
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_entitlement_id?: string | null
+          counts_against_sale_id?: string | null
+          created_at?: string
+          email: string
+          gumroad_sale_id: string
+          id?: string
+          kind: string
+          organization_name_hint?: string | null
+          product_code: string
+          seats: number
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_entitlement_id?: string | null
+          counts_against_sale_id?: string | null
+          created_at?: string
+          email?: string
+          gumroad_sale_id?: string
+          id?: string
+          kind?: string
+          organization_name_hint?: string | null
+          product_code?: string
+          seats?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_pending_grants_claimed_entitlement_id_fkey"
+            columns: ["claimed_entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "academy_entitlements"
             referencedColumns: ["id"]
           },
         ]
@@ -2466,6 +2522,24 @@ export type Database = {
       accept_invitation: { Args: { p_token: string }; Returns: string }
       accept_invitation_by_id: {
         Args: { p_invitation_id: string }
+        Returns: string
+      }
+      academy_claim_pending_grants: { Args: never; Returns: Json }
+      academy_claim_pending_team_grant: {
+        Args: { p_organization_id?: string }
+        Returns: Json
+      }
+      academy_grant_gumroad_sale: {
+        Args: {
+          p_counts_against_sale_id?: string
+          p_dry_run?: boolean
+          p_email: string
+          p_gumroad_sale_id: string
+          p_kind?: string
+          p_organization_name_hint?: string
+          p_product_code: string
+          p_seats: number
+        }
         Returns: string
       }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }

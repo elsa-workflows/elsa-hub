@@ -36,7 +36,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 
 CREATE TABLE IF NOT EXISTS auth.users (
   id uuid PRIMARY KEY,
-  email text
+  email text,
+  email_confirmed_at timestamp with time zone
 );
 
 CREATE OR REPLACE FUNCTION auth.uid()
@@ -61,6 +62,27 @@ BEGIN
   EXCEPTION
     WHEN others THEN
       RETURN NULL;
+  END;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION auth.jwt()
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  claims text;
+BEGIN
+  claims := NULLIF(current_setting('request.jwt.claims', true), '');
+  IF claims IS NULL THEN
+    RETURN '{}'::jsonb;
+  END IF;
+  BEGIN
+    RETURN claims::jsonb;
+  EXCEPTION
+    WHEN others THEN
+      RETURN '{}'::jsonb;
   END;
 END;
 $$;
@@ -159,3 +181,4 @@ GRANT SELECT ON public.platform_admins TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.is_platform_admin() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.is_org_admin(uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION auth.jwt() TO anon, authenticated, service_role;
