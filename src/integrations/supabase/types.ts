@@ -14,6 +14,235 @@ export type Database = {
   }
   public: {
     Tables: {
+      academy_assets: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          label: string
+          lesson_id: string | null
+          sha256: string | null
+          size_bytes: number | null
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          label: string
+          lesson_id?: string | null
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          lesson_id?: string | null
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_assets_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "academy_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_assets_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "academy_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_courses: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          is_published: boolean
+          price_cents: number
+          product_code: string
+          slug: string
+          sort_order: number
+          stripe_price_id: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_published?: boolean
+          price_cents?: number
+          product_code: string
+          slug: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_published?: boolean
+          price_cents?: number
+          product_code?: string
+          slug?: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      academy_entitlements: {
+        Row: {
+          course_id: string | null
+          granted_at: string
+          id: string
+          organization_id: string | null
+          product_code: string | null
+          revoked_at: string | null
+          seats: number
+          source: string
+          stripe_checkout_session_id: string | null
+          subject_type: string
+          user_id: string | null
+        }
+        Insert: {
+          course_id?: string | null
+          granted_at?: string
+          id?: string
+          organization_id?: string | null
+          product_code?: string | null
+          revoked_at?: string | null
+          seats: number
+          source: string
+          stripe_checkout_session_id?: string | null
+          subject_type: string
+          user_id?: string | null
+        }
+        Update: {
+          course_id?: string | null
+          granted_at?: string
+          id?: string
+          organization_id?: string | null
+          product_code?: string | null
+          revoked_at?: string | null
+          seats?: number
+          source?: string
+          stripe_checkout_session_id?: string | null
+          subject_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_entitlements_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "academy_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_entitlements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_lessons: {
+        Row: {
+          body_md: string | null
+          course_id: string
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          is_preview: boolean
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body_md?: string | null
+          course_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          is_preview?: boolean
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body_md?: string | null
+          course_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          is_preview?: boolean
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "academy_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_seat_assignments: {
+        Row: {
+          assigned_at: string
+          entitlement_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          entitlement_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          entitlement_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_seat_assignments_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "academy_entitlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_events: {
         Row: {
           action: string
@@ -2237,6 +2466,10 @@ export type Database = {
         Returns: string
       }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
+      assign_academy_seat: {
+        Args: { p_entitlement_id: string; p_user_id: string }
+        Returns: string
+      }
       copilot_documents_summary: {
         Args: never
         Returns: {
@@ -2428,6 +2661,7 @@ export type Database = {
         Returns: string
       }
       get_user_provider_id: { Args: never; Returns: string }
+      has_academy_access: { Args: { p_course_id: string }; Returns: boolean }
       hash_invitation_token: { Args: { p_token: string }; Returns: string }
       ignore_invitation: {
         Args: { p_invitation_id: string }
@@ -2476,6 +2710,10 @@ export type Database = {
           liked: boolean
           total: number
         }[]
+      }
+      unassign_academy_seat: {
+        Args: { p_entitlement_id: string; p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
