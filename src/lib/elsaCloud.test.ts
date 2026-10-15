@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   ELSA_CLOUD_PATH,
+  ELSA_CLOUD_LEGAL_PAGES,
   elsaCloudEnginePath,
+  elsaCloudLegalPath,
   getLegacyCloudRedirectTarget,
 } from "./elsaCloud";
 
@@ -32,6 +34,16 @@ describe("Elsa Cloud public paths", () => {
         hash: "#engines",
       }),
     ).toBe(`${ELSA_CLOUD_PATH}?payment=success#engines`);
+  });
+
+  it("builds Elsa Cloud legal paths under /elsa-plus/cloud/legal", () => {
+    expect(elsaCloudLegalPath("terms")).toBe(`${ELSA_CLOUD_PATH}/legal/terms`);
+    expect(ELSA_CLOUD_LEGAL_PAGES).toEqual({
+      terms: `${ELSA_CLOUD_PATH}/legal/terms`,
+      privacy: `${ELSA_CLOUD_PATH}/legal/privacy`,
+      dpa: `${ELSA_CLOUD_PATH}/legal/dpa`,
+      subprocessors: `${ELSA_CLOUD_PATH}/legal/subprocessors`,
+    });
   });
 
   it("does not rewrite /cloud-services as an old Cloud console URL", () => {
