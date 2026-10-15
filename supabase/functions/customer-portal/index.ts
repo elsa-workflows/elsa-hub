@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getOrCreateStripeCustomer } from "../_shared/stripe-customer.ts";
+import {
+  assertStripeTestMode,
+  cloudPortalReturnPath,
+  isCloudCheckoutRequest,
+} from "../_shared/cloud-billing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,8 +48,67 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const userEmail = user.email;
     const userId = user.id;
+    const userEmail = user.email;
+
+    // Parse request body
+    const body = await req.json();
+    const { organizationId } = body;
+    const isCloudPortal = isCloudCheckoutRequest(body);
+
+    if (isCloudPortal) {
+      try {
+        assertStripeTestMode(Deno.env.get("STRIPE_SECRET_KEY"));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Cloud billing is not configured";
+        return new Response(
+          JSON.stringify({ error: message }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (organizationId) {
+        const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
+          p_org_id: organizationId,
+        });
+        if (adminError || !isAdmin) {
+          return new Response(
+            JSON.stringify({ error: "Only organization admins can manage Cloud billing" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+        apiVersion: "2025-08-27.basil",
+      });
+      const owner = organizationId ? { orgId: organizationId } : { userId };
+      let customerId: string;
+      try {
+        customerId = await getOrCreateStripeCustomer(owner, {
+          stripe,
+          serviceClient,
+          email: userEmail,
+          createIfMissing: false,
+        });
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "No Cloud billing account yet. Start a Cloud subscription first." }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${origin}${cloudPortalReturnPath()}`,
+      });
+
+      return new Response(
+        JSON.stringify({ url: portalSession.url }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!userEmail) {
       return new Response(
@@ -53,8 +117,6 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const { organizationId } = await req.json();
     if (!organizationId) {
       return new Response(
         JSON.stringify({ error: "organizationId is required" }),

@@ -55,6 +55,8 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
+const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
+const CloudBilling = lazy(() => import("./pages/cloud/CloudBilling"));
 
 // Dashboard
 const DashboardLayout = lazy(() =>
@@ -189,6 +191,8 @@ const App = () => (
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/auth/confirm" element={<AuthConfirm />} />
+              <Route path="/cloud" element={<CloudHome />} />
+              <Route path="/cloud/billing" element={<CloudBilling />} />
               <Route path="/invite/:token" element={<AcceptInvitation />} />
               <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />

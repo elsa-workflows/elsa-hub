@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.customer-portal]
 verify_jwt = false
 
+[functions.cloud-billing]
+verify_jwt = false
+
 [functions.send-notification]
 verify_jwt = false
 
