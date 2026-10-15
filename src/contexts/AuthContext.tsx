@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import { User, Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AUTH_REDIRECT_STORAGE_KEY, getAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/authRedirect";
+
+export type OAuthSignInProvider = "github" | "google";
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +13,10 @@ interface AuthContextType {
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithOAuth: (provider: OAuthSignInProvider) => Promise<{ error: Error | null }>;
   signInWithGitHub: () => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -56,10 +62,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Handle OAuth redirect - check for stored redirect URL
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
-          const redirectUrl = sessionStorage.getItem("authRedirect");
-          if (redirectUrl) {
+          const stored = sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY);
+          if (stored) {
             hasHandledRedirect.current = true;
-            sessionStorage.removeItem("authRedirect");
+            sessionStorage.removeItem(AUTH_REDIRECT_STORAGE_KEY);
+            const redirectUrl = sanitizeAuthRedirect(stored) ?? "/";
             // Use setTimeout to ensure this happens after React renders
             setTimeout(() => {
               window.location.href = redirectUrl;
@@ -95,17 +102,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: getAuthCallbackUrl(),
       },
     });
     return { error };
   };
 
-  const signInWithGitHub = async () => {
+  const signInWithOAuth = async (provider: OAuthSignInProvider) => {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
+      provider,
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: getAuthCallbackUrl(),
+      },
+    });
+    return { error };
+  };
+
+  const signInWithGitHub = () => signInWithOAuth("github");
+
+  const signInWithGoogle = () => signInWithOAuth("google");
+
+  const signInWithMagicLink = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: getAuthCallbackUrl(),
+        shouldCreateUser: true,
       },
     });
     return { error };
@@ -124,7 +146,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isConfigured: true,
         signIn,
         signUp,
+        signInWithOAuth,
         signInWithGitHub,
+        signInWithGoogle,
+        signInWithMagicLink,
         signOut,
       }}
     >

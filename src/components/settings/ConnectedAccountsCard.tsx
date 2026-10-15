@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Mail, Github, Check, Link2, Unlink, Loader2 } from "lucide-react";
+import { GoogleIcon } from "@/components/auth/GoogleIcon";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,7 +28,7 @@ import { SetPasswordDialog } from "./SetPasswordDialog";
 const PROVIDER_ICONS: Record<string, React.ReactNode> = {
   email: <Mail className="h-5 w-5" />,
   github: <Github className="h-5 w-5" />,
-  // Add more provider icons here as needed
+  google: <GoogleIcon className="h-5 w-5" />,
 };
 
 export function ConnectedAccountsCard() {

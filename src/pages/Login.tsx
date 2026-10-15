@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Github, Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PasswordlessAuth } from "@/components/auth/PasswordlessAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { describeAuthError } from "@/lib/authErrors";
+import { sanitizeAuthRedirect } from "@/lib/authRedirect";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -29,14 +32,12 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isGitHubLoading, setIsGitHubLoading] = useState(false);
-  const { signIn, signInWithGitHub } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
-  // Get redirect URL from query params, default to dashboard
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = sanitizeAuthRedirect(searchParams.get("redirect")) ?? "/dashboard";
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -55,7 +56,7 @@ export default function Login() {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.message,
+        description: describeAuthError(error),
       });
     } else {
       toast({
@@ -64,25 +65,6 @@ export default function Login() {
       });
       navigate(redirectTo);
     }
-  };
-
-  const handleGitHubLogin = async () => {
-    setIsGitHubLoading(true);
-    // Store redirect URL for after OAuth callback
-    if (redirectTo !== "/") {
-      sessionStorage.setItem("authRedirect", redirectTo);
-    }
-    const { error } = await signInWithGitHub();
-    if (error) {
-      setIsGitHubLoading(false);
-      sessionStorage.removeItem("authRedirect");
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message,
-      });
-    }
-    // Note: GitHub OAuth will redirect, so we don't need to handle success here
   };
 
   return (
@@ -97,19 +79,7 @@ export default function Login() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              onClick={handleGitHubLogin}
-              disabled={isGitHubLoading}
-            >
-              {isGitHubLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Github className="h-4 w-4" />
-              )}
-              Continue with GitHub
-            </Button>
+            <PasswordlessAuth redirectTo={redirectTo} />
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -117,7 +87,7 @@ export default function Login() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">
-                  Or continue with email
+                  Or continue with a password
                 </span>
               </div>
             </div>

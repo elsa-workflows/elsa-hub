@@ -5,6 +5,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { describeAuthError, parseAuthCallbackError } from "@/lib/authErrors";
+import { consumeAuthRedirect, DEFAULT_POST_AUTH_PATH } from "@/lib/authRedirect";
 
 type CallbackStatus = "loading" | "success" | "error" | "linked";
 
@@ -17,39 +19,54 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Parse hash params (Supabase puts auth data in URL hash)
+        // Supabase may put errors in the query string (PKCE) or the hash (implicit).
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const error = hashParams.get("error");
-        const errorDescription = hashParams.get("error_description");
-        const type = hashParams.get("type");
+        const type = hashParams.get("type") || new URLSearchParams(window.location.search).get("type");
+        const callbackError = parseAuthCallbackError(window.location.search, window.location.hash);
 
         // Check if this is a linking callback
         const linkingProvider = sessionStorage.getItem("linkingProvider");
         const isLinkingFlow = !!linkingProvider;
 
-        if (error) {
-          setErrorMessage(errorDescription || "An error occurred during verification.");
+        if (callbackError) {
+          setErrorMessage(callbackError.message);
           setStatus("error");
           sessionStorage.removeItem("linkingProvider");
+          sessionStorage.removeItem("authRedirect");
           return;
         }
 
-        // Let Supabase handle the session from the URL
+        // PKCE: supabase-js exchanges ?code= during client init (detectSessionInUrl).
+        // getSession() waits for that initialize and returns the session.
+        // If the user opened the link in another browser, init fails with a
+        // missing code verifier. Exchange again so that error is mapped.
         const { data, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
-          setErrorMessage(sessionError.message);
+          setErrorMessage(describeAuthError(sessionError));
           setStatus("error");
           sessionStorage.removeItem("linkingProvider");
           return;
         }
 
-        if (data.session) {
-          // User is now authenticated
-          // Check for stored redirect URL (from OAuth flow)
-          const storedRedirect = sessionStorage.getItem("authRedirect");
-          sessionStorage.removeItem("authRedirect");
-          const redirectTo = storedRedirect || "/dashboard";
+        const code = new URLSearchParams(window.location.search).get("code");
+        let session = data.session;
+        if (code && !session) {
+          const { data: exchanged, error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            setErrorMessage(describeAuthError(exchangeError));
+            setStatus("error");
+            sessionStorage.removeItem("linkingProvider");
+            sessionStorage.removeItem("authRedirect");
+            return;
+          }
+          session = exchanged.session;
+        }
+
+        if (session) {
+          // Honour the page the user was trying to reach (OAuth + magic link).
+          const redirectTo = consumeAuthRedirect();
 
           if (isLinkingFlow) {
             // This was an identity linking flow
@@ -60,14 +77,20 @@ export default function AuthCallback() {
             setTimeout(() => {
               navigate(redirectTo);
             }, 2000);
-          } else if (type === "signup" || type === "email") {
-            // Email confirmation successful
-            setStatus("success");
           } else if (type === "recovery") {
-            // Password recovery - redirect to password reset page
+            // Dead under PKCE: recovery used to arrive as #type=recovery on the
+            // implicit hash. PKCE callbacks are ?code= only, so this branch
+            // does not run for current magic-link or confirm emails.
             navigate("/reset-password");
+          } else if (type === "signup") {
+            // Dead under PKCE: signup confirmation used to arrive as
+            // #type=signup. PKCE confirmations take the default navigate path.
+            setStatus("success");
+            setTimeout(() => {
+              navigate(redirectTo);
+            }, 1500);
           } else {
-            // OAuth login or other auth types - redirect to dashboard
+            // OAuth, magic link (type=magiclink|email), and other sign-ins.
             navigate(redirectTo);
           }
         } else {
@@ -83,18 +106,19 @@ export default function AuthCallback() {
           const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === "SIGNED_IN" && session) {
               clearTimeout(timeout);
-              const storedRedirect = sessionStorage.getItem("authRedirect");
-              sessionStorage.removeItem("authRedirect");
-              
+              const storedRedirect = consumeAuthRedirect(
+                isLinkingFlow ? "/dashboard/settings/profile" : DEFAULT_POST_AUTH_PATH,
+              );
+
               if (isLinkingFlow) {
                 setLinkedProvider(linkingProvider);
                 sessionStorage.removeItem("linkingProvider");
                 setStatus("linked");
                 setTimeout(() => {
-                  navigate(storedRedirect || "/dashboard/settings/profile");
+                  navigate(storedRedirect);
                 }, 2000);
               } else {
-                navigate(storedRedirect || "/dashboard");
+                navigate(storedRedirect);
               }
               subscription.unsubscribe();
             }
@@ -127,12 +151,13 @@ export default function AuthCallback() {
                 </div>
                 <CardTitle className="text-2xl">Verifying your account...</CardTitle>
                 <CardDescription className="text-base">
-                  Please wait while we confirm your email address.
+                  Please wait while we finish signing you in.
                 </CardDescription>
               </CardHeader>
             </>
           )}
 
+          {/* success is only set by the implicit #type=signup branch above. */}
           {status === "success" && (
             <>
               <CardHeader className="space-y-4">
@@ -142,7 +167,7 @@ export default function AuthCallback() {
                 <CardTitle className="text-2xl">Account Activated!</CardTitle>
                 <CardDescription className="text-base">
                   Your email has been verified and your account is now active.
-                  You can now sign in to access all features.
+                  Redirecting you to Elsa Hub…
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -180,6 +205,9 @@ export default function AuthCallback() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <Button className="w-full" asChild>
+                  <Link to="/login">Back to Sign In</Link>
+                </Button>
                 <Button variant="outline" className="w-full" asChild>
                   <Link to="/signup">Try Signing Up Again</Link>
                 </Button>
