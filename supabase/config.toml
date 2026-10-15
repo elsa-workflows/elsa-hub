@@ -84,3 +84,6 @@ verify_jwt = false
 
 [functions.author-avatar]
 verify_jwt = false
+
+[functions.academy-checkout]
+verify_jwt = false

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { handleCloudStripeEvent, isCloudStripeEvent } from "./cloud.ts";
+import { dispatchStripeWebhookEvent } from "./dispatch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,78 +76,37 @@ serve(async (req) => {
   console.log(`Processing event: ${event.type}`);
 
   try {
-    // Cloud subscription events are owned by Control. Return before Academy or
-    // Hub billing_type handlers. Academy (kind=academy) is next; #54 grants
-    // entitlements here. Until that lands, skip Hub orders and credits.
-    if (isCloudStripeEvent(event)) {
-      await handleCloudStripeEvent(event);
-      return new Response(
-        JSON.stringify({ received: true }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      if (session.metadata?.kind === "academy") {
-        return new Response(
-          JSON.stringify({ received: true }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const billingType = session.metadata?.billing_type;
-
-      // Sync billing info from Stripe back to our database
-      await syncBillingInfoFromSession(supabase, session);
-
-      if (billingType === "recurring") {
-        // Handle subscription checkout completion
-        await handleSubscriptionCheckout(supabase, stripe, session);
-      } else {
-        // Handle one-time payment checkout completion
-        await handleOneTimePaymentCheckout(supabase, stripe, session);
-      }
-    } else if (event.type === "checkout.session.async_payment_succeeded") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      if (session.metadata?.kind === "academy") {
-        return new Response(
-          JSON.stringify({ received: true }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    } else if (event.type === "checkout.session.async_payment_failed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      if (session.metadata?.kind === "academy") {
-        return new Response(
-          JSON.stringify({ received: true }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    } else if (event.type === "checkout.session.expired") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const orderId = session.metadata?.order_id;
-
-      if (orderId) {
-        await supabase
-          .from("orders")
-          .update({ status: "cancelled" })
-          .eq("id", orderId)
-          .eq("status", "pending");
-        console.log(`Order ${orderId} marked as cancelled`);
-      }
-    } else if (event.type === "invoice.paid") {
-      // Handle subscription renewal
-      await handleInvoicePaid(supabase, stripe, event.data.object as Stripe.Invoice);
-    } else if (event.type === "customer.subscription.updated") {
-      // Handle subscription status changes
-      await handleSubscriptionUpdated(supabase, event.data.object as Stripe.Subscription);
-    } else if (event.type === "customer.subscription.deleted") {
-      // Handle subscription cancellation
-      await handleSubscriptionDeleted(supabase, event.data.object as Stripe.Subscription);
-    } else if (event.type === "charge.refunded") {
-      await handleChargeRefunded(supabase, event.data.object as Stripe.Charge);
-    }
+    // Cloud returns first. Academy handlers are #54's (handleAcademyCheckout /
+    // handleAcademyAsyncPaymentFailed / handleAcademyRefund). Hub billing_type last.
+    await dispatchStripeWebhookEvent(event, {
+      supabase,
+      stripe,
+      hub: {
+        onCheckoutCompleted: async (session, billingType) => {
+          await syncBillingInfoFromSession(supabase, session);
+          if (billingType === "recurring") {
+            await handleSubscriptionCheckout(supabase, stripe, session);
+          } else {
+            await handleOneTimePaymentCheckout(supabase, stripe, session);
+          }
+        },
+        onCheckoutExpired: async (session) => {
+          const orderId = session.metadata?.order_id;
+          if (orderId) {
+            await supabase
+              .from("orders")
+              .update({ status: "cancelled" })
+              .eq("id", orderId)
+              .eq("status", "pending");
+            console.log(`Order ${orderId} marked as cancelled`);
+          }
+        },
+        onInvoicePaid: (invoice) => handleInvoicePaid(supabase, stripe, invoice),
+        onSubscriptionUpdated: (subscription) => handleSubscriptionUpdated(supabase, subscription),
+        onSubscriptionDeleted: (subscription) => handleSubscriptionDeleted(supabase, subscription),
+        onChargeRefunded: (charge) => handleChargeRefunded(supabase, charge),
+      },
+    });
 
     return new Response(
       JSON.stringify({ received: true }),
