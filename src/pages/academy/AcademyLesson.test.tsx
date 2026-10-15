@@ -4,9 +4,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
-const { handleBuyCourse, useAcademyLesson } = vi.hoisted(() => ({
+const { handleBuyCourse, useAcademyLesson, useAuth } = vi.hoisted(() => ({
   handleBuyCourse: vi.fn(),
   useAcademyLesson: vi.fn(),
+  useAuth: vi.fn(() => ({ user: { id: "user-1" } })),
 }));
 
 vi.mock("@/components/layout/Layout", () => ({
@@ -25,6 +26,10 @@ vi.mock("@/hooks/useAcademyLesson", () => ({
   useAcademyLesson: () => useAcademyLesson(),
 }));
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => useAuth(),
+}));
+
 vi.mock("@/lib/academy", async () => {
   const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
   return {
@@ -34,6 +39,12 @@ vi.mock("@/lib/academy", async () => {
 });
 
 import AcademyLesson from "./AcademyLesson";
+import {
+  ACADEMY_GUMROAD_CLAIM_LINE,
+  ACADEMY_SOLO_BUY_LABEL,
+  ACADEMY_SOLO_INCLUDED,
+  ACADEMY_SOLO_LOCKED_HEADING,
+} from "@/lib/academyCopy";
 
 const course = {
   id: "course-1",
@@ -159,11 +170,12 @@ describe("Academy lesson page", () => {
     expect(screen.getByRole("heading", { name: paidLesson.title })).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).not.toHaveAttribute("id", "solo-bundle");
-    expect(screen.getByRole("heading", { name: "Solo Bundle" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Buy" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Team licences" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Buy" }));
+    expect(screen.getByRole("heading", { name: ACADEMY_SOLO_LOCKED_HEADING })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_INCLUDED[0])).not.toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_GUMROAD_CLAIM_LINE)).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Training page" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
     expect(handleBuyCourse).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Host Elsa 3.9.0")).not.toBeInTheDocument();
     expect(screen.queryByTestId("academy-kit-downloads")).not.toBeInTheDocument();

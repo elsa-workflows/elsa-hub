@@ -10,7 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
-import { AcademySoloCta } from "@/components/academy/AcademySoloCta";
+import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyLessonList } from "@/components/academy/AcademyLessonList";
 import {
   AcademyEmptyState,
@@ -103,6 +103,7 @@ export default function AcademyCourse() {
           {course.summary && <p className="text-lg text-muted-foreground">{course.summary}</p>}
           <p className="text-lg font-semibold">{formatAcademyPrice(course.price_cents, course.currency)}</p>
           {hasAccess && <p className="text-sm text-primary">You have access to this course.</p>}
+          {hasAccess && <AcademyPaymentSuccessNote />}
         </header>
 
         <div className="space-y-4">

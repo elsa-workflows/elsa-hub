@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
-const { handleBuyCourse, useAcademyCatalog } = vi.hoisted(() => ({
+const { handleBuyCourse, useAcademyCatalog, useAuth } = vi.hoisted(() => ({
   handleBuyCourse: vi.fn(),
   useAcademyCatalog: vi.fn(),
+  useAuth: vi.fn(() => ({ user: null })),
 }));
 
 vi.mock("@/components/layout/Layout", () => ({
@@ -21,6 +22,10 @@ vi.mock("@/hooks/useAcademyCatalog", () => ({
   useAcademyCatalog: () => useAcademyCatalog(),
 }));
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => useAuth(),
+}));
+
 vi.mock("@/lib/academy", async () => {
   const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
   return {
@@ -30,7 +35,13 @@ vi.mock("@/lib/academy", async () => {
 });
 
 import AcademyCatalog from "./AcademyCatalog";
-import { ACADEMY_TEAM_LICENCES_URL } from "@/lib/academy";
+import {
+  ACADEMY_SOLO_BUY_LABEL,
+  ACADEMY_SOLO_INCLUDED,
+  ACADEMY_SOLO_SIGN_IN_LABEL,
+  ACADEMY_SOLO_SIGNED_OUT_NOTE,
+  academySoloBundleBody,
+} from "@/lib/academyCopy";
 
 const course = {
   id: "course-1",
@@ -71,6 +82,10 @@ function loadedCatalog() {
 }
 
 describe("Academy catalog", () => {
+  beforeEach(() => {
+    useAuth.mockReturnValue({ user: null });
+  });
+
   it("shows the Solo Bundle panel and catalogue cards without a per-course Buy button", () => {
     useAcademyCatalog.mockReturnValue(loadedCatalog());
 
@@ -79,10 +94,15 @@ describe("Academy catalog", () => {
     expect(screen.getByRole("heading", { name: "Academy" })).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).toHaveAttribute("id", "solo-bundle");
     expect(screen.getByRole("heading", { name: "Solo Bundle" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Team licences" })).toHaveAttribute(
+    expect(screen.getByText(academySoloBundleBody())).toBeInTheDocument();
+    for (const item of ACADEMY_SOLO_INCLUDED) {
+      expect(screen.getByText(item)).toBeInTheDocument();
+    }
+    expect(screen.getByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).toBeInTheDocument();
+    expect(screen.getByText(ACADEMY_SOLO_SIGNED_OUT_NOTE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Training page" })).toHaveAttribute(
       "href",
-      ACADEMY_TEAM_LICENCES_URL,
+      "/elsa-plus/training",
     );
     expect(screen.getByRole("heading", { name: course.title })).toBeInTheDocument();
     expect(screen.getByText(course.summary)).toBeInTheDocument();
@@ -137,10 +157,11 @@ describe("Academy catalog", () => {
   });
 
   it("calls handleBuyCourse from the Solo Bundle Buy CTA", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
     useAcademyCatalog.mockReturnValue(loadedCatalog());
 
     renderCatalog();
-    fireEvent.click(screen.getByRole("button", { name: "Buy" }));
+    fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
     expect(handleBuyCourse).toHaveBeenCalledTimes(1);
   });
 

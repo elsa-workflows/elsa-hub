@@ -4,8 +4,9 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
-const { useAcademyCourse } = vi.hoisted(() => ({
+const { useAcademyCourse, useAuth } = vi.hoisted(() => ({
   useAcademyCourse: vi.fn(),
+  useAuth: vi.fn(() => ({ user: null })),
 }));
 
 vi.mock("@/components/layout/Layout", () => ({
@@ -20,7 +21,12 @@ vi.mock("@/hooks/useAcademyCourse", () => ({
   useAcademyCourse: () => useAcademyCourse(),
 }));
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => useAuth(),
+}));
+
 import AcademyCourse from "./AcademyCourse";
+import { ACADEMY_SOLO_INCLUDED, ACADEMY_SOLO_LOCKED_HEADING, ACADEMY_SOLO_SIGN_IN_LABEL } from "@/lib/academyCopy";
 
 const course = {
   id: "course-1",
@@ -88,9 +94,9 @@ describe("Academy course page", () => {
     expect(screen.getByLabelText("Locked")).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).not.toHaveAttribute("id", "solo-bundle");
-    expect(screen.getByRole("heading", { name: "Solo Bundle" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Buy" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Buy" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: ACADEMY_SOLO_LOCKED_HEADING })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_INCLUDED[0])).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Unlocked")).not.toBeInTheDocument();
   });
 

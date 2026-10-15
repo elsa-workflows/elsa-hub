@@ -12,6 +12,10 @@ vi.mock("@/components/layout/Layout", () => ({
   Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 vi.mock("@/hooks/useAcademyCatalog", () => ({
   useAcademyCatalog: () => ({
     courses: [],

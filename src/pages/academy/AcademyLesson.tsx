@@ -11,7 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
-import { AcademySoloCta } from "@/components/academy/AcademySoloCta";
+import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyMarkdown } from "@/components/academy/AcademyMarkdown";
 import {
   AcademyErrorState,
@@ -131,6 +131,7 @@ export default function AcademyLesson() {
           {isPreview && (
             <p className="text-sm text-muted-foreground">Free preview lesson.</p>
           )}
+          {hasAccess && <AcademyPaymentSuccessNote />}
         </header>
 
         {canRead && bodyMd ? (
