@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getOrCreateStripeCustomer } from "../_shared/stripe-customer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -277,66 +278,62 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Resolve or create a Stripe Customer for this user/org so the billing
-    // profile (address + tax id) flows onto every invoice — works for both
-    // one-time and recurring sessions.
-    let stripeCustomerId: string | undefined;
-    if (userEmail) {
-      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-      const addressPayload = billingProfile?.address_line1
-        ? {
-            line1: billingProfile.address_line1 || undefined,
-            line2: billingProfile.address_line2 || undefined,
-            city: billingProfile.city || undefined,
-            state: billingProfile.state_province || undefined,
-            postal_code: billingProfile.postal_code || undefined,
-            country: billingProfile.country || undefined,
-          }
-        : undefined;
+    const addressPayload = billingProfile?.address_line1
+      ? {
+          line1: billingProfile.address_line1 || undefined,
+          line2: billingProfile.address_line2 || undefined,
+          city: billingProfile.city || undefined,
+          state: billingProfile.state_province || undefined,
+          postal_code: billingProfile.postal_code || undefined,
+          country: billingProfile.country || undefined,
+        }
+      : undefined;
 
-      if (customers.data.length > 0) {
-        stripeCustomerId = customers.data[0].id;
-        if (billingProfile) {
-          await stripe.customers.update(stripeCustomerId, {
-            name: billingProfile.company_legal_name || org.name,
-            address: addressPayload,
-            metadata: {
-              organization_id: organizationId,
-              user_id: userId,
-            },
+    const stripeCustomerId = await getOrCreateStripeCustomer(
+      { orgId: organizationId },
+      {
+        stripe: {
+          customers: {
+            create: (params) => stripe.customers.create(params),
+          },
+        },
+        supabase: serviceClient,
+        email: userEmail,
+        name: billingProfile?.company_legal_name || org.name,
+        address: addressPayload,
+        metadata: {
+          organization_id: organizationId,
+          user_id: userId,
+        },
+      },
+    );
+
+    if (billingProfile) {
+      await stripe.customers.update(stripeCustomerId, {
+        name: billingProfile.company_legal_name || org.name,
+        address: addressPayload,
+        metadata: {
+          organization_id: organizationId,
+          user_id: userId,
+        },
+      });
+    }
+
+    if (billingProfile?.vat_number && billingProfile?.country) {
+      try {
+        const taxIdType = getTaxIdType(billingProfile.country);
+        const existingTaxIds = await stripe.customers.listTaxIds(stripeCustomerId);
+        const hasVat = existingTaxIds.data.some(
+          (t: Stripe.TaxId) => t.value === billingProfile.vat_number
+        );
+        if (!hasVat) {
+          await stripe.customers.createTaxId(stripeCustomerId, {
+            type: taxIdType,
+            value: billingProfile.vat_number,
           });
         }
-      } else {
-        const customer = await stripe.customers.create({
-          email: userEmail,
-          name: billingProfile?.company_legal_name || org.name,
-          address: addressPayload,
-          metadata: {
-            organization_id: organizationId,
-            user_id: userId,
-          },
-        });
-        stripeCustomerId = customer.id;
-      }
-
-      // Add tax ID if VAT number exists and we have a customer
-      if (billingProfile?.vat_number && billingProfile?.country && stripeCustomerId) {
-        try {
-          const taxIdType = getTaxIdType(billingProfile.country);
-          const existingTaxIds = await stripe.customers.listTaxIds(stripeCustomerId);
-          const hasVat = existingTaxIds.data.some(
-            (t: Stripe.TaxId) => t.value === billingProfile.vat_number
-          );
-          if (!hasVat) {
-            await stripe.customers.createTaxId(stripeCustomerId, {
-              type: taxIdType,
-              value: billingProfile.vat_number,
-            });
-          }
-        } catch (taxError) {
-          console.error("Failed to add tax ID (non-fatal):", taxError);
-          // Non-fatal - continue with checkout
-        }
+      } catch (taxError) {
+        console.error("Failed to add tax ID (non-fatal):", taxError);
       }
     }
 
@@ -454,12 +451,8 @@ serve(async (req) => {
     // Attach the resolved Stripe customer so address + tax_id flow onto the invoice.
     // When a customer is attached, Stripe needs explicit permission to keep it in
     // sync if the buyer edits details during checkout.
-    if (stripeCustomerId) {
-      sessionConfig.customer = stripeCustomerId;
-      sessionConfig.customer_update = { address: "auto", name: "auto" };
-    } else if (userEmail) {
-      sessionConfig.customer_email = userEmail;
-    }
+    sessionConfig.customer = stripeCustomerId;
+    sessionConfig.customer_update = { address: "auto", name: "auto" };
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
 

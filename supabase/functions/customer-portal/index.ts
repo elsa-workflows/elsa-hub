@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getOrCreateStripeCustomer } from "../_shared/stripe-customer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,7 @@ serve(async (req) => {
       );
     }
     const userEmail = user.email;
+    const userId = user.id;
 
     if (!userEmail) {
       return new Response(
@@ -76,16 +78,22 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Find Stripe customer by email
-    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
-    if (customers.data.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "No Stripe customer found for this user" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const customerId = customers.data[0].id;
+    const customerId = await getOrCreateStripeCustomer(
+      { orgId: organizationId },
+      {
+        stripe: {
+          customers: {
+            create: (params) => stripe.customers.create(params),
+          },
+        },
+        supabase: serviceClient,
+        email: userEmail,
+        metadata: {
+          organization_id: organizationId,
+          user_id: userId,
+        },
+      },
+    );
 
     // Create customer portal session
     const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
