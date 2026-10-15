@@ -256,6 +256,16 @@ SELECT ok(
   'same user can store test and live customers'
 );
 
+SELECT ok(
+  public.stripe_customer_refs_throws_unique(
+    $sql$
+      INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
+      VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', false, 'cus_test_personal')
+    $sql$
+  ),
+  'user stripe_customer_id is unique'
+);
+
 SELECT public.stripe_customer_refs_set_jwt('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
 SET LOCAL ROLE authenticated;
 
