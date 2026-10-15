@@ -3,6 +3,44 @@ import { useLocation, useParams } from "react-router-dom";
 export const ELSACLOUD_APP_URL = "https://elsacloud.app";
 export const CLOUD_PUBLIC_HOME = "/elsa-plus/cloud-services";
 export const DASHBOARD_CLOUD_PATH = "/dashboard/cloud";
+export const LEGACY_CLOUD_PATH = "/cloud";
+
+/** `/cloud` or `/cloud/…` only — `/cloud-services` must not be rewritten. */
+const LEGACY_CLOUD_PREFIX = new RegExp(`^${LEGACY_CLOUD_PATH}(?=/|$)`);
+
+function isLegacyCloudIndex(pathname: string): boolean {
+  return pathname === LEGACY_CLOUD_PATH || pathname === `${LEGACY_CLOUD_PATH}/`;
+}
+
+/**
+ * Keep old `/cloud` and `/cloud/*` URLs working for login `?redirect=/cloud`,
+ * logout returns, Stripe success/cancel, and email links. Preserves subpath,
+ * query string, and hash. Signed-in visitors go to the dashboard Cloud
+ * location; anonymous `/cloud` goes to the public home; anonymous engine
+ * (or other console) URLs go to login and then return.
+ */
+export function getLegacyCloudRedirectTarget(
+  location: { pathname: string; search: string; hash: string },
+  options: { signedIn: boolean; orgSlug?: string | null },
+): string {
+  const suffix = `${location.search}${location.hash}`;
+  if (!LEGACY_CLOUD_PREFIX.test(location.pathname)) {
+    return `${location.pathname}${suffix}`;
+  }
+
+  if (!options.signedIn) {
+    if (!isLegacyCloudIndex(location.pathname)) {
+      return cloudLoginRedirect(`${location.pathname}${suffix}`);
+    }
+    return `${CLOUD_PUBLIC_HOME}${suffix}`;
+  }
+
+  const pathname = location.pathname.replace(
+    LEGACY_CLOUD_PREFIX,
+    dashboardCloudHomePath(options.orgSlug),
+  );
+  return `${pathname}${suffix}`;
+}
 
 export function dashboardCloudHomePath(orgSlug?: string | null): string {
   return orgSlug ? `/dashboard/org/${orgSlug}/cloud` : DASHBOARD_CLOUD_PATH;

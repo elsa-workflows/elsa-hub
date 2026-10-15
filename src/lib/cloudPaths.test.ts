@@ -6,6 +6,7 @@ import {
   cloudLoginRedirect,
   dashboardCloudEnginePath,
   dashboardCloudHomePath,
+  getLegacyCloudRedirectTarget,
 } from "./cloudPaths";
 
 describe("cloud dashboard paths", () => {
@@ -35,5 +36,89 @@ describe("cloud dashboard paths", () => {
     expect(cloudLoginRedirect("/cloud/engines/eng-1")).toBe(
       "/login?redirect=%2Fcloud%2Fengines%2Feng-1",
     );
+  });
+});
+
+describe("legacy /cloud redirects", () => {
+  it("preserves nested paths, queries, and hashes for signed-in visitors", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/cloud/engines/11111111-1111-4111-8111-111111111111",
+          search: "?session=checkout",
+          hash: "#status",
+        },
+        { signedIn: true, orgSlug: "acme" },
+      ),
+    ).toBe(
+      "/dashboard/org/acme/cloud/engines/11111111-1111-4111-8111-111111111111?session=checkout#status",
+    );
+  });
+
+  it("redirects the signed-in /cloud index, including query and hash", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/cloud",
+          search: "?payment=success",
+          hash: "#engines",
+        },
+        { signedIn: true, orgSlug: "acme" },
+      ),
+    ).toBe("/dashboard/org/acme/cloud?payment=success#engines");
+  });
+
+  it("sends signed-in visitors with no Hub org to /dashboard/cloud", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/cloud/engines/eng-1",
+          search: "?cancel=1",
+          hash: "#billing",
+        },
+        { signedIn: true, orgSlug: null },
+      ),
+    ).toBe("/dashboard/cloud/engines/eng-1?cancel=1#billing");
+  });
+
+  it("sends anonymous /cloud visitors to the public home, including query and hash", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/cloud",
+          search: "?payment=success",
+          hash: "#engines",
+        },
+        { signedIn: false },
+      ),
+    ).toBe("/elsa-plus/cloud-services?payment=success#engines");
+  });
+
+  it("returns anonymous engine visitors to the same /cloud URL after login", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/cloud/engines/eng-1",
+          search: "?session=checkout",
+          hash: "#status",
+        },
+        { signedIn: false },
+      ),
+    ).toBe(
+      "/login?redirect=%2Fcloud%2Fengines%2Feng-1%3Fsession%3Dcheckout%23status",
+    );
+  });
+
+  it("does not rewrite /cloud-services as an old Cloud console URL", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/cloud-services",
+          search: "?ref=nav",
+          hash: "#waitlist",
+        },
+        { signedIn: true, orgSlug: "acme" },
+      ),
+    ).toBe("/cloud-services?ref=nav#waitlist");
   });
 });

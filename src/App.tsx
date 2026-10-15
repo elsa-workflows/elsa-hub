@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { LEGACY_CLOUD_PATH } from "@/lib/cloudPaths";
 import {
   ELSA_RUNTIME_PATH,
   LEGACY_VALENCE_RUNTIME_PATH,
@@ -39,11 +40,8 @@ const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetai
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
 const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
 const CloudEngineOverview = lazy(() => import("./pages/cloud/CloudEngineOverview"));
-const CloudIndexRedirect = lazy(() =>
-  import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.CloudIndexRedirect }))
-);
-const CloudEngineRedirect = lazy(() =>
-  import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.CloudEngineRedirect }))
+const LegacyCloudRedirect = lazy(() =>
+  import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.LegacyCloudRedirect }))
 );
 const Training = lazy(() => import("./pages/enterprise/Training"));
 const RuntimeBuilderLanding = lazy(() => import("./pages/enterprise/RuntimeBuilderLanding"));
@@ -172,8 +170,8 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
-              <Route path="/cloud" element={<CloudIndexRedirect />} />
-              <Route path="/cloud/engines/:engineId" element={<CloudEngineRedirect />} />
+              <Route path={LEGACY_CLOUD_PATH} element={<LegacyCloudRedirect />} />
+              <Route path={`${LEGACY_CLOUD_PATH}/*`} element={<LegacyCloudRedirect />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />

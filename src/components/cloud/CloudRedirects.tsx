@@ -1,12 +1,7 @@
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizations } from "@/hooks/useOrganizations";
-import {
-  CLOUD_PUBLIC_HOME,
-  cloudLoginRedirect,
-  dashboardCloudEnginePath,
-  dashboardCloudHomePath,
-} from "@/lib/cloudPaths";
+import { getLegacyCloudRedirectTarget } from "@/lib/cloudPaths";
 
 function CloudRedirectPending() {
   return (
@@ -16,28 +11,21 @@ function CloudRedirectPending() {
   );
 }
 
-export function CloudIndexRedirect() {
+export function LegacyCloudRedirect() {
+  const location = useLocation();
   const { user, loading } = useAuth();
   const { organizations, loading: orgsLoading } = useOrganizations();
 
   if (loading) return <CloudRedirectPending />;
-  if (!user) return <Navigate to={CLOUD_PUBLIC_HOME} replace />;
-  if (orgsLoading) return <CloudRedirectPending />;
-
-  return <Navigate to={dashboardCloudHomePath(organizations[0]?.slug)} replace />;
-}
-
-export function CloudEngineRedirect() {
-  const { engineId } = useParams<{ engineId: string }>();
-  const { user, loading } = useAuth();
-  const { organizations, loading: orgsLoading } = useOrganizations();
-  const returnPath = `/cloud/engines/${engineId ?? ""}`;
-
-  if (loading) return <CloudRedirectPending />;
-  if (!user) return <Navigate to={cloudLoginRedirect(returnPath)} replace />;
-  if (orgsLoading) return <CloudRedirectPending />;
+  if (user && orgsLoading) return <CloudRedirectPending />;
 
   return (
-    <Navigate to={dashboardCloudEnginePath(engineId ?? "", organizations[0]?.slug)} replace />
+    <Navigate
+      to={getLegacyCloudRedirectTarget(location, {
+        signedIn: Boolean(user),
+        orgSlug: organizations[0]?.slug,
+      })}
+      replace
+    />
   );
 }
