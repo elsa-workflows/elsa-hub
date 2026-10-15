@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   describeAuthError,
+  EMAIL_SEND_RATE_LIMIT_MESSAGE,
+  isEmailSendRateLimit,
   OTP_EXPIRED_AUTH_MESSAGE,
   parseAuthCallbackError,
+  parseEmailSendRetryAfterMs,
   SAME_BROWSER_AUTH_MESSAGE,
 } from "./authErrors";
 
@@ -13,7 +16,39 @@ describe("describeAuthError", () => {
         code: "over_email_send_rate_limit",
         message: "For security purposes, you can only request this after 60 seconds.",
       }),
-    ).toMatch(/wait a minute/i);
+    ).toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
+    expect(
+      describeAuthError({
+        status: 429,
+        message: "Too many requests",
+      }),
+    ).toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
+    expect(isEmailSendRateLimit({ code: "over_email_send_rate_limit" })).toBe(true);
+    expect(isEmailSendRateLimit({ status: 429 })).toBe(true);
+    expect(isEmailSendRateLimit({ message: "invalid login credentials" })).toBe(false);
+  });
+
+  it("reads retry-after seconds from the GoTrue message, headers, or retryAfter", () => {
+    expect(
+      parseEmailSendRetryAfterMs({
+        status: 429,
+        code: "over_email_send_rate_limit",
+        message: "For security purposes, you can only request this after 33 seconds.",
+      }),
+    ).toBe(33_000);
+    expect(
+      parseEmailSendRetryAfterMs({
+        message: "For security purposes, you can only request this after 14 seconds.",
+      }),
+    ).toBe(14_000);
+    expect(
+      parseEmailSendRetryAfterMs({
+        status: 429,
+        headers: { get: (name: string) => (name.toLowerCase() === "retry-after" ? "8" : null) },
+      }),
+    ).toBe(8_000);
+    expect(parseEmailSendRetryAfterMs({ retryAfter: 12 })).toBe(12_000);
+    expect(parseEmailSendRetryAfterMs({ status: 429, message: "rate limit exceeded" })).toBeNull();
   });
 
   it("explains identity-already-linked conflicts", () => {

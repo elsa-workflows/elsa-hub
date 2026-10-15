@@ -15,11 +15,17 @@ import {
 } from "@/components/ui/form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { describeAuthError } from "@/lib/authErrors";
+import {
+  describeAuthError,
+  EMAIL_SEND_RATE_LIMIT_DEFAULT_MS,
+  isEmailSendRateLimit,
+  parseEmailSendRetryAfterMs,
+} from "@/lib/authErrors";
 import { rememberAuthRedirect, sanitizeAuthRedirect } from "@/lib/authRedirect";
 import { GoogleIcon } from "./GoogleIcon";
 
 export const MAGIC_LINK_RESEND_COOLDOWN_MS = 60_000;
+export const MAGIC_LINK_STILL_SENDING_MS = 8_000;
 
 const magicLinkSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -42,6 +48,7 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
   const [sentEmail, setSentEmail] = useState("");
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [slowSend, setSlowSend] = useState(false);
 
   const form = useForm<MagicLinkValues>({
     resolver: zodResolver(magicLinkSchema),
@@ -59,6 +66,17 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
     }, 250);
     return () => window.clearInterval(id);
   }, [cooldownUntil]);
+
+  useEffect(() => {
+    if (magicStatus !== "loading") {
+      setSlowSend(false);
+      return;
+    }
+    const id = window.setTimeout(() => {
+      setSlowSend(true);
+    }, MAGIC_LINK_STILL_SENDING_MS);
+    return () => window.clearTimeout(id);
+  }, [magicStatus]);
 
   const cooldownSeconds =
     cooldownUntil == null ? 0 : Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
@@ -93,6 +111,16 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
 
     const { error } = await signInWithMagicLink(values.email);
     if (error) {
+      if (isEmailSendRateLimit(error)) {
+        const retryMs =
+          parseEmailSendRetryAfterMs(error) ?? EMAIL_SEND_RATE_LIMIT_DEFAULT_MS;
+        setMagicError(describeAuthError(error));
+        setCooldownUntil(Date.now() + retryMs);
+        if (!stayOnSent) {
+          setMagicStatus("error");
+        }
+        return;
+      }
       sessionStorage.removeItem("authRedirect");
       setMagicError(describeAuthError(error, "Could not send a sign-in link. Please try again."));
       setMagicStatus("error");
@@ -212,9 +240,11 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
               ) : (
                 <Mail className="h-4 w-4" />
               )}
-              {onCooldown
-                ? `Wait ${cooldownSeconds}s to resend`
-                : "Email me a sign-in link"}
+              {magicStatus === "loading" && slowSend
+                ? "Still sending..."
+                : onCooldown
+                  ? `Wait ${cooldownSeconds}s to resend`
+                  : "Email me a sign-in link"}
             </Button>
           </form>
         </Form>

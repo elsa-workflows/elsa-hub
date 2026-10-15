@@ -6,6 +6,8 @@ import {
   consumeAuthRedirect,
   getAuthCallbackUrl,
   getAuthConfirmUrl,
+  peekAuthRedirect,
+  PROFILE_SETTINGS_PATH,
   rememberAuthRedirect,
   sanitizeAuthRedirect,
 } from "./authRedirect";
@@ -104,5 +106,13 @@ describe("authRedirect session storage", () => {
     rememberAuthRedirect("/courses?x=1");
     expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe("/courses?x=1");
     expect(consumeAuthRedirect()).toBe("/courses?x=1");
+  });
+
+  it("peeks the stored redirect without consuming it", () => {
+    rememberAuthRedirect(PROFILE_SETTINGS_PATH);
+    expect(peekAuthRedirect()).toBe(PROFILE_SETTINGS_PATH);
+    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe(PROFILE_SETTINGS_PATH);
+    expect(consumeAuthRedirect()).toBe(PROFILE_SETTINGS_PATH);
+    expect(peekAuthRedirect()).toBeNull();
   });
 });

@@ -2,6 +2,11 @@ export const AUTH_CALLBACK_PATH = "/auth/callback";
 export const AUTH_CONFIRM_PATH = "/auth/confirm";
 export const AUTH_REDIRECT_STORAGE_KEY = "authRedirect";
 export const DEFAULT_POST_AUTH_PATH = "/dashboard";
+export const PROFILE_SETTINGS_PATH = "/dashboard/settings";
+export const LEGACY_PROFILE_PATHS = ["/profile", "/dashboard/settings/profile"] as const;
+export const DASHBOARD_AVATAR_MENU_LINKS = [
+  { name: "Profile Settings", to: PROFILE_SETTINGS_PATH },
+] as const;
 
 const SCHEME_AFTER_DECODE = /^[a-zA-Z][a-zA-Z+\-.]*:/;
 
@@ -95,6 +100,10 @@ export function rememberAuthRedirect(redirectTo?: string | null): void {
     return;
   }
   sessionStorage.setItem(AUTH_REDIRECT_STORAGE_KEY, safe);
+}
+
+export function peekAuthRedirect(): string | null {
+  return sanitizeAuthRedirect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY));
 }
 
 export function consumeAuthRedirect(fallback: string = DEFAULT_POST_AUTH_PATH): string {

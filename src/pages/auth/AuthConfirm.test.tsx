@@ -131,7 +131,7 @@ describe("AuthConfirm", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("consumes the stored redirect before verifyOtp so SIGNED_IN cannot race", async () => {
+  it("keeps the stored redirect while verifyOtp is in flight and consumes it only on success", async () => {
     sessionStorage.setItem(AUTH_REDIRECT_STORAGE_KEY, "/dashboard/org/acme");
     let release: (value: unknown) => void = () => {};
     verifyOtp.mockReturnValueOnce(
@@ -142,7 +142,7 @@ describe("AuthConfirm", () => {
     renderConfirm("?token_hash=abc&type=email");
     fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
     await waitFor(() => expect(verifyOtp).toHaveBeenCalled());
-    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBeNull();
+    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe("/dashboard/org/acme");
     await act(async () => {
       release({
         data: { user: sessionUser, session: { user: sessionUser } },
@@ -154,10 +154,25 @@ describe("AuthConfirm", () => {
         screen.getByText(/signed in as qa@example.com\. not you\? sign out/i),
       ).toBeInTheDocument(),
     );
+    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBeNull();
+    expect(AUTH_CONFIRM_SIGNED_IN_MS).toBe(3000);
     await act(async () => {
       vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS);
     });
     expect(navigate).toHaveBeenCalledWith("/dashboard/org/acme");
+  });
+
+  it("does not consume the stored redirect when verifyOtp fails", async () => {
+    sessionStorage.setItem(AUTH_REDIRECT_STORAGE_KEY, "/dashboard/org/acme");
+    verifyOtp.mockResolvedValueOnce({
+      data: { session: null },
+      error: { code: "otp_expired", message: "Email link is invalid or has expired" },
+    });
+    renderConfirm("?token_hash=abc&type=email");
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+    expect(await screen.findByText(OTP_EXPIRED_AUTH_MESSAGE)).toBeInTheDocument();
+    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe("/dashboard/org/acme");
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("strips token_hash and type from the URL on mount", () => {

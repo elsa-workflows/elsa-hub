@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  AUTH_CONFIRM_PATH,
   AUTH_REDIRECT_STORAGE_KEY,
   getAuthCallbackUrl,
   getAuthConfirmUrl,
@@ -59,14 +60,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Clear stale organization context from localStorage
           localStorage.removeItem("selected_organization");
 
-          // Force refresh session to ensure the Supabase client has the latest token
+          // Force refresh session to ensure the Supabase client has the latest token.
+          // supabase-js holds an exclusive auth lock for this callback. Calling
+          // other auth APIs here, even without await, can block signInWithOtp
+          // until the lock is released. Defer with setTimeout(0).
           if (event === "SIGNED_IN" && session) {
-            supabase.auth.refreshSession();
+            window.setTimeout(() => {
+              void supabase.auth.refreshSession();
+            }, 0);
           }
         }
 
-        // Handle OAuth redirect - check for stored redirect URL
+        // Handle OAuth redirect - check for stored redirect URL.
+        // /auth/confirm owns its own redirect after verifyOtp so it can
+        // keep the stored path when verify fails, and show the signed-in
+        // banner before navigating.
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
+          if (window.location.pathname === AUTH_CONFIRM_PATH) {
+            return;
+          }
           const stored = sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY);
           if (stored) {
             hasHandledRedirect.current = true;
@@ -128,6 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = () => signInWithOAuth("google");
 
   const signInWithMagicLink = async (email: string) => {
+    // No awaits before this call. A wait here would add to the auth-lock
+    // stall that can delay POST /otp by tens of seconds.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {

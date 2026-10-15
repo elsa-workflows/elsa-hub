@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { describeAuthError, parseAuthCallbackError } from "@/lib/authErrors";
-import { consumeAuthRedirect, DEFAULT_POST_AUTH_PATH } from "@/lib/authRedirect";
+import {
+  consumeAuthRedirect,
+  DEFAULT_POST_AUTH_PATH,
+  PROFILE_SETTINGS_PATH,
+} from "@/lib/authRedirect";
 
 type CallbackStatus = "loading" | "success" | "error" | "linked";
 
@@ -103,11 +107,13 @@ export default function AuthCallback() {
           }, 3000);
 
           // Listen for auth state change
+          // Keep this callback synchronous. supabase-js holds the auth lock
+          // while it runs; do not await supabase.auth APIs here.
           const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === "SIGNED_IN" && session) {
               clearTimeout(timeout);
               const storedRedirect = consumeAuthRedirect(
-                isLinkingFlow ? "/dashboard/settings/profile" : DEFAULT_POST_AUTH_PATH,
+                isLinkingFlow ? PROFILE_SETTINGS_PATH : DEFAULT_POST_AUTH_PATH,
               );
 
               if (isLinkingFlow) {

@@ -10,12 +10,13 @@ import { describeAuthError } from "@/lib/authErrors";
 import {
   consumeAuthRedirect,
   DEFAULT_POST_AUTH_PATH,
+  peekAuthRedirect,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
 
 const OTP_TYPES = new Set<string>(["email", "signup"]);
 
-export const AUTH_CONFIRM_SIGNED_IN_MS = 1500;
+export const AUTH_CONFIRM_SIGNED_IN_MS = 3000;
 
 function parseOtpType(value: string | null): EmailOtpType | null {
   if (!value) return null;
@@ -77,9 +78,10 @@ export default function AuthConfirm() {
     setBusy(true);
     setErrorMessage(null);
 
-    const dest = consumeAuthRedirect(
-      sanitizeAuthRedirect(redirectParam) ?? DEFAULT_POST_AUTH_PATH,
-    );
+    const dest =
+      peekAuthRedirect() ??
+      sanitizeAuthRedirect(redirectParam) ??
+      DEFAULT_POST_AUTH_PATH;
 
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
@@ -91,6 +93,8 @@ export default function AuthConfirm() {
       setErrorMessage(describeAuthError(error));
       return;
     }
+
+    consumeAuthRedirect(dest);
 
     const email =
       data.user?.email || data.session?.user?.email || "your account";

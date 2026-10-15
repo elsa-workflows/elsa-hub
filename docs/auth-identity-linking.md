@@ -54,4 +54,14 @@ GitHub and Google still use `flowType: "pkce"` and `{origin}/auth/callback`. A m
 
 ## Redirects
 
-GitHub and Google use `redirectTo` = `{origin}/auth/callback`. After a session exists, the callback honours a validated same-site `sessionStorage.authRedirect` (from `?redirect=` on `/login`) or `/dashboard`. Magic-link and signup send `emailRedirectTo` = `{origin}/auth/confirm`. `/auth/confirm` consumes `sessionStorage.authRedirect` before `verifyOtp` so AuthContext's SIGNED_IN handler cannot race, then honours that stored path, an optional same-site `redirect` query, or `/dashboard`.
+GitHub and Google use `redirectTo` = `{origin}/auth/callback`. After a session exists, the callback honours a validated same-site `sessionStorage.authRedirect` (from `?redirect=` on `/login`) or `/dashboard`. Magic-link and signup send `emailRedirectTo` = `{origin}/auth/confirm`. `/auth/confirm` peeks the stored redirect, calls `verifyOtp`, and consumes the stored path only on success. AuthContext does not hard-redirect while the confirm page is open, so a failed verify leaves the stored path in place. The page then honours that stored path, an optional same-site `redirect` query, or `/dashboard`. `/profile` and `/dashboard/settings/profile` redirect to `/dashboard/settings`.
+
+## Magic-link send latency
+
+`signInWithMagicLink` is a single `supabase.auth.signInWithOtp` call with `shouldCreateUser: true` and `emailRedirectTo` = `{origin}/auth/confirm`. `PasswordlessAuth` does not retry and does not await anything else before that call.
+
+Prod logs showed a ~30s (one case 86s) pause before `POST /auth/v1/otp`. The request reached Supabase only after that client silence and was answered in about 1.25s. There were no retries, no 5xx, and no slow SMTP. The delay is therefore client-side or on the network before Supabase.
+
+Prime cause: the supabase-js exclusive auth lock. `onAuthStateChange` runs inside that lock. AuthContext used to call `refreshSession()` from the callback, which can block `signInWithOtp` from sending until the lock is released. supabase-js guidance is not to await (or even call) other auth APIs in that callback; defer them with `setTimeout(0)`. AuthContext now does that. The `/auth/callback` listener stays synchronous and does not call supabase.auth.
+
+The form stays on the in-flight request and, after about 8 seconds, still shows "Still sending..." in case a remaining network stall happens.
