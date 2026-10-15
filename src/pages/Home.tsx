@@ -170,8 +170,8 @@ export default function Home() {
                     src={elsaStudioDesigner}
                     alt="The new React-based Elsa Studio designer (preview)"
                     className="w-full h-auto rounded-lg"
-                    width={1920}
-                    height={1080}
+                    width={1826}
+                    height={1480}
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"

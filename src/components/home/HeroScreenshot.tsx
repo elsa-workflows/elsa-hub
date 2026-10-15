@@ -10,8 +10,8 @@ export function HeroScreenshot() {
           src={elsaStudioDesignerMobile}
           alt="The new React-based Elsa Studio designer (preview)"
           className="block md:hidden w-full h-auto rounded-lg"
-          width={960}
-          height={675}
+          width={1826}
+          height={1480}
           loading="eager"
           fetchPriority="high"
           decoding="async"
@@ -21,8 +21,8 @@ export function HeroScreenshot() {
           src={elsaStudioDesigner}
           alt="The new React-based Elsa Studio designer (preview)"
           className="hidden md:block w-full h-auto rounded-lg"
-          width={1920}
-          height={1080}
+          width={1826}
+          height={1480}
           loading="eager"
           fetchPriority="high"
           decoding="async"
