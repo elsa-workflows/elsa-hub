@@ -106,7 +106,6 @@ describe("Academy catalog", () => {
     );
     expect(screen.getByRole("heading", { name: course.title })).toBeInTheDocument();
     expect(screen.getByText(course.summary)).toBeInTheDocument();
-    expect(screen.getByText("€29.00")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /continue/i })).not.toBeInTheDocument();
     expect(screen.queryByText("My courses")).not.toBeInTheDocument();
   });

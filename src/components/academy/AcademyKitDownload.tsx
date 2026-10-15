@@ -19,7 +19,7 @@ export function AcademyKitDownload({
     setBusyId(asset.id);
     try {
       const url = await createAcademyKitSignedUrl(asset.storage_path);
-      window.open(url, "_blank", "noopener,noreferrer");
+      window.location.assign(url);
     } catch {
       toast.error("Could not create a download link. Try again.");
     } finally {

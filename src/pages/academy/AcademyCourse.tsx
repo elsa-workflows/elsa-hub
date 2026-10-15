@@ -19,7 +19,7 @@ import {
   AcademyNotFoundState,
 } from "@/components/academy/AcademyPageState";
 import { useAcademyCourse } from "@/hooks/useAcademyCourse";
-import { ACADEMY_PATH, coursePath, formatAcademyPrice, handleBuyCourse } from "@/lib/academy";
+import { ACADEMY_PATH, coursePath, handleBuyCourse } from "@/lib/academy";
 import {
   academyCourseDescription,
   academyCourseJsonLd,
@@ -101,7 +101,6 @@ export default function AcademyCourse() {
         <header className="space-y-3">
           <h1 className="text-4xl font-bold">{course.title}</h1>
           {course.summary && <p className="text-lg text-muted-foreground">{course.summary}</p>}
-          <p className="text-lg font-semibold">{formatAcademyPrice(course.price_cents, course.currency)}</p>
           {hasAccess && <p className="text-sm text-primary">You have access to this course.</p>}
           {hasAccess && <AcademyPaymentSuccessNote />}
         </header>

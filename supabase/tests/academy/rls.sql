@@ -107,6 +107,22 @@ INSERT INTO public.academy_courses (
     ARRAY['team_5', 'solo_bundle']
   );
 
+INSERT INTO public.academy_courses (
+  id, slug, title, summary, sort_order, is_published, price_cents, currency,
+  product_code, product_codes
+) VALUES (
+  '00000000-0000-4000-8000-000000002003',
+  'fundamentals-core',
+  'Fundamentals Core',
+  'Eight-lesson published outline course',
+  3,
+  true,
+  2900,
+  'eur',
+  'solo_bundle',
+  ARRAY['solo_bundle']
+);
+
 INSERT INTO public.academy_lessons (
   id, course_id, slug, title, sort_order, body_md, is_preview, duration_minutes
 ) VALUES
@@ -150,6 +166,20 @@ INSERT INTO public.academy_lessons (
     false,
     15
   );
+
+INSERT INTO public.academy_lessons (
+  id, course_id, slug, title, sort_order, body_md, is_preview, duration_minutes
+)
+SELECT
+  ('00000000-0000-4000-8000-00000000301' || gs)::uuid,
+  '00000000-0000-4000-8000-000000002003',
+  'core-lesson-' || gs,
+  'Core Lesson ' || gs,
+  gs,
+  'CORE BODY ' || gs,
+  gs = 1,
+  10
+FROM generate_series(1, 8) AS gs;
 
 INSERT INTO public.academy_assets (
   id, course_id, lesson_id, label, storage_path, sha256, size_bytes
@@ -411,6 +441,38 @@ SELECT pg_temp.ok(
     WHERE id = '00000000-0000-4000-8000-000000003003'
   ),
   'anon cannot read unpublished preview lesson'
+);
+
+SELECT pg_temp.ok(
+  (
+    SELECT count(*) FROM public.academy_course_outline('00000000-0000-4000-8000-000000002003')
+  ) = 8,
+  'anon outline returns all 8 Core lessons'
+);
+
+SELECT pg_temp.ok(
+  (
+    SELECT count(*) FROM public.academy_lessons
+    WHERE course_id = '00000000-0000-4000-8000-000000002003'
+  ) = 1,
+  'anon table still hides paid Core lessons'
+);
+
+SELECT pg_temp.ok(
+  (
+    SELECT array_agg(key ORDER BY key)
+    FROM jsonb_each(
+      to_jsonb((SELECT r FROM public.academy_course_outline('00000000-0000-4000-8000-000000002003') AS r LIMIT 1))
+    ) AS each(key, value)
+  ) = ARRAY['id', 'is_preview', 'slug', 'sort_order', 'title']::text[],
+  'anon outline has no body columns'
+);
+
+SELECT pg_temp.ok(
+  (
+    SELECT count(*) FROM public.academy_course_outline('00000000-0000-4000-8000-000000002002')
+  ) = 0,
+  'anon outline hides unpublished courses'
 );
 
 DO $$
@@ -856,6 +918,14 @@ SELECT pg_temp.ok(
   'removed member seat row remains until unassigned'
 );
 
+SELECT pg_temp.ok(
+  has_function_privilege('anon', 'public.academy_course_outline(uuid)', 'execute'),
+  'anon can execute academy_course_outline'
+);
+SELECT pg_temp.ok(
+  has_function_privilege('authenticated', 'public.academy_course_outline(uuid)', 'execute'),
+  'authenticated can execute academy_course_outline'
+);
 SELECT pg_temp.ok(
   NOT has_function_privilege('anon', 'public.has_academy_access(uuid)', 'execute'),
   'anon cannot execute has_academy_access'

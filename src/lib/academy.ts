@@ -1,12 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { isAcademyStubEnabled } from "@/lib/academyEnv";
-import {
-  ACADEMY_STUB_ASSETS,
-  ACADEMY_STUB_COURSES,
-  ACADEMY_STUB_LESSON_BODIES,
-  ACADEMY_STUB_LESSONS,
-} from "@/lib/academyStub";
 
 export const ACADEMY_PATH = "/academy";
 export const ACADEMY_KITS_BUCKET = "academy-kits";
@@ -81,7 +74,7 @@ type AcademyClient = {
   rpc: (
     fn: string,
     args: { p_course_id: string },
-  ) => Promise<AcademyResult<boolean>>;
+  ) => Promise<AcademyResult<unknown>>;
 };
 
 type AcademyFilter = {
@@ -127,15 +120,11 @@ export function canReadLessonBody(
 
 export function isMissingAcademyRelation(error: { code?: string; message?: string } | null | undefined): boolean {
   if (!error) return false;
-  const message = (error.message ?? "").toLowerCase();
   return (
     error.code === "PGRST205" ||
-    error.code === "42P01" ||
     error.code === "PGRST202" ||
-    message.includes("could not find the table") ||
-    message.includes("could not find the function") ||
-    message.includes("does not exist") ||
-    message.includes("schema cache")
+    error.code === "42P01" ||
+    error.code === "42883"
   );
 }
 
@@ -160,11 +149,12 @@ export function scrollAcademySoloBundleIntoView(
 
 /**
  * Fields Stripe checkout will need. Always the Solo Bundle.
- * #43 / 12dbfd0 stores bundle SKUs on academy_courses.product_codes.
+ * #54 accepts { productCode } or { courseId }, never both, and 400s if
+ * Solo sends organizationId.
  */
 export function academyCheckoutFields() {
   return {
-    product_codes: [ACADEMY_SOLO_PRODUCT_CODE],
+    productCode: ACADEMY_SOLO_PRODUCT_CODE,
   };
 }
 
@@ -178,9 +168,23 @@ export function handleBuyCourse(): void {
   });
 }
 
-function onMissingAcademyRelation<T>(error: { code?: string; message?: string }, stubValue: T, emptyValue: T): T {
+type AcademyStubModule = typeof import("./academyStub");
+
+async function loadAcademyStub(): Promise<AcademyStubModule | null> {
+  if (import.meta.env.DEV === true || (import.meta.env.PROD !== true && import.meta.env.VITE_ACADEMY_STUB === "1")) {
+    return import("./academyStub");
+  }
+  return null;
+}
+
+async function onMissingAcademyRelation<T>(
+  error: { code?: string; message?: string },
+  readStub: (stub: AcademyStubModule) => T,
+  emptyValue: T,
+): Promise<T> {
   if (!isMissingAcademyRelation(error)) throw error;
-  return isAcademyStubEnabled() ? stubValue : emptyValue;
+  const stub = await loadAcademyStub();
+  return stub ? readStub(stub) : emptyValue;
 }
 
 export async function listPublishedCourses(): Promise<Course[]> {
@@ -191,7 +195,7 @@ export async function listPublishedCourses(): Promise<Course[]> {
     .order("sort_order", { ascending: true });
 
   if (error) {
-    return onMissingAcademyRelation(error, ACADEMY_STUB_COURSES, []);
+    return onMissingAcademyRelation(error, (stub) => stub.ACADEMY_STUB_COURSES, []);
   }
 
   return (data ?? []) as Course[];
@@ -208,7 +212,7 @@ export async function getPublishedCourseBySlug(slug: string): Promise<Course | n
   if (error) {
     return onMissingAcademyRelation(
       error,
-      ACADEMY_STUB_COURSES.find((course) => course.slug === slug) ?? null,
+      (stub) => stub.ACADEMY_STUB_COURSES.find((course) => course.slug === slug) ?? null,
       null,
     );
   }
@@ -217,21 +221,22 @@ export async function getPublishedCourseBySlug(slug: string): Promise<Course | n
 }
 
 export async function listCourseLessons(courseId: string): Promise<LessonSummary[]> {
-  const { data, error } = await academyClient
-    .from("academy_lessons")
-    .select(ACADEMY_LESSON_LIST_COLUMNS)
-    .eq("course_id", courseId)
-    .order("sort_order", { ascending: true });
+  const { data, error } = await academyClient.rpc("academy_course_outline", {
+    p_course_id: courseId,
+  });
 
   if (error) {
     return onMissingAcademyRelation(
       error,
-      ACADEMY_STUB_LESSONS.filter((lesson) => lesson.course_id === courseId),
+      (stub) => stub.ACADEMY_STUB_LESSONS.filter((lesson) => lesson.course_id === courseId),
       [],
     );
   }
 
-  return (data ?? []) as LessonSummary[];
+  return ((data ?? []) as Omit<LessonSummary, "course_id">[]).map((row) => ({
+    ...row,
+    course_id: courseId,
+  }));
 }
 
 export async function getLessonPageMeta(
@@ -241,26 +246,10 @@ export async function getLessonPageMeta(
   const course = await getPublishedCourseBySlug(courseSlug);
   if (!course) return null;
 
-  const { data, error } = await academyClient
-    .from("academy_lessons")
-    .select(ACADEMY_LESSON_LIST_COLUMNS)
-    .eq("course_id", course.id)
-    .eq("slug", lessonSlug)
-    .maybeSingle();
-
-  if (error) {
-    const stubLesson = ACADEMY_STUB_LESSONS.find(
-      (row) => row.course_id === course.id && row.slug === lessonSlug,
-    );
-    return onMissingAcademyRelation(
-      error,
-      stubLesson ? { course, lesson: stubLesson } : null,
-      null,
-    );
-  }
-
-  if (!data) return null;
-  return { course, lesson: data as LessonSummary };
+  const lessons = await listCourseLessons(course.id);
+  const lesson = lessons.find((row) => row.slug === lessonSlug);
+  if (!lesson) return null;
+  return { course, lesson };
 }
 
 export async function fetchLessonBody(lessonId: string): Promise<string | null> {
@@ -271,7 +260,11 @@ export async function fetchLessonBody(lessonId: string): Promise<string | null> 
     .maybeSingle();
 
   if (error) {
-    return onMissingAcademyRelation(error, ACADEMY_STUB_LESSON_BODIES[lessonId] ?? null, null);
+    return onMissingAcademyRelation(
+      error,
+      (stub) => stub.ACADEMY_STUB_LESSON_BODIES[lessonId] ?? null,
+      null,
+    );
   }
 
   const row = data as { body_md: string | null } | null;
@@ -310,7 +303,7 @@ export async function listCourseKitAssets(courseId: string): Promise<AcademyAsse
   if (error) {
     return onMissingAcademyRelation(
       error,
-      ACADEMY_STUB_ASSETS.filter((asset) => asset.course_id === courseId && asset.lesson_id === null),
+      (stub) => stub.ACADEMY_STUB_ASSETS.filter((asset) => asset.course_id === courseId && asset.lesson_id === null),
       [],
     );
   }
@@ -332,7 +325,7 @@ export async function listLessonAssets(
   if (error) {
     return onMissingAcademyRelation(
       error,
-      ACADEMY_STUB_ASSETS.filter((asset) => asset.course_id === courseId && asset.lesson_id === lessonId),
+      (stub) => stub.ACADEMY_STUB_ASSETS.filter((asset) => asset.course_id === courseId && asset.lesson_id === lessonId),
       [],
     );
   }
