@@ -1,5 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import {
+  cleanupStripeCustomersForUserDelete,
+  StripeCustomerDeleteError,
+} from "./cleanup.ts";
+import {
+  createSupabaseStripeRefStore,
+  livemodeFromStripeSecretKey,
+} from "./stripe_customer_refs.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,7 +79,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch user email
     const { data: profile, error: profileError } = await serviceClient
       .from("profiles")
       .select("email")
@@ -88,74 +95,33 @@ Deno.serve(async (req) => {
     const userEmail = profile.email;
     const stripeWarnings: string[] = [];
 
-    // Stripe cleanup
+    // Stripe cleanup uses stored refs only. Never look up customers by email.
     if (stripeSecretKey) {
       const stripe = new Stripe(stripeSecretKey, {
         apiVersion: "2024-06-20",
         httpClient: Stripe.createFetchHttpClient(),
       });
+      const livemode = livemodeFromStripeSecretKey(stripeSecretKey);
+      const refs = createSupabaseStripeRefStore(serviceClient);
 
       try {
-        // Get sole-owner organization IDs
-        const { data: soleOwnerOrgs } = await serviceClient
-          .from("organization_members")
-          .select("organization_id")
-          .eq("user_id", userId)
-          .eq("role", "owner");
-
-        if (soleOwnerOrgs && soleOwnerOrgs.length > 0) {
-          const orgIds = soleOwnerOrgs.map((o) => o.organization_id);
-
-          // Check which are actually sole-owner (no other owners)
-          const { data: otherOwners } = await serviceClient
-            .from("organization_members")
-            .select("organization_id")
-            .in("organization_id", orgIds)
-            .neq("user_id", userId)
-            .eq("role", "owner");
-
-          const orgsWithOtherOwners = new Set(otherOwners?.map((o) => o.organization_id) || []);
-          const soleOwnerOrgIds = orgIds.filter((id) => !orgsWithOtherOwners.has(id));
-
-          if (soleOwnerOrgIds.length > 0) {
-            // Cancel active subscriptions for these orgs
-            const { data: subs } = await serviceClient
-              .from("subscriptions")
-              .select("stripe_subscription_id")
-              .in("organization_id", soleOwnerOrgIds)
-              .eq("status", "active");
-
-            if (subs) {
-              for (const sub of subs) {
-                try {
-                  await stripe.subscriptions.cancel(sub.stripe_subscription_id, {
-                    invoice_now: true,
-                    prorate: true,
-                  });
-                  console.log(`Canceled Stripe subscription: ${sub.stripe_subscription_id}`);
-                } catch (stripeErr) {
-                  console.error(`Failed to cancel subscription ${sub.stripe_subscription_id}:`, stripeErr);
-                  stripeWarnings.push(`Failed to cancel subscription: ${sub.stripe_subscription_id}`);
-                }
-              }
-            }
-          }
-        }
-
-        // Delete Stripe customers by email
-        const customers = await stripe.customers.list({ email: userEmail, limit: 100 });
-        for (const customer of customers.data) {
-          try {
-            await stripe.customers.del(customer.id);
-            console.log(`Deleted Stripe customer: ${customer.id}`);
-          } catch (stripeErr) {
-            console.error(`Failed to delete customer ${customer.id}:`, stripeErr);
-            stripeWarnings.push(`Failed to delete Stripe customer: ${customer.id}`);
-          }
-        }
+        const { warnings } = await cleanupStripeCustomersForUserDelete({
+          serviceClient,
+          stripe,
+          refs,
+          userId,
+          livemode,
+        });
+        stripeWarnings.push(...warnings);
       } catch (stripeErr) {
-        console.error("Stripe cleanup error:", stripeErr);
-        stripeWarnings.push("Partial Stripe cleanup failure - check logs");
+        if (stripeErr instanceof StripeCustomerDeleteError) {
+          console.error("Stripe customer delete failed:", stripeErr);
+          return new Response(
+            JSON.stringify({ error: stripeErr.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw stripeErr;
       }
     } else {
       stripeWarnings.push("Stripe not configured - skipped Stripe cleanup");
