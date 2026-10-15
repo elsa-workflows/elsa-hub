@@ -17,6 +17,7 @@ import {
 } from "@/lib/elsaRuntime";
 import {
   ELSA_CLOUD_PATH,
+  ELSA_CLOUD_LEGAL_PAGES,
   LEGACY_CLOUD_PATH,
   getLegacyCloudRedirectTarget,
 } from "@/lib/elsaCloud";
@@ -47,6 +48,10 @@ const CloudAuthGuard = lazy(() =>
 );
 const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
 const CloudEngineOverview = lazy(() => import("./pages/cloud/CloudEngineOverview"));
+const CloudLegalTerms = lazy(() => import("./pages/cloud/legal/CloudLegalTerms"));
+const CloudLegalPrivacy = lazy(() => import("./pages/cloud/legal/CloudLegalPrivacy"));
+const CloudLegalDpa = lazy(() => import("./pages/cloud/legal/CloudLegalDpa"));
+const CloudLegalSubprocessors = lazy(() => import("./pages/cloud/legal/CloudLegalSubprocessors"));
 const Training = lazy(() => import("./pages/enterprise/Training"));
 const RuntimeBuilderLanding = lazy(() => import("./pages/enterprise/RuntimeBuilderLanding"));
 const RuntimeBuilderComposer = lazy(() => import("./pages/enterprise/RuntimeBuilderComposer"));
@@ -174,6 +179,11 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
+              {/* Elsa Cloud legal pages are public and unlinked from nav until wording is approved. */}
+              <Route path={ELSA_CLOUD_LEGAL_PAGES.terms} element={<CloudLegalTerms />} />
+              <Route path={ELSA_CLOUD_LEGAL_PAGES.privacy} element={<CloudLegalPrivacy />} />
+              <Route path={ELSA_CLOUD_LEGAL_PAGES.dpa} element={<CloudLegalDpa />} />
+              <Route path={ELSA_CLOUD_LEGAL_PAGES.subprocessors} element={<CloudLegalSubprocessors />} />
               <Route path={ELSA_CLOUD_PATH} element={<CloudAuthGuard />}>
                 <Route index element={<CloudHome />} />
                 <Route path="engines/:engineId" element={<CloudEngineOverview />} />
