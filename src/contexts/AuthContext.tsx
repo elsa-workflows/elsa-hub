@@ -2,7 +2,12 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import { User, Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AUTH_REDIRECT_STORAGE_KEY, getAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/authRedirect";
+import {
+  AUTH_REDIRECT_STORAGE_KEY,
+  getAuthCallbackUrl,
+  getAuthConfirmUrl,
+  sanitizeAuthRedirect,
+} from "@/lib/authRedirect";
 
 export type OAuthSignInProvider = "github" | "google";
 
@@ -102,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: getAuthCallbackUrl(),
+        emailRedirectTo: getAuthConfirmUrl(),
       },
     });
     return { error };
@@ -126,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: getAuthCallbackUrl(),
+        emailRedirectTo: getAuthConfirmUrl(),
         shouldCreateUser: true,
       },
     });
