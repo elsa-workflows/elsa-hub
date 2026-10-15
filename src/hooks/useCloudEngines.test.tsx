@@ -158,14 +158,82 @@ describe("useCloudEngines", () => {
       if (body.action === "listEngines") {
         return { ok: true, state: "ready", workspaceId: workspace.id, engines: [engine] };
       }
+      if (body.action === "onboardingOptions") {
+        return {
+          ok: false,
+          code: "instance_limit_reached",
+          error: "You've reached the engine limit for your plan.",
+          currentInstances: 1,
+          maxInstances: 1,
+        };
+      }
       return { ok: false, code: "unknown_action", error: "unexpected" };
     });
     const { result } = renderHook(() => useCloudEngines(), { wrapper });
 
     await waitFor(() => expect(result.current.view.kind).toBe("list"));
-    expect(invoke.mock.calls.map(([body]) => body.action)).toEqual([
-      "listWorkspaces",
+    await waitFor(() => expect(result.current.atLimit).toBe(true));
+    expect(result.current.canCreate).toBe(false);
+    expect(invoke.mock.calls.map(([body]) => body.action).sort()).toEqual([
       "listEngines",
+      "listWorkspaces",
+      "onboardingOptions",
     ]);
+  });
+
+  it("does not send createEngine when the plan limit is already known", async () => {
+    setCloudSetupMarker("user-1");
+    const invoke = mockInvoke((body) => {
+      if (body.action === "listWorkspaces") {
+        return { ok: true, state: "ready", workspaces: [workspace] };
+      }
+      if (body.action === "listEngines") {
+        return { ok: true, state: "ready", workspaceId: workspace.id, engines: [engine] };
+      }
+      if (body.action === "onboardingOptions") {
+        return {
+          ok: false,
+          code: "instance_limit_reached",
+          error: "You've reached the engine limit for your plan.",
+        };
+      }
+      return { ok: false, code: "unknown_action", error: "unexpected" };
+    });
+    const { result } = renderHook(() => useCloudEngines(), { wrapper });
+    await waitFor(() => expect(result.current.atLimit).toBe(true));
+    const created = await result.current.createEngine({
+      name: "Second",
+      slug: "second",
+      intent: {
+        release: {
+          distributionId: "valence-runtime",
+          releaseLine: "3.8",
+          requestedVersion: "3.8.4",
+          channel: "stable",
+          patchUpdates: "automatic-within-minor",
+          minorUpdates: "explicit-approval",
+          majorMigrations: "explicit-migration",
+        },
+        application: {
+          topologyId: "combined",
+          featurePresetId: null,
+          featureOverrides: {},
+          packagePolicy: null,
+          configurationShapeRevisionId: null,
+        },
+        placement: {
+          targetMode: "managed",
+          regionCode: "westeurope",
+          isolationProfile: "dedicated",
+          capacityProfile: "standard-small",
+          networkOutcome: "public",
+          domainOutcome: "managed",
+        },
+        desiredLifecycle: "Running",
+      },
+      idempotencyKey: "44444444-4444-4444-4444-444444444444",
+    });
+    expect(created).toMatchObject({ code: "instance_limit_reached" });
+    expect(invoke.mock.calls.map(([body]) => body.action)).not.toContain("createEngine");
   });
 });

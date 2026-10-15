@@ -6,6 +6,8 @@ import {
 import { handleCloudBff } from "./handler.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
+  CLOUD_LIMIT_CODE,
+  CLOUD_LIMIT_MESSAGE,
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
 } from "../_shared/cloud-types.ts";
@@ -36,9 +38,13 @@ const COMPATIBLE = {
   capabilities: [
     "cloud.bootstrap.v1",
     "hosted.instances.list.v1",
-    "hosted.instances.status.v1",
-    "hosted.instances.overview.v1",
     "hosted.instances.create.v1",
+    "hosted.instances.status.v1",
+    "hosted.instances.provisioning-progress.v1",
+    "hosted.instances.overview.v1",
+    "hosted.studio.handoff.issue.v1",
+    "hosted.instances.quota-problem.v1",
+    "hosted.instances.confirmed-delete.v1",
   ],
 };
 
@@ -241,16 +247,26 @@ Deno.test("each read action returns the normalized shape for a signed-in user", 
       release: "3.9.0",
       health: "Healthy",
       canOpen: true,
+      version: null,
+      etag: null,
+      organizationId: null,
+      audience: null,
+      redirectUri: null,
+      allowedActions: {
+        restart: { allowed: false, reasonCode: null },
+        applyRelease: { allowed: false, reasonCode: null },
+        open: { allowed: false, reasonCode: null },
+      },
     },
   });
 });
 
 Deno.test("unknown actions and extra fields are refused", async () => {
-  const unknown = await signedIn({ action: "createEngine" }, {});
+  const unknown = await signedIn({ action: "notAnAction" }, {});
   const unknownBody = await readJson(unknown);
   assertEquals(unknown.status, 400);
   assertEquals(unknownBody.code, "unknown_action");
-  assertFalse(JSON.stringify(unknownBody).includes("createEngine"));
+  assertFalse(JSON.stringify(unknownBody).includes("notAnAction"));
 
   const extra = await signedIn({
     action: "compatibility",
@@ -354,4 +370,275 @@ Deno.test("responses are no-store", async () => {
     "GET /api/cloud/compatibility": { ok: true, status: 200, body: COMPATIBLE },
   });
   assert(hasNoStore(response));
+});
+
+const IDEMPOTENCY_KEY = "44444444-4444-4444-4444-444444444444";
+const OPERATION_ID = "55555555-5555-5555-5555-555555555555";
+const CONFIRMATION_ID = "66666666-6666-6666-6666-666666666666";
+
+const INTENT = {
+  release: {
+    distributionId: "valence-runtime",
+    releaseLine: "3.8",
+    requestedVersion: "3.8.4",
+    channel: "stable",
+    patchUpdates: "automatic-within-minor",
+    minorUpdates: "explicit-approval",
+    majorMigrations: "explicit-migration",
+  },
+  application: {
+    topologyId: "combined",
+    featurePresetId: null,
+    featureOverrides: {},
+    packagePolicy: null,
+    configurationShapeRevisionId: null,
+  },
+  placement: {
+    targetMode: "managed",
+    regionCode: "westeurope",
+    isolationProfile: "dedicated",
+    capacityProfile: "standard-small",
+    networkOutcome: "public",
+    domainOutcome: "managed",
+  },
+  desiredLifecycle: "Running",
+};
+
+const LAUNCH_PROFILE = {
+  name: "West Europe Dedicated",
+  description: "Managed hosting in West Europe.",
+  targetMode: "managed",
+  regionCode: "westeurope",
+  isolationProfile: "dedicated",
+  capacityProfile: "standard-small",
+  networkOutcome: "public",
+  domainOutcome: "managed",
+};
+
+Deno.test("lifecycle actions map to one Control endpoint and return normalized shapes", async () => {
+  const options = await signedIn({
+    action: "onboardingOptions",
+    workspaceId: WORKSPACE_ID,
+  }, {
+    [`GET /api/workspaces/${WORKSPACE_ID}/instances/onboarding-options`]: {
+      ok: true,
+      status: 200,
+      body: {
+        releases: [{
+          distributionId: "valence-runtime",
+          releaseLine: "3.8",
+          version: "3.8.4",
+          channel: "stable",
+          topologyId: "combined",
+        }],
+        previewReleases: [],
+        launchProfile: LAUNCH_PROFILE,
+      },
+    },
+  });
+  assertEquals(options.status, 200);
+  assertEquals((await readJson(options)).state, "ready");
+
+  const created = await signedIn({
+    action: "createEngine",
+    workspaceId: WORKSPACE_ID,
+    name: "Prod",
+    slug: "prod",
+    intent: INTENT,
+    idempotencyKey: IDEMPOTENCY_KEY,
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances`]: {
+      ok: true,
+      status: 202,
+      body: {
+        instance: {
+          instanceId: ENGINE_ID,
+          name: "Prod",
+          slug: "prod",
+          observedLifecycle: "Provisioning",
+        },
+        operation: { id: OPERATION_ID, action: "Create", state: "Accepted" },
+      },
+    },
+  });
+  assertEquals(created.status, 202);
+  assertEquals(await readJson(created), {
+    ok: true,
+    state: "accepted",
+    workspaceId: WORKSPACE_ID,
+    engine: {
+      id: ENGINE_ID,
+      name: "Prod",
+      slug: "prod",
+      status: "Provisioning",
+      release: null,
+    },
+    operation: { id: OPERATION_ID, action: "Create", state: "Accepted" },
+  });
+
+  const progress = await signedIn({
+    action: "provisioningProgress",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+  }, {
+    [`GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/provisioning-progress`]: {
+      ok: true,
+      status: 200,
+      body: {
+        state: "active",
+        currentStage: "runtime-deployment",
+        stages: [{ code: "request-accepted", status: "completed" }],
+      },
+    },
+  });
+  const progressBody = await readJson(progress);
+  assertEquals((progressBody.progress as { currentStage: string }).currentStage, "runtime-deployment");
+
+  const activity = await signedIn({
+    action: "engineActivity",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+  }, {
+    [`GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/activity`]: {
+      ok: true,
+      status: 200,
+      body: {
+        items: [{
+          sequence: 1,
+          eventType: "lifecycle.accepted",
+          occurredAt: "2026-10-15T00:00:00Z",
+          severity: "Informational",
+        }],
+        hasMore: false,
+      },
+    },
+  });
+  const activityBody = await readJson(activity);
+  assertEquals((activityBody.items as unknown[]).length, 1);
+
+  const restart = await signedIn({
+    action: "restartEngine",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    ifMatch: '"1"',
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/restart`]: {
+      ok: true,
+      status: 202,
+      body: { operationId: OPERATION_ID, action: "Restart", state: "Accepted" },
+    },
+  });
+  assertEquals((await readJson(restart)).state, "accepted");
+
+  const apply = await signedIn({
+    action: "applyRelease",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    version: "3.8.5",
+    idempotencyKey: IDEMPOTENCY_KEY,
+    ifMatch: '"1"',
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/apply-release`]: {
+      ok: true,
+      status: 202,
+      body: { id: OPERATION_ID, action: "UpdateIntent", state: "Accepted" },
+    },
+  });
+  const applyBody = await readJson(apply);
+  assertEquals((applyBody.operation as { action: string }).action, "UpdateIntent");
+
+  const confirm = await signedIn({
+    action: "confirmDelete",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete-confirmations`]: {
+      ok: true,
+      status: 200,
+      body: {
+        id: CONFIRMATION_ID,
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    },
+  });
+  const confirmBody = await readJson(confirm);
+  assertEquals((confirmBody.confirmation as { id: string }).id, CONFIRMATION_ID);
+
+  const deleted = await signedIn({
+    action: "deleteEngine",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    deleteConfirmationId: CONFIRMATION_ID,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    ifMatch: '"1"',
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete`]: {
+      ok: true,
+      status: 202,
+      body: { operationId: OPERATION_ID, action: "Delete", state: "Accepted" },
+    },
+  });
+  const deletedBody = await readJson(deleted);
+  assertEquals((deletedBody.operation as { state: string }).state, "Accepted");
+
+  const status = await signedIn({
+    action: "deleteOperationStatus",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    operationId: OPERATION_ID,
+  }, {
+    [`GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete-operations/${OPERATION_ID}`]: {
+      ok: true,
+      status: 200,
+      body: { id: OPERATION_ID, action: "Delete", state: "Succeeded" },
+    },
+  });
+  const statusBody = await readJson(status);
+  assertEquals((statusBody.operation as { state: string }).state, "Succeeded");
+});
+
+Deno.test("a create at the plan limit is sanitized and does not forward the Control body", async () => {
+  const response = await handleCloudBff(request({
+    action: "createEngine",
+    workspaceId: WORKSPACE_ID,
+    name: "Second",
+    slug: "second",
+    intent: INTENT,
+    idempotencyKey: IDEMPOTENCY_KEY,
+  }), {
+    resolveHubUser: signedInResolver(USER),
+    controlFetch: async () => ({
+      ok: false,
+      kind: "limit",
+      code: CLOUD_LIMIT_CODE,
+      currentInstances: 1,
+      maxInstances: 1,
+    }),
+  });
+  const body = await readJson(response);
+  assertEquals(response.status, 422);
+  assertEquals(body, {
+    ok: false,
+    code: CLOUD_LIMIT_CODE,
+    error: CLOUD_LIMIT_MESSAGE,
+    currentInstances: 1,
+    maxInstances: 1,
+  });
+  assertFalse(JSON.stringify(body).includes("stack"));
+  assertFalse(JSON.stringify(body).includes("provider"));
+});
+
+Deno.test("lifecycle extra fields are refused", async () => {
+  const extra = await signedIn({
+    action: "createEngine",
+    workspaceId: WORKSPACE_ID,
+    name: "Prod",
+    slug: "prod",
+    intent: INTENT,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    debug: true,
+  }, {});
+  assertEquals((await readJson(extra)).code, "unexpected_fields");
 });

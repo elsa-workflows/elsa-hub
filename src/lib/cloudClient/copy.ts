@@ -12,6 +12,17 @@ export const CLOUD_SETUP_HEADING = "Set up Elsa Cloud";
 export const CLOUD_SETUP_ACTION = "Set up Elsa Cloud";
 export const CLOUD_SETUP_MESSAGE =
   "Create your Elsa Cloud organization to view managed engines, or reopen an existing one. Opening this page does not create one.";
+export const CLOUD_CREATE_ENGINE = "Create engine";
+export const CLOUD_ENGINE_NAME_LABEL = "Engine name";
+export const CLOUD_OPEN_STUDIO = "Open Studio";
+export const CLOUD_RESTART = "Restart";
+export const CLOUD_RESTART_CONFIRM = "Restart this engine?";
+export const CLOUD_APPLY_RELEASE = "Apply release";
+export const CLOUD_DELETE_ENGINE = "Delete engine";
+export const CLOUD_DELETE_CONFIRM = "Delete this engine?";
+export const CLOUD_STRUCTURED_LOGS = "Structured logs";
+export const CLOUD_PROVISIONING_HEADING = "Provisioning";
+export { CLOUD_LIMIT_MESSAGE } from "@/lib/cloud";
 
 export function cloudEngineCountLabel(count: number): string {
   if (count <= 0) return CLOUD_EMPTY_MESSAGE;

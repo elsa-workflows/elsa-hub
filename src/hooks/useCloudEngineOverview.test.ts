@@ -57,6 +57,16 @@ describe("fetchCloudEngineOverview", () => {
             release: "3.8.4",
             health: "Healthy",
             canOpen: true,
+            version: 1,
+            etag: '"1"',
+            organizationId: null,
+            audience: null,
+            redirectUri: null,
+            allowedActions: {
+              restart: { allowed: true, reasonCode: null },
+              applyRelease: { allowed: true, reasonCode: null },
+              open: { allowed: true, reasonCode: null },
+            },
           },
         };
         return response;

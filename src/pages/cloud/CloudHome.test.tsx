@@ -1,18 +1,42 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import {
+  CLOUD_CREATE_ENGINE,
   CLOUD_EMPTY_MESSAGE,
   CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
+  CLOUD_LIMIT_MESSAGE,
   CLOUD_MANAGE_LINK,
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
   CLOUD_UPDATING_HEADING,
   CLOUD_UPDATING_MESSAGE,
+  type CloudOnboardingOptions,
 } from "@/lib/cloudClient";
 import type { CloudEngineListView } from "@/hooks/useCloudEngines";
+
+const options: CloudOnboardingOptions = {
+  releases: [{
+    distributionId: "valence-runtime",
+    releaseLine: "3.8",
+    version: "3.8.4",
+    channel: "stable",
+    topologyId: "combined",
+  }],
+  previewReleases: [],
+  launchProfile: {
+    name: "West Europe Dedicated",
+    description: "Managed hosting in West Europe.",
+    targetMode: "managed",
+    regionCode: "westeurope",
+    isolationProfile: "dedicated",
+    capacityProfile: "standard-small",
+    networkOutcome: "public",
+    domainOutcome: "managed",
+  },
+};
 
 const viewState = vi.hoisted(() => ({
   current: { kind: "loading" } as CloudEngineListView,
@@ -22,6 +46,11 @@ const viewState = vi.hoisted(() => ({
   workspaces: [] as { id: string; name: string }[],
   selectWorkspace: vi.fn(),
   selectedWorkspace: undefined as { id: string; name: string } | undefined,
+  options: undefined as CloudOnboardingOptions | undefined,
+  atLimit: false,
+  canCreate: false,
+  createEngine: vi.fn(),
+  creating: false,
 }));
 
 vi.mock("@/hooks/useCloudEngines", () => ({
@@ -33,6 +62,11 @@ vi.mock("@/hooks/useCloudEngines", () => ({
     workspaces: viewState.workspaces,
     selectWorkspace: viewState.selectWorkspace,
     selectedWorkspace: viewState.selectedWorkspace,
+    options: viewState.options,
+    atLimit: viewState.atLimit,
+    canCreate: viewState.canCreate,
+    createEngine: viewState.createEngine,
+    creating: viewState.creating,
   }),
 }));
 
@@ -57,7 +91,12 @@ describe("CloudHome", () => {
     document.querySelectorAll("meta[name='robots']").forEach((node) => node.remove());
     viewState.setupCloud.mockReset();
     viewState.refetch.mockReset();
+    viewState.createEngine.mockReset();
     viewState.setupPending = false;
+    viewState.options = undefined;
+    viewState.atLimit = false;
+    viewState.canCreate = false;
+    viewState.creating = false;
   });
 
   it("shows a loading state", () => {
@@ -66,8 +105,10 @@ describe("CloudHome", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/loading engines/i);
   });
 
-  it("shows the empty state", () => {
+  it("shows the empty state with Create engine when under the limit", () => {
     viewState.current = { kind: "empty" };
+    viewState.options = options;
+    viewState.canCreate = true;
     renderHome();
     expect(screen.getByRole("heading", { name: CLOUD_PAGE_TITLE })).toBeInTheDocument();
     expect(screen.getByText(CLOUD_ENGINES_INTRO)).toBeInTheDocument();
@@ -76,7 +117,26 @@ describe("CloudHome", () => {
       "href",
       "https://elsacloud.app",
     );
-    expect(screen.queryByRole("button", { name: /create|delete|billing/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeInTheDocument();
+  });
+
+  it("hides Create engine at the plan limit and does not start create", async () => {
+    viewState.current = {
+      kind: "list",
+      engines: [{
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Production",
+        slug: "production",
+        status: "Ready",
+        release: "3.8.4",
+      }],
+    };
+    viewState.atLimit = true;
+    viewState.canCreate = false;
+    renderHome();
+    expect(screen.getByText(CLOUD_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_CREATE_ENGINE })).not.toBeInTheDocument();
+    expect(viewState.createEngine).not.toHaveBeenCalled();
   });
 
   it("lists engines with name, status and release", () => {
@@ -102,12 +162,15 @@ describe("CloudHome", () => {
     );
   });
 
-  it("shows the Control updating state", () => {
+  it("shows the Control updating state and hides create", () => {
     viewState.current = { kind: "updating", message: CLOUD_UPDATING_MESSAGE };
+    viewState.options = options;
+    viewState.canCreate = false;
     renderHome();
     expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_UPDATING_MESSAGE)).toBeInTheDocument();
-    expect(screen.queryByText(CLOUD_ERROR_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_CREATE_ENGINE })).not.toBeInTheDocument();
+    expect(viewState.createEngine).not.toHaveBeenCalled();
   });
 
   it("shows a separate error state with retry", () => {
@@ -126,6 +189,30 @@ describe("CloudHome", () => {
     expect(screen.getByRole("button", { name: CLOUD_SETUP_ACTION })).toBeInTheDocument();
     screen.getByRole("button", { name: CLOUD_SETUP_ACTION }).click();
     expect(viewState.setupCloud).toHaveBeenCalled();
+  });
+
+  it("creates an engine from the empty state", async () => {
+    viewState.current = { kind: "empty" };
+    viewState.options = options;
+    viewState.canCreate = true;
+    viewState.createEngine.mockResolvedValue({
+      ok: true,
+      engine: { id: "11111111-1111-4111-8111-111111111111" },
+    });
+    renderHome();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE }));
+    await screen.findByRole("heading", { name: CLOUD_CREATE_ENGINE });
+    const nameInput = await screen.findByLabelText(/engine name/i);
+    fireEvent.change(nameInput, { target: { value: "Production" } });
+    const submit = screen.getAllByRole("button", { name: CLOUD_CREATE_ENGINE }).at(-1);
+    expect(submit).toBeTruthy();
+    fireEvent.click(submit!);
+    await waitFor(() => {
+      expect(viewState.createEngine).toHaveBeenCalledWith(expect.objectContaining({
+        name: "Production",
+        slug: "production",
+      }));
+    });
   });
 
   it("marks the page noindex", async () => {

@@ -1,5 +1,5 @@
 /**
- * Typed cloud-bff client for the /cloud shell.
+ * Typed cloud-bff client for the dashboard Cloud console.
  *
  * Types come from `@/lib/cloud` (the #53 / #44 action contract). App and test
  * code should import from this barrel. The production client invokes
@@ -8,16 +8,26 @@
 
 export * from "@/lib/cloud";
 export {
+  CLOUD_APPLY_RELEASE,
+  CLOUD_CREATE_ENGINE,
+  CLOUD_DELETE_CONFIRM,
+  CLOUD_DELETE_ENGINE,
   CLOUD_EMPTY_MESSAGE,
+  CLOUD_ENGINE_NAME_LABEL,
   CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
   CLOUD_ERROR_RETRY,
   CLOUD_MANAGE_LINK,
   CLOUD_OPEN_LINK,
+  CLOUD_OPEN_STUDIO,
   CLOUD_PAGE_TITLE,
+  CLOUD_PROVISIONING_HEADING,
+  CLOUD_RESTART,
+  CLOUD_RESTART_CONFIRM,
   CLOUD_SETUP_ACTION,
   CLOUD_SETUP_HEADING,
   CLOUD_SETUP_MESSAGE,
+  CLOUD_STRUCTURED_LOGS,
   CLOUD_UPDATING_HEADING,
   CLOUD_WORKSPACE_LABEL,
   cloudEngineCountLabel,
