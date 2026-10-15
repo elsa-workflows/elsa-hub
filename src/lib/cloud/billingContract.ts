@@ -3,6 +3,7 @@
 export const CLOUD_KIND = "cloud";
 export const ACADEMY_KIND = "academy";
 export const CLOUD_PRODUCT_TYPE = "cloud";
+export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
 
 /** Control's StripeBillingProvider organization correlation key (elsa-control#825). */
 export const CONTROL_ORGANIZATION_METADATA_KEY = "elsa_control_organization_id";

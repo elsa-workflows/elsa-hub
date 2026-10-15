@@ -7,6 +7,7 @@ import {
   cloudBillingCustomerOwner,
   readControlEntitlement,
   readStoredStripeCustomerId,
+  stripeLivemodeFromSecret,
 } from "../_shared/cloud-billing.ts";
 
 const corsHeaders = {
@@ -79,12 +80,11 @@ serve(async (req) => {
       organizationId,
       userId: user.id,
     });
-    let customerId: string | null = null;
-    try {
-      customerId = await readStoredStripeCustomerId(serviceClient, owner);
-    } catch {
-      customerId = null;
-    }
+    const customerId = await readStoredStripeCustomerId(
+      serviceClient,
+      owner,
+      stripeLivemodeFromSecret(Deno.env.get("STRIPE_SECRET_KEY")),
+    );
 
     const entitlement = await readControlEntitlement({
       hubUserId: user.id,
@@ -108,8 +108,8 @@ serve(async (req) => {
     });
 
     const subscriptions = listed.data
-      .filter((sub) => classifyStripeDataObject(sub) === "cloud")
-      .map((sub) => {
+      .filter((sub: Stripe.Subscription) => classifyStripeDataObject(sub) === "cloud")
+      .map((sub: Stripe.Subscription) => {
         const item = sub.items?.data?.[0];
         const periodEnd = item?.current_period_end ??
           (sub as unknown as { current_period_end?: number }).current_period_end;

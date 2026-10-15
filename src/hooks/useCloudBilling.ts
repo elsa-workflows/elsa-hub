@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { CLOUD_PRODUCT_TYPE } from "@/lib/cloud/billingContract";
+import { CLOUD_PRODUCT_TYPE, CLOUD_SUBSCRIPTION_EXISTS_CODE } from "@/lib/cloud/billingContract";
 import { redirectTo } from "@/lib/cloud/redirect";
 
 export type CloudSubscriptionStatus = {
@@ -61,6 +61,20 @@ export function useCloudBilling() {
           organizationId,
         },
       });
+      if (data?.code === CLOUD_SUBSCRIPTION_EXISTS_CODE) {
+        const portal = await supabase.functions.invoke("customer-portal", {
+          body: {
+            productType: CLOUD_PRODUCT_TYPE,
+            organizationId,
+          },
+        });
+        if (portal.error || portal.data?.error || !portal.data?.url) {
+          throw new Error(
+            functionErrorMessage(portal.error, portal.data, "Failed to open the billing portal"),
+          );
+        }
+        return portal.data.url as string;
+      }
       if (error || data?.error) {
         throw new Error(functionErrorMessage(error, data, "Failed to start Cloud checkout"));
       }

@@ -81,4 +81,40 @@ describe("useCloudBilling", () => {
       ),
     );
   });
+
+  it("opens the billing portal when Cloud checkout reports an existing subscription", async () => {
+    invoke.mockImplementation(async (name: string) => {
+      if (name === "create-checkout-session") {
+        return {
+          data: {
+            error: "This organization already has an active Cloud subscription",
+            code: "cloud_subscription_exists",
+          },
+          error: { message: "Edge function returned a non-2xx status code" },
+        };
+      }
+      if (name === "customer-portal") {
+        return { data: { url: "https://billing.example/portal" }, error: null };
+      }
+      return {
+        data: { billingAccount: "linked", canManage: true, subscriptions: [], entitlement: null },
+        error: null,
+      };
+    });
+
+    const { result } = renderHook(() => useCloudBilling(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    result.current.startCheckout.mutate();
+    await waitFor(() => expect(redirectTo).toHaveBeenCalledWith("https://billing.example/portal"));
+    expect(invoke).toHaveBeenCalledWith(
+      "customer-portal",
+      expect.objectContaining({
+        body: {
+          productType: "cloud",
+          organizationId: "org-1",
+        },
+      }),
+    );
+  });
 });

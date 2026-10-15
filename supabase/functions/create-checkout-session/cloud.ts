@@ -9,9 +9,11 @@ import {
 import {
   assertStripeTestMode,
   buildCloudCheckoutMetadata,
+  CLOUD_SUBSCRIPTION_EXISTS_CODE,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
   controlOrganizationIdFromHubOrg,
+  orgHasBlockingCloudSubscription,
   readCloudPriceId,
   requireCloudOrganizationId,
 } from "../_shared/cloud-billing.ts";
@@ -33,7 +35,17 @@ export type CloudCheckoutContext = {
   ) => Promise<string>;
   stripe?: {
     customers: {
-      create: (params: StripeCustomerCreateParams) => Promise<{ id: string }>;
+      create: (
+        params: StripeCustomerCreateParams,
+        options?: { idempotencyKey?: string },
+      ) => Promise<{ id: string }>;
+      update: (id: string, params: StripeCustomerCreateParams) => Promise<{ id: string }>;
+      del: (id: string) => Promise<{ id: string }>;
+    };
+    subscriptions: {
+      list: (params: { customer: string; status?: string; limit?: number }) => Promise<{
+        data: Array<{ id: string; status: string; metadata?: Record<string, string> }>;
+      }>;
     };
     checkout: {
       sessions: {
@@ -119,7 +131,8 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
       }
     : undefined;
 
-  const stripe = ctx.stripe ?? new Stripe(env.get("STRIPE_SECRET_KEY")!, {
+  const stripeSecretKey = env.get("STRIPE_SECRET_KEY");
+  const stripe = ctx.stripe ?? new Stripe(stripeSecretKey!, {
     apiVersion: "2025-08-27.basil",
   });
 
@@ -129,7 +142,9 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     {
       stripe: {
         customers: {
-          create: (params) => stripe.customers.create(params),
+          create: (params, options) => stripe.customers.create(params, options),
+          update: (id, params) => stripe.customers.update(id, params),
+          del: (id) => stripe.customers.del(id),
         },
       },
       supabase: serviceClient,
@@ -140,8 +155,21 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
         organization_id: organizationId,
         user_id: user.id,
       },
+      stripeSecretKey,
     },
   );
+
+  const existing = await stripe.subscriptions.list({
+    customer: stripeCustomerId,
+    status: "all",
+    limit: 20,
+  });
+  if (orgHasBlockingCloudSubscription(existing.data)) {
+    return jsonResponse(corsHeaders, 409, {
+      error: "This organization already has an active Cloud subscription",
+      code: CLOUD_SUBSCRIPTION_EXISTS_CODE,
+    });
+  }
 
   const metadata = buildCloudCheckoutMetadata({
     hubUserId: user.id,

@@ -114,3 +114,81 @@ Deno.test("personal Cloud portal opens only the caller's stored user customer", 
   assertEquals(response.status, 200);
   assertEquals(opened, ["cus_admin_personal"]);
 });
+
+Deno.test("portal returns 500 when the stored customer ref read fails, not missing/404", async () => {
+  let opened = 0;
+  const failingStore = {
+    from() {
+      const query = {
+        select() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        maybeSingle() {
+          return Promise.resolve({
+            data: null,
+            error: { message: "connection refused" },
+          });
+        },
+      };
+      return query;
+    },
+  };
+
+  const response = await handleCloudPortal({
+    req: new Request("https://elsa-hub.example/functions/v1/customer-portal", {
+      method: "POST",
+      headers: { origin: "https://elsa-hub.example" },
+    }),
+    user: { id: "admin-1", email: "admin@example.test" },
+    userClient: adminClient() as never,
+    serviceClient: failingStore as never,
+    body: { organizationId: "org-b" },
+    corsHeaders: {},
+    env: {
+      get(key: string) {
+        if (key === "STRIPE_SECRET_KEY") return "sk_test_cloud";
+        return undefined;
+      },
+    },
+    stripe: {
+      billingPortal: {
+        sessions: {
+          create: () => {
+            opened += 1;
+            return Promise.resolve({ url: "https://billing.example/should-not-open" });
+          },
+        },
+      },
+    },
+  });
+
+  assertEquals(response.status, 500);
+  const payload = await response.json();
+  assertEquals(payload.error.includes("Failed to read stored Stripe customer"), true);
+  assertEquals(opened, 0);
+});
+
+Deno.test("portal returns 404 when the stored customer ref is missing", async () => {
+  const response = await handleCloudPortal({
+    req: new Request("https://elsa-hub.example/functions/v1/customer-portal", {
+      method: "POST",
+      headers: { origin: "https://elsa-hub.example" },
+    }),
+    user: { id: "admin-1", email: "admin@example.test" },
+    userClient: adminClient() as never,
+    serviceClient: createStore({}) as never,
+    body: { organizationId: "org-b" },
+    corsHeaders: {},
+    env: {
+      get(key: string) {
+        if (key === "STRIPE_SECRET_KEY") return "sk_test_cloud";
+        return undefined;
+      },
+    },
+  });
+
+  assertEquals(response.status, 404);
+});

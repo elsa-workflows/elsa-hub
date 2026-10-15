@@ -32,18 +32,21 @@ export type CloudCheckoutMetadata = {
 
 export type StoredStripeCustomerOwner = { userId: string } | { orgId: string };
 
+export type StoredStripeCustomerQuery = {
+  eq: (column: string, value: string | boolean) => StoredStripeCustomerQuery;
+  maybeSingle: () => PromiseLike<{
+    data: { stripe_customer_id: string } | null;
+    error: { message: string } | null;
+  }>;
+};
+
 export type StoredStripeCustomerStore = {
   from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        maybeSingle: () => PromiseLike<{
-          data: { stripe_customer_id: string } | null;
-          error: { message: string } | null;
-        }>;
-      };
-    };
+    select: (columns: string) => StoredStripeCustomerQuery;
   };
 };
+
+export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
 
 export function isCloudCheckoutRequest(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
@@ -211,6 +214,22 @@ export function cloudBillingCustomerOwner(input: {
   return { userId: input.userId };
 }
 
+export function stripeLivemodeFromSecret(secretKey: string | undefined): boolean {
+  return (secretKey ?? "").startsWith("sk_live_");
+}
+
+export function orgHasBlockingCloudSubscription(
+  subscriptions: Array<{
+    status?: string;
+    metadata?: Record<string, string> | null;
+  }>,
+): boolean {
+  return subscriptions.some((sub) => {
+    if (classifyStripeDataObject(sub) !== "cloud") return false;
+    return sub.status === "active" || sub.status === "trialing";
+  });
+}
+
 /**
  * Read the stored Stripe customer ref only. Never lists Stripe customers by
  * email and never creates a customer. Portal and status use this.
@@ -218,6 +237,7 @@ export function cloudBillingCustomerOwner(input: {
 export async function readStoredStripeCustomerId(
   supabase: unknown,
   owner: StoredStripeCustomerOwner,
+  livemode = false,
 ): Promise<string | null> {
   const isOrg = "orgId" in owner;
   const table = isOrg ? "org_stripe_customers" : "user_stripe_customers";
@@ -229,6 +249,7 @@ export async function readStoredStripeCustomerId(
     .from(table)
     .select("stripe_customer_id")
     .eq(column, value)
+    .eq("livemode", livemode)
     .maybeSingle();
 
   if (error) {

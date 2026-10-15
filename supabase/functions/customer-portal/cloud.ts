@@ -5,6 +5,7 @@ import {
   cloudBillingCustomerOwner,
   cloudPortalReturnPath,
   readStoredStripeCustomerId,
+  stripeLivemodeFromSecret,
 } from "../_shared/cloud-billing.ts";
 
 export type CloudPortalContext = {
@@ -67,9 +68,14 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
 
   let customerId: string | null;
   try {
-    customerId = await readStoredStripeCustomerId(serviceClient, owner);
-  } catch {
-    customerId = null;
+    customerId = await readStoredStripeCustomerId(
+      serviceClient,
+      owner,
+      stripeLivemodeFromSecret(env.get("STRIPE_SECRET_KEY")),
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to read stored Stripe customer";
+    return jsonResponse(corsHeaders, 500, { error: message });
   }
 
   if (!customerId) {

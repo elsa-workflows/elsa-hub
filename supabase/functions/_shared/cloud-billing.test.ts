@@ -4,7 +4,7 @@
  *
  * Vitest also covers the same contract via src/lib/cloud/billingContract.test.ts.
  */
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   assertStripeTestMode,
   classifyStripeEvent,
@@ -12,6 +12,7 @@ import {
   controlOrganizationIdFromHubOrg,
   isCloudCheckoutRequest,
   isCloudStripeEvent,
+  orgHasBlockingCloudSubscription,
   readStoredStripeCustomerId,
   requireCloudOrganizationId,
   resolveControlOrganizationId,
@@ -189,11 +190,11 @@ Deno.test("Cloud checkout, portal, and status never list Stripe customers by ema
   assertEquals(status.includes("readStoredStripeCustomerId"), true);
 });
 
-Deno.test("webhook routing order: Cloud early, then academy, then billing_type", () => {
+Deno.test("classifier still maps Cloud, Academy, and Hub billing_type events", () => {
   assertEquals(
     stripeWebhookRoute({
-      type: "checkout.session.completed",
-      data: { object: { metadata: { kind: "cloud" } } },
+      type: "customer.subscription.updated",
+      data: { object: { metadata: { kind: "cloud", product_type: "cloud" } } },
     }),
     "cloud",
   );
@@ -211,16 +212,59 @@ Deno.test("webhook routing order: Cloud early, then academy, then billing_type",
     }),
     "hub",
   );
+});
 
-  const webhook = Deno.readTextFileSync(
-    new URL("../stripe-webhook/index.ts", import.meta.url),
+Deno.test("an active Cloud subscription blocks a second checkout; Hub and canceled Cloud do not", () => {
+  assertEquals(
+    orgHasBlockingCloudSubscription([
+      { status: "active", metadata: { kind: "cloud", product_type: "cloud" } },
+    ]),
+    true,
   );
-  const cloudIdx = webhook.indexOf("isCloudStripeEvent(event)");
-  const academyIdx = webhook.indexOf('session.metadata?.kind === "academy"');
-  const billingIdx = webhook.indexOf("session.metadata?.billing_type");
-  assertEquals(cloudIdx > -1, true);
-  assertEquals(academyIdx > -1, true);
-  assertEquals(billingIdx > -1, true);
-  assertEquals(cloudIdx < academyIdx, true);
-  assertEquals(academyIdx < billingIdx, true);
+  assertEquals(
+    orgHasBlockingCloudSubscription([
+      { status: "trialing", metadata: { kind: "cloud" } },
+    ]),
+    true,
+  );
+  assertEquals(
+    orgHasBlockingCloudSubscription([
+      { status: "canceled", metadata: { kind: "cloud" } },
+    ]),
+    false,
+  );
+  assertEquals(
+    orgHasBlockingCloudSubscription([
+      { status: "active", metadata: { billing_type: "recurring" } },
+    ]),
+    false,
+  );
+});
+
+Deno.test("stored customer ref read errors throw instead of returning missing", async () => {
+  const failing = {
+    from() {
+      const query = {
+        select() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        maybeSingle() {
+          return Promise.resolve({
+            data: null,
+            error: { message: "connection refused" },
+          });
+        },
+      };
+      return query;
+    },
+  };
+
+  await assertRejects(
+    () => readStoredStripeCustomerId(failing, { orgId: "org-b" }),
+    Error,
+    "Failed to read stored Stripe customer",
+  );
 });
