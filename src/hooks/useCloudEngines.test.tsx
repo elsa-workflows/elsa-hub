@@ -8,6 +8,7 @@ import {
   CLOUD_UPDATING_MESSAGE,
   type CloudBffResponse,
 } from "@/lib/cloudClient";
+import { setCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 import { setCloudStubScenario, STUB_WORKSPACE } from "@/lib/cloudClient/stub";
 import {
   cloudEngineListView,
@@ -15,6 +16,15 @@ import {
   resolveCloudEngineListView,
   useCloudEngines,
 } from "./useCloudEngines";
+
+const authState = vi.hoisted(() => ({
+  user: { id: "user-1" } as { id: string } | null,
+  loading: false,
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => authState,
+}));
 
 const engine = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -109,15 +119,27 @@ describe("fetchCloudEngines", () => {
 describe("useCloudEngines", () => {
   afterEach(() => {
     setCloudStubScenario("list");
+    localStorage.clear();
     vi.restoreAllMocks();
   });
 
-  it("does not create a Control org when opening the engine list", async () => {
-    setCloudStubScenario("needsSetup");
+  it("makes zero cloud-bff calls when opening /cloud with no setup marker", async () => {
     const invoke = vi.spyOn(cloudClient, "invoke");
     const { result } = renderHook(() => useCloudEngines(), { wrapper });
 
-    await waitFor(() => expect(result.current.view.kind).toBe("needsSetup"));
-    expect(invoke.mock.calls.map(([body]) => body.action)).toEqual(["listWorkspaces"]);
+    expect(result.current.view.kind).toBe("needsSetup");
+    await waitFor(() => expect(invoke).not.toHaveBeenCalled());
+  });
+
+  it("lists engines after the setup marker is present", async () => {
+    setCloudSetupMarker("user-1");
+    const invoke = vi.spyOn(cloudClient, "invoke");
+    const { result } = renderHook(() => useCloudEngines(), { wrapper });
+
+    await waitFor(() => expect(result.current.view.kind).toBe("list"));
+    expect(invoke.mock.calls.map(([body]) => body.action)).toEqual([
+      "listWorkspaces",
+      "listEngines",
+    ]);
   });
 });

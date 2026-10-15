@@ -6,4 +6,4 @@ export const CLOUD_ERROR_RETRY = "Try again";
 export const CLOUD_SETUP_HEADING = "Set up Elsa Cloud";
 export const CLOUD_SETUP_ACTION = "Set up Elsa Cloud";
 export const CLOUD_SETUP_MESSAGE =
-  "Create your Elsa Cloud organization to view managed engines. Opening this page does not create one.";
+  "Create your Elsa Cloud organization to view managed engines, or reopen an existing one. Opening this page does not create one.";

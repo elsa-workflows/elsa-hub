@@ -28,6 +28,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
+import { hasCloudSetupMarker, setCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -46,6 +47,7 @@ describe("AuthContext passwordless methods", () => {
     signUp.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it("sends GitHub and Google OAuth through /auth/callback, not the site root", async () => {
@@ -117,5 +119,18 @@ describe("AuthContext passwordless methods", () => {
       configurable: true,
       value: original,
     });
+  });
+
+  it("clears the cloud setup marker for the signed-out Hub user", async () => {
+    setCloudSetupMarker("u1");
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    expect(hasCloudSetupMarker("u1")).toBe(true);
+
+    await result.current.signOut();
+    expect(hasCloudSetupMarker("u1")).toBe(false);
   });
 });

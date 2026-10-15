@@ -17,3 +17,9 @@ export {
   CLOUD_UPDATING_HEADING,
 } from "./copy";
 export { cloudClient } from "./client";
+export { selectPreferredCloudWorkspace } from "./workspace";
+export {
+  clearCloudSetupMarker,
+  hasCloudSetupMarker,
+  setCloudSetupMarker,
+} from "./setupMarker";
