@@ -1,17 +1,17 @@
-import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
-import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
+import elsaStudioDesigner from "@/assets/elsa-studio-designer.webp";
+import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.webp";
 
 export function HeroScreenshot() {
   return (
     <div className="hero-screenshot-wrapper">
-      <div className="screenshot-frame hero-screenshot-frame rounded-xl p-1.5 md:p-2 transition-all duration-400">
+      <figure className="screenshot-frame hero-screenshot-frame rounded-xl p-1.5 md:p-2 transition-all duration-400">
         {/* Mobile: focused screenshot */}
         <img
           src={elsaStudioDesignerMobile}
-          alt="Elsa Studio workflow designer"
+          alt="The new React-based Elsa Studio designer (preview)"
           className="block md:hidden w-full h-auto rounded-lg"
-          width={800}
-          height={600}
+          width={960}
+          height={675}
           loading="eager"
           fetchPriority="high"
           decoding="async"
@@ -19,15 +19,18 @@ export function HeroScreenshot() {
         {/* Desktop: detailed screenshot */}
         <img
           src={elsaStudioDesigner}
-          alt="Elsa Studio visual workflow designer showing a workflow with connected activities"
+          alt="The new React-based Elsa Studio designer (preview)"
           className="hidden md:block w-full h-auto rounded-lg"
-          width={1600}
-          height={1000}
+          width={1920}
+          height={1080}
           loading="eager"
           fetchPriority="high"
           decoding="async"
         />
-      </div>
+        <figcaption className="px-3 pt-2.5 pb-1 text-sm text-muted-foreground">
+          Preview, coming in Elsa 3.11
+        </figcaption>
+      </figure>
     </div>
   );
 }
