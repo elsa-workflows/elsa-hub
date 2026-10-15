@@ -2,12 +2,13 @@
  * Cloud billing adapter.
  *
  * Codes against:
- * - elsa-hub#47 `getOrCreateStripeCustomer(owner, deps?)`
+ * - elsa-hub#47 / #57 `getOrCreateStripeCustomer(owner, deps?)` (unchanged)
  * - elsa-control#825 Hub-originated subscription metadata
  *   (`elsa_control_organization_id` on the session and subscription)
+ * - cloud-bff (#53 / #44) Hub-org → Control-org mapping
  *
- * When those PRs land, keep the exports below and drop the local fallbacks
- * documented next to each function.
+ * Cloud checkout is org-only. The Control organization id is derived on the
+ * server from the admin-checked Hub org. Client-supplied ids are ignored.
  */
 
 export const CLOUD_KIND = "cloud";
@@ -26,7 +27,22 @@ export type CloudCheckoutMetadata = {
   [CLOUD_PRODUCT_TYPE_METADATA_KEY]: typeof CLOUD_PRODUCT_TYPE;
   [HUB_USER_METADATA_KEY]: string;
   [CONTROL_ORGANIZATION_METADATA_KEY]: string;
-  [HUB_ORGANIZATION_METADATA_KEY]?: string;
+  [HUB_ORGANIZATION_METADATA_KEY]: string;
+};
+
+export type StoredStripeCustomerOwner = { userId: string } | { orgId: string };
+
+export type StoredStripeCustomerStore = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        maybeSingle: () => PromiseLike<{
+          data: { stripe_customer_id: string } | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
 };
 
 export function isCloudCheckoutRequest(body: unknown): boolean {
@@ -92,36 +108,69 @@ export function isCloudStripeEvent(event: { data?: { object?: unknown } }): bool
 }
 
 /**
- * Until elsa-control#825 maps Hub orgs to Control orgs, Hub org id is the
- * Control organization named in subscription metadata. Once linking lands,
- * pass the Control id through `controlOrganizationId`.
+ * Webhook route after signature verification.
+ * Order: Cloud early-return for every event type, then Academy (kind=academy)
+ * inside checkout.session.* / refund, then Hub billing_type handlers.
  */
-export function resolveControlOrganizationId(input: {
-  controlOrganizationId?: string | null;
-  hubOrganizationId?: string | null;
-}): string {
-  const resolved = input.controlOrganizationId?.trim() || input.hubOrganizationId?.trim();
+export function stripeWebhookRoute(event: {
+  type?: string;
+  data?: { object?: unknown };
+}): StripeTrafficKind {
+  if (isCloudStripeEvent(event)) return "cloud";
+  if (classifyStripeEvent(event) === "academy") return "academy";
+  const metadata = (event.data?.object as { metadata?: Record<string, string> } | undefined)?.metadata;
+  if (metadata?.[KIND_METADATA_KEY] === ACADEMY_KIND) return "academy";
+  return "hub";
+}
+
+export function requireCloudOrganizationId(organizationId?: string | null): string {
+  const resolved = organizationId?.trim();
+  if (!resolved) {
+    throw new Error("Cloud checkout requires an organization");
+  }
+  return resolved;
+}
+
+/**
+ * Same mapping cloud-bff (#53 / #44) uses until Hub↔Control org linking exists:
+ * the Hub organization id is the Control organization named in Stripe metadata.
+ * Client-supplied Control ids are ignored. Replace the identity function with
+ * the linked Control id once bootstrap exposes it for a Hub org.
+ */
+export function controlOrganizationIdFromHubOrg(
+  hubOrganizationId: string,
+  _clientControlOrganizationId?: string | null,
+): string {
+  const resolved = hubOrganizationId.trim();
   if (!resolved) {
     throw new Error("A Control organization is required for Cloud checkout");
   }
   return resolved;
 }
 
+/** @deprecated Use controlOrganizationIdFromHubOrg. Client ids are ignored. */
+export function resolveControlOrganizationId(input: {
+  controlOrganizationId?: string | null;
+  hubOrganizationId?: string | null;
+}): string {
+  return controlOrganizationIdFromHubOrg(
+    requireCloudOrganizationId(input.hubOrganizationId),
+    input.controlOrganizationId,
+  );
+}
+
 export function buildCloudCheckoutMetadata(input: {
   hubUserId: string;
-  hubOrganizationId?: string | null;
+  hubOrganizationId: string;
   controlOrganizationId: string;
 }): CloudCheckoutMetadata {
-  const metadata: CloudCheckoutMetadata = {
+  return {
     [KIND_METADATA_KEY]: CLOUD_KIND,
     [CLOUD_PRODUCT_TYPE_METADATA_KEY]: CLOUD_PRODUCT_TYPE,
     [HUB_USER_METADATA_KEY]: input.hubUserId,
     [CONTROL_ORGANIZATION_METADATA_KEY]: input.controlOrganizationId,
+    [HUB_ORGANIZATION_METADATA_KEY]: input.hubOrganizationId,
   };
-  if (input.hubOrganizationId) {
-    metadata[HUB_ORGANIZATION_METADATA_KEY] = input.hubOrganizationId;
-  }
-  return metadata;
 }
 
 export function cloudCheckoutSuccessPath(): string {
@@ -140,7 +189,7 @@ export function assertStripeTestMode(secretKey: string | undefined): void {
   if (!secretKey) {
     throw new Error("Cloud billing is not configured");
   }
-  if (secretKey.startsWith("sk_live_")) {
+  if (!(secretKey.startsWith("sk_test_") || secretKey.startsWith("rk_test_"))) {
     throw new Error("Cloud billing is sandbox-only");
   }
 }
@@ -151,6 +200,42 @@ export function readCloudPriceId(env: { get(key: string): string | undefined } =
     throw new Error("Cloud billing is not configured");
   }
   return priceId;
+}
+
+export function cloudBillingCustomerOwner(input: {
+  organizationId?: string | null;
+  userId: string;
+}): StoredStripeCustomerOwner {
+  const organizationId = input.organizationId?.trim();
+  if (organizationId) return { orgId: organizationId };
+  return { userId: input.userId };
+}
+
+/**
+ * Read the stored Stripe customer ref only. Never lists Stripe customers by
+ * email and never creates a customer. Portal and status use this.
+ */
+export async function readStoredStripeCustomerId(
+  supabase: unknown,
+  owner: StoredStripeCustomerOwner,
+): Promise<string | null> {
+  const isOrg = "orgId" in owner;
+  const table = isOrg ? "org_stripe_customers" : "user_stripe_customers";
+  const column = isOrg ? "organization_id" : "user_id";
+  const value = isOrg ? owner.orgId : owner.userId;
+  const store = supabase as StoredStripeCustomerStore;
+
+  const { data, error } = await store
+    .from(table)
+    .select("stripe_customer_id")
+    .eq(column, value)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to read stored Stripe customer: ${error.message}`);
+  }
+
+  return data?.stripe_customer_id ?? null;
 }
 
 /**

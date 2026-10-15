@@ -1,13 +1,19 @@
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getOrCreateStripeCustomer } from "../_shared/stripe-customer.ts";
+import {
+  getOrCreateStripeCustomer,
+  type GetOrCreateStripeCustomerDeps,
+  type StripeCustomerCreateParams,
+  type StripeCustomerOwner,
+} from "../_shared/stripe-customer.ts";
 import {
   assertStripeTestMode,
   buildCloudCheckoutMetadata,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
+  controlOrganizationIdFromHubOrg,
   readCloudPriceId,
-  resolveControlOrganizationId,
+  requireCloudOrganizationId,
 } from "../_shared/cloud-billing.ts";
 
 export type CloudCheckoutContext = {
@@ -20,6 +26,21 @@ export type CloudCheckoutContext = {
     controlOrganizationId?: string;
   };
   corsHeaders: Record<string, string>;
+  env?: { get(key: string): string | undefined };
+  getOrCreateStripeCustomer?: (
+    owner: StripeCustomerOwner,
+    deps?: GetOrCreateStripeCustomerDeps,
+  ) => Promise<string>;
+  stripe?: {
+    customers: {
+      create: (params: StripeCustomerCreateParams) => Promise<{ id: string }>;
+    };
+    checkout: {
+      sessions: {
+        create: (params: Stripe.Checkout.SessionCreateParams) => Promise<{ url: string | null }>;
+      };
+    };
+  };
 };
 
 function jsonResponse(
@@ -35,62 +56,57 @@ function jsonResponse(
 
 export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Response> {
   const { req, user, userClient, serviceClient, body, corsHeaders } = ctx;
-  const organizationId = body.organizationId?.trim() || undefined;
+  const env = ctx.env ?? Deno.env;
 
   try {
-    assertStripeTestMode(Deno.env.get("STRIPE_SECRET_KEY"));
+    assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Cloud billing is not configured";
     return jsonResponse(corsHeaders, 503, { error: message });
   }
 
-  if (organizationId) {
-    const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
-      p_org_id: organizationId,
-    });
-    if (adminError || !isAdmin) {
-      return jsonResponse(corsHeaders, 403, {
-        error: "Only organization admins can start Cloud checkout",
-      });
-    }
-  }
-
-  let controlOrganizationId: string;
+  let organizationId: string;
   try {
-    controlOrganizationId = resolveControlOrganizationId({
-      controlOrganizationId: body.controlOrganizationId,
-      hubOrganizationId: organizationId,
-    });
+    organizationId = requireCloudOrganizationId(body.organizationId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "A Control organization is required";
+    const message = error instanceof Error ? error.message : "Cloud checkout requires an organization";
     return jsonResponse(corsHeaders, 400, { error: message });
   }
 
+  const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
+    p_org_id: organizationId,
+  });
+  if (adminError || !isAdmin) {
+    return jsonResponse(corsHeaders, 403, {
+      error: "Only organization admins can start Cloud checkout",
+    });
+  }
+
+  const controlOrganizationId = controlOrganizationIdFromHubOrg(
+    organizationId,
+    body.controlOrganizationId,
+  );
+
   let stripePriceId: string;
   try {
-    stripePriceId = readCloudPriceId();
+    stripePriceId = readCloudPriceId(env);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Cloud billing is not configured";
     return jsonResponse(corsHeaders, 503, { error: message });
   }
 
-  let orgName: string | undefined;
-  if (organizationId) {
-    const { data: org } = await userClient
-      .from("organizations")
-      .select("name")
-      .eq("id", organizationId)
-      .maybeSingle();
-    orgName = org?.name ?? undefined;
-  }
+  const { data: org } = await userClient
+    .from("organizations")
+    .select("name")
+    .eq("id", organizationId)
+    .maybeSingle();
+  const orgName = org?.name ?? undefined;
 
-  const { data: billingProfile } = organizationId
-    ? await serviceClient
-        .from("org_billing_profiles")
-        .select("company_legal_name, address_line1, address_line2, city, state_province, postal_code, country")
-        .eq("organization_id", organizationId)
-        .maybeSingle()
-    : { data: null };
+  const { data: billingProfile } = await serviceClient
+    .from("org_billing_profiles")
+    .select("company_legal_name, address_line1, address_line2, city, state_province, postal_code, country")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
 
   const address = billingProfile?.address_line1
     ? {
@@ -103,22 +119,29 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
       }
     : undefined;
 
-  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
+  const stripe = ctx.stripe ?? new Stripe(env.get("STRIPE_SECRET_KEY")!, {
     apiVersion: "2025-08-27.basil",
   });
 
-  const owner = organizationId ? { orgId: organizationId } : { userId: user.id };
-  const stripeCustomerId = await getOrCreateStripeCustomer(owner, {
-    stripe,
-    serviceClient,
-    email: user.email,
-    name: billingProfile?.company_legal_name || orgName || undefined,
-    address,
-    metadata: {
-      ...(organizationId ? { organization_id: organizationId } : {}),
-      user_id: user.id,
+  const resolveCustomer = ctx.getOrCreateStripeCustomer ?? getOrCreateStripeCustomer;
+  const stripeCustomerId = await resolveCustomer(
+    { orgId: organizationId },
+    {
+      stripe: {
+        customers: {
+          create: (params) => stripe.customers.create(params),
+        },
+      },
+      supabase: serviceClient,
+      email: user.email ?? undefined,
+      name: billingProfile?.company_legal_name || orgName || undefined,
+      address,
+      metadata: {
+        organization_id: organizationId,
+        user_id: user.id,
+      },
     },
-  });
+  );
 
   const metadata = buildCloudCheckoutMetadata({
     hubUserId: user.id,

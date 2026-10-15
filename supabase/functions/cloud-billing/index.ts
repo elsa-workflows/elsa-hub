@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getOrCreateStripeCustomer } from "../_shared/stripe-customer.ts";
 import {
   assertStripeTestMode,
   classifyStripeDataObject,
+  cloudBillingCustomerOwner,
   readControlEntitlement,
+  readStoredStripeCustomerId,
 } from "../_shared/cloud-billing.ts";
 
 const corsHeaders = {
@@ -74,15 +75,13 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const owner = organizationId ? { orgId: organizationId } : { userId: user.id };
+    const owner = cloudBillingCustomerOwner({
+      organizationId,
+      userId: user.id,
+    });
     let customerId: string | null = null;
     try {
-      customerId = await getOrCreateStripeCustomer(owner, {
-        stripe,
-        serviceClient,
-        email: user.email,
-        createIfMissing: false,
-      });
+      customerId = await readStoredStripeCustomerId(serviceClient, owner);
     } catch {
       customerId = null;
     }

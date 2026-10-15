@@ -1,7 +1,7 @@
 /**
  * Cloud Stripe events are owned by Control (elsa-control#825).
  * Hub must not record them as orders, credits, or Hub subscriptions.
- * Academy events (`kind=academy`) are not Cloud and are left for #39.
+ * Academy events (`kind=academy`) are not Cloud and are left for #54.
  */
 import { classifyStripeEvent, isCloudStripeEvent } from "../_shared/cloud-billing.ts";
 

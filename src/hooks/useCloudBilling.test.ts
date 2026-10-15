@@ -76,7 +76,6 @@ describe("useCloudBilling", () => {
           body: {
             productType: "cloud",
             organizationId: "org-1",
-            controlOrganizationId: "org-1",
           },
         }),
       ),

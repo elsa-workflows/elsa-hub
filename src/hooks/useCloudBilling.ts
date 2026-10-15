@@ -52,10 +52,13 @@ export function useCloudBilling() {
 
   const startCheckout = useMutation({
     mutationFn: async () => {
+      if (!organizationId) {
+        throw new Error("Cloud checkout requires an organization");
+      }
       const { data, error } = await supabase.functions.invoke("create-checkout-session", {
         body: {
           productType: CLOUD_PRODUCT_TYPE,
-          ...(organizationId ? { organizationId, controlOrganizationId: organizationId } : {}),
+          organizationId,
         },
       });
       if (error || data?.error) {

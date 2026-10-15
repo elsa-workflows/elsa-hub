@@ -76,8 +76,9 @@ serve(async (req) => {
   console.log(`Processing event: ${event.type}`);
 
   try {
-    // Cloud subscription events are owned by Control. Academy events skip Cloud
-    // via metadata.kind and stay on the Hub path until #39 lands.
+    // Cloud subscription events are owned by Control. Return before Academy or
+    // Hub billing_type handlers. Academy (kind=academy) is next; #54 grants
+    // entitlements here. Until that lands, skip Hub orders and credits.
     if (isCloudStripeEvent(event)) {
       await handleCloudStripeEvent(event);
       return new Response(
@@ -88,6 +89,13 @@ serve(async (req) => {
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.kind === "academy") {
+        return new Response(
+          JSON.stringify({ received: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const billingType = session.metadata?.billing_type;
 
       // Sync billing info from Stripe back to our database
@@ -99,6 +107,22 @@ serve(async (req) => {
       } else {
         // Handle one-time payment checkout completion
         await handleOneTimePaymentCheckout(supabase, stripe, session);
+      }
+    } else if (event.type === "checkout.session.async_payment_succeeded") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.kind === "academy") {
+        return new Response(
+          JSON.stringify({ received: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else if (event.type === "checkout.session.async_payment_failed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.kind === "academy") {
+        return new Response(
+          JSON.stringify({ received: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     } else if (event.type === "checkout.session.expired") {
       const session = event.data.object as Stripe.Checkout.Session;

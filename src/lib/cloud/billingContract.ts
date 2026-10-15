@@ -15,8 +15,7 @@ export type StripeTrafficKind = "cloud" | "academy" | "hub";
 
 export type CloudCheckoutRequest = {
   productType: typeof CLOUD_PRODUCT_TYPE;
-  organizationId?: string;
-  controlOrganizationId?: string;
+  organizationId: string;
 };
 
 export type CloudCheckoutMetadata = {
@@ -24,7 +23,7 @@ export type CloudCheckoutMetadata = {
   [CLOUD_PRODUCT_TYPE_METADATA_KEY]: typeof CLOUD_PRODUCT_TYPE;
   [HUB_USER_METADATA_KEY]: string;
   [CONTROL_ORGANIZATION_METADATA_KEY]: string;
-  [HUB_ORGANIZATION_METADATA_KEY]?: string;
+  [HUB_ORGANIZATION_METADATA_KEY]: string;
 };
 
 export function isCloudCheckoutRequest(body: unknown): body is CloudCheckoutRequest {
@@ -89,32 +88,57 @@ export function shouldRecordHubOrder(event: { type?: string; data?: { object?: u
   return classifyStripeEvent(event) === "hub";
 }
 
-export function resolveControlOrganizationId(input: {
-  controlOrganizationId?: string | null;
-  hubOrganizationId?: string | null;
-}): string {
-  const resolved = input.controlOrganizationId?.trim() || input.hubOrganizationId?.trim();
+export function stripeWebhookRoute(event: {
+  type?: string;
+  data?: { object?: unknown };
+}): StripeTrafficKind {
+  if (classifyStripeEvent(event) === "cloud") return "cloud";
+  if (classifyStripeEvent(event) === "academy") return "academy";
+  return "hub";
+}
+
+export function requireCloudOrganizationId(organizationId?: string | null): string {
+  const resolved = organizationId?.trim();
   if (!resolved) {
-    throw new Error("A Control organization is required for Cloud checkout");
+    throw new Error("Cloud checkout requires an organization");
   }
   return resolved;
 }
 
+/**
+ * Same mapping cloud-bff (#53 / #44) uses until Hub↔Control org linking exists:
+ * the Hub organization id is the Control organization named in Stripe metadata.
+ * Client-supplied Control ids are ignored.
+ */
+export function controlOrganizationIdFromHubOrg(
+  hubOrganizationId: string,
+  _clientControlOrganizationId?: string | null,
+): string {
+  return requireCloudOrganizationId(hubOrganizationId);
+}
+
+export function resolveControlOrganizationId(input: {
+  controlOrganizationId?: string | null;
+  hubOrganizationId?: string | null;
+}): string {
+  return controlOrganizationIdFromHubOrg(
+    requireCloudOrganizationId(input.hubOrganizationId),
+    input.controlOrganizationId,
+  );
+}
+
 export function buildCloudCheckoutMetadata(input: {
   hubUserId: string;
-  hubOrganizationId?: string | null;
+  hubOrganizationId: string;
   controlOrganizationId: string;
 }): CloudCheckoutMetadata {
-  const metadata: CloudCheckoutMetadata = {
+  return {
     [KIND_METADATA_KEY]: CLOUD_KIND,
     [CLOUD_PRODUCT_TYPE_METADATA_KEY]: CLOUD_PRODUCT_TYPE,
     [HUB_USER_METADATA_KEY]: input.hubUserId,
     [CONTROL_ORGANIZATION_METADATA_KEY]: input.controlOrganizationId,
+    [HUB_ORGANIZATION_METADATA_KEY]: input.hubOrganizationId,
   };
-  if (input.hubOrganizationId) {
-    metadata[HUB_ORGANIZATION_METADATA_KEY] = input.hubOrganizationId;
-  }
-  return metadata;
 }
 
 export function canStartOrgCloudCheckout(isOrgAdmin: boolean): boolean {
@@ -131,4 +155,13 @@ export function cloudCheckoutCancelPath(): string {
 
 export function cloudPortalReturnPath(): string {
   return "/cloud/billing";
+}
+
+export function cloudBillingCustomerOwner(input: {
+  organizationId?: string | null;
+  userId: string;
+}): { userId: string } | { orgId: string } {
+  const organizationId = input.organizationId?.trim();
+  if (organizationId) return { orgId: organizationId };
+  return { userId: input.userId };
 }

@@ -5,15 +5,19 @@ import {
   canStartOrgCloudCheckout,
   classifyStripeDataObject,
   classifyStripeEvent,
+  cloudBillingCustomerOwner,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
   cloudPortalReturnPath,
   CONTROL_ORGANIZATION_METADATA_KEY,
+  controlOrganizationIdFromHubOrg,
   HUB_ORGANIZATION_METADATA_KEY,
   HUB_USER_METADATA_KEY,
   isCloudCheckoutRequest,
+  requireCloudOrganizationId,
   resolveControlOrganizationId,
   shouldRecordHubOrder,
+  stripeWebhookRoute,
 } from "./billingContract";
 
 describe("Cloud billing contract", () => {
@@ -24,31 +28,32 @@ describe("Cloud billing contract", () => {
     expect(isCloudCheckoutRequest({ productType: "academy" })).toBe(false);
   });
 
+  it("rejects personal Cloud checkout", () => {
+    expect(() => requireCloudOrganizationId(undefined)).toThrow(/requires an organization/);
+    expect(() => requireCloudOrganizationId("")).toThrow(/requires an organization/);
+  });
+
   it("puts Hub user/org and Control org on session metadata", () => {
     const metadata = buildCloudCheckoutMetadata({
       hubUserId: "user-1",
       hubOrganizationId: "hub-org-1",
-      controlOrganizationId: "control-org-1",
+      controlOrganizationId: "hub-org-1",
     });
     expect(metadata.kind).toBe("cloud");
     expect(metadata.product_type).toBe("cloud");
     expect(metadata[HUB_USER_METADATA_KEY]).toBe("user-1");
     expect(metadata[HUB_ORGANIZATION_METADATA_KEY]).toBe("hub-org-1");
-    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).toBe("control-org-1");
+    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).toBe("hub-org-1");
   });
 
-  it("uses the Hub org as the Control org until elsa-control#825 linking lands", () => {
+  it("derives the Control org from the Hub org and ignores a client-supplied id", () => {
+    expect(controlOrganizationIdFromHubOrg("hub-org-1", "attacker-control-org")).toBe("hub-org-1");
     expect(
       resolveControlOrganizationId({
         hubOrganizationId: "hub-org-1",
+        controlOrganizationId: "attacker-control-org",
       }),
     ).toBe("hub-org-1");
-    expect(
-      resolveControlOrganizationId({
-        controlOrganizationId: "control-org-1",
-        hubOrganizationId: "hub-org-1",
-      }),
-    ).toBe("control-org-1");
   });
 
   it("does not record Hub orders or credits for Cloud subscription events", () => {
@@ -66,13 +71,25 @@ describe("Cloud billing contract", () => {
     ).toBe(true);
   });
 
-  it("routes Cloud subscription events away from Hub orders and Academy away from Cloud", () => {
+  it("routes Cloud first, then academy, then Hub billing_type", () => {
     expect(
-      classifyStripeEvent({
+      stripeWebhookRoute({
         type: "checkout.session.completed",
         data: { object: { metadata: { kind: "cloud", product_type: "cloud" } } },
       }),
     ).toBe("cloud");
+    expect(
+      stripeWebhookRoute({
+        type: "checkout.session.completed",
+        data: { object: { metadata: { kind: ACADEMY_KIND } } },
+      }),
+    ).toBe("academy");
+    expect(
+      stripeWebhookRoute({
+        type: "checkout.session.completed",
+        data: { object: { metadata: { billing_type: "recurring", bundle_id: "b1" } } },
+      }),
+    ).toBe("hub");
     expect(
       classifyStripeEvent({
         type: "customer.subscription.updated",
@@ -80,21 +97,18 @@ describe("Cloud billing contract", () => {
       }),
     ).toBe("cloud");
     expect(
-      classifyStripeEvent({
-        type: "invoice.paid",
-        data: {
-          object: {
-            parent: { subscription_details: { metadata: { kind: "cloud" } } },
-          },
-        },
-      }),
-    ).toBe("cloud");
-    expect(
-      classifyStripeDataObject({ metadata: { kind: ACADEMY_KIND } }),
-    ).toBe("academy");
-    expect(
       classifyStripeDataObject({ metadata: { billing_type: "recurring", bundle_id: "b1" } }),
     ).toBe("hub");
+  });
+
+  it("never lets org B resolve to org A or the admin's personal customer owner", () => {
+    expect(cloudBillingCustomerOwner({ organizationId: "org-b", userId: "admin-1" })).toEqual({
+      orgId: "org-b",
+    });
+    expect(cloudBillingCustomerOwner({ organizationId: "org-a", userId: "admin-1" })).toEqual({
+      orgId: "org-a",
+    });
+    expect(cloudBillingCustomerOwner({ userId: "admin-1" })).toEqual({ userId: "admin-1" });
   });
 
   it("blocks non-admins from org Cloud checkout and keeps signed-in returns off public pricing", () => {
