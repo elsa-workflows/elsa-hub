@@ -11,9 +11,18 @@
 --
 -- Do not run against production from this repo's CI. Apply by hand after
 -- the 1 Nov routine, with Elsa Control Lead told first.
--- Equivalent Node entry: npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_...
+-- Equivalent Node entry:
+--   npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_... --apply
 
 BEGIN;
+
+DO $guard$
+BEGIN
+  IF NOT (:'stripe_price_id' ~ '^price_[A-Za-z0-9_]+$') THEN
+    RAISE EXCEPTION 'stripe_price_id must match ^price_[A-Za-z0-9_]+$ (got %)', :'stripe_price_id';
+  END IF;
+END
+$guard$;
 
 UPDATE public.academy_courses
 SET

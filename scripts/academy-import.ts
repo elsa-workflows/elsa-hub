@@ -6,16 +6,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   ACADEMY_KITS_BUCKET,
   HELP,
+  applyPlanWithStore,
+  assertStripePriceId,
+  catalogSnapshotFromDbRows,
   formatDryRun,
   parseArgs,
-  planImport,
   planHasChanges,
+  planImport,
   validateManifest,
   validateProductMapping,
-  verifyChecksum,
   type AcademyManifest,
-  type ImportPlan,
-  type PlannedCourse,
+  type AcademyWriteStore,
   type ProductMapping,
 } from "./academy-import-lib.ts";
 
@@ -33,22 +34,59 @@ function requireEnv(name: string): string {
   return value;
 }
 
-function courseRow(course: PlannedCourse, mapping: ProductMapping): Record<string, unknown> {
-  const row: Record<string, unknown> = {
-    slug: course.slug,
-    title: course.title,
-    summary: course.summary,
-    sort_order: course.sort_order,
-    is_published: course.is_published,
-    stripe_price_id: course.stripe_price_id,
-    price_cents: course.price_cents,
-    currency: course.currency,
-    product_code: course.product_code,
+function readServiceRole(): { url: string; key: string } {
+  return {
+    url: requireEnv("SUPABASE_URL"),
+    key: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
   };
-  if (mapping.r2.writeArrayColumn) {
-    row[mapping.r2.courseProductCodesColumn] = course.product_codes;
-  }
-  return row;
+}
+
+function supabaseStore(supabase: SupabaseClient): AcademyWriteStore {
+  return {
+    async upsertCourse(row) {
+      const { data, error } = await supabase
+        .from("academy_courses")
+        .upsert(row, { onConflict: "slug" })
+        .select("id, slug")
+        .single();
+      if (error) throw new Error(`course ${String(row.slug)}: ${error.message}`);
+      return data;
+    },
+    async listCourses() {
+      const { data, error } = await supabase.from("academy_courses").select("id, slug");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+    async upsertLesson(row) {
+      const { data, error } = await supabase
+        .from("academy_lessons")
+        .upsert(row, { onConflict: "course_id,slug" })
+        .select("id, slug, course_id")
+        .single();
+      if (error) throw new Error(`lesson ${String(row.slug)}: ${error.message}`);
+      return data;
+    },
+    async listLessons() {
+      const { data, error } = await supabase.from("academy_lessons").select("id, slug, course_id");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+    async uploadAsset(storagePath, bytes, contentType) {
+      const { error } = await supabase.storage.from(ACADEMY_KITS_BUCKET).upload(storagePath, bytes, {
+        upsert: true,
+        contentType,
+      });
+      if (error) throw new Error(`upload ${storagePath}: ${error.message}`);
+    },
+    async upsertAsset(row) {
+      const { error } = await supabase.from("academy_assets").upsert(row, { onConflict: "storage_path" });
+      if (error) throw new Error(`asset ${String(row.storage_path)}: ${error.message}`);
+    },
+    async publishCatalog(slugs) {
+      const { error } = await supabase.from("academy_courses").update({ is_published: true }).in("slug", slugs);
+      if (error) throw new Error(`publish: ${error.message}`);
+    },
+  };
 }
 
 async function fetchSnapshot(supabase: SupabaseClient) {
@@ -58,125 +96,28 @@ async function fetchSnapshot(supabase: SupabaseClient) {
   if (coursesRes.error) throw new Error(coursesRes.error.message);
   if (lessonsRes.error) throw new Error(lessonsRes.error.message);
   if (assetsRes.error) throw new Error(assetsRes.error.message);
-
-  const courses: Record<string, Record<string, unknown>> = {};
-  for (const row of coursesRes.data ?? []) courses[row.slug] = row;
-
-  const lessons: Record<string, Record<string, unknown>> = {};
-  const courseIdToSlug = new Map<string, string>();
-  for (const row of coursesRes.data ?? []) courseIdToSlug.set(row.id, row.slug);
-  for (const row of lessonsRes.data ?? []) {
-    const courseSlug = courseIdToSlug.get(row.course_id);
-    if (!courseSlug) continue;
-    lessons[`${courseSlug}/${row.slug}`] = row;
-  }
-
-  const assets: Record<string, Record<string, unknown>> = {};
-  for (const row of assetsRes.data ?? []) assets[row.storage_path] = row;
-
-  return { courses, lessons, assets };
+  return catalogSnapshotFromDbRows({
+    courses: coursesRes.data ?? [],
+    lessons: lessonsRes.data ?? [],
+    assets: assetsRes.data ?? [],
+  });
 }
 
-async function applyPlan(
-  supabase: SupabaseClient,
-  plan: ImportPlan,
-  mapping: ProductMapping,
-): Promise<void> {
-  const courseIds = new Map<string, string>();
-  const lessonIds = new Map<string, string>();
-
-  for (const op of plan.courses) {
-    if (op.kind !== "insert" && op.kind !== "update") continue;
-    const { data, error } = await supabase
-      .from("academy_courses")
-      .upsert(courseRow(op.desired, mapping), { onConflict: "slug" })
-      .select("id, slug")
-      .single();
-    if (error) throw new Error(`course ${op.desired.slug}: ${error.message}`);
-    courseIds.set(data.slug, data.id);
-  }
-
-  const { data: allCourses, error: listErr } = await supabase.from("academy_courses").select("id, slug");
-  if (listErr) throw new Error(listErr.message);
-  for (const row of allCourses ?? []) courseIds.set(row.slug, row.id);
-
-  for (const op of plan.lessons) {
-    if (op.kind !== "insert" && op.kind !== "update") continue;
-    const courseId = courseIds.get(op.desired.course_slug);
-    if (!courseId) throw new Error(`lesson ${op.key}: missing course id`);
-    const { data, error } = await supabase
-      .from("academy_lessons")
-      .upsert(
-        {
-          course_id: courseId,
-          slug: op.desired.slug,
-          title: op.desired.title,
-          sort_order: op.desired.sort_order,
-          body_md: op.desired.body_md,
-          is_preview: op.desired.is_preview,
-          duration_minutes: op.desired.duration_minutes,
-        },
-        { onConflict: "course_id,slug" },
-      )
-      .select("id, slug, course_id")
-      .single();
-    if (error) throw new Error(`lesson ${op.key}: ${error.message}`);
-    lessonIds.set(op.key, data.id);
-  }
-
-  const { data: allLessons, error: lessonErr } = await supabase
-    .from("academy_lessons")
-    .select("id, slug, course_id");
-  if (lessonErr) throw new Error(lessonErr.message);
-  const idToSlug = new Map([...courseIds.entries()].map(([slug, id]) => [id, slug]));
-  for (const row of allLessons ?? []) {
-    const courseSlug = idToSlug.get(row.course_id);
-    if (courseSlug) lessonIds.set(`${courseSlug}/${row.slug}`, row.id);
-  }
-
-  for (const op of plan.assets) {
-    if (op.kind === "skip" || op.kind === "refuse" || op.kind === "unchanged") continue;
-    const asset = op.desired;
-    if (!asset.local_path) throw new Error(`asset ${asset.storage_path}: missing local file`);
-    const bytes = readFileSync(asset.local_path);
-    verifyChecksum(bytes, asset.sha256, asset.size_bytes, asset.storage_path);
-
-    const { error: uploadError } = await supabase.storage
-      .from(ACADEMY_KITS_BUCKET)
-      .upload(asset.storage_path, bytes, {
-        upsert: true,
-        contentType: "application/zip",
-      });
-    if (uploadError) throw new Error(`upload ${asset.storage_path}: ${uploadError.message}`);
-
-    const courseId = courseIds.get(asset.course_slug);
-    if (!courseId) throw new Error(`asset ${asset.storage_path}: missing course id`);
-    const lessonId = asset.lesson_slug ? lessonIds.get(`${asset.course_slug}/${asset.lesson_slug}`) ?? null : null;
-
-    const { error } = await supabase.from("academy_assets").upsert(
-      {
-        course_id: courseId,
-        lesson_id: lessonId,
-        label: asset.label,
-        storage_path: asset.storage_path,
-        sha256: asset.sha256,
-        size_bytes: asset.size_bytes,
-      },
-      { onConflict: "storage_path" },
-    );
-    if (error) throw new Error(`asset ${asset.storage_path}: ${error.message}`);
-  }
-}
-
-async function priceSwitch(dryRun: boolean, stripePriceId: string): Promise<void> {
+async function priceSwitch(apply: boolean, stripePriceId: string): Promise<void> {
   const mappingPath = path.join(ROOT, "academy/product-mapping.json");
   const mappingResult = validateProductMapping(loadJson(mappingPath));
   if (!mappingResult.ok || !mappingResult.mapping) {
     throw new Error(mappingResult.errors.join("\n"));
   }
   const mapping = mappingResult.mapping;
-  const url = requireEnv("SUPABASE_URL");
-  const key = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  console.log(
+    `Solo Bundle 1 Nov switch: ${mapping.catalogSku} -> ${mapping.postLaunchPriceCents} ${mapping.currency} / ${stripePriceId}`,
+  );
+  if (!apply) {
+    console.log("Dry-run: no writes. Pass --apply to update academy_courses.");
+    return;
+  }
+  const { url, key } = readServiceRole();
   const supabase = createClient(url, key);
   const { data, error } = await supabase
     .from("academy_courses")
@@ -187,14 +128,12 @@ async function priceSwitch(dryRun: boolean, stripePriceId: string): Promise<void
   const changing = rows.filter(
     (row) => row.price_cents !== mapping.postLaunchPriceCents || row.stripe_price_id !== stripePriceId,
   );
-  console.log(
-    `Solo Bundle 1 Nov switch: ${changing.length} of ${rows.length} ${mapping.catalogSku} row(s) would move to ${mapping.postLaunchPriceCents} ${mapping.currency} / ${stripePriceId}`,
-  );
+  console.log(`${changing.length} of ${rows.length} ${mapping.catalogSku} row(s) would move.`);
   for (const row of changing) {
     console.log(`  ${row.slug}: ${row.price_cents} / ${row.stripe_price_id} -> ${mapping.postLaunchPriceCents} / ${stripePriceId}`);
   }
-  if (dryRun || changing.length === 0) {
-    console.log(dryRun ? "Dry-run: no writes." : "Already at target: no writes.");
+  if (changing.length === 0) {
+    console.log("Already at target: no writes.");
     return;
   }
   const { error: updateError } = await supabase
@@ -219,7 +158,13 @@ async function main(): Promise<number> {
       console.error("--price-switch requires --stripe-price-id");
       return 1;
     }
-    await priceSwitch(args.dryRun, args.stripePriceId);
+    try {
+      assertStripePriceId(args.stripePriceId);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+      return 1;
+    }
+    await priceSwitch(args.apply, args.stripePriceId);
     return 0;
   }
   if (!args.manifest || !args.sourceRoot) {
@@ -245,15 +190,12 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   let existing = undefined;
-  if (url && key) {
-    const supabase = createClient(url, key);
+  let supabase: SupabaseClient | null = null;
+  if (args.apply) {
+    const { url, key } = readServiceRole();
+    supabase = createClient(url, key);
     existing = await fetchSnapshot(supabase);
-  } else if (!args.dryRun) {
-    console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required unless --dry-run.");
-    return 1;
   }
 
   const plan = planImport({
@@ -263,16 +205,23 @@ async function main(): Promise<number> {
     assetsDirs,
     existing,
     sourceCommit: args.sourceCommit,
+    publish: args.publish,
+    requireStripePriceIds: args.apply,
   });
-  console.log(formatDryRun(plan));
+  console.log(formatDryRun(plan, { apply: args.apply, publish: args.publish }));
   if (plan.errors.length) return 1;
-  if (args.dryRun) return 0;
+  if (!args.apply) return 0;
 
-  const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
-  await applyPlan(supabase, plan, mappingResult.mapping);
+  if (!supabase) {
+    console.error("Internal error: --apply did not open a client.");
+    return 1;
+  }
+  await applyPlanWithStore(supabaseStore(supabase), plan, mappingResult.mapping, { publish: args.publish });
   console.log(
-    planHasChanges(plan)
-      ? "Import applied."
+    planHasChanges(plan) || args.publish
+      ? args.publish
+        ? "Import applied. Catalog courses published last."
+        : "Import applied."
       : "Import applied (no row or object changes; rerun is a no-op).",
   );
   return 0;

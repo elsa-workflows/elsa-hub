@@ -1,8 +1,9 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   existsSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   statSync,
 } from "node:fs";
 import path from "node:path";
@@ -16,8 +17,16 @@ export const KIT_SHA256 =
   "3184ea17f87a76c9de4370cddd797635c21509cf28af09994f1bf8b44e81f9c2";
 export const SHA256_RE = /^[0-9a-f]{64}$/;
 export const PRODUCT_CODE_RE = /^[a-z0-9_]+$/;
+export const STRIPE_PRICE_ID_RE = /^price_[A-Za-z0-9_]+$/;
 export const SLUG_MAX = 120;
 export const TITLE_MAX = 200;
+
+export class PathEscapeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PathEscapeError";
+  }
+}
 
 const EXCLUDED_SOURCE_PATTERNS: RegExp[] = [
   /(?:^|\/)labs\/.+-README\.md$/i,
@@ -233,6 +242,7 @@ export type CatalogSnapshot = {
 export type ImportPlan = {
   layout: SourceLayout;
   sourceCommit: string | null;
+  publish: boolean;
   courses: PlannedOp<PlannedCourse>[];
   lessons: PlannedOp<PlannedLesson>[];
   assets: PlannedOp<PlannedAsset>[];
@@ -376,6 +386,64 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function asString(value: unknown): string | null {
   return typeof value === "string" ? value : null;
+}
+
+export function assertStripePriceId(value: string, label = "--stripe-price-id"): string {
+  const trimmed = value.trim();
+  if (!STRIPE_PRICE_ID_RE.test(trimmed)) {
+    throw new Error(`${label} must match ${STRIPE_PRICE_ID_RE} (got ${JSON.stringify(value)})`);
+  }
+  return trimmed;
+}
+
+export function isUnsafePathRef(ref: string): boolean {
+  if (!ref || !ref.trim()) return true;
+  const trimmed = ref.trim();
+  if (path.isAbsolute(trimmed) || path.win32.isAbsolute(trimmed)) return true;
+  if (trimmed.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(trimmed)) return true;
+  const normalized = trimmed.replaceAll("\\", "/");
+  return normalized.split("/").includes("..");
+}
+
+export function isPathInside(child: string, parent: string): boolean {
+  const rel = path.relative(parent, child);
+  if (!rel) return true;
+  return !rel.startsWith("..") && !path.isAbsolute(rel);
+}
+
+function realRoot(root: string): string {
+  const resolved = path.resolve(root);
+  try {
+    return existsSync(resolved) ? realpathSync(resolved) : resolved;
+  } catch {
+    return resolved;
+  }
+}
+
+export function assertSafeRelativeRef(ref: string, context: string): void {
+  if (isUnsafePathRef(ref)) {
+    throw new PathEscapeError(
+      `${context}: refused path ${JSON.stringify(ref)} (absolute paths and .. are not allowed; stay inside --source-root or --assets-dir)`,
+    );
+  }
+}
+
+function existingContainedFile(candidate: string, allowedRoots: string[], context: string): string | null {
+  if (!existsSync(candidate)) return null;
+  let real: string;
+  try {
+    real = realpathSync(candidate);
+  } catch {
+    throw new PathEscapeError(`${context}: cannot resolve ${candidate}`);
+  }
+  if (!statSync(real).isFile()) return null;
+  const roots = allowedRoots.map(realRoot);
+  if (!roots.some((root) => isPathInside(real, root))) {
+    throw new PathEscapeError(
+      `${context}: resolved path ${real} is outside --source-root/--assets-dir`,
+    );
+  }
+  return real;
 }
 
 function pushErr(errors: string[], ok: boolean, message: string): void {
@@ -547,9 +615,38 @@ export function productCodesForCourse(mapping: ProductMapping, courseSlug: strin
   return unique;
 }
 
-export function resolveStripePriceId(product: ProductDef, env: NodeJS.Dict<string> = process.env): string {
-  const fromEnv = product.stripe_price_id_env ? env[product.stripe_price_id_env] : undefined;
-  return (fromEnv && fromEnv.trim()) || product.stripe_price_id || `price_test_${product.product_code}`;
+export function resolveStripePriceId(
+  product: ProductDef,
+  env: NodeJS.Dict<string> = process.env,
+  options: { required?: boolean; errors?: string[] } = {},
+): string {
+  const envName = product.stripe_price_id_env;
+  const fromEnv = envName ? env[envName] : undefined;
+  const trimmed = typeof fromEnv === "string" ? fromEnv.trim() : "";
+  if (options.required) {
+    if (!envName) {
+      options.errors?.push(`${product.product_code}: stripe_price_id_env is required under --apply`);
+      return "";
+    }
+    if (!trimmed) {
+      options.errors?.push(`${envName} is required under --apply (missing or empty)`);
+      return "";
+    }
+    if (!STRIPE_PRICE_ID_RE.test(trimmed)) {
+      options.errors?.push(`${envName} must match ${STRIPE_PRICE_ID_RE} (got ${JSON.stringify(fromEnv)})`);
+      return "";
+    }
+    return trimmed;
+  }
+  if (trimmed) {
+    if (!STRIPE_PRICE_ID_RE.test(trimmed)) {
+      options.errors?.push(`${envName ?? product.product_code}: Stripe price id must match ${STRIPE_PRICE_ID_RE}`);
+      return "";
+    }
+    return trimmed;
+  }
+  const fallback = product.stripe_price_id || `price_test_${product.product_code}`;
+  return fallback;
 }
 
 export function detectSourceLayout(sourceRoot: string): SourceLayout {
@@ -627,7 +724,6 @@ function classifyCourse(desired: PlannedCourse, existing?: Record<string, unknow
     "title",
     "summary",
     "sort_order",
-    "is_published",
     "stripe_price_id",
     "price_cents",
     "currency",
@@ -652,12 +748,15 @@ function classifyLesson(desired: PlannedLesson, existing?: Record<string, unknow
 function classifyAsset(desired: PlannedAsset, existing?: Record<string, unknown>): OpKind {
   if (desired.skip) return "skip";
   if (!existing) return "insert";
+  const existingCourseSlug = asString(existing.course_slug);
+  const existingLessonSlug =
+    existing.lesson_slug === undefined ? null : (existing.lesson_slug as string | null);
   const changed =
     desired.label !== existing.label ||
     desired.sha256 !== existing.sha256 ||
     desired.size_bytes !== existing.size_bytes ||
-    desired.course_slug !== existing.course_slug ||
-    !sameValue(desired.lesson_slug, existing.lesson_slug);
+    desired.course_slug !== existingCourseSlug ||
+    !sameValue(desired.lesson_slug, existingLessonSlug);
   return changed ? "update" : "unchanged";
 }
 
@@ -665,16 +764,20 @@ export function resolveLocalFile(
   ref: string,
   sourceRoot: string,
   assetsDirs: string[] = [],
+  context = "path",
 ): string | null {
-  const tries: string[] = [];
-  if (path.isAbsolute(ref)) tries.push(ref);
-  tries.push(path.resolve(sourceRoot, ref));
-  for (const dir of assetsDirs) {
-    tries.push(path.resolve(dir, ref));
-    tries.push(path.resolve(dir, path.basename(ref)));
-  }
+  assertSafeRelativeRef(ref, context);
+  const allowed = [sourceRoot, ...assetsDirs];
+  const tries = [
+    path.resolve(sourceRoot, ref),
+    ...assetsDirs.flatMap((dir) => [
+      path.resolve(dir, ref),
+      path.resolve(dir, path.basename(ref)),
+    ]),
+  ];
   for (const candidate of tries) {
-    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+    const found = existingContainedFile(candidate, allowed, context);
+    if (found) return found;
   }
   return null;
 }
@@ -685,15 +788,17 @@ function gitLessonFile(
   lesson: ManifestLesson,
 ): string | null {
   if (layout.kind !== "git" || !layout.coursesDir) return null;
-  const dir = path.join(layout.coursesDir, courseSlug);
+  const dir = path.resolve(layout.coursesDir, courseSlug);
+  const allowed = [layout.sourceRoot];
+  const context = `${courseSlug}/${lesson.slug}`;
   if (lesson.body_md_file) {
-    const named = path.join(dir, lesson.body_md_file);
-    if (existsSync(named)) return named;
+    assertSafeRelativeRef(lesson.body_md_file, `${context} body_md_file`);
+    const named = existingContainedFile(path.resolve(dir, lesson.body_md_file), allowed, context);
+    if (named) return named;
   }
   const sort = lesson.sort_order ?? 0;
-  const fallback = path.join(dir, `${String(sort).padStart(2, "0")}-${lesson.slug}.md`);
-  if (existsSync(fallback)) return fallback;
-  return null;
+  const fallbackName = `${String(sort).padStart(2, "0")}-${lesson.slug}.md`;
+  return existingContainedFile(path.resolve(dir, fallbackName), allowed, context);
 }
 
 function loadGitCourse(layout: SourceLayout, slug: string): ManifestCourse | null {
@@ -718,6 +823,8 @@ export type PlanOptions = {
   existing?: CatalogSnapshot;
   env?: NodeJS.Dict<string>;
   sourceCommit?: string | null;
+  publish?: boolean;
+  requireStripePriceIds?: boolean;
 };
 
 export function planImport(options: PlanOptions): ImportPlan {
@@ -736,6 +843,8 @@ export function planImport(options: PlanOptions): ImportPlan {
   const prefixes = excludedPrefixes(options.manifest);
   const catalog = options.mapping.products.find((p) => p.product_code === options.mapping.catalogSku);
   if (!catalog) errors.push(`product mapping is missing catalog SKU ${options.mapping.catalogSku}`);
+  const stripeOpts = { required: options.requireStripePriceIds === true, errors };
+  const publishCatalog = options.publish === true || options.mapping.publishCatalogCourses === true;
 
   const sharedKitPath = kit ? kitStoragePath(kit) : null;
   const kitOwner = kit?.owner_course ?? options.manifest.courses[0]?.slug;
@@ -760,8 +869,8 @@ export function planImport(options: PlanOptions): ImportPlan {
       title: course.title,
       summary: course.summary ?? null,
       sort_order: course.sort_order ?? index,
-      is_published: options.mapping.publishCatalogCourses,
-      stripe_price_id: catalog ? resolveStripePriceId(catalog, env) : null,
+      is_published: publishCatalog,
+      stripe_price_id: catalog ? resolveStripePriceId(catalog, env, stripeOpts) : null,
       price_cents: catalog?.price_cents ?? options.mapping.launchPriceCents,
       currency: (catalog?.currency ?? options.mapping.currency).toLowerCase(),
       product_code: options.mapping.catalogSku,
@@ -788,13 +897,24 @@ export function planImport(options: PlanOptions): ImportPlan {
 
     for (const [li, lesson] of course.lessons.entries()) {
       const sortOrder = lesson.sort_order ?? li;
-      const gitFile = gitLessonFile(layout, course.slug, { ...lesson, sort_order: sortOrder });
       const sourceMd = lesson.source_md;
       if (sourceMd && isExcludedSourcePath(sourceMd)) {
         errors.push(`${course.slug}/${lesson.slug}: refused excluded source ${sourceMd}`);
         continue;
       }
-      const boxFile = sourceMd ? resolveLocalFile(sourceMd, sourceRoot, assetsDirs) : null;
+      let gitFile: string | null = null;
+      let boxFile: string | null = null;
+      try {
+        gitFile = gitLessonFile(layout, course.slug, { ...lesson, sort_order: sortOrder });
+        boxFile = gitFile
+          ? null
+          : sourceMd
+            ? resolveLocalFile(sourceMd, sourceRoot, assetsDirs, `${course.slug}/${lesson.slug} source_md`)
+            : null;
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
+        continue;
+      }
       const sourcePath = gitFile ?? boxFile;
       const applyRewrites = layout.kind === "box" && !gitFile;
 
@@ -923,7 +1043,13 @@ export function planImport(options: PlanOptions): ImportPlan {
         continue;
       }
 
-      const localPath = resolveLocalFile(fileRef, sourceRoot, assetsDirs);
+      let localPath: string | null = null;
+      try {
+        localPath = resolveLocalFile(fileRef, sourceRoot, assetsDirs, `${course.slug} asset ${label}`);
+      } catch (error) {
+        errors.push(error instanceof Error ? error.message : String(error));
+        continue;
+      }
       if (!localPath) {
         errors.push(`${course.slug}: asset ${label}: missing local file ${fileRef}`);
         continue;
@@ -986,7 +1112,7 @@ export function planImport(options: PlanOptions): ImportPlan {
         summary: product.summary ?? null,
         sort_order: 1000 + courseOps.length,
         is_published: product.is_published === true,
-        stripe_price_id: resolveStripePriceId(product, env),
+        stripe_price_id: resolveStripePriceId(product, env, stripeOpts),
         price_cents: product.price_cents,
         currency: product.currency.toLowerCase(),
         product_code: product.product_code,
@@ -1012,6 +1138,7 @@ export function planImport(options: PlanOptions): ImportPlan {
   return {
     layout,
     sourceCommit: options.sourceCommit ?? null,
+    publish: publishCatalog,
     courses: courseOps,
     lessons: lessonOps,
     assets: assetOps,
@@ -1026,12 +1153,20 @@ export function planHasChanges(plan: ImportPlan): boolean {
   return ops.some((op) => op.kind === "insert" || op.kind === "update");
 }
 
-export function formatDryRun(plan: ImportPlan): string {
+export function formatDryRun(plan: ImportPlan, flags?: { apply?: boolean; publish?: boolean }): string {
+  const apply = flags?.apply === true;
+  const publish = flags?.publish === true || plan.publish;
   const lines: string[] = [
-    "Academy import plan (dry-run)",
+    apply ? "Academy import plan (--apply)" : "Academy import plan (dry-run; default, no writes)",
     `Source layout: ${plan.layout.kind}`,
     `Source root: ${plan.layout.sourceRoot}`,
     `Source commit: ${plan.sourceCommit ?? "(not passed; pass --source-commit to pin)"}`,
+    apply
+      ? "Writes: enabled (--apply). Service role is read only in this mode."
+      : "Writes: none. Pass --apply to write. The npm script does not pass --apply.",
+    publish
+      ? "Publish: yes, as the last step after courses, lessons and assets succeed (--publish requires --apply)."
+      : "Publish: no. Pass --publish with --apply to set is_published after content and assets succeed.",
     "",
   ];
   const section = <T,>(title: string, ops: PlannedOp<T>[], describe: (op: PlannedOp<T>) => string) => {
@@ -1076,24 +1211,235 @@ export function formatDryRun(plan: ImportPlan): string {
   return lines.join("\n");
 }
 
-export function snapshotFromPlan(plan: ImportPlan): CatalogSnapshot {
-  const snap = emptySnapshot();
+export type DbShapedCatalog = {
+  courses: Record<string, unknown>[];
+  lessons: Record<string, unknown>[];
+  assets: Record<string, unknown>[];
+};
+
+export function dbShapedCatalogFromPlan(plan: ImportPlan): DbShapedCatalog {
+  const courses: Record<string, unknown>[] = [];
+  const lessons: Record<string, unknown>[] = [];
+  const assets: Record<string, unknown>[] = [];
+  const courseIds = new Map<string, string>();
+  const lessonIds = new Map<string, string>();
+
   for (const op of plan.courses) {
     if (op.kind === "skip" || op.kind === "refuse") continue;
-    snap.courses[op.desired.slug] = { ...op.desired };
+    const id = randomUUID();
+    courseIds.set(op.desired.slug, id);
+    courses.push({
+      id,
+      slug: op.desired.slug,
+      title: op.desired.title,
+      summary: op.desired.summary,
+      sort_order: op.desired.sort_order,
+      is_published: op.desired.is_published,
+      stripe_price_id: op.desired.stripe_price_id,
+      price_cents: op.desired.price_cents,
+      currency: op.desired.currency,
+      product_code: op.desired.product_code,
+      product_codes: op.desired.product_codes,
+    });
   }
+
   for (const op of plan.lessons) {
     if (op.kind === "skip" || op.kind === "refuse") continue;
-    snap.lessons[lessonKey(op.desired.course_slug, op.desired.slug)] = { ...op.desired };
+    const courseId = courseIds.get(op.desired.course_slug);
+    if (!courseId) continue;
+    const id = randomUUID();
+    lessonIds.set(lessonKey(op.desired.course_slug, op.desired.slug), id);
+    lessons.push({
+      id,
+      course_id: courseId,
+      slug: op.desired.slug,
+      title: op.desired.title,
+      sort_order: op.desired.sort_order,
+      body_md: op.desired.body_md,
+      is_preview: op.desired.is_preview,
+      duration_minutes: op.desired.duration_minutes,
+    });
   }
+
   for (const op of plan.assets) {
     if (op.kind === "skip" || op.kind === "refuse") continue;
-    snap.assets[op.desired.storage_path] = { ...op.desired };
+    const courseId = courseIds.get(op.desired.course_slug);
+    if (!courseId) continue;
+    const lessonId = op.desired.lesson_slug
+      ? lessonIds.get(lessonKey(op.desired.course_slug, op.desired.lesson_slug)) ?? null
+      : null;
+    assets.push({
+      id: randomUUID(),
+      course_id: courseId,
+      lesson_id: lessonId,
+      label: op.desired.label,
+      storage_path: op.desired.storage_path,
+      sha256: op.desired.sha256,
+      size_bytes: op.desired.size_bytes,
+    });
   }
+
+  return { courses, lessons, assets };
+}
+
+export function catalogSnapshotFromDbRows(rows: DbShapedCatalog): CatalogSnapshot {
+  const snap = emptySnapshot();
+  const courseIdToSlug = new Map<string, string>();
+  const lessonIdToSlug = new Map<string, string>();
+
+  for (const row of rows.courses) {
+    const slug = asString(row.slug);
+    const id = asString(row.id);
+    if (!slug) continue;
+    if (id) courseIdToSlug.set(id, slug);
+    snap.courses[slug] = row;
+  }
+
+  for (const row of rows.lessons) {
+    const slug = asString(row.slug);
+    const courseId = asString(row.course_id);
+    const courseSlug = courseId ? courseIdToSlug.get(courseId) : undefined;
+    if (!slug || !courseSlug) continue;
+    const id = asString(row.id);
+    if (id) lessonIdToSlug.set(id, slug);
+    snap.lessons[lessonKey(courseSlug, slug)] = { ...row, course_slug: courseSlug };
+  }
+
+  for (const row of rows.assets) {
+    const storagePath = asString(row.storage_path);
+    if (!storagePath) continue;
+    const courseId = asString(row.course_id);
+    const courseSlug = courseId ? courseIdToSlug.get(courseId) ?? null : null;
+    const lessonId = row.lesson_id == null ? null : asString(row.lesson_id);
+    const lessonSlug = lessonId ? lessonIdToSlug.get(lessonId) ?? null : null;
+    snap.assets[storagePath] = {
+      ...row,
+      course_slug: courseSlug,
+      lesson_slug: lessonSlug,
+    };
+  }
+
   return snap;
 }
 
-export function parseArgs(argv: string[]): {
+export function snapshotFromPlan(plan: ImportPlan): CatalogSnapshot {
+  return catalogSnapshotFromDbRows(dbShapedCatalogFromPlan(plan));
+}
+
+export function assetsNeedingUpload(plan: ImportPlan): PlannedAsset[] {
+  return plan.assets
+    .filter((op) => op.kind === "insert" || op.kind === "update")
+    .map((op) => op.desired);
+}
+
+export function catalogSlugsToPublish(plan: ImportPlan): string[] {
+  return plan.courses.filter((op) => !op.desired.sku_row).map((op) => op.desired.slug);
+}
+
+export function courseUpsertRow(course: PlannedCourse, mapping: ProductMapping): Record<string, unknown> {
+  const row: Record<string, unknown> = {
+    slug: course.slug,
+    title: course.title,
+    summary: course.summary,
+    sort_order: course.sort_order,
+    stripe_price_id: course.stripe_price_id,
+    price_cents: course.price_cents,
+    currency: course.currency,
+    product_code: course.product_code,
+  };
+  if (mapping.r2.writeArrayColumn) {
+    row[mapping.r2.courseProductCodesColumn] = course.product_codes;
+  }
+  return row;
+}
+
+export type AcademyWriteStore = {
+  upsertCourse(row: Record<string, unknown>): Promise<{ id: string; slug: string }>;
+  listCourses(): Promise<{ id: string; slug: string }[]>;
+  upsertLesson(row: Record<string, unknown>): Promise<{ id: string; slug: string; course_id: string }>;
+  listLessons(): Promise<{ id: string; slug: string; course_id: string }[]>;
+  uploadAsset(storagePath: string, bytes: Buffer, contentType: string): Promise<void>;
+  upsertAsset(row: Record<string, unknown>): Promise<void>;
+  publishCatalog(slugs: string[]): Promise<void>;
+};
+
+export async function applyPlanWithStore(
+  store: AcademyWriteStore,
+  plan: ImportPlan,
+  mapping: ProductMapping,
+  options: { publish: boolean },
+): Promise<{ uploaded: string[]; published: string[] }> {
+  const uploaded: string[] = [];
+  const courseIds = new Map<string, string>();
+  const lessonIds = new Map<string, string>();
+
+  for (const op of plan.courses) {
+    if (op.kind !== "insert" && op.kind !== "update") continue;
+    const data = await store.upsertCourse(courseUpsertRow(op.desired, mapping));
+    courseIds.set(data.slug, data.id);
+  }
+
+  for (const row of await store.listCourses()) courseIds.set(row.slug, row.id);
+
+  for (const op of plan.lessons) {
+    if (op.kind !== "insert" && op.kind !== "update") continue;
+    const courseId = courseIds.get(op.desired.course_slug);
+    if (!courseId) throw new Error(`lesson ${op.key}: missing course id`);
+    const data = await store.upsertLesson({
+      course_id: courseId,
+      slug: op.desired.slug,
+      title: op.desired.title,
+      sort_order: op.desired.sort_order,
+      body_md: op.desired.body_md,
+      is_preview: op.desired.is_preview,
+      duration_minutes: op.desired.duration_minutes,
+    });
+    lessonIds.set(op.key, data.id);
+  }
+
+  const idToSlug = new Map([...courseIds.entries()].map(([slug, id]) => [id, slug]));
+  for (const row of await store.listLessons()) {
+    const courseSlug = idToSlug.get(row.course_id);
+    if (courseSlug) lessonIds.set(`${courseSlug}/${row.slug}`, row.id);
+  }
+
+  for (const op of plan.assets) {
+    if (op.kind === "skip" || op.kind === "refuse" || op.kind === "unchanged") continue;
+    const asset = op.desired;
+    if (!asset.local_path) throw new Error(`asset ${asset.storage_path}: missing local file`);
+    const bytes = readFileSync(asset.local_path);
+    verifyChecksum(bytes, asset.sha256, asset.size_bytes, asset.storage_path);
+    await store.uploadAsset(asset.storage_path, bytes, "application/zip");
+    uploaded.push(asset.storage_path);
+
+    const courseId = courseIds.get(asset.course_slug);
+    if (!courseId) throw new Error(`asset ${asset.storage_path}: missing course id`);
+    const lessonId = asset.lesson_slug ? lessonIds.get(`${asset.course_slug}/${asset.lesson_slug}`) ?? null : null;
+    await store.upsertAsset({
+      course_id: courseId,
+      lesson_id: lessonId,
+      label: asset.label,
+      storage_path: asset.storage_path,
+      sha256: asset.sha256,
+      size_bytes: asset.size_bytes,
+    });
+  }
+
+  const published: string[] = [];
+  if (options.publish) {
+    const slugs = catalogSlugsToPublish(plan);
+    if (slugs.length) {
+      await store.publishCatalog(slugs);
+      published.push(...slugs);
+    }
+  }
+
+  return { uploaded, published };
+}
+
+export type ParsedArgs = {
+  apply: boolean;
+  publish: boolean;
   dryRun: boolean;
   manifest: string | null;
   sourceRoot: string | null;
@@ -1103,25 +1449,32 @@ export function parseArgs(argv: string[]): {
   priceSwitch: boolean;
   stripePriceId: string | null;
   help: boolean;
-} {
-  const out = {
-    dryRun: false,
-    manifest: null as string | null,
-    sourceRoot: null as string | null,
-    sourceCommit: null as string | null,
-    productMapping: null as string | null,
-    assetsDir: [] as string[],
+};
+
+export function parseArgs(argv: string[]): ParsedArgs {
+  const out: ParsedArgs = {
+    apply: false,
+    publish: false,
+    dryRun: true,
+    manifest: null,
+    sourceRoot: null,
+    sourceCommit: null,
+    productMapping: null,
+    assetsDir: [],
     priceSwitch: false,
-    stripePriceId: null as string | null,
+    stripePriceId: null,
     help: false,
   };
+  let sawDryRun = false;
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const next = () => {
       i += 1;
       return argv[i];
     };
-    if (arg === "--dry-run") out.dryRun = true;
+    if (arg === "--dry-run") sawDryRun = true;
+    else if (arg === "--apply") out.apply = true;
+    else if (arg === "--publish") out.publish = true;
     else if (arg === "--manifest") out.manifest = next();
     else if (arg === "--source-root") out.sourceRoot = next();
     else if (arg === "--source-commit") out.sourceCommit = next();
@@ -1135,6 +1488,13 @@ export function parseArgs(argv: string[]): {
     else if (arg.startsWith("--source-commit=")) out.sourceCommit = arg.slice("--source-commit=".length);
     else throw new Error(`Unknown argument: ${arg}`);
   }
+  if (out.apply && sawDryRun) {
+    throw new Error("pass only one of --apply and --dry-run");
+  }
+  if (out.publish && !out.apply) {
+    throw new Error("--publish requires --apply");
+  }
+  out.dryRun = !out.apply;
   return out;
 }
 
@@ -1146,12 +1506,20 @@ export const HELP = `Academy import (elsa-hub#40)
     --source-commit <git sha> \\
     [--assets-dir /path/to/zips] \\
     [--product-mapping academy/product-mapping.json] \\
-    [--dry-run]
+    [--apply] [--publish]
 
-  npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_... [--dry-run]
+  npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_... [--apply]
+
+Dry-run is the default. Every database or storage write needs --apply
+(including --price-switch). --publish also needs --apply; it sets
+is_published on catalog courses only after content and assets succeed.
+npm run academy:import does not pass --apply.
 
 --source-root may be a box checkout (lesson source_md paths) or a
 valence-works/elsa-plus-training content/courses tree (course.json + NN-<slug>.md).
-SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are read from the environment and
-are never written to the repo. Dry-run prints the plan and does not write.
+Lesson and asset paths must stay inside --source-root or --assets-dir.
+Absolute paths and .. are refused.
+
+SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are read from the environment
+only with --apply, and are never written to the repo.
 `;

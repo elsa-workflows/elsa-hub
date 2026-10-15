@@ -1,20 +1,29 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   STALE_COMPLETE_ZIP_PREFIX,
+  STRIPE_PRICE_ID_RE,
   applyExactRewrites,
+  applyPlanWithStore,
+  assetsNeedingUpload,
+  assertStripePriceId,
+  catalogSnapshotFromDbRows,
+  catalogSlugsToPublish,
+  courseUpsertRow,
+  dbShapedCatalogFromPlan,
   digestBytes,
   formatDryRun,
+  parseArgs,
   planImport,
   productCodesForCourse,
-  snapshotFromPlan,
   stripLeadingH1,
   validateManifest,
   validateProductMapping,
   verifyChecksum,
   type AcademyManifest,
+  type AcademyWriteStore,
   type ProductMapping,
 } from "./academy-import-lib";
 
@@ -23,7 +32,7 @@ const mapping: ProductMapping = {
   currency: "eur",
   launchPriceCents: 2900,
   postLaunchPriceCents: 3900,
-  publishCatalogCourses: true,
+  publishCatalogCourses: false,
   courseOwnCodes: { "demo-core": null },
   r2: { courseProductCodesColumn: "product_codes", writeArrayColumn: true },
   products: [
@@ -35,6 +44,7 @@ const mapping: ProductMapping = {
       seats: 1,
       covers: ["demo-core"],
       stripe_price_id: "price_test_solo_bundle",
+      stripe_price_id_env: "STRIPE_PRICE_ID_SOLO_BUNDLE",
     },
     {
       product_code: "team_5",
@@ -45,6 +55,7 @@ const mapping: ProductMapping = {
       seats: 5,
       covers: ["demo-core"],
       stripe_price_id: "price_test_team_5",
+      stripe_price_id_env: "STRIPE_PRICE_ID_TEAM_5",
       sku_row: true,
       is_published: false,
     },
@@ -123,11 +134,55 @@ function boxManifest(overrides: Record<string, unknown> = {}): AcademyManifest {
   } as AcademyManifest;
 }
 
+function memoryStore(seed?: { courses?: { id: string; slug: string }[] }): AcademyWriteStore & {
+  calls: string[];
+  uploads: string[];
+} {
+  const calls: string[] = [];
+  const uploads: string[] = [];
+  const courses = [...(seed?.courses ?? [])];
+  return {
+    calls,
+    uploads,
+    async upsertCourse(row) {
+      calls.push(`course:${String(row.slug)}`);
+      expect(row).not.toHaveProperty("is_published");
+      const existing = courses.find((c) => c.slug === row.slug);
+      if (existing) return existing;
+      const created = { id: `course-${row.slug}`, slug: String(row.slug) };
+      courses.push(created);
+      return created;
+    },
+    async listCourses() {
+      calls.push("listCourses");
+      return courses;
+    },
+    async upsertLesson(row) {
+      calls.push(`lesson:${String(row.slug)}`);
+      return { id: `lesson-${row.slug}`, slug: String(row.slug), course_id: String(row.course_id) };
+    },
+    async listLessons() {
+      calls.push("listLessons");
+      return [];
+    },
+    async uploadAsset(storagePath) {
+      calls.push(`upload:${storagePath}`);
+      uploads.push(storagePath);
+    },
+    async upsertAsset(row) {
+      calls.push(`asset:${String(row.storage_path)}`);
+    },
+    async publishCatalog(slugs) {
+      calls.push(`publish:${slugs.join(",")}`);
+    },
+  };
+}
+
 describe("manifest validation", () => {
   it("accepts a catalog course with extra_assets", () => {
     const extra = {
       label: "Extra handout",
-      file: "/tmp/handout.zip",
+      file: "extras/handout.zip",
       sha256: "a".repeat(64),
       size_bytes: 12,
       storage_path: "extras/demo-core/handout.zip",
@@ -171,6 +226,7 @@ describe("manifest validation", () => {
     const raw = JSON.parse(readFileSync("academy/product-mapping.json", "utf8"));
     const result = validateProductMapping(raw);
     expect(result.ok).toBe(true);
+    expect(result.mapping?.publishCatalogCourses).toBe(false);
     const codes = productCodesForCourse(result.mapping!, "fundamentals-complete");
     expect(codes[0]).toBe("solo_bundle");
     expect(codes).toContain("team_5");
@@ -205,6 +261,63 @@ describe("rewrites and H1", () => {
   });
 });
 
+describe("flags and stripe guards", () => {
+  it("defaults to dry-run and requires --apply for writes", () => {
+    expect(parseArgs([]).dryRun).toBe(true);
+    expect(parseArgs([]).apply).toBe(false);
+    expect(parseArgs([]).publish).toBe(false);
+    expect(parseArgs(["--apply"]).apply).toBe(true);
+    expect(parseArgs(["--apply"]).dryRun).toBe(false);
+    expect(parseArgs(["--apply", "--publish"]).publish).toBe(true);
+    expect(() => parseArgs(["--publish"])).toThrow(/--publish requires --apply/);
+    expect(() => parseArgs(["--apply", "--dry-run"])).toThrow(/only one of --apply and --dry-run/);
+  });
+
+  it("does not pass --apply from the npm scripts", async () => {
+    const { readFileSync } = await import("node:fs");
+    const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
+    expect(pkg.scripts["academy:import"]).toBe("tsx scripts/academy-import.ts");
+    expect(pkg.scripts["academy:import"]).not.toMatch(/--apply/);
+    expect(pkg.scripts["academy:price-switch"]).toBe("tsx scripts/academy-import.ts --price-switch");
+    expect(pkg.scripts["academy:price-switch"]).not.toMatch(/--apply/);
+  });
+
+  it("rejects empty or non-price_ stripe ids", () => {
+    expect(() => assertStripePriceId("")).toThrow(/must match/);
+    expect(() => assertStripePriceId("   ")).toThrow(/must match/);
+    expect(() => assertStripePriceId("prod_123")).toThrow(/must match/);
+    expect(assertStripePriceId("price_abc123")).toBe("price_abc123");
+    expect(assertStripePriceId("price_test_solo_bundle")).toBe("price_test_solo_bundle");
+    expect(STRIPE_PRICE_ID_RE.test("")).toBe(false);
+    expect(STRIPE_PRICE_ID_RE.test("price_test_team_5")).toBe(true);
+  });
+
+  it("fails apply planning when a needed STRIPE_PRICE_ID_* is missing", () => {
+    const root = tmpDir();
+    writeTree(root, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+    });
+    const plan = planImport({
+      manifest: boxManifest(),
+      mapping,
+      sourceRoot: root,
+      env: {},
+      requireStripePriceIds: true,
+    });
+    expect(plan.errors.some((error) => /STRIPE_PRICE_ID_SOLO_BUNDLE is required under --apply/.test(error))).toBe(
+      true,
+    );
+  });
+
+  it("keeps the price_ guard in academy-price-switch.sql", async () => {
+    const { readFileSync } = await import("node:fs");
+    const sql = readFileSync("scripts/academy-price-switch.sql", "utf8");
+    expect(sql).toMatch(/\^price_\[A-Za-z0-9_\]\+\$/);
+    expect(sql).toMatch(/RAISE EXCEPTION/);
+  });
+});
+
 describe("import planning", () => {
   it("plans an idempotent upsert and maps duration_minutes", () => {
     const root = tmpDir();
@@ -216,10 +329,9 @@ describe("import planning", () => {
     const kitDigest = digestBytes(kit);
     const extra = Buffer.from("extra-asset-bytes");
     const extraDigest = digestBytes(extra);
-    const extraPath = path.join(root, "outside", "handout.zip");
     writeTree(root, {
       "kits/kit.zip": kit,
-      "outside/handout.zip": extra,
+      "extras/handout.zip": extra,
     });
 
     const manifest = boxManifest();
@@ -242,7 +354,7 @@ describe("import planning", () => {
     manifest.courses[0].extra_assets = [
       {
         label: "Extra handout",
-        file: extraPath,
+        file: "extras/handout.zip",
         sha256: extraDigest.sha256,
         size_bytes: extraDigest.sizeBytes,
         storage_path: "extras/demo-core/handout.zip",
@@ -252,6 +364,8 @@ describe("import planning", () => {
     const first = planImport({ manifest, mapping, sourceRoot: root });
     expect(first.errors).toEqual([]);
     expect(first.layout.kind).toBe("box");
+    expect(first.publish).toBe(false);
+    expect(first.courses[0].desired.is_published).toBe(false);
     expect(first.lessons.map((op) => op.kind)).toEqual(["insert", "insert"]);
     expect(first.lessons[0].desired.duration_minutes).toBe(5);
     expect(first.lessons[0].desired.body_md).toContain("/academy/demo-core/paid");
@@ -264,17 +378,72 @@ describe("import planning", () => {
       true,
     );
 
+    const dbRows = dbShapedCatalogFromPlan(first);
+    expect(dbRows.assets.every((row) => row.course_id && !("course_slug" in row))).toBe(true);
+    expect(dbRows.assets.every((row) => !("lesson_slug" in row))).toBe(true);
     const second = planImport({
       manifest,
       mapping,
       sourceRoot: root,
-      existing: snapshotFromPlan(first),
+      existing: catalogSnapshotFromDbRows(dbRows),
     });
     expect(second.errors).toEqual([]);
     expect(second.courses.every((op) => op.kind === "unchanged")).toBe(true);
     expect(second.lessons.every((op) => op.kind === "unchanged")).toBe(true);
     expect(second.assets.filter((op) => !op.desired.skip).every((op) => op.kind === "unchanged")).toBe(true);
+    expect(assetsNeedingUpload(second)).toEqual([]);
     expect(formatDryRun(second)).toMatch(/no-op/);
+  });
+
+  it("uploads nothing on a second apply against DB-shaped asset rows", async () => {
+    const root = tmpDir();
+    const kit = Buffer.from("kit-bytes");
+    const kitDigest = digestBytes(kit);
+    writeTree(root, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+      "kits/kit.zip": kit,
+    });
+    const manifest = boxManifest();
+    manifest.kit_release = {
+      tag: "workshop/solo-bundle-20261013",
+      asset: "kit.zip",
+      sha256: kitDigest.sha256,
+      bytes: kitDigest.sizeBytes,
+      storage_path: "kits/solo-bundle-20261013/kit.zip",
+      owner_course: "demo-core",
+    };
+    manifest.courses[0].assets = [
+      {
+        label: "Lab kit",
+        source: "kits/kit.zip",
+        sha256: kitDigest.sha256,
+        size_bytes: kitDigest.sizeBytes,
+      },
+    ];
+    const first = planImport({
+      manifest,
+      mapping,
+      sourceRoot: root,
+      env: { STRIPE_PRICE_ID_SOLO_BUNDLE: "price_test_solo_bundle", STRIPE_PRICE_ID_TEAM_5: "price_test_team_5" },
+    });
+    expect(first.errors).toEqual([]);
+    expect(assetsNeedingUpload(first).length).toBeGreaterThan(0);
+
+    const existing = catalogSnapshotFromDbRows(dbShapedCatalogFromPlan(first));
+    const second = planImport({
+      manifest,
+      mapping,
+      sourceRoot: root,
+      existing,
+      env: { STRIPE_PRICE_ID_SOLO_BUNDLE: "price_test_solo_bundle", STRIPE_PRICE_ID_TEAM_5: "price_test_team_5" },
+    });
+    expect(assetsNeedingUpload(second)).toEqual([]);
+    const store = memoryStore();
+    const result = await applyPlanWithStore(store, second, mapping, { publish: false });
+    expect(result.uploaded).toEqual([]);
+    expect(store.uploads).toEqual([]);
+    expect(store.calls.some((call) => call.startsWith("upload:"))).toBe(false);
   });
 
   it("refuses an upload when sha256 or size_bytes do not match the local file", () => {
@@ -361,5 +530,144 @@ describe("import planning", () => {
     expect(plan.layout.kind).toBe("git");
     expect(plan.errors).toEqual([]);
     expect(plan.lessons[0].desired.body_md).toBe(welcomeBody);
+  });
+});
+
+describe("path containment", () => {
+  it("refuses absolute source_md and does not copy an outside file into the lesson body", () => {
+    const root = tmpDir();
+    const outside = path.join(os.tmpdir(), `academy-outside-${process.pid}.md`);
+    writeFileSync(outside, "SECRET OUTSIDE FILE\n");
+    writeTree(root, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+    });
+    const manifest = boxManifest();
+    manifest.courses[0].lessons[0].source_md = outside;
+    const plan = planImport({ manifest, mapping, sourceRoot: root });
+    expect(plan.errors.some((error) => /refused path/.test(error))).toBe(true);
+    expect(plan.lessons.some((op) => op.desired.body_md.includes("SECRET OUTSIDE FILE"))).toBe(false);
+  });
+
+  it("refuses .. path traversal for lessons and assets", () => {
+    const root = tmpDir();
+    const parent = path.join(root, "..", `escape-${process.pid}.md`);
+    writeFileSync(parent, "TRAVERSAL\n");
+    writeTree(root, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+    });
+    const manifest = boxManifest();
+    manifest.courses[0].lessons[1].source_md = `../escape-${process.pid}.md`;
+    const plan = planImport({ manifest, mapping, sourceRoot: root });
+    expect(plan.errors.some((error) => /\.\./.test(error))).toBe(true);
+    expect(plan.lessons.some((op) => op.desired.body_md.includes("TRAVERSAL"))).toBe(false);
+
+    const kit = Buffer.from("kit");
+    const digest = digestBytes(kit);
+    manifest.courses[0].lessons[1].source_md = "modules/paid.md";
+    manifest.courses[0].assets = [
+      {
+        label: "Escaping zip",
+        file: "../escape.zip",
+        sha256: digest.sha256,
+        size_bytes: digest.sizeBytes,
+      },
+    ];
+    const assetPlan = planImport({ manifest, mapping, sourceRoot: root });
+    expect(assetPlan.errors.some((error) => /refused path/.test(error))).toBe(true);
+  });
+
+  it("refuses a symlink that resolves outside source-root and assets-dir", () => {
+    const root = tmpDir();
+    const outside = path.join(os.tmpdir(), `academy-symlink-${process.pid}.md`);
+    writeFileSync(outside, "SYMLINK SECRET\n");
+    writeTree(root, {
+      "modules/paid.md": paidBody,
+    });
+    symlinkSync(outside, path.join(root, "modules", "welcome.md"));
+    const plan = planImport({ manifest: boxManifest(), mapping, sourceRoot: root });
+    expect(plan.errors.some((error) => /outside --source-root/.test(error))).toBe(true);
+    expect(plan.lessons.some((op) => op.desired.body_md.includes("SYMLINK SECRET"))).toBe(false);
+  });
+});
+
+describe("apply plan", () => {
+  it("publishes catalog courses only after content and assets succeed", async () => {
+    const root = tmpDir();
+    const kit = Buffer.from("kit-bytes");
+    const kitDigest = digestBytes(kit);
+    writeTree(root, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+      "kits/kit.zip": kit,
+    });
+    const manifest = boxManifest();
+    manifest.kit_release = {
+      tag: "workshop/solo-bundle-20261013",
+      asset: "kit.zip",
+      sha256: kitDigest.sha256,
+      bytes: kitDigest.sizeBytes,
+      storage_path: "kits/solo-bundle-20261013/kit.zip",
+      owner_course: "demo-core",
+    };
+    manifest.courses[0].assets = [
+      {
+        label: "Lab kit",
+        source: "kits/kit.zip",
+        sha256: kitDigest.sha256,
+        size_bytes: kitDigest.sizeBytes,
+      },
+    ];
+    const plan = planImport({ manifest, mapping, sourceRoot: root, publish: true });
+    expect(plan.errors).toEqual([]);
+    expect(courseUpsertRow(plan.courses[0].desired, mapping)).not.toHaveProperty("is_published");
+    expect(catalogSlugsToPublish(plan)).toEqual(["demo-core"]);
+    expect(catalogSlugsToPublish(plan)).not.toContain("team-5");
+
+    const store = memoryStore();
+    const result = await applyPlanWithStore(store, plan, mapping, { publish: true });
+    expect(result.uploaded.length).toBeGreaterThan(0);
+    expect(result.published).toEqual(["demo-core"]);
+    const publishAt = store.calls.findIndex((call) => call.startsWith("publish:"));
+    const lastUpload = store.calls.map((call, i) => (call.startsWith("upload:") ? i : -1)).filter((i) => i >= 0).at(-1) ?? -1;
+    expect(publishAt).toBeGreaterThan(lastUpload);
+    expect(store.calls[publishAt]).toBe("publish:demo-core");
+  });
+
+  it("does not publish when an asset upload fails", async () => {
+    const root = tmpDir();
+    const kit = Buffer.from("kit-bytes");
+    const kitDigest = digestBytes(kit);
+    writeTree(root, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+      "kits/kit.zip": kit,
+    });
+    const manifest = boxManifest();
+    manifest.kit_release = {
+      tag: "workshop/solo-bundle-20261013",
+      asset: "kit.zip",
+      sha256: kitDigest.sha256,
+      bytes: kitDigest.sizeBytes,
+      storage_path: "kits/solo-bundle-20261013/kit.zip",
+      owner_course: "demo-core",
+    };
+    manifest.courses[0].assets = [
+      {
+        label: "Lab kit",
+        source: "kits/kit.zip",
+        sha256: kitDigest.sha256,
+        size_bytes: kitDigest.sizeBytes,
+      },
+    ];
+    const plan = planImport({ manifest, mapping, sourceRoot: root, publish: true });
+    const store = memoryStore();
+    store.uploadAsset = async () => {
+      store.calls.push("upload:fail");
+      throw new Error("upload failed");
+    };
+    await expect(applyPlanWithStore(store, plan, mapping, { publish: true })).rejects.toThrow(/upload failed/);
+    expect(store.calls.some((call) => call.startsWith("publish:"))).toBe(false);
   });
 });
