@@ -1,11 +1,15 @@
-gumroad_sale_id,email,product_name,product_id,product_code,variant,organization_name,seats,counts_against_sale_id,is_redemption
-sale_solo_001,buyer1@example.com,Elsa+ Training Solo Bundle,pkvdly,,,,,,
-sale_solo_permalink,Buyer1@example.com,Fundamentals Core,pkvdly,,,,,,
-sale_team5_001,buyer2@example.com,Team 5 Pack,,,,Example Team,,,
-sale_team10_001,buyer3@example.com,Team 10,,,,Acme Training,,,
-sale_code_001,buyer4@example.com,,,team_5,,,,,
-sale_variant_001,buyer1@example.com,pkvdly listing,pkvdly,,Team 5,,,,
-sale_red_001,buyer6@example.com,Solo Bundle,pkvdly,,,,,sale_team5_001,true
-sale_red_unmapped,buyer7@example.com,Solo Bundle,pkvdly,,,,,,true
-sale_unmapped,buyer5@example.com,Unknown Widget,zzzz,,,,,,
-sale_invalid,not-an-email,Solo Bundle,pkvdly,,,,,,
+gumroad_sale_id,email,product_name,product_id,product_code,variant,organization_name,seats,counts_against_sale_id,is_redemption,quantity,refunded,disputed
+sale_solo_001,buyer1@example.com,Elsa+ Training Solo Bundle,pkvdly,,,,,,,,,
+sale_solo_permalink,Buyer1@example.com,Fundamentals Core,pkvdly,,,,,,,,,
+sale_team5_001,buyer2@example.com,Team 5 Pack,,,,Example Team,,,,,,
+sale_team10_001,buyer3@example.com,Team 10,,,,Acme Training,,,,,,
+sale_code_001,buyer4@example.com,,,team_5,,,,,,,,
+sale_variant_001,buyer1@example.com,pkvdly listing,pkvdly,,Team 5,,,,,,,
+sale_mixed_variant,buyer1@example.com,Elsa+ Training Solo Bundle,pkvdly,,Team 10,,,,,,,
+sale_qty_one,buyer2@example.com,Team 5 Pack,,,,,,,,1,,
+sale_red_001,buyer6@example.com,Solo Bundle,pkvdly,,,,,sale_team5_001,true,,,
+sale_red_unmapped,buyer7@example.com,Solo Bundle,pkvdly,,,,,,true,,,
+sale_unmapped,buyer5@example.com,Unknown Widget,zzzz,,,,,,,,,
+sale_invalid,not-an-email,Solo Bundle,pkvdly,,,,,,,,,
+sale_refunded,buyer1@example.com,Solo Bundle,pkvdly,,,,,,,,true,
+sale_disputed,buyer1@example.com,Solo Bundle,pkvdly,,,,,,,,,true

@@ -14,9 +14,11 @@ export type MappedGumroadSale = {
   organizationNameHint: string | null;
 };
 
+export type MapGumroadSaleFailureReason = "invalid" | "unmapped" | "refunded";
+
 export type MapGumroadSaleFailure = {
   ok: false;
-  reason: "invalid" | "unmapped";
+  reason: MapGumroadSaleFailureReason;
 };
 
 export type MapGumroadSaleSuccess = {
@@ -33,15 +35,14 @@ export type GumroadProductMapping = {
   namePatterns: RegExp[];
 };
 
-// Map Gumroad product names and permalinks to Hub product codes.
-// The live Training CTA uses permalink pkvdly for Solo Bundle (and currently
-// also the Team pack button). Prefer name / variant / product_code over id.
+// Team before Solo so a shared pkvdly listing with a Team variant or name
+// cannot collapse to solo_bundle. Variant is matched before product name.
 export const GUMROAD_PRODUCT_MAP: GumroadProductMapping[] = [
   {
-    productCode: "solo_bundle",
-    seats: 1,
-    ids: ["pkvdly"],
-    namePatterns: [/\bsolo\s*bundle\b/i, /\bfundamentals\s*core\b/i],
+    productCode: "team_10",
+    seats: 10,
+    ids: [],
+    namePatterns: [/\bteam\s*10\b/i, /\bteam\s*pack\s*10\b/i, /\b10\s*seats?\b/i],
   },
   {
     productCode: "team_5",
@@ -50,10 +51,10 @@ export const GUMROAD_PRODUCT_MAP: GumroadProductMapping[] = [
     namePatterns: [/\bteam\s*5\b/i, /\bteam\s*pack\s*5\b/i, /\b5\s*seats?\b/i],
   },
   {
-    productCode: "team_10",
-    seats: 10,
-    ids: [],
-    namePatterns: [/\bteam\s*10\b/i, /\bteam\s*pack\s*10\b/i, /\b10\s*seats?\b/i],
+    productCode: "solo_bundle",
+    seats: 1,
+    ids: ["pkvdly"],
+    namePatterns: [/\bsolo\s*bundle\b/i, /\bfundamentals\s*core\b/i],
   },
 ];
 
@@ -75,7 +76,7 @@ const HEADER_ALIASES: Record<string, keyof CanonicalSaleRow> = {
   product_code: "productCode",
   sku: "productCode",
   seats: "seats",
-  quantity: "seats",
+  quantity: "quantity",
   organization_name: "organizationName",
   organization: "organizationName",
   organisation_name: "organizationName",
@@ -92,19 +93,28 @@ const HEADER_ALIASES: Record<string, keyof CanonicalSaleRow> = {
   is_redemption: "isRedemption",
   redemption: "isRedemption",
   sale_type: "isRedemption",
+  refunded: "refunded",
+  is_refunded: "refunded",
+  fully_refunded: "refunded",
+  disputed: "disputed",
+  is_disputed: "disputed",
+  chargeback: "disputed",
 };
 
-type CanonicalSaleRow = {
+export type CanonicalSaleRow = {
   gumroadSaleId: string;
   email: string;
   productName: string;
   productId: string;
   productCode: string;
   seats: string;
+  quantity: string;
   organizationName: string;
   variant: string;
   countsAgainstSaleId: string;
   isRedemption: string;
+  refunded: string;
+  disputed: string;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -119,6 +129,28 @@ export function isAcademyProductCode(value: string): value is AcademyProductCode
 
 export function isRedemptionFlag(value: string): boolean {
   return /^(1|true|yes|y|redemption)$/i.test(value.trim());
+}
+
+export function isRefundedOrDisputedFlag(value: string): boolean {
+  return /^(1|true|yes|y|refunded|fully_refunded|disputed|chargeback)$/i.test(value.trim());
+}
+
+export function emptyCanonicalSaleRow(): CanonicalSaleRow {
+  return {
+    gumroadSaleId: "",
+    email: "",
+    productName: "",
+    productId: "",
+    productCode: "",
+    seats: "",
+    quantity: "",
+    organizationName: "",
+    variant: "",
+    countsAgainstSaleId: "",
+    isRedemption: "",
+    refunded: "",
+    disputed: "",
+  };
 }
 
 export function parseCsv(text: string): Record<string, string>[] {
@@ -141,18 +173,7 @@ export function parseCsv(text: string): Record<string, string>[] {
 }
 
 export function canonicalizeCsvRow(row: Record<string, string>): CanonicalSaleRow {
-  const canonical: CanonicalSaleRow = {
-    gumroadSaleId: "",
-    email: "",
-    productName: "",
-    productId: "",
-    productCode: "",
-    seats: "",
-    organizationName: "",
-    variant: "",
-    countsAgainstSaleId: "",
-    isRedemption: "",
-  };
+  const canonical = emptyCanonicalSaleRow();
 
   for (const [rawHeader, rawValue] of Object.entries(row)) {
     const alias = HEADER_ALIASES[normalizeHeader(rawHeader)];
@@ -173,9 +194,17 @@ export function resolveProductCode(row: CanonicalSaleRow): AcademyProductCode | 
     return explicit;
   }
 
-  const nameHaystack = `${row.productName} ${row.variant}`.trim();
-  if (nameHaystack) {
-    const fromName = matchProductByName(nameHaystack);
+  const variant = row.variant.trim();
+  if (variant) {
+    const fromVariant = matchProductByName(variant);
+    if (fromVariant) {
+      return fromVariant;
+    }
+  }
+
+  const productName = row.productName.trim();
+  if (productName) {
+    const fromName = matchProductByName(productName);
     if (fromName) {
       return fromName;
     }
@@ -194,6 +223,18 @@ export function resolveProductCode(row: CanonicalSaleRow): AcademyProductCode | 
   return null;
 }
 
+export function resolveSeats(row: CanonicalSaleRow, productCode: AcademyProductCode): number {
+  const catalog = GUMROAD_PRODUCT_MAP.find((entry) => entry.productCode === productCode);
+  const packSeats = catalog?.seats ?? 1;
+  const explicitSeats = Number.parseInt(row.seats, 10);
+  if (Number.isInteger(explicitSeats) && explicitSeats > 0) {
+    return explicitSeats;
+  }
+  const quantity = Number.parseInt(row.quantity, 10);
+  const units = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+  return packSeats * units;
+}
+
 export function mapGumroadSale(row: Record<string, string>): MapGumroadSaleResult {
   const canonical = canonicalizeCsvRow(row);
   const email = normalizeEmail(canonical.email);
@@ -203,6 +244,13 @@ export function mapGumroadSale(row: Record<string, string>): MapGumroadSaleResul
 
   if (!gumroadSaleId || !email || !EMAIL_RE.test(email)) {
     return { ok: false, reason: "invalid" };
+  }
+
+  if (
+    isRefundedOrDisputedFlag(canonical.refunded) ||
+    isRefundedOrDisputedFlag(canonical.disputed)
+  ) {
+    return { ok: false, reason: "refunded" };
   }
 
   if (redemption) {
@@ -225,9 +273,7 @@ export function mapGumroadSale(row: Record<string, string>): MapGumroadSaleResul
     return { ok: false, reason: "unmapped" };
   }
 
-  const catalog = GUMROAD_PRODUCT_MAP.find((entry) => entry.productCode === productCode);
-  const parsedSeats = Number.parseInt(canonical.seats, 10);
-  const seats = Number.isInteger(parsedSeats) && parsedSeats > 0 ? parsedSeats : catalog?.seats ?? 1;
+  const seats = resolveSeats(canonical, productCode);
   const kind: GumroadGrantKind = productCode === "solo_bundle" ? "solo" : "team";
 
   return {
@@ -249,6 +295,7 @@ export function mapGumroadCsv(text: string): {
   mapped: MappedGumroadSale[];
   skippedInvalid: number;
   skippedUnmapped: number;
+  skippedRefunded: number;
   redemptionsLinked: number;
   redemptionsUnmapped: number;
 } {
@@ -256,14 +303,15 @@ export function mapGumroadCsv(text: string): {
   const mapped: MappedGumroadSale[] = [];
   let skippedInvalid = 0;
   let skippedUnmapped = 0;
-  let redemptionsLinked = 0;
-  let redemptionsUnmapped = 0;
+  let skippedRefunded = 0;
 
   for (const record of records) {
     const result = mapGumroadSale(record);
-    if (!result.ok) {
+    if (result.ok === false) {
       if (result.reason === "unmapped") {
         skippedUnmapped += 1;
+      } else if (result.reason === "refunded") {
+        skippedRefunded += 1;
       } else {
         skippedInvalid += 1;
       }
@@ -271,13 +319,28 @@ export function mapGumroadCsv(text: string): {
     }
 
     mapped.push(result.sale);
-    if (result.sale.kind === "redemption") {
-      if (result.sale.countsAgainstSaleId) {
-        redemptionsLinked += 1;
-      } else {
-        redemptionsUnmapped += 1;
-      }
+  }
+
+  const saleById = new Map(mapped.map((sale) => [sale.gumroadSaleId, sale]));
+
+  let redemptionsLinked = 0;
+  let redemptionsUnmapped = 0;
+
+  for (const sale of mapped) {
+    if (sale.kind !== "redemption") {
+      continue;
     }
+    if (!sale.countsAgainstSaleId) {
+      redemptionsUnmapped += 1;
+      continue;
+    }
+    const parent = saleById.get(sale.countsAgainstSaleId);
+    if (parent && parent.kind !== "team") {
+      sale.countsAgainstSaleId = null;
+      redemptionsUnmapped += 1;
+      continue;
+    }
+    redemptionsLinked += 1;
   }
 
   return {
@@ -285,6 +348,7 @@ export function mapGumroadCsv(text: string): {
     mapped,
     skippedInvalid,
     skippedUnmapped,
+    skippedRefunded,
     redemptionsLinked,
     redemptionsUnmapped,
   };
