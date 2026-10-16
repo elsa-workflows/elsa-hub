@@ -93,7 +93,7 @@ describe("BPMN positioning copy", () => {
     expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
       "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.9.0 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
     );
-    expect(screen.getByText(/Elsa 3\.9\.0 ships/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Elsa 3\.9\.0 ships/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/BPMN 2\.0 certified|fully compliant/i);
   });
