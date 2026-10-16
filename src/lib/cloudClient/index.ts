@@ -9,12 +9,18 @@
 export * from "@/lib/cloud";
 export {
   CLOUD_EMPTY_MESSAGE,
+  CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
   CLOUD_ERROR_RETRY,
+  CLOUD_MANAGE_LINK,
+  CLOUD_OPEN_LINK,
+  CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
   CLOUD_SETUP_HEADING,
   CLOUD_SETUP_MESSAGE,
   CLOUD_UPDATING_HEADING,
+  CLOUD_WORKSPACE_LABEL,
+  cloudEngineCountLabel,
 } from "./copy";
 export { cloudClient } from "./client";
 export { selectPreferredCloudWorkspace } from "./workspace";

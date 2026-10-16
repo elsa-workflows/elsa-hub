@@ -15,6 +15,9 @@ const viewState = vi.hoisted(() => ({
   setupCloud: vi.fn(),
   setupPending: false,
   refetch: vi.fn(),
+  workspaces: [] as { id: string; name: string }[],
+  selectWorkspace: vi.fn(),
+  selectedWorkspace: undefined as { id: string; name: string } | undefined,
 }));
 
 vi.mock("@/hooks/useCloudEngineOverview", () => ({
@@ -23,7 +26,14 @@ vi.mock("@/hooks/useCloudEngineOverview", () => ({
     setupCloud: viewState.setupCloud,
     setupPending: viewState.setupPending,
     refetch: viewState.refetch,
+    workspaces: viewState.workspaces,
+    selectWorkspace: viewState.selectWorkspace,
+    selectedWorkspace: viewState.selectedWorkspace,
   }),
+}));
+
+vi.mock("@/hooks/useOrganizations", () => ({
+  useOrganizations: () => ({ organizations: [{ slug: "acme" }], loading: false }),
 }));
 
 import CloudEngineOverviewPage from "./CloudEngineOverview";
@@ -31,9 +41,14 @@ import CloudEngineOverviewPage from "./CloudEngineOverview";
 function renderOverview() {
   return render(
     <HelmetProvider>
-      <MemoryRouter initialEntries={["/cloud/engines/11111111-1111-4111-8111-111111111111"]}>
+      <MemoryRouter
+        initialEntries={["/dashboard/org/acme/cloud/engines/11111111-1111-4111-8111-111111111111"]}
+      >
         <Routes>
-          <Route path="/cloud/engines/:engineId" element={<CloudEngineOverviewPage />} />
+          <Route
+            path="/dashboard/org/:slug/cloud/engines/:engineId"
+            element={<CloudEngineOverviewPage />}
+          />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>,

@@ -27,19 +27,21 @@ function renderNav(path = "/") {
 }
 
 describe("Navigation Cloud leaf", () => {
-  it("links Cloud on desktop and in the mobile menu", () => {
+  it("does not keep a duplicate top-level Cloud link", () => {
     renderNav();
-    expect(document.querySelectorAll('a[href="/cloud"]').length).toBeGreaterThanOrEqual(1);
+    expect(document.querySelectorAll('a[href="/cloud"]').length).toBe(0);
+    expect(screen.queryByRole("link", { name: "Cloud" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
-    const cloud = screen.getAllByRole("link", { name: "Cloud" });
-    expect(cloud.length).toBeGreaterThanOrEqual(1);
-    expect(cloud.some((link) => link.getAttribute("href") === "/cloud")).toBe(true);
+    expect(screen.queryByRole("link", { name: "Cloud" })).not.toBeInTheDocument();
   });
 
-  it("marks Cloud as the current page on /cloud routes", () => {
-    renderNav("/cloud/engines/1");
-    const cloud = screen.getAllByRole("link", { name: "Cloud" });
-    expect(cloud.some((link) => link.getAttribute("aria-current") === "page")).toBe(true);
+  it("keeps the Elsa+ Cloud landing page", () => {
+    renderNav();
+    fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
+    const cloudServices = screen.getAllByRole("link").filter(
+      (link) => link.getAttribute("href") === "/elsa-plus/cloud-services",
+    );
+    expect(cloudServices.length).toBeGreaterThanOrEqual(1);
   });
 });
