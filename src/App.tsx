@@ -50,6 +50,8 @@ const RuntimeBuilderComposer = lazy(() => import("./pages/enterprise/RuntimeBuil
 
 const Resources = lazy(() => import("./pages/Resources"));
 const Roadmap = lazy(() => import("./pages/Roadmap"));
+const AcademyTerms = lazy(() => import("./pages/legal/AcademyTerms"));
+const TermsIndex = lazy(() => import("./pages/legal/TermsIndex"));
 const CommunityContent = lazy(() => import("./pages/resources/CommunityContent"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -170,6 +172,8 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
+              <Route path="/elsa-plus/cloud" element={<LegacyCloudRedirect />} />
+              <Route path="/elsa-plus/cloud/*" element={<LegacyCloudRedirect />} />
               <Route path={LEGACY_CLOUD_PATH} element={<LegacyCloudRedirect />} />
               <Route path={`${LEGACY_CLOUD_PATH}/*`} element={<LegacyCloudRedirect />} />
               <Route path="/elsa-plus/training" element={<Training />} />
@@ -192,6 +196,8 @@ const App = () => (
               <Route path="/blog/:slug.html" element={<BlogHtmlRedirect />} />
               <Route path="/resources/community-content" element={<CommunityContent />} />
               <Route path="/roadmap" element={<Roadmap />} />
+              <Route path="/legal/terms" element={<TermsIndex />} />
+              <Route path="/legal/academy-terms" element={<AcademyTerms />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />

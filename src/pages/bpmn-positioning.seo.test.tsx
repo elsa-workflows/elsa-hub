@@ -48,6 +48,10 @@ describe("BPMN positioning copy", () => {
       "Build workflow-driven .NET apps with Elsa: C#, Elsa Studio, and BPMN 2.0 import, execution, and export in 3.9. Open source.",
     );
     expect(screen.getByText("THE WORKFLOW AND BPMN ENGINE FOR .NET")).toBeInTheDocument();
+    expect(
+      screen.getByAltText("The new React-based Elsa Studio designer (preview)"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Preview, coming in Elsa 3.11")).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn.Interchange", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(FORBIDDEN);
@@ -69,7 +73,7 @@ describe("BPMN positioning copy", () => {
     expect(screen.getByRole("heading", { name: "User Tasks in Core" })).toBeInTheDocument();
     expect(screen.getByText(/BPMN canvas is read-only/i)).toBeInTheDocument();
     expect(screen.getByText(/Preview \/ roadmap/i)).toBeInTheDocument();
-    expect(screen.getByText(/3\.10 React Studio preview/i)).toBeInTheDocument();
+    expect(screen.getByText(/3\.11 React Studio preview/i)).toBeInTheDocument();
     expect(screen.getByText(/elsa-foundation/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Directory" })).toBeInTheDocument();
     expect(screen.getByText(/MQTT Sparkplug/i)).toBeInTheDocument();
@@ -93,7 +97,7 @@ describe("BPMN positioning copy", () => {
     expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
       "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.9.0 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
     );
-    expect(screen.getByText(/Elsa 3\.9\.0 ships/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Elsa 3\.9\.0 ships/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/BPMN 2\.0 certified|fully compliant/i);
   });
