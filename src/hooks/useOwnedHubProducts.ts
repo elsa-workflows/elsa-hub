@@ -49,3 +49,12 @@ export function useOwnedHubProducts(organizationId: string | undefined) {
     academyLoading: academyQuery.isLoading,
   };
 }
+
+/**
+ * Org sidebar Products > Elsa Cloud and the Overview Cloud card share this
+ * rule. A new browser has no localStorage setup marker (`ownsCloud` is false)
+ * and the Cloud view is `needsSetup` — keep Cloud reachable in that state.
+ */
+export function shouldShowOrgCloudNav(): boolean {
+  return true;
+}

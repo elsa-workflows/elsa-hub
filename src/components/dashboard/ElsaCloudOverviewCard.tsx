@@ -10,6 +10,8 @@ import {
   CLOUD_EMPTY_MESSAGE,
   CLOUD_OPEN_LINK,
   CLOUD_PAGE_TITLE,
+  CLOUD_SETUP_HEADING,
+  CLOUD_SETUP_MESSAGE,
   cloudEngineCountLabel,
 } from "@/lib/cloudClient";
 import { dashboardCloudHomePath } from "@/lib/cloudPaths";
@@ -43,7 +45,13 @@ export function ElsaCloudOverviewCard({ orgSlug }: { orgSlug?: string | null }) 
         {view.kind === "error" && (
           <CloudErrorState message={view.message} onRetry={() => void refetch()} />
         )}
-        {(view.kind === "needsSetup" || view.kind === "empty") && (
+        {view.kind === "needsSetup" && (
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{CLOUD_SETUP_HEADING}</p>
+            <p className="text-sm text-muted-foreground">{CLOUD_SETUP_MESSAGE}</p>
+          </div>
+        )}
+        {view.kind === "empty" && (
           <p className="text-sm text-muted-foreground">{CLOUD_EMPTY_MESSAGE}</p>
         )}
         {view.kind === "list" && (

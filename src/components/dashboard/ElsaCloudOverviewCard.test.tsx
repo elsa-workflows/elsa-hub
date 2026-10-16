@@ -7,6 +7,8 @@ import {
   CLOUD_ERROR_HEADING,
   CLOUD_OPEN_LINK,
   CLOUD_PAGE_TITLE,
+  CLOUD_SETUP_HEADING,
+  CLOUD_SETUP_MESSAGE,
   CLOUD_UPDATING_HEADING,
   CLOUD_UPDATING_MESSAGE,
 } from "@/lib/cloudClient";
@@ -38,6 +40,18 @@ describe("ElsaCloudOverviewCard", () => {
     renderCard();
     expect(screen.getByText(CLOUD_PAGE_TITLE)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_EMPTY_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: CLOUD_OPEN_LINK })).toHaveAttribute(
+      "href",
+      "/dashboard/org/acme/cloud",
+    );
+  });
+
+  it("renders needsSetup as its own state with an Open Elsa Cloud link", () => {
+    viewState.current = { kind: "needsSetup" };
+    renderCard();
+    expect(screen.getByText(CLOUD_SETUP_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_SETUP_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_EMPTY_MESSAGE)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: CLOUD_OPEN_LINK })).toHaveAttribute(
       "href",
       "/dashboard/org/acme/cloud",

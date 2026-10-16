@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import {
   CLOUD_CREATE_ENGINE,
   CLOUD_EMPTY_MESSAGE,
@@ -70,7 +70,21 @@ vi.mock("@/hooks/useCloudEngines", () => ({
   }),
 }));
 
+const orgState = vi.hoisted(() => ({
+  organizations: [{ slug: "acme" }] as { slug: string }[],
+  loading: false,
+}));
+
+vi.mock("@/hooks/useOrganizations", () => ({
+  useOrganizations: () => orgState,
+}));
+
 import CloudHome from "./CloudHome";
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+}
 
 function renderHome(path = "/dashboard/org/acme/cloud") {
   return render(
@@ -80,6 +94,7 @@ function renderHome(path = "/dashboard/org/acme/cloud") {
           <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
           <Route path="/dashboard/cloud" element={<CloudHome />} />
           <Route path="/cloud" element={<CloudHome />} />
+          <Route path="*" element={<LocationProbe />} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>,
@@ -97,6 +112,8 @@ describe("CloudHome", () => {
     viewState.atLimit = false;
     viewState.canCreate = false;
     viewState.creating = false;
+    orgState.organizations = [{ slug: "acme" }];
+    orgState.loading = false;
   });
 
   it("shows a loading state", () => {
@@ -181,6 +198,23 @@ describe("CloudHome", () => {
     expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
     screen.getByRole("button", { name: /try again/i }).click();
     expect(viewState.refetch).toHaveBeenCalled();
+  });
+
+  it("redirects org Cloud routes whose slug is not a membership", () => {
+    viewState.current = { kind: "empty" };
+    orgState.organizations = [{ slug: "acme" }];
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/dashboard/org/other-co/cloud"]}>
+          <Routes>
+            <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
+            <Route path="/dashboard/cloud" element={<LocationProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent("/dashboard/cloud");
+    expect(screen.queryByText(CLOUD_EMPTY_MESSAGE)).not.toBeInTheDocument();
   });
 
   it("shows Set up Elsa Cloud when there is no org", () => {

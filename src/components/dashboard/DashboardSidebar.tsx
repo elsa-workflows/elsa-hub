@@ -46,7 +46,7 @@ import { ContextSwitcher } from "./ContextSwitcher";
 import { useDashboardContext } from "@/contexts/DashboardContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useOrganizations } from "@/hooks/useOrganizations";
-import { useOwnedHubProducts } from "@/hooks/useOwnedHubProducts";
+import { shouldShowOrgCloudNav, useOwnedHubProducts } from "@/hooks/useOwnedHubProducts";
 import { dashboardCloudHomePath } from "@/lib/cloudPaths";
 
 type NavItem = {
@@ -129,9 +129,9 @@ export function DashboardSidebar({
   const orgGroups = (): NavGroup[] => {
     const products: NavItem[] = [];
     if (ownsAcademy) {
-      products.push({ label: "Academy", icon: GraduationCap, to: "/academy" });
+      products.push({ label: "Academy", icon: GraduationCap, to: "/elsa-plus" });
     }
-    if (ownsCloud) {
+    if (shouldShowOrgCloudNav()) {
       products.push({
         label: "Elsa Cloud",
         icon: Cloud,
@@ -139,8 +139,8 @@ export function DashboardSidebar({
         children: [{ label: "Engines", icon: Server, to: cloudHome }],
       });
     }
-    if (products.length === 0) {
-      products.push({ label: "Explore products", icon: Compass, to: "/academy" });
+    if (!ownsAcademy && !ownsCloud) {
+      products.push({ label: "Explore products", icon: Compass, to: "/elsa-plus" });
     }
 
     return [

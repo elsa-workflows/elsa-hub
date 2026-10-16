@@ -35,6 +35,7 @@ vi.mock("@/hooks/useOrganizations", () => ({
 
 vi.mock("@/hooks/useOwnedHubProducts", () => ({
   useOwnedHubProducts: () => ownedState,
+  shouldShowOrgCloudNav: () => true,
 }));
 
 function renderSidebar(path = "/dashboard/org/acme") {
@@ -75,9 +76,12 @@ describe("DashboardSidebar org regroup", () => {
     );
     expect(screen.getByRole("link", { name: "Explore products" })).toHaveAttribute(
       "href",
-      "/academy",
+      "/elsa-plus",
     );
-    expect(screen.queryByRole("link", { name: "Elsa Cloud" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Elsa Cloud" })).toHaveAttribute(
+      "href",
+      "/dashboard/org/acme/cloud",
+    );
     expect(screen.queryByRole("link", { name: "Academy" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Messages" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Workspaces" })).not.toBeInTheDocument();
@@ -106,6 +110,36 @@ describe("DashboardSidebar org regroup", () => {
     );
     expect(screen.queryByRole("link", { name: "Explore products" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Subscription" })).not.toBeInTheDocument();
+  });
+
+  it("links Academy to /elsa-plus until /academy ships", () => {
+    dashboardState.contextType = "org";
+    dashboardState.slug = "acme";
+    dashboardState.isAdminContext = false;
+    ownedState.ownsCloud = false;
+    ownedState.ownsAcademy = true;
+    renderSidebar();
+
+    expect(screen.getByRole("link", { name: "Academy" })).toHaveAttribute("href", "/elsa-plus");
+    expect(screen.queryByRole("link", { name: "Explore products" })).not.toBeInTheDocument();
+  });
+
+  it("keeps Elsa Cloud visible when there is no local setup marker", () => {
+    dashboardState.contextType = "org";
+    dashboardState.slug = "acme";
+    dashboardState.isAdminContext = false;
+    ownedState.ownsCloud = false;
+    ownedState.ownsAcademy = false;
+    renderSidebar();
+
+    expect(screen.getByRole("link", { name: "Elsa Cloud" })).toHaveAttribute(
+      "href",
+      "/dashboard/org/acme/cloud",
+    );
+    expect(screen.getByRole("link", { name: "Explore products" })).toHaveAttribute(
+      "href",
+      "/elsa-plus",
+    );
   });
 
   it("keeps Cloud reachable without a Hub org", () => {

@@ -1,6 +1,7 @@
 import { useLocation } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { CloudCreateEngineDialog } from "@/components/cloud/CloudCreateEngineDialog";
+import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
 import { CloudEmptyState } from "@/components/cloud/CloudEmptyState";
 import { CloudEngineList } from "@/components/cloud/CloudEngineList";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
@@ -41,41 +42,43 @@ export default function CloudHome() {
     : null;
 
   return (
-    <>
-      <Seo
-        path={pathname}
-        title={`${CLOUD_PAGE_TITLE} — Elsa Workflows`}
-        description="Create and manage your Elsa Cloud engines."
-        noIndex
-      />
-      <section className={inDashboard ? "p-6" : "py-10 md:py-16"}>
-        <div className={inDashboard ? "space-y-6 overflow-x-hidden" : "container max-w-3xl space-y-6 overflow-x-hidden"}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <CloudPageHeader
-              description={CLOUD_ENGINES_INTRO}
-              workspaces={workspaces}
-              selectedWorkspace={selectedWorkspace}
-              onSelectWorkspace={selectWorkspace}
-            />
-            {view.kind === "list" && createAction}
+    <OrgCloudMembershipGate>
+      <>
+        <Seo
+          path={pathname}
+          title={`${CLOUD_PAGE_TITLE} — Elsa Workflows`}
+          description="Create and manage your Elsa Cloud engines."
+          noIndex
+        />
+        <section className={inDashboard ? "p-6" : "py-10 md:py-16"}>
+          <div className={inDashboard ? "space-y-6 overflow-x-hidden" : "container max-w-3xl space-y-6 overflow-x-hidden"}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <CloudPageHeader
+                description={CLOUD_ENGINES_INTRO}
+                workspaces={workspaces}
+                selectedWorkspace={selectedWorkspace}
+                onSelectWorkspace={selectWorkspace}
+              />
+              {view.kind === "list" && createAction}
+            </div>
+
+            {atLimit && (
+              <p className="rounded-lg border px-3 py-3 text-sm">{CLOUD_LIMIT_MESSAGE}</p>
+            )}
+
+            {view.kind === "loading" && <CloudLoadingState />}
+            {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
+            {view.kind === "error" && (
+              <CloudErrorState message={view.message} onRetry={() => void refetch()} />
+            )}
+            {view.kind === "needsSetup" && (
+              <CloudSetupState onSetup={setupCloud} pending={setupPending} />
+            )}
+            {view.kind === "empty" && <CloudEmptyState action={createAction} />}
+            {view.kind === "list" && <CloudEngineList engines={view.engines} />}
           </div>
-
-          {atLimit && (
-            <p className="rounded-lg border px-3 py-3 text-sm">{CLOUD_LIMIT_MESSAGE}</p>
-          )}
-
-          {view.kind === "loading" && <CloudLoadingState />}
-          {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
-          {view.kind === "error" && (
-            <CloudErrorState message={view.message} onRetry={() => void refetch()} />
-          )}
-          {view.kind === "needsSetup" && (
-            <CloudSetupState onSetup={setupCloud} pending={setupPending} />
-          )}
-          {view.kind === "empty" && <CloudEmptyState action={createAction} />}
-          {view.kind === "list" && <CloudEngineList engines={view.engines} />}
-        </div>
-      </section>
-    </>
+        </section>
+      </>
+    </OrgCloudMembershipGate>
   );
 }
