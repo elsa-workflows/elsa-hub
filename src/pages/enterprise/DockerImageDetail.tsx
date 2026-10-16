@@ -119,11 +119,15 @@ networks:
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            The Community image above is public on GitHub Container Registry — no account, no login,
-            nothing to request. The paid image is the same build, down to the manifest digest, with a
-            subscription attached; it ships from a private registry using a registry token issued when
-            your subscription starts. Previously published images on Docker Hub still work but are no
-            longer updated.
+            The Elsa Runtime Community image above is public on GitHub Container Registry — no
+            account, no login, nothing to request. The paid image is the same build, down to the
+            manifest digest, with a subscription attached; it ships from a private registry using a
+            registry token issued when your subscription starts. This is not the Elsa 3 Community
+            image on Docker Hub (<code className="font-mono text-xs">elsaworkflows/elsa-*-v3</code>,
+            currently 3.9.0) and not the Apps aliases{" "}
+            <code className="font-mono text-xs">elsaworkflows/elsa-server</code> /{" "}
+            <code className="font-mono text-xs">elsaworkflows/elsa-studio</code>, which have not
+            changed.
           </p>
 
 
@@ -200,8 +204,13 @@ networks:
           <div>
             <h3 className="font-semibold mb-2">Pull the Community image</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              The Community image is public on GitHub Container Registry. No account, no login, no
-              request — pull it and run it now.
+              The Elsa Runtime Community image is public on GitHub Container Registry. No account, no
+              login, no request — pull it and run it now. Elsa 3 Community images on Docker Hub are
+              documented on the{" "}
+              <Link to="/get-started/docker" className="text-primary hover:underline">
+                Docker get-started page
+              </Link>
+              .
             </p>
             <CodeBlock code={`docker pull ${image.image}:latest`} language="bash" />
           </div>

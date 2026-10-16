@@ -1,11 +1,24 @@
 const tags: Array<{ pattern: string; example: string; description: string }> = [
-  { pattern: "latest", example: "latest", description: "Most recent build from main — always moving" },
-  { pattern: "<version>-preview.<build>", example: "1.0.0-preview.42", description: "Preview build from main, auto-increments per push" },
-  { pattern: "<version>", example: "1.0.0", description: "Stable release (from a git tag)" },
-  { pattern: "<major>.<minor>", example: "1.0", description: "Latest patch within a minor version" },
-  { pattern: "<major>", example: "1", description: "Latest minor+patch within a major version" },
-  { pattern: "elsa-<elsa-version>", example: "elsa-3.8.0-preview.5413", description: "Latest build targeting a specific Elsa version" },
-  { pattern: "sha-<commit>", example: "sha-07169a7", description: "Pinned to an exact commit" },
+  {
+    pattern: "X.Y.Z",
+    example: "3.9.0",
+    description: "Pinned stable release. Every stable publish pushes this exact tag. Prefer this in copy-paste snippets.",
+  },
+  {
+    pattern: "X.Y",
+    example: "3.9",
+    description: "Floating minor. Moves when a stable X.Y.Z is the highest patch on that line.",
+  },
+  {
+    pattern: "latest",
+    example: "latest",
+    description: "Moves when a stable X.Y.Z is the highest stable 3.x release.",
+  },
+  {
+    pattern: "X.Y.Z-preview.N",
+    example: "3.9.0-preview.1",
+    description: "Preview builds only. Previews never move X.Y or latest.",
+  },
 ];
 
 export function ImageTagsTable() {
@@ -13,7 +26,17 @@ export function ImageTagsTable() {
     <div className="space-y-4">
       <h2 className="text-3xl font-bold">Image tags</h2>
       <p className="text-muted-foreground">
-        Each image is published with multiple tags so you can pin to the level of stability you need.
+        Elsa Community images on Docker Hub (<code className="font-mono text-sm">elsaworkflows/elsa-*-v3</code>)
+        use this policy. Every stable release pushes <code className="font-mono text-sm">X.Y.Z</code>, moves{" "}
+        <code className="font-mono text-sm">X.Y</code>, and moves <code className="font-mono text-sm">latest</code>{" "}
+        when it is the highest version. Previews only get <code className="font-mono text-sm">X.Y.Z-preview.N</code>.
+        linux/amd64 and linux/arm64.
+      </p>
+      <p className="text-sm text-muted-foreground">
+        This does not apply to the Apps aliases{" "}
+        <code className="font-mono text-xs">elsaworkflows/elsa-server</code> and{" "}
+        <code className="font-mono text-xs">elsaworkflows/elsa-studio</code>, which are a separate product and
+        have not changed.
       </p>
       <div className="rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
