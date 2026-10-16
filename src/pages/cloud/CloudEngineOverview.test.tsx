@@ -32,6 +32,10 @@ vi.mock("@/hooks/useCloudEngineOverview", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useOrganizations", () => ({
+  useOrganizations: () => ({ organizations: [{ slug: "acme" }], loading: false }),
+}));
+
 import CloudEngineOverviewPage from "./CloudEngineOverview";
 
 function renderOverview() {

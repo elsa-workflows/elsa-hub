@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOrganizationDashboard } from "@/hooks/useOrganizationDashboard";
 import { ElsaCloudOverviewCard } from "@/components/dashboard/ElsaCloudOverviewCard";
+import { shouldShowOrgCloudNav } from "@/hooks/useOwnedHubProducts";
 import { CreditBalanceCard, PurchaseHistoryTable, TeamMembersCard, SubscriptionCard, BillingDetailsReminder, PurchaseBundleDialog, RegistryAccessCard } from "@/components/organization";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
@@ -146,7 +147,7 @@ export default function OrgOverview() {
         />
       )}
 
-      <ElsaCloudOverviewCard orgSlug={slug} />
+      {shouldShowOrgCloudNav() ? <ElsaCloudOverviewCard orgSlug={slug} /> : null}
 
       {/* Quick Links */}
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">

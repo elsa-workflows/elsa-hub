@@ -7,6 +7,7 @@ import {
   dashboardCloudEnginePath,
   dashboardCloudHomePath,
   getLegacyCloudRedirectTarget,
+  orgCloudMembershipDecision,
 } from "./cloudPaths";
 
 describe("cloud dashboard paths", () => {
@@ -36,6 +37,29 @@ describe("cloud dashboard paths", () => {
     expect(cloudLoginRedirect("/cloud/engines/eng-1")).toBe(
       "/login?redirect=%2Fcloud%2Fengines%2Feng-1",
     );
+  });
+});
+
+describe("org Cloud membership", () => {
+  it("stays on the org Cloud route when the slug is a membership", () => {
+    expect(orgCloudMembershipDecision("acme", [{ slug: "acme" }], false)).toEqual({
+      kind: "stay",
+    });
+  });
+
+  it("redirects unknown org slugs to /dashboard/cloud", () => {
+    expect(orgCloudMembershipDecision("other-co", [{ slug: "acme" }], false)).toEqual({
+      kind: "redirect",
+      to: DASHBOARD_CLOUD_PATH,
+    });
+  });
+
+  it("waits while organizations are loading", () => {
+    expect(orgCloudMembershipDecision("acme", [], true)).toEqual({ kind: "pending" });
+  });
+
+  it("does not redirect the no-org Cloud route", () => {
+    expect(orgCloudMembershipDecision(undefined, [], false)).toEqual({ kind: "stay" });
   });
 });
 

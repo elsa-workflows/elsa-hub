@@ -46,6 +46,26 @@ export function dashboardCloudHomePath(orgSlug?: string | null): string {
   return orgSlug ? `/dashboard/org/${orgSlug}/cloud` : DASHBOARD_CLOUD_PATH;
 }
 
+export type OrgCloudMembershipDecision =
+  | { kind: "stay" }
+  | { kind: "pending" }
+  | { kind: "redirect"; to: string };
+
+/**
+ * `/dashboard/org/:slug/cloud` is only for orgs in `useOrganizations()`.
+ * Unknown slugs go to the no-org Cloud route instead of rendering the console.
+ */
+export function orgCloudMembershipDecision(
+  orgSlug: string | undefined,
+  organizations: ReadonlyArray<{ slug: string }>,
+  orgsLoading: boolean,
+): OrgCloudMembershipDecision {
+  if (!orgSlug) return { kind: "stay" };
+  if (orgsLoading) return { kind: "pending" };
+  if (organizations.some((org) => org.slug === orgSlug)) return { kind: "stay" };
+  return { kind: "redirect", to: DASHBOARD_CLOUD_PATH };
+}
+
 export function dashboardCloudEnginePath(
   engineId: string,
   orgSlug?: string | null,

@@ -1,7 +1,11 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizations } from "@/hooks/useOrganizations";
-import { getLegacyCloudRedirectTarget } from "@/lib/cloudPaths";
+import {
+  getLegacyCloudRedirectTarget,
+  orgCloudMembershipDecision,
+  type OrgCloudMembershipDecision,
+} from "@/lib/cloudPaths";
 
 function CloudRedirectPending() {
   return (
@@ -9,6 +13,19 @@ function CloudRedirectPending() {
       <div className="animate-pulse text-muted-foreground">Loading…</div>
     </div>
   );
+}
+
+export function useOrgCloudMembership(): OrgCloudMembershipDecision {
+  const { slug } = useParams<{ slug?: string }>();
+  const { organizations, loading } = useOrganizations();
+  return orgCloudMembershipDecision(slug, organizations, loading);
+}
+
+export function OrgCloudMembershipGate({ children }: { children: React.ReactNode }) {
+  const decision = useOrgCloudMembership();
+  if (decision.kind === "pending") return <CloudRedirectPending />;
+  if (decision.kind === "redirect") return <Navigate to={decision.to} replace />;
+  return children;
 }
 
 export function LegacyCloudRedirect() {

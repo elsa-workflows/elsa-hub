@@ -1,6 +1,7 @@
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Seo } from "@/components/Seo";
+import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
@@ -23,71 +24,73 @@ export default function CloudEngineOverviewPage() {
   const inDashboard = pathname.startsWith("/dashboard");
 
   return (
-    <>
-      <Seo
-        path={pathname}
-        title={`${titleName} — ${CLOUD_PAGE_TITLE} — Elsa Workflows`}
-        description="Read-only overview of an Elsa Cloud engine."
-        noIndex
-      />
-      <section className={inDashboard ? "p-6" : "py-10 md:py-16"}>
-        <div className={inDashboard ? "space-y-6" : "container max-w-3xl space-y-6"}>
-          <CloudPageHeader
-            workspaces={workspaces}
-            selectedWorkspace={selectedWorkspace}
-            onSelectWorkspace={selectWorkspace}
-          />
-          <Link
-            to={home}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to {CLOUD_PAGE_TITLE}
-          </Link>
+    <OrgCloudMembershipGate>
+      <>
+        <Seo
+          path={pathname}
+          title={`${titleName} — ${CLOUD_PAGE_TITLE} — Elsa Workflows`}
+          description="Read-only overview of an Elsa Cloud engine."
+          noIndex
+        />
+        <section className={inDashboard ? "p-6" : "py-10 md:py-16"}>
+          <div className={inDashboard ? "space-y-6" : "container max-w-3xl space-y-6"}>
+            <CloudPageHeader
+              workspaces={workspaces}
+              selectedWorkspace={selectedWorkspace}
+              onSelectWorkspace={selectWorkspace}
+            />
+            <Link
+              to={home}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to {CLOUD_PAGE_TITLE}
+            </Link>
 
-          {view.kind === "loading" && <CloudLoadingState />}
-          {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
-          {view.kind === "error" && (
-            <CloudErrorState message={view.message} onRetry={() => void refetch()} />
-          )}
-          {view.kind === "needsSetup" && (
-            <CloudSetupState onSetup={setupCloud} pending={setupPending} />
-          )}
-          {view.kind === "missing" && (
-            <p className="text-muted-foreground">This engine could not be found.</p>
-          )}
-          {view.kind === "ready" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex flex-wrap items-center gap-3">
-                  <span>{view.engine.name}</span>
-                  <Badge variant={cloudEngineStatusVariant(view.engine.status)}>
-                    {view.engine.status}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Status</p>
-                  <p className="font-medium">{view.engine.status}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Release</p>
-                  <p className="font-medium">{view.engine.release ?? "unknown"}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Slug</p>
-                  <p className="font-medium">{view.engine.slug}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Health</p>
-                  <p className="font-medium">{view.engine.health}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </section>
-    </>
+            {view.kind === "loading" && <CloudLoadingState />}
+            {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
+            {view.kind === "error" && (
+              <CloudErrorState message={view.message} onRetry={() => void refetch()} />
+            )}
+            {view.kind === "needsSetup" && (
+              <CloudSetupState onSetup={setupCloud} pending={setupPending} />
+            )}
+            {view.kind === "missing" && (
+              <p className="text-muted-foreground">This engine could not be found.</p>
+            )}
+            {view.kind === "ready" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-wrap items-center gap-3">
+                    <span>{view.engine.name}</span>
+                    <Badge variant={cloudEngineStatusVariant(view.engine.status)}>
+                      {view.engine.status}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <p className="font-medium">{view.engine.status}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Release</p>
+                    <p className="font-medium">{view.engine.release ?? "unknown"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Slug</p>
+                    <p className="font-medium">{view.engine.slug}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Health</p>
+                    <p className="font-medium">{view.engine.health}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+      </>
+    </OrgCloudMembershipGate>
   );
 }
