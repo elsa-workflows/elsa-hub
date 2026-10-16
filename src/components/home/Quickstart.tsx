@@ -4,6 +4,7 @@ import { Check, Copy, Terminal, Container, ArrowRight, BookOpen, Server, Layers,
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { ELSA_TEMPLATES_VERSION } from "@/data/elsaVersion";
+import { ELSA_DOCKER_RUN_COMMAND } from "@/data/canonicalSamples";
 
 
 interface CommandCardProps {
@@ -92,8 +93,8 @@ export function Quickstart() {
           <CommandCard
             icon={Container}
             label="Docker"
-            command="docker run -it -p 13000:8080 ghcr.io/valence-works/runtime-ce-combined:latest"
-            helper="Server and Studio in one container — no .NET install required. Separate server and Studio images are available too."
+            command={ELSA_DOCKER_RUN_COMMAND}
+            helper="Server and Studio in one container — Elsa 3.9.0 Community image on Docker Hub. Separate server and Studio images are available too."
             href="/get-started/docker"
             hrefLabel="Docker guide"
           />
