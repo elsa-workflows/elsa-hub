@@ -14,7 +14,12 @@ import { useCloudEngines } from "@/hooks/useCloudEngines";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { isHubOrgAdmin } from "@/lib/cloud";
-import { CLOUD_ENGINES_INTRO, CLOUD_LIMIT_MESSAGE, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
+import {
+  CLOUD_ENGINES_INTRO,
+  CLOUD_LIMIT_MESSAGE,
+  CLOUD_LINK_CHECK_ERROR,
+  CLOUD_PAGE_TITLE,
+} from "@/lib/cloudClient";
 
 export default function CloudHome() {
   const { pathname } = useLocation();
@@ -79,7 +84,10 @@ export default function CloudHome() {
             {orgLink.kind === "pending" && <CloudLoadingState />}
             {showConsole && view.kind === "loading" && <CloudLoadingState />}
             {showConsole && view.kind === "updating" && <CloudUpdatingState message={view.message} />}
-            {view.kind === "error" && (
+            {orgLink.kind === "error" && (
+              <CloudErrorState message={CLOUD_LINK_CHECK_ERROR} onRetry={orgLink.refetch} />
+            )}
+            {view.kind === "error" && orgLink.kind !== "error" && (
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
             {orgLink.kind === "needsLink" && view.kind !== "error" && (

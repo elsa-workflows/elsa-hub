@@ -79,6 +79,38 @@ describe("org Cloud membership", () => {
   it("keeps /dashboard/cloud when the user has no Hub org", () => {
     expect(dashboardCloudRouteDecision("/dashboard/cloud", [], false)).toEqual({ kind: "stay" });
   });
+
+  it("asks the user to pick when several orgs exist and none is last-used", () => {
+    expect(
+      dashboardCloudRouteDecision(
+        "/dashboard/cloud",
+        [{ slug: "acme" }, { slug: "other-co" }],
+        false,
+      ),
+    ).toEqual({ kind: "pickOrg" });
+    expect(
+      dashboardCloudRouteDecision(
+        "/dashboard/cloud/engines/eng-1",
+        [{ slug: "acme" }, { slug: "other-co" }],
+        false,
+        "gone",
+      ),
+    ).toEqual({ kind: "pickOrg" });
+  });
+
+  it("sends /dashboard/cloud to the last-used org when it is still a membership", () => {
+    expect(
+      dashboardCloudRouteDecision(
+        "/dashboard/cloud",
+        [{ slug: "acme" }, { slug: "other-co" }],
+        false,
+        "other-co",
+      ),
+    ).toEqual({
+      kind: "redirect",
+      to: "/dashboard/org/other-co/cloud",
+    });
+  });
 });
 
 describe("legacy /cloud redirects", () => {

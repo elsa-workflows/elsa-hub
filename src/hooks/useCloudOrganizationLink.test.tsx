@@ -49,14 +49,14 @@ describe("useCloudOrganizationLinkView", () => {
 
   it("is idle without a Hub org and does not query", () => {
     const { result } = renderHook(() => useCloudOrganizationLinkView(undefined, true), { wrapper });
-    expect(result.current).toEqual({ kind: "idle" });
+    expect(result.current).toMatchObject({ kind: "idle" });
     expect(maybeSingle).not.toHaveBeenCalled();
   });
 
   it("is pending while the link row is loading", () => {
     maybeSingle.mockImplementation(() => new Promise(() => {}));
     const { result } = renderHook(() => useCloudOrganizationLinkView(HUB_ORG_ID, true), { wrapper });
-    expect(result.current).toEqual({ kind: "pending" });
+    expect(result.current).toMatchObject({ kind: "pending" });
   });
 
   it("is linked when a validated row exists", async () => {
@@ -69,7 +69,7 @@ describe("useCloudOrganizationLinkView", () => {
       error: null,
     });
     const { result } = renderHook(() => useCloudOrganizationLinkView(HUB_ORG_ID, true), { wrapper });
-    await waitFor(() => expect(result.current).toEqual({ kind: "linked" }));
+    await waitFor(() => expect(result.current).toMatchObject({ kind: "linked" }));
   });
 
   it("needs a link for an unlinked org even when the setup marker is present", async () => {
@@ -77,7 +77,7 @@ describe("useCloudOrganizationLinkView", () => {
     maybeSingle.mockResolvedValue({ data: null, error: null });
     const invoke = vi.spyOn(cloudClient, "invoke");
     const { result } = renderHook(() => useCloudOrganizationLinkView(HUB_ORG_ID, true), { wrapper });
-    await waitFor(() => expect(result.current).toEqual({ kind: "needsLink", canLink: true }));
+    await waitFor(() => expect(result.current).toMatchObject({ kind: "needsLink", canLink: true }));
     expect(invoke).not.toHaveBeenCalled();
   });
 
@@ -85,7 +85,13 @@ describe("useCloudOrganizationLinkView", () => {
     maybeSingle.mockResolvedValue({ data: null, error: null });
     const invoke = vi.spyOn(cloudClient, "invoke");
     const { result } = renderHook(() => useCloudOrganizationLinkView(HUB_ORG_ID, false), { wrapper });
-    await waitFor(() => expect(result.current).toEqual({ kind: "needsLink", canLink: false }));
+    await waitFor(() => expect(result.current).toMatchObject({ kind: "needsLink", canLink: false }));
     expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("is an error when the link check fails and does not treat the org as unlinked", async () => {
+    maybeSingle.mockResolvedValue({ data: null, error: { message: "db down" } });
+    const { result } = renderHook(() => useCloudOrganizationLinkView(HUB_ORG_ID, true), { wrapper });
+    await waitFor(() => expect(result.current).toMatchObject({ kind: "error" }));
   });
 });

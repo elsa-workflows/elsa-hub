@@ -8,6 +8,7 @@ import {
   CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
   CLOUD_LIMIT_MESSAGE,
+  CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ASK_ADMIN,
   CLOUD_MANAGE_LINK,
@@ -90,10 +91,14 @@ vi.mock("@/hooks/useOrganizations", () => ({
 
 const orgLinkState = vi.hoisted(() => ({
   current: { kind: "idle" } as CloudOrganizationLinkView,
+  refetch: vi.fn(),
 }));
 
 vi.mock("@/hooks/useCloudOrganizationLink", () => ({
-  useCloudOrganizationLinkView: () => orgLinkState.current,
+  useCloudOrganizationLinkView: () => ({
+    ...orgLinkState.current,
+    refetch: orgLinkState.refetch,
+  }),
 }));
 
 import CloudHome from "./CloudHome";
@@ -132,6 +137,8 @@ describe("CloudHome", () => {
     orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
     orgState.loading = false;
     orgLinkState.current = { kind: "idle" };
+    orgLinkState.refetch.mockReset();
+    localStorage.clear();
   });
 
   it("shows a loading state", () => {
@@ -331,6 +338,27 @@ describe("CloudHome", () => {
     renderHome();
     expect(screen.getByText(CLOUD_ORG_LINK_CONFLICT)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
+  });
+
+  it("shows a retryable error when the link check fails", () => {
+    orgLinkState.current = { kind: "error" };
+    viewState.current = {
+      kind: "list",
+      engines: [{
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Production",
+        slug: "production",
+        status: "Ready",
+        release: "3.8.4",
+      }],
+    };
+    renderHome();
+    expect(screen.getByText(CLOUD_ERROR_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_CHECK_ERROR)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
+    expect(screen.queryByText("Production")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(orgLinkState.refetch).toHaveBeenCalled();
   });
 
   it("creates an engine from the empty state", async () => {
