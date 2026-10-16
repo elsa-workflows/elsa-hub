@@ -17,19 +17,32 @@ import {
   normalizeWorkspaces,
 } from "./cloud-control.ts";
 import {
+  persistLinkFromValidatedBootstrap,
+  type OrgAdminClient,
+  type PersistControlOrganizationLinkResult,
+} from "./cloud-organization-link.ts";
+import {
   allowedFieldsFor,
   isCloudBffAction,
   isGuid,
   isNonEmptyString,
   limitBody,
   updatingBody,
+  CLOUD_ORG_LINK_CONFLICT,
+  CLOUD_ORG_LINK_CONFLICT_CODE,
+  CLOUD_ORG_LINK_FORBIDDEN,
   type CloudBffAction,
   type CloudBffRequest,
 } from "./cloud-types.ts";
 
+export type PersistValidatedBootstrapLink = typeof persistLinkFromValidatedBootstrap;
+
 export type CloudActionContext = {
   accessToken: string;
   controlFetch: ControlFetch;
+  userClient?: OrgAdminClient;
+  serviceClient?: unknown;
+  persistLink?: PersistValidatedBootstrapLink;
 };
 
 type ParsedRequest =
@@ -128,6 +141,9 @@ export function parseCloudBffRequest(payload: unknown): ParsedRequest {
   if (action === "deleteOperationStatus" && !isGuid(record.operationId)) {
     return invalid("An operation id is required.");
   }
+  if (action === "bootstrap" && record.hubOrganizationId !== undefined && !isGuid(record.hubOrganizationId)) {
+    return invalid("A Hub organization id is required.");
+  }
   if (action === "issueStudioHandoff") {
     if (!isGuid(record.organizationId)) {
       return invalid("An organization id is required.");
@@ -150,6 +166,33 @@ function invalid(error: string): ParsedRequest {
     status: 400,
     body: { ok: false, code: "invalid_request", error },
   };
+}
+
+function persistLinkFailure(
+  persisted: Extract<PersistControlOrganizationLinkResult, { ok: false }>,
+): Response {
+  if (persisted.code === "conflict") {
+    return jsonResponse(409, {
+      ok: false,
+      code: CLOUD_ORG_LINK_CONFLICT_CODE,
+      error: CLOUD_ORG_LINK_CONFLICT,
+    });
+  }
+  if (persisted.code === "forbidden") {
+    return jsonResponse(403, {
+      ok: false,
+      code: "forbidden",
+      error: CLOUD_ORG_LINK_FORBIDDEN,
+    });
+  }
+  if (persisted.code === "invalid_request") {
+    return jsonResponse(400, {
+      ok: false,
+      code: "invalid_request",
+      error: "The request could not be completed.",
+    });
+  }
+  return jsonResponse(503, updatingBody());
 }
 
 function failedControl(result: Extract<ControlResult, { ok: false }>): Response {
@@ -299,6 +342,19 @@ export async function dispatchCloudAction(
     case "bootstrap": {
       const normalized = normalizeBootstrap(result.body);
       if (!normalized) return jsonResponse(503, updatingBody());
+      if (request.hubOrganizationId) {
+        const persist = ctx.persistLink ?? persistLinkFromValidatedBootstrap;
+        if (!ctx.userClient || !ctx.serviceClient) {
+          return jsonResponse(503, updatingBody());
+        }
+        const persisted = await persist({
+          userClient: ctx.userClient,
+          serviceClient: ctx.serviceClient,
+          hubOrganizationId: request.hubOrganizationId,
+          bootstrap: normalized,
+        });
+        if (!persisted.ok) return persistLinkFailure(persisted);
+      }
       return jsonResponse(200, { ok: true, state: "ready", ...normalized });
     }
     case "listWorkspaces": {

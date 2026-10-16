@@ -5,6 +5,8 @@ import {
   CLOUD_BFF_FUNCTION,
   CLOUD_LIMIT_CODE,
   CLOUD_LIMIT_MESSAGE,
+  CLOUD_ORG_LINK_CONFLICT,
+  CLOUD_ORG_LINK_CONFLICT_CODE,
   CLOUD_REQUIRED_CAPABILITIES,
   CLOUD_SUPPORTED_CONTRACT_VERSION,
   CLOUD_UPDATING_CODE,
@@ -100,6 +102,18 @@ describe("cloud-bff action contract", () => {
     expect(isCloudUpdating(limit)).toBe(false);
   });
 
+  it("sanitizes a Hub-to-Control organization link conflict", () => {
+    const conflict: CloudBffResponse = {
+      ok: false,
+      code: CLOUD_ORG_LINK_CONFLICT_CODE,
+      error: CLOUD_ORG_LINK_CONFLICT,
+    };
+    expect(isCloudBffError(conflict)).toBe(true);
+    expect(conflict.error).toBe(
+      "This organization is already linked to a different Elsa Cloud account. That link cannot be changed here.",
+    );
+  });
+
   it("treats succeeded delete operations as terminal", () => {
     expect(isCloudTerminalOperationState("Succeeded")).toBe(true);
     expect(isCloudTerminalOperationState("Accepted")).toBe(false);
@@ -111,6 +125,7 @@ describe("cloud-bff action contract", () => {
     const requests: CloudBffRequest[] = [
       { action: "compatibility" },
       { action: "bootstrap" },
+      { action: "bootstrap", hubOrganizationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
       { action: "listWorkspaces" },
       { action: "selectWorkspace", workspaceId },
       { action: "listEngines", workspaceId },
@@ -192,6 +207,7 @@ describe("cloud-bff action contract", () => {
         codeChallenge: "challenge",
       },
     ];
-    expect(requests).toHaveLength(CLOUD_BFF_ACTIONS.length);
+    expect(requests.filter((request) => request.action === "bootstrap")).toHaveLength(2);
+    expect(requests).toHaveLength(CLOUD_BFF_ACTIONS.length + 1);
   });
 });

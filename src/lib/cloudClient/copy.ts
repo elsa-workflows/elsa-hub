@@ -22,7 +22,7 @@ export const CLOUD_DELETE_ENGINE = "Delete engine";
 export const CLOUD_DELETE_CONFIRM = "Delete this engine?";
 export const CLOUD_STRUCTURED_LOGS = "Structured logs";
 export const CLOUD_PROVISIONING_HEADING = "Provisioning";
-export { CLOUD_LIMIT_MESSAGE } from "@/lib/cloud";
+export { CLOUD_LIMIT_MESSAGE, CLOUD_ORG_LINK_CONFLICT } from "@/lib/cloud";
 
 export function cloudEngineCountLabel(count: number): string {
   if (count <= 0) return CLOUD_EMPTY_MESSAGE;

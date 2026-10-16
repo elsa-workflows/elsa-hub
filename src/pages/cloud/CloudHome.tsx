@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { CloudCreateEngineDialog } from "@/components/cloud/CloudCreateEngineDialog";
 import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
@@ -10,10 +10,14 @@ import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
+import { useOrganizations } from "@/hooks/useOrganizations";
 import { CLOUD_ENGINES_INTRO, CLOUD_LIMIT_MESSAGE, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 
 export default function CloudHome() {
   const { pathname } = useLocation();
+  const { slug } = useParams<{ slug?: string }>();
+  const { organizations } = useOrganizations();
+  const hubOrganizationId = organizations.find((org) => org.slug === slug)?.id;
   const {
     view,
     refetch,
@@ -72,7 +76,10 @@ export default function CloudHome() {
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
             {view.kind === "needsSetup" && (
-              <CloudSetupState onSetup={setupCloud} pending={setupPending} />
+              <CloudSetupState
+                onSetup={() => setupCloud(hubOrganizationId)}
+                pending={setupPending}
+              />
             )}
             {view.kind === "empty" && <CloudEmptyState action={createAction} />}
             {view.kind === "list" && <CloudEngineList engines={view.engines} />}

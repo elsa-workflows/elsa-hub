@@ -3,11 +3,14 @@ import {
   assertEquals,
   assertFalse,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { handleCloudBff } from "./handler.ts";
+import { handleCloudBff, type CloudBffDeps } from "./handler.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
   CLOUD_LIMIT_CODE,
   CLOUD_LIMIT_MESSAGE,
+  CLOUD_ORG_LINK_CONFLICT,
+  CLOUD_ORG_LINK_CONFLICT_CODE,
+  CLOUD_ORG_LINK_FORBIDDEN,
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
 } from "../_shared/cloud-types.ts";
@@ -72,13 +75,17 @@ function controlMap(
   };
 }
 
+const HUB_ORG_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
 async function signedIn(
   body: unknown,
   routes: Record<string, ControlResult>,
+  extra: Partial<CloudBffDeps> = {},
 ): Promise<Response> {
   return await handleCloudBff(request(body), {
     resolveHubUser: signedInResolver(USER),
     controlFetch: controlMap(routes),
+    ...extra,
   });
 }
 
@@ -642,4 +649,128 @@ Deno.test("lifecycle extra fields are refused", async () => {
     debug: true,
   }, {});
   assertEquals((await readJson(extra)).code, "unexpected_fields");
+});
+
+const BOOTSTRAP_BODY = {
+  organizationId: ORGANIZATION_ID,
+  workspaceId: WORKSPACE_ID,
+};
+
+const BOOTSTRAP_ROUTE = {
+  "POST /api/cloud/bootstrap": {
+    ok: true as const,
+    status: 200,
+    body: BOOTSTRAP_BODY,
+  },
+};
+
+Deno.test("bootstrap without a Hub org does not persist a Control link", async () => {
+  let persistCalls = 0;
+  const response = await signedIn({ action: "bootstrap" }, BOOTSTRAP_ROUTE, {
+    persistLinkFromValidatedBootstrap: async () => {
+      persistCalls += 1;
+      return {
+        ok: true,
+        link: {
+          hubOrganizationId: HUB_ORG_ID,
+          controlOrganizationId: ORGANIZATION_ID,
+          validatedAt: "2026-10-16T00:00:00Z",
+        },
+      };
+    },
+    userClient: { rpc: async () => ({ data: true, error: null }) },
+    serviceClient: {},
+  });
+  assertEquals(persistCalls, 0);
+  assertEquals(await readJson(response), {
+    ok: true,
+    state: "ready",
+    organizationId: ORGANIZATION_ID,
+    workspaceId: WORKSPACE_ID,
+  });
+});
+
+Deno.test("bootstrap persists the Control org from the validated bootstrap only", async () => {
+  let persisted: {
+    hubOrganizationId: string;
+    bootstrap: { organizationId: string; workspaceId: string };
+  } | undefined;
+  const response = await signedIn({
+    action: "bootstrap",
+    hubOrganizationId: HUB_ORG_ID,
+  }, BOOTSTRAP_ROUTE, {
+    persistLinkFromValidatedBootstrap: async (input) => {
+      persisted = {
+        hubOrganizationId: input.hubOrganizationId,
+        bootstrap: input.bootstrap,
+      };
+      return {
+        ok: true,
+        link: {
+          hubOrganizationId: input.hubOrganizationId,
+          controlOrganizationId: input.bootstrap.organizationId,
+          validatedAt: "2026-10-16T00:00:00Z",
+        },
+      };
+    },
+    userClient: { rpc: async () => ({ data: true, error: null }) },
+    serviceClient: {},
+  });
+  assertEquals(persisted, {
+    hubOrganizationId: HUB_ORG_ID,
+    bootstrap: BOOTSTRAP_BODY,
+  });
+  assertEquals(await readJson(response), {
+    ok: true,
+    state: "ready",
+    organizationId: ORGANIZATION_ID,
+    workspaceId: WORKSPACE_ID,
+  });
+});
+
+Deno.test("bootstrap conflict is a clear error and does not overwrite the link", async () => {
+  const response = await signedIn({
+    action: "bootstrap",
+    hubOrganizationId: HUB_ORG_ID,
+  }, BOOTSTRAP_ROUTE, {
+    persistLinkFromValidatedBootstrap: async () => ({ ok: false, code: "conflict" }),
+    userClient: { rpc: async () => ({ data: true, error: null }) },
+    serviceClient: {},
+  });
+  const body = await readJson(response);
+  assertEquals(response.status, 409);
+  assertEquals(body, {
+    ok: false,
+    code: CLOUD_ORG_LINK_CONFLICT_CODE,
+    error: CLOUD_ORG_LINK_CONFLICT,
+  });
+  assertFalse(JSON.stringify(body).includes("23505"));
+  assertFalse(JSON.stringify(body).includes("control_organization_id"));
+});
+
+Deno.test("bootstrap refuses a client Control organization id", async () => {
+  const extra = await signedIn({
+    action: "bootstrap",
+    hubOrganizationId: HUB_ORG_ID,
+    controlOrganizationId: ORGANIZATION_ID,
+  }, {});
+  assertEquals((await readJson(extra)).code, "unexpected_fields");
+});
+
+Deno.test("bootstrap persist forbidden is a clear admin-only error", async () => {
+  const response = await signedIn({
+    action: "bootstrap",
+    hubOrganizationId: HUB_ORG_ID,
+  }, BOOTSTRAP_ROUTE, {
+    persistLinkFromValidatedBootstrap: async () => ({ ok: false, code: "forbidden" }),
+    userClient: { rpc: async () => ({ data: false, error: null }) },
+    serviceClient: {},
+  });
+  const body = await readJson(response);
+  assertEquals(response.status, 403);
+  assertEquals(body, {
+    ok: false,
+    code: "forbidden",
+    error: CLOUD_ORG_LINK_FORBIDDEN,
+  });
 });

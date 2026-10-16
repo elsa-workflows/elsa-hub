@@ -9,6 +9,7 @@ import {
   CLOUD_ERROR_HEADING,
   CLOUD_LIMIT_MESSAGE,
   CLOUD_MANAGE_LINK,
+  CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
   CLOUD_UPDATING_HEADING,
@@ -70,8 +71,13 @@ vi.mock("@/hooks/useCloudEngines", () => ({
   }),
 }));
 
+const HUB_ORG_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
 const orgState = vi.hoisted(() => ({
-  organizations: [{ slug: "acme" }] as { slug: string }[],
+  organizations: [{ slug: "acme", id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" }] as {
+    slug: string;
+    id: string;
+  }[],
   loading: false,
 }));
 
@@ -112,7 +118,7 @@ describe("CloudHome", () => {
     viewState.atLimit = false;
     viewState.canCreate = false;
     viewState.creating = false;
-    orgState.organizations = [{ slug: "acme" }];
+    orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
     orgState.loading = false;
   });
 
@@ -202,7 +208,7 @@ describe("CloudHome", () => {
 
   it("redirects org Cloud routes whose slug is not a membership", () => {
     viewState.current = { kind: "empty" };
-    orgState.organizations = [{ slug: "acme" }];
+    orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
     render(
       <HelmetProvider>
         <MemoryRouter initialEntries={["/dashboard/org/other-co/cloud"]}>
@@ -222,7 +228,14 @@ describe("CloudHome", () => {
     renderHome();
     expect(screen.getByRole("button", { name: CLOUD_SETUP_ACTION })).toBeInTheDocument();
     screen.getByRole("button", { name: CLOUD_SETUP_ACTION }).click();
-    expect(viewState.setupCloud).toHaveBeenCalled();
+    expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
+  });
+
+  it("shows a link conflict as a clear error", () => {
+    viewState.current = { kind: "error", message: CLOUD_ORG_LINK_CONFLICT };
+    renderHome();
+    expect(screen.getByText(CLOUD_ERROR_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_ORG_LINK_CONFLICT)).toBeInTheDocument();
   });
 
   it("creates an engine from the empty state", async () => {

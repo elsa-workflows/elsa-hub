@@ -109,8 +109,16 @@ export const CLOUD_LIMIT_CODE = "instance_limit_reached" as const;
 
 export const CLOUD_LIMIT_MESSAGE = "You've reached the engine limit for your plan.";
 
+export const CLOUD_ORG_LINK_CONFLICT_CODE = "conflict" as const;
+
+export const CLOUD_ORG_LINK_CONFLICT =
+  "This organization is already linked to a different Elsa Cloud account. That link cannot be changed here.";
+
+export const CLOUD_ORG_LINK_FORBIDDEN =
+  "Only an organization admin can set up Elsa Cloud for this organization.";
+
 export type CompatibilityRequest = { action: "compatibility" };
-export type BootstrapRequest = { action: "bootstrap" };
+export type BootstrapRequest = { action: "bootstrap"; hubOrganizationId?: string };
 export type ListWorkspacesRequest = { action: "listWorkspaces" };
 export type SelectWorkspaceRequest = { action: "selectWorkspace"; workspaceId: string };
 export type ListEnginesRequest = { action: "listEngines"; workspaceId: string };
@@ -219,7 +227,8 @@ export type CloudBffErrorCode =
   | "invalid_request"
   | "forbidden"
   | "not_found"
-  | typeof CLOUD_LIMIT_CODE;
+  | typeof CLOUD_LIMIT_CODE
+  | typeof CLOUD_ORG_LINK_CONFLICT_CODE;
 
 export type CloudBffClientError = {
   ok: false;

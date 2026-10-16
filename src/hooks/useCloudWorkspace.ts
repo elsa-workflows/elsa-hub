@@ -119,7 +119,12 @@ export function useCloudWorkspace() {
   }, [query.data, userId]);
 
   const bootstrap = useMutation({
-    mutationFn: () => cloudClient.invoke({ action: "bootstrap" }),
+    mutationFn: (hubOrganizationId?: string) =>
+      cloudClient.invoke(
+        hubOrganizationId
+          ? { action: "bootstrap", hubOrganizationId }
+          : { action: "bootstrap" },
+      ),
     onSuccess: (result) => {
       if (!result.ok) {
         if (userId) {
@@ -166,7 +171,7 @@ export function useCloudWorkspace() {
       setSelectedId(workspaceId);
       if (userId) writeSelectedCloudWorkspaceId(userId, workspaceId);
     },
-    setupCloud: () => bootstrap.mutate(),
+    setupCloud: (hubOrganizationId?: string) => bootstrap.mutate(hubOrganizationId),
     setupPending: bootstrap.isPending,
     refetch: async () => {
       bootstrap.reset();

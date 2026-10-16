@@ -15,13 +15,16 @@ import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
+import { useOrganizations } from "@/hooks/useOrganizations";
 import { isCloudTerminalOperationState, isCloudUpdating } from "@/lib/cloud";
 import { CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 
 export default function CloudEngineOverviewPage() {
-  const { engineId } = useParams<{ engineId: string }>();
+  const { engineId, slug } = useParams<{ engineId: string; slug?: string }>();
   const { pathname } = useLocation();
+  const { organizations } = useOrganizations();
+  const hubOrganizationId = organizations.find((org) => org.slug === slug)?.id;
   const navigate = useNavigate();
   const { home } = useCloudConsolePaths();
   const {
@@ -89,7 +92,10 @@ export default function CloudEngineOverviewPage() {
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
             {view.kind === "needsSetup" && (
-              <CloudSetupState onSetup={setupCloud} pending={setupPending} />
+              <CloudSetupState
+                onSetup={() => setupCloud(hubOrganizationId)}
+                pending={setupPending}
+              />
             )}
             {view.kind === "missing" && (
               <p className="text-muted-foreground">This engine could not be found.</p>
