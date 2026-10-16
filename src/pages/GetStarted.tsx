@@ -25,7 +25,6 @@ import {
   ELSA_TEMPLATES_NUGET_URL,
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
   ELSA_TEMPLATES_CSHELLS_VERSION,
-  ELSA_UPGRADE_GUIDE_URL,
   ELSA_LATEST_STABLE_VERSION,
   ELSA_LATEST_STABLE_RELEASE_DATE,
   ELSA_LATEST_STABLE_RELEASE_LINKS,
@@ -286,7 +285,7 @@ export default function GetStarted() {
                 ships official <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">dotnet new</code> templates
                 for Elsa Server, Elsa Studio, and a combined solution. The{" "}
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_VERSION}</code>{" "}
-                templates reference Elsa Core and Elsa Studio at {ELSA_VERSION}, CShells{" "}
+                templates reference Elsa Core and Elsa Studio at {ELSA_LATEST_STABLE_VERSION}, CShells{" "}
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_CSHELLS_VERSION}</code>,
                 and generate <strong>.NET 10</strong> (
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_TARGET_FRAMEWORK}</code>)
@@ -314,7 +313,7 @@ export default function GetStarted() {
                   <h3 className="font-semibold mb-1">1. Install the templates</h3>
                   <p className="text-sm text-muted-foreground mb-3">
                     Template package version — independent of the Elsa runtime version, though{" "}
-                    {ELSA_TEMPLATES_VERSION} lines up with the {ELSA_VERSION} runtime.
+                    {ELSA_TEMPLATES_VERSION} lines up with the {ELSA_LATEST_STABLE_VERSION} runtime.
                   </p>
                   <CodeBlock language="bash" code={`dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`} />
                 </div>
@@ -330,8 +329,8 @@ export default function GetStarted() {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Migrating an existing solution instead of scaffolding a new one? Follow the{" "}
-                    <a href={ELSA_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                      upgrade guide for {ELSA_VERSION}
+                    <a href={ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                      upgrade guide for {ELSA_LATEST_STABLE_VERSION}
                     </a>. Older template packages (3.7.0 / 3.7.1) generated Elsa 3.7.0 references and required a
                     manual package bump; that workaround is no longer the recommended path.
                   </p>
