@@ -46,6 +46,7 @@ describe("useCloudBilling", () => {
     invoke.mockResolvedValue({
       data: {
         billingAccount: "missing",
+        controlOrganizationId: null,
         canManage: true,
         subscriptions: [],
         entitlement: null,
@@ -60,7 +61,13 @@ describe("useCloudBilling", () => {
         return { data: { checkoutUrl: "https://checkout.example/session" }, error: null };
       }
       return {
-        data: { billingAccount: "missing", canManage: true, subscriptions: [], entitlement: null },
+        data: {
+          billingAccount: "missing",
+          controlOrganizationId: null,
+          canManage: true,
+          subscriptions: [],
+          entitlement: null,
+        },
         error: null,
       };
     });
@@ -97,7 +104,13 @@ describe("useCloudBilling", () => {
         return { data: { url: "https://billing.example/portal" }, error: null };
       }
       return {
-        data: { billingAccount: "linked", canManage: true, subscriptions: [], entitlement: null },
+        data: {
+          billingAccount: "linked",
+          controlOrganizationId: "ctrl-org-1",
+          canManage: true,
+          subscriptions: [],
+          entitlement: null,
+        },
         error: null,
       };
     });
@@ -116,5 +129,40 @@ describe("useCloudBilling", () => {
         },
       }),
     );
+  });
+
+  it("sets linked from the Control organization id, not from billingAccount alone", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        billingAccount: "linked",
+        canManage: true,
+        subscriptions: [],
+        entitlement: null,
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useCloudBilling(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.billingAccount).toBe("missing");
+    expect(result.current.controlOrganizationId).toBeNull();
+  });
+
+  it("sets linked when the snapshot includes a Control organization id", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        billingAccount: "linked",
+        controlOrganizationId: "ctrl-org-1",
+        canManage: true,
+        subscriptions: [],
+        entitlement: null,
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useCloudBilling(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.billingAccount).toBe("linked");
+    expect(result.current.controlOrganizationId).toBe("ctrl-org-1");
   });
 });

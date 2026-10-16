@@ -19,6 +19,7 @@ describe("CloudBillingPanel", () => {
         }}
         canManage={false}
         hasOrganization
+        billingAccount="linked"
         onSubscribe={vi.fn()}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -44,6 +45,7 @@ describe("CloudBillingPanel", () => {
         subscription={null}
         canManage
         hasOrganization
+        billingAccount="linked"
         onSubscribe={onSubscribe}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -71,6 +73,7 @@ describe("CloudBillingPanel", () => {
         }}
         canManage
         hasOrganization
+        billingAccount="linked"
         onSubscribe={vi.fn()}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -81,5 +84,27 @@ describe("CloudBillingPanel", () => {
     expect(screen.getByText(/cancels at period end/i)).toBeInTheDocument();
     expect(screen.getByText(/access and billing continue until/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /manage or cancel billing/i })).toBeInTheDocument();
+  });
+
+  it("does not treat org admin as linked when the Control organization link is missing", () => {
+    render(
+      <CloudBillingPanel
+        isLoading={false}
+        error={null}
+        planName={null}
+        planStatus={null}
+        subscription={null}
+        canManage
+        hasOrganization
+        billingAccount="missing"
+        onSubscribe={vi.fn()}
+        onManage={vi.fn()}
+        checkoutPending={false}
+        portalPending={false}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/not linked to elsa cloud/i)).toBeInTheDocument();
   });
 });

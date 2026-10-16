@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
-import { CLOUD_PRODUCT_TYPE, CLOUD_SUBSCRIPTION_EXISTS_CODE } from "@/lib/cloud/billingContract";
+import {
+  billingAccountFromControlLink,
+  CLOUD_PRODUCT_TYPE,
+  CLOUD_SUBSCRIPTION_EXISTS_CODE,
+} from "@/lib/cloud/billingContract";
 import { redirectTo } from "@/lib/cloud/redirect";
 
 export type CloudSubscriptionStatus = {
@@ -15,6 +19,7 @@ export type CloudSubscriptionStatus = {
 
 export type CloudBillingSnapshot = {
   billingAccount: "missing" | "linked";
+  controlOrganizationId: string | null;
   canManage: boolean;
   subscriptions: CloudSubscriptionStatus[];
   entitlement: { planName?: string; status?: string } | null;
@@ -46,7 +51,17 @@ export function useCloudBilling() {
       if (error || data?.error) {
         throw new Error(functionErrorMessage(error, data, "Failed to load Cloud billing"));
       }
-      return data as CloudBillingSnapshot;
+      const controlOrganizationId =
+        typeof data?.controlOrganizationId === "string" && data.controlOrganizationId.trim()
+          ? data.controlOrganizationId.trim()
+          : null;
+      return {
+        billingAccount: billingAccountFromControlLink(controlOrganizationId),
+        controlOrganizationId,
+        canManage: data?.canManage === true,
+        subscriptions: Array.isArray(data?.subscriptions) ? data.subscriptions : [],
+        entitlement: data?.entitlement ?? null,
+      } satisfies CloudBillingSnapshot;
     },
   });
 
@@ -124,6 +139,8 @@ export function useCloudBilling() {
     isLoading: statusQuery.isLoading || orgLoading,
     error: statusQuery.error instanceof Error ? statusQuery.error : null,
     snapshot,
+    billingAccount: snapshot?.billingAccount ?? "missing",
+    controlOrganizationId: snapshot?.controlOrganizationId ?? null,
     planName,
     planStatus,
     subscription: stripeSubscription ?? null,

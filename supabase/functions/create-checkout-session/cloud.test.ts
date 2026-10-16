@@ -64,6 +64,13 @@ function jsonServiceClient() {
   };
 }
 
+function linkedControlOrg(controlOrganizationId = "ctrl-org-1") {
+  return {
+    readValidatedControlOrganizationId: async (hubOrganizationId: string) =>
+      hubOrganizationId === "org-b" ? controlOrganizationId : null,
+  };
+}
+
 Deno.test("Cloud checkout rejects personal mode with 4xx", async () => {
   let createdCustomers = 0;
   const response = await handleCloudCheckout({
@@ -123,6 +130,7 @@ Deno.test("Cloud checkout ignores a client-supplied Control organization id", as
       owners.push(owner);
       return "cus_org_b";
     },
+    ...linkedControlOrg("ctrl-org-1"),
     stripe: {
       customers: {
         create: () => {
@@ -147,15 +155,16 @@ Deno.test("Cloud checkout ignores a client-supplied Control organization id", as
 
   assertEquals(response.status, 200);
   assertEquals(owners, [{ orgId: "org-b" }]);
-  assertEquals(sessionParams?.client_reference_id, "org-b");
+  assertEquals(sessionParams?.client_reference_id, "ctrl-org-1");
   const metadata = sessionParams?.metadata as Record<string, string>;
   const subscriptionData = sessionParams?.subscription_data as {
     metadata: Record<string, string>;
   };
-  assertEquals(metadata.elsa_control_organization_id, "org-b");
+  assertEquals(metadata.elsa_control_organization_id, "ctrl-org-1");
   assertEquals(metadata.hub_organization_id, "org-b");
-  assertEquals(subscriptionData.metadata.elsa_control_organization_id, "org-b");
-  assertEquals(subscriptionData.metadata.elsa_control_organization_id === "foreign-control-org", false);
+  assertEquals(subscriptionData.metadata.elsa_control_organization_id, "ctrl-org-1");
+  assertEquals(metadata.elsa_control_organization_id === "foreign-control-org", false);
+  assertEquals(metadata.elsa_control_organization_id === "org-b", false);
 });
 
 function checkoutStripe(listData: Array<{ id: string; status: string; metadata?: Record<string, string> }>) {
@@ -208,6 +217,7 @@ Deno.test("Cloud checkout returns 409 when the org already has an active Cloud s
       },
     },
     getOrCreateStripeCustomer: async () => "cus_org_b",
+    ...linkedControlOrg(),
     stripe: mock.stripe,
   });
 
@@ -242,6 +252,7 @@ Deno.test("Cloud checkout allows a new session when the org only has Hub or canc
       },
     },
     getOrCreateStripeCustomer: async () => "cus_org_b",
+    ...linkedControlOrg(),
     stripe: mock.stripe,
   });
 
@@ -353,4 +364,172 @@ Deno.test("Cloud checkout returns an error when the user has no organization lin
   const payload = await response.json();
   assertEquals(payload.code, "cloud_org_not_linked");
   assertEquals(createdSessions, 0);
+});
+
+Deno.test("a linked org writes the Control organization id, not the Hub org id", async () => {
+  let sessionParams: Record<string, unknown> | undefined;
+  let createdCustomers = 0;
+
+  const response = await handleCloudCheckout({
+    req: new Request("https://elsa-hub.example/functions/v1/create-checkout-session", {
+      method: "POST",
+      headers: { origin: "https://elsa-hub.example" },
+    }),
+    user: { id: "admin-1", email: "admin@example.test" },
+    userClient: jsonUserClient() as never,
+    serviceClient: jsonServiceClient() as never,
+    body: { organizationId: "org-b" },
+    corsHeaders: {},
+    env: {
+      get(key: string) {
+        if (key === "STRIPE_SECRET_KEY") return "sk_test_cloud";
+        if (key === "STRIPE_CLOUD_PRICE_ID") return "price_test_cloud";
+        return undefined;
+      },
+    },
+    getOrCreateStripeCustomer: async () => {
+      createdCustomers += 1;
+      return "cus_org_b";
+    },
+    ...linkedControlOrg("ctrl-org-9"),
+    stripe: {
+      customers: {
+        create: () => {
+          throw new Error("must not look up or create via email");
+        },
+        update: async (id) => ({ id }),
+        del: async (id) => ({ id }),
+      },
+      subscriptions: {
+        list: async () => ({ data: [] }),
+      },
+      checkout: {
+        sessions: {
+          create: (params) => {
+            sessionParams = params as unknown as Record<string, unknown>;
+            return Promise.resolve({ url: "https://checkout.example/session" });
+          },
+        },
+      },
+    },
+  });
+
+  assertEquals(response.status, 200);
+  assertEquals(createdCustomers, 1);
+  const metadata = sessionParams?.metadata as Record<string, string>;
+  assertEquals(metadata.elsa_control_organization_id, "ctrl-org-9");
+  assertEquals(metadata.hub_organization_id, "org-b");
+  assertEquals(sessionParams?.client_reference_id, "ctrl-org-9");
+});
+
+Deno.test("an unlinked org gets 403 cloud_org_not_linked and no session", async () => {
+  let createdSessions = 0;
+  let createdCustomers = 0;
+
+  const response = await handleCloudCheckout({
+    req: new Request("https://elsa-hub.example/functions/v1/create-checkout-session", {
+      method: "POST",
+      headers: { origin: "https://elsa-hub.example" },
+    }),
+    user: { id: "admin-1", email: "admin@example.test" },
+    userClient: jsonUserClient() as never,
+    serviceClient: jsonServiceClient() as never,
+    body: { organizationId: "org-b" },
+    corsHeaders: {},
+    env: {
+      get(key: string) {
+        if (key === "STRIPE_SECRET_KEY") return "sk_test_cloud";
+        if (key === "STRIPE_CLOUD_PRICE_ID") return "price_test_cloud";
+        return undefined;
+      },
+    },
+    getOrCreateStripeCustomer: async () => {
+      createdCustomers += 1;
+      return "cus_should_not_exist";
+    },
+    readValidatedControlOrganizationId: async () => null,
+    stripe: {
+      customers: {
+        create: () => {
+          throw new Error("must not create");
+        },
+        update: async (id) => ({ id }),
+        del: async (id) => ({ id }),
+      },
+      subscriptions: {
+        list: async () => ({ data: [] }),
+      },
+      checkout: {
+        sessions: {
+          create: () => {
+            createdSessions += 1;
+            return Promise.resolve({ url: "https://checkout.example/session" });
+          },
+        },
+      },
+    },
+  });
+
+  assertEquals(response.status, 403);
+  const payload = await response.json();
+  assertEquals(payload.code, "cloud_org_not_linked");
+  assertEquals(createdSessions, 0);
+  assertEquals(createdCustomers, 0);
+});
+
+Deno.test("an org admin of an unlinked org gets 403 and no session", async () => {
+  let createdSessions = 0;
+  let createdCustomers = 0;
+
+  const response = await handleCloudCheckout({
+    req: new Request("https://elsa-hub.example/functions/v1/create-checkout-session", {
+      method: "POST",
+      headers: { origin: "https://elsa-hub.example" },
+    }),
+    user: { id: "admin-1", email: "admin@example.test" },
+    userClient: jsonUserClient({
+      isAdmin: true,
+      memberships: [{ organization_id: "org-b", role: "admin" }],
+    }) as never,
+    serviceClient: jsonServiceClient() as never,
+    body: { organizationId: "org-b" },
+    corsHeaders: {},
+    env: {
+      get(key: string) {
+        if (key === "STRIPE_SECRET_KEY") return "sk_test_cloud";
+        if (key === "STRIPE_CLOUD_PRICE_ID") return "price_test_cloud";
+        return undefined;
+      },
+    },
+    getOrCreateStripeCustomer: async () => {
+      createdCustomers += 1;
+      return "cus_should_not_exist";
+    },
+    stripe: {
+      customers: {
+        create: () => {
+          throw new Error("must not create");
+        },
+        update: async (id) => ({ id }),
+        del: async (id) => ({ id }),
+      },
+      subscriptions: {
+        list: async () => ({ data: [] }),
+      },
+      checkout: {
+        sessions: {
+          create: () => {
+            createdSessions += 1;
+            return Promise.resolve({ url: "https://checkout.example/session" });
+          },
+        },
+      },
+    },
+  });
+
+  assertEquals(response.status, 403);
+  const payload = await response.json();
+  assertEquals(payload.code, "cloud_org_not_linked");
+  assertEquals(createdSessions, 0);
+  assertEquals(createdCustomers, 0);
 });

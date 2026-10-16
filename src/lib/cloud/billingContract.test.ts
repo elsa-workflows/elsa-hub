@@ -9,14 +9,15 @@ import {
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
   cloudPortalReturnPath,
+  billingAccountFromControlLink,
   CONTROL_ORGANIZATION_METADATA_KEY,
-  controlOrganizationIdFromHubOrg,
+  controlOrganizationIdFromLink,
   HUB_ORGANIZATION_METADATA_KEY,
   HUB_USER_METADATA_KEY,
   isCloudCheckoutRequest,
   requireCloudOrganizationId,
-  resolveControlOrganizationId,
   selectLinkedHubOrganization,
+  unlinkedControlOrganizationError,
   shouldRecordHubOrder,
   stripeWebhookRoute,
 } from "./billingContract";
@@ -38,22 +39,42 @@ describe("Cloud billing contract", () => {
     const metadata = buildCloudCheckoutMetadata({
       hubUserId: "user-1",
       hubOrganizationId: "hub-org-1",
-      controlOrganizationId: "hub-org-1",
+      controlOrganizationId: "ctrl-org-1",
     });
     expect(metadata.kind).toBe("cloud");
     expect(metadata.product_type).toBe("cloud");
     expect(metadata[HUB_USER_METADATA_KEY]).toBe("user-1");
     expect(metadata[HUB_ORGANIZATION_METADATA_KEY]).toBe("hub-org-1");
-    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).toBe("hub-org-1");
+    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).toBe("ctrl-org-1");
+    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).not.toBe("hub-org-1");
   });
 
-  it("derives the Control org from the linked Hub org", () => {
-    expect(controlOrganizationIdFromHubOrg("hub-org-1")).toBe("hub-org-1");
+  it("reads the Control org from a validated link row, not Hub membership", () => {
     expect(
-      resolveControlOrganizationId({
-        hubOrganizationId: "hub-org-1",
+      controlOrganizationIdFromLink({
+        control_organization_id: "ctrl-org-1",
+        validated_at: "2026-10-16T00:00:00.000Z",
       }),
-    ).toBe("hub-org-1");
+    ).toBe("ctrl-org-1");
+    expect(
+      controlOrganizationIdFromLink({
+        control_organization_id: "ctrl-org-1",
+        validated_at: null,
+      }),
+    ).toBeNull();
+    expect(
+      controlOrganizationIdFromLink({
+        control_organization_id: null,
+        validated_at: "2026-10-16T00:00:00.000Z",
+      }),
+    ).toBeNull();
+    expect(controlOrganizationIdFromLink(null)).toBeNull();
+    expect(billingAccountFromControlLink("ctrl-org-1")).toBe("linked");
+    expect(billingAccountFromControlLink(null)).toBe("missing");
+    expect(unlinkedControlOrganizationError()).toMatchObject({
+      status: 403,
+      code: "cloud_org_not_linked",
+    });
     expect(
       selectLinkedHubOrganization([{ organization_id: "org-b", role: "admin" }], "org-foreign"),
     ).toMatchObject({ status: 403, code: "cloud_org_not_linked" });

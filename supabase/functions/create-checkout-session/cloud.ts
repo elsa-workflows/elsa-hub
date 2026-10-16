@@ -9,15 +9,15 @@ import {
 import {
   assertStripeTestMode,
   buildCloudCheckoutMetadata,
-  CLOUD_ORG_NOT_LINKED_CODE,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
-  controlOrganizationIdFromHubOrg,
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
   readLinkedHubAdminOrganizations,
+  readValidatedControlOrganizationId,
   selectLinkedHubOrganization,
+  unlinkedControlOrganizationError,
 } from "../_shared/cloud-billing.ts";
 
 export type CloudCheckoutContext = {
@@ -34,6 +34,9 @@ export type CloudCheckoutContext = {
     owner: StripeCustomerOwner,
     deps?: GetOrCreateStripeCustomerDeps,
   ) => Promise<string>;
+  readValidatedControlOrganizationId?: (
+    hubOrganizationId: string,
+  ) => Promise<string | null>;
   stripe?: {
     customers: {
       create: (
@@ -104,7 +107,18 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     });
   }
 
-  const controlOrganizationId = controlOrganizationIdFromHubOrg(organizationId);
+  const resolveControlOrganizationId =
+    ctx.readValidatedControlOrganizationId ??
+    ((hubOrganizationId: string) =>
+      readValidatedControlOrganizationId(serviceClient, hubOrganizationId));
+  const controlOrganizationId = await resolveControlOrganizationId(organizationId);
+  if (!controlOrganizationId) {
+    const unlinked = unlinkedControlOrganizationError();
+    return jsonResponse(corsHeaders, unlinked.status, {
+      error: unlinked.error,
+      code: unlinked.code,
+    });
+  }
 
   let stripePriceId: string;
   try {

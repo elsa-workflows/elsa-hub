@@ -4,9 +4,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import {
   assertStripeTestMode,
   classifyStripeDataObject,
+  billingAccountFromControlLink,
   cloudBillingCustomerOwner,
   readControlEntitlement,
   readStoredStripeCustomerId,
+  readValidatedControlOrganizationId,
   stripeLivemodeFromSecret,
 } from "../_shared/cloud-billing.ts";
 
@@ -90,10 +92,15 @@ serve(async (req) => {
       hubUserId: user.id,
       hubOrganizationId: organizationId ?? null,
     });
+    const controlOrganizationId = organizationId
+      ? await readValidatedControlOrganizationId(serviceClient, organizationId)
+      : null;
+    const billingAccount = billingAccountFromControlLink(controlOrganizationId);
 
     if (!customerId) {
       return json(200, {
-        billingAccount: "missing",
+        billingAccount,
+        controlOrganizationId,
         canManage,
         subscriptions: [],
         entitlement,
@@ -127,7 +134,8 @@ serve(async (req) => {
       });
 
     return json(200, {
-      billingAccount: "linked",
+      billingAccount,
+      controlOrganizationId,
       canManage,
       subscriptions,
       entitlement,

@@ -162,16 +162,35 @@ export function selectLinkedHubOrganization(
   return { organizationId: matched };
 }
 
-export function controlOrganizationIdFromHubOrg(hubOrganizationId: string): string {
-  return requireCloudOrganizationId(hubOrganizationId);
+export type ControlOrganizationLinkRow = {
+  control_organization_id?: string | null;
+  validated_at?: string | null;
+};
+
+export function controlOrganizationIdFromLink(
+  row: ControlOrganizationLinkRow | null | undefined,
+): string | null {
+  const id = row?.control_organization_id?.trim();
+  if (!id || !row?.validated_at) return null;
+  return id;
 }
 
-export function resolveControlOrganizationId(input: {
-  hubOrganizationId?: string | null;
-}): string {
-  return controlOrganizationIdFromHubOrg(
-    requireCloudOrganizationId(input.hubOrganizationId),
-  );
+export function unlinkedControlOrganizationError(): {
+  status: number;
+  error: string;
+  code: typeof CLOUD_ORG_NOT_LINKED_CODE;
+} {
+  return {
+    status: 403,
+    code: CLOUD_ORG_NOT_LINKED_CODE,
+    error: "No organization is linked to this account",
+  };
+}
+
+export function billingAccountFromControlLink(
+  controlOrganizationId: string | null | undefined,
+): "linked" | "missing" {
+  return controlOrganizationId ? "linked" : "missing";
 }
 
 export function buildCloudCheckoutMetadata(input: {

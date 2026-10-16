@@ -55,6 +55,7 @@ function CloudHomeBody() {
         subscription={billing.subscription}
         canManage={billing.canManage}
         hasOrganization={Boolean(billing.organizationId)}
+        billingAccount={billing.billingAccount}
         onSubscribe={() => billing.startCheckout.mutate()}
         onManage={() => billing.openPortal.mutate()}
         checkoutPending={billing.startCheckout.isPending}

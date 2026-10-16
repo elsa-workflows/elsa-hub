@@ -7,17 +7,19 @@
 import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   assertStripeTestMode,
+  billingAccountFromControlLink,
   classifyStripeEvent,
   cloudBillingCustomerOwner,
-  controlOrganizationIdFromHubOrg,
+  controlOrganizationIdFromLink,
   isCloudCheckoutRequest,
   isCloudStripeEvent,
   orgHasBlockingCloudSubscription,
   readStoredStripeCustomerId,
+  readValidatedControlOrganizationId,
   requireCloudOrganizationId,
-  resolveControlOrganizationId,
   selectLinkedHubOrganization,
   stripeWebhookRoute,
+  unlinkedControlOrganizationError,
 } from "./cloud-billing.ts";
 
 type StoredRow = {
@@ -73,14 +75,27 @@ Deno.test("personal Cloud checkout is rejected", () => {
   assertEquals(threw, true);
 });
 
-Deno.test("Control organization id comes from the linked Hub org", () => {
-  assertEquals(controlOrganizationIdFromHubOrg("hub-org-1"), "hub-org-1");
+Deno.test("Control organization id comes from a validated link row, not the Hub org id", async () => {
   assertEquals(
-    resolveControlOrganizationId({
-      hubOrganizationId: "hub-org-1",
+    controlOrganizationIdFromLink({
+      control_organization_id: "ctrl-org-1",
+      validated_at: "2026-10-16T00:00:00.000Z",
     }),
-    "hub-org-1",
+    "ctrl-org-1",
   );
+  assertEquals(
+    controlOrganizationIdFromLink({
+      control_organization_id: "ctrl-org-1",
+      validated_at: null,
+    }),
+    null,
+  );
+  assertEquals(controlOrganizationIdFromLink(null), null);
+  assertEquals(billingAccountFromControlLink("ctrl-org-1"), "linked");
+  assertEquals(billingAccountFromControlLink(null), "missing");
+  assertEquals(unlinkedControlOrganizationError().status, 403);
+  assertEquals(unlinkedControlOrganizationError().code, "cloud_org_not_linked");
+  assertEquals(await readValidatedControlOrganizationId({}, "hub-org-1"), null);
 });
 
 Deno.test("linked Hub org is the membership row, not a client foreign id", () => {

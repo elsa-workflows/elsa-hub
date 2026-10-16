@@ -77,6 +77,7 @@ describe("Cloud billing pages", () => {
         return {
           data: {
             billingAccount: "linked",
+            controlOrganizationId: "ctrl-org-1",
             canManage: true,
             subscriptions: [
               {

@@ -24,6 +24,7 @@ export function CloudBillingPanel({
   subscription,
   canManage,
   hasOrganization,
+  billingAccount,
   onSubscribe,
   onManage,
   checkoutPending,
@@ -36,12 +37,14 @@ export function CloudBillingPanel({
   subscription: CloudSubscriptionStatus | null;
   canManage: boolean;
   hasOrganization: boolean;
+  billingAccount: "missing" | "linked";
   onSubscribe: () => void;
   onManage: () => void;
   checkoutPending: boolean;
   portalPending: boolean;
 }) {
   const hasPlan = Boolean(planName && planStatus && planStatus !== "canceled");
+  const linkedToControl = billingAccount === "linked";
   const periodEnd = subscription?.currentPeriodEnd
     ? format(new Date(subscription.currentPeriodEnd), "MMM d, yyyy")
     : null;
@@ -97,7 +100,7 @@ export function CloudBillingPanel({
           </div>
         )}
 
-        {canManage ? (
+        {canManage && linkedToControl ? (
           <div className="flex flex-col sm:flex-row gap-3">
             {!hasPlan && (
               <Button
@@ -123,11 +126,16 @@ export function CloudBillingPanel({
               </Button>
             )}
           </div>
-        ) : (
+        ) : canManage && hasOrganization && !linkedToControl ? (
+          <p className="text-sm text-muted-foreground">
+            This organization is not linked to Elsa Cloud. Checkout is unavailable until the
+            Hub-to-Control organization link is validated.
+          </p>
+        ) : !canManage ? (
           <p className="text-sm text-muted-foreground">
             Only organization admins can start checkout or open the billing portal.
           </p>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
