@@ -1,4 +1,8 @@
-/** Hub ↔ Control Cloud billing contract. Keep in sync with supabase/functions/_shared/cloud-billing.ts */
+/**
+ * Hub ↔ Control Cloud billing contract.
+ * Keep in sync with supabase/functions/_shared/cloud-billing.ts.
+ * Control organization id comes from #79's validated `cloud_organization_links` row.
+ */
 
 export const CLOUD_KIND = "cloud";
 export const ACADEMY_KIND = "academy";

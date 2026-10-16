@@ -2,12 +2,17 @@ import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudCheckout } from "./cloud.ts";
 import type { StripeCustomerOwner } from "../_shared/stripe-customer.ts";
 
+const HUB_ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const FOREIGN_ORG = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const CONTROL_ORG = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const OTHER_CONTROL = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+
 function jsonUserClient(options?: {
   isAdmin?: boolean;
   memberships?: Array<{ organization_id: string; role: string }>;
 }) {
   const isAdmin = options?.isAdmin ?? true;
-  const memberships = options?.memberships ?? [{ organization_id: "org-b", role: "admin" }];
+  const memberships = options?.memberships ?? [{ organization_id: HUB_ORG, role: "admin" }];
   return {
     rpc: (_name: string, args: { p_org_id?: string }) => {
       const orgId = args?.p_org_id;
@@ -82,10 +87,10 @@ function jsonServiceClient(options?: {
   };
 }
 
-function linkedOrgServiceClient(controlOrganizationId = "ctrl-org-1") {
+function linkedOrgServiceClient(controlOrganizationId = CONTROL_ORG) {
   return jsonServiceClient({
     links: [{
-      hub_organization_id: "org-b",
+      hub_organization_id: HUB_ORG,
       control_organization_id: controlOrganizationId,
       validated_at: "2026-10-16T00:00:00.000Z",
     }],
@@ -134,10 +139,10 @@ Deno.test("Cloud checkout ignores a client-supplied Control organization id", as
     }),
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient() as never,
-    serviceClient: linkedOrgServiceClient("ctrl-org-1") as never,
+    serviceClient: linkedOrgServiceClient("cccccccc-cccc-4ccc-8ccc-cccccccccccc") as never,
     body: {
-      organizationId: "org-b",
-      controlOrganizationId: "foreign-control-org",
+      organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      controlOrganizationId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     } as never,
     corsHeaders: {},
     env: {
@@ -174,17 +179,17 @@ Deno.test("Cloud checkout ignores a client-supplied Control organization id", as
   });
 
   assertEquals(response.status, 200);
-  assertEquals(owners, [{ orgId: "org-b" }]);
-  assertEquals(sessionParams?.client_reference_id, "ctrl-org-1");
+  assertEquals(owners, [{ orgId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }]);
+  assertEquals(sessionParams?.client_reference_id, "cccccccc-cccc-4ccc-8ccc-cccccccccccc");
   const metadata = sessionParams?.metadata as Record<string, string>;
   const subscriptionData = sessionParams?.subscription_data as {
     metadata: Record<string, string>;
   };
-  assertEquals(metadata.elsa_control_organization_id, "ctrl-org-1");
-  assertEquals(metadata.hub_organization_id, "org-b");
-  assertEquals(subscriptionData.metadata.elsa_control_organization_id, "ctrl-org-1");
-  assertEquals(metadata.elsa_control_organization_id === "foreign-control-org", false);
-  assertEquals(metadata.elsa_control_organization_id === "org-b", false);
+  assertEquals(metadata.elsa_control_organization_id, "cccccccc-cccc-4ccc-8ccc-cccccccccccc");
+  assertEquals(metadata.hub_organization_id, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  assertEquals(subscriptionData.metadata.elsa_control_organization_id, "cccccccc-cccc-4ccc-8ccc-cccccccccccc");
+  assertEquals(metadata.elsa_control_organization_id === "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", false);
+  assertEquals(metadata.elsa_control_organization_id === "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", false);
 });
 
 function checkoutStripe(listData: Array<{ id: string; status: string; metadata?: Record<string, string> }>) {
@@ -227,7 +232,7 @@ Deno.test("Cloud checkout returns 409 when the org already has an active Cloud s
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient() as never,
     serviceClient: linkedOrgServiceClient() as never,
-    body: { organizationId: "org-b" },
+    body: { organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     corsHeaders: {},
     env: {
       get(key: string) {
@@ -261,7 +266,7 @@ Deno.test("Cloud checkout allows a new session when the org only has Hub or canc
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient() as never,
     serviceClient: linkedOrgServiceClient() as never,
-    body: { organizationId: "org-b" },
+    body: { organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     corsHeaders: {},
     env: {
       get(key: string) {
@@ -289,12 +294,12 @@ Deno.test("client-supplied foreign org id is never written to Stripe metadata", 
     }),
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient({
-      memberships: [{ organization_id: "org-b", role: "admin" }],
+      memberships: [{ organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", role: "admin" }],
     }) as never,
     serviceClient: jsonServiceClient() as never,
     body: {
-      organizationId: "org-foreign",
-      controlOrganizationId: "org-foreign",
+      organizationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      controlOrganizationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     } as never,
     corsHeaders: {},
     env: {
@@ -346,7 +351,7 @@ Deno.test("Cloud checkout returns an error when the user has no organization lin
     user: { id: "user-unlinked", email: "unlinked@example.test" },
     userClient: jsonUserClient({ memberships: [] }) as never,
     serviceClient: jsonServiceClient() as never,
-    body: { organizationId: "org-b" },
+    body: { organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     corsHeaders: {},
     env: {
       get(key: string) {
@@ -395,8 +400,8 @@ Deno.test("a linked org writes the Control organization id, not the Hub org id",
     }),
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient() as never,
-    serviceClient: linkedOrgServiceClient("ctrl-org-9") as never,
-    body: { organizationId: "org-b" },
+    serviceClient: linkedOrgServiceClient("dddddddd-dddd-4ddd-8ddd-dddddddddddd") as never,
+    body: { organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     corsHeaders: {},
     env: {
       get(key: string) {
@@ -434,9 +439,9 @@ Deno.test("a linked org writes the Control organization id, not the Hub org id",
   assertEquals(response.status, 200);
   assertEquals(createdCustomers, 1);
   const metadata = sessionParams?.metadata as Record<string, string>;
-  assertEquals(metadata.elsa_control_organization_id, "ctrl-org-9");
-  assertEquals(metadata.hub_organization_id, "org-b");
-  assertEquals(sessionParams?.client_reference_id, "ctrl-org-9");
+  assertEquals(metadata.elsa_control_organization_id, "dddddddd-dddd-4ddd-8ddd-dddddddddddd");
+  assertEquals(metadata.hub_organization_id, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  assertEquals(sessionParams?.client_reference_id, "dddddddd-dddd-4ddd-8ddd-dddddddddddd");
 });
 
 Deno.test("an unlinked org gets 403 cloud_org_not_linked and no session", async () => {
@@ -451,7 +456,7 @@ Deno.test("an unlinked org gets 403 cloud_org_not_linked and no session", async 
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient() as never,
     serviceClient: jsonServiceClient() as never,
-    body: { organizationId: "org-b" },
+    body: { organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     corsHeaders: {},
     env: {
       get(key: string) {
@@ -505,10 +510,10 @@ Deno.test("an org admin of an unlinked org gets 403 and no session", async () =>
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient({
       isAdmin: true,
-      memberships: [{ organization_id: "org-b", role: "admin" }],
+      memberships: [{ organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", role: "admin" }],
     }) as never,
     serviceClient: jsonServiceClient() as never,
-    body: { organizationId: "org-b" },
+    body: { organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     corsHeaders: {},
     env: {
       get(key: string) {
@@ -550,6 +555,74 @@ Deno.test("an org admin of an unlinked org gets 403 and no session", async () =>
   assertEquals(createdCustomers, 0);
 });
 
+Deno.test("a link row without validated_at is 403 cloud_org_not_linked and creates no session", async () => {
+  let createdSessions = 0;
+  let createdCustomers = 0;
+
+  const response = await handleCloudCheckout({
+    req: new Request("https://elsa-hub.example/functions/v1/create-checkout-session", {
+      method: "POST",
+      headers: { origin: "https://elsa-hub.example" },
+    }),
+    user: { id: "admin-1", email: "admin@example.test" },
+    userClient: jsonUserClient() as never,
+    serviceClient: jsonServiceClient({
+      links: [{
+        hub_organization_id: HUB_ORG,
+        control_organization_id: CONTROL_ORG,
+        validated_at: null,
+      }],
+    }) as never,
+    body: { organizationId: HUB_ORG },
+    corsHeaders: {},
+    env: {
+      get(key: string) {
+        if (key === "STRIPE_SECRET_KEY") return "sk_test_cloud";
+        if (key === "STRIPE_CLOUD_PRICE_ID") return "price_test_cloud";
+        return undefined;
+      },
+    },
+    getOrCreateStripeCustomer: async () => {
+      createdCustomers += 1;
+      return "cus_should_not_exist";
+    },
+    stripe: {
+      customers: {
+        create: () => {
+          throw new Error("must not create");
+        },
+        update: async (id) => ({ id }),
+        del: async (id) => ({ id }),
+      },
+      subscriptions: {
+        list: async () => ({ data: [] }),
+      },
+      checkout: {
+        sessions: {
+          create: () => {
+            createdSessions += 1;
+            return Promise.resolve({ url: "https://checkout.example/session" });
+          },
+        },
+      },
+    },
+  });
+
+  assertEquals(response.status, 403);
+  const payload = await response.json();
+  assertEquals(payload.code, "cloud_org_not_linked");
+  assertEquals(createdSessions, 0);
+  assertEquals(createdCustomers, 0);
+});
+
+Deno.test("Cloud checkout calls #79's reader, not an injected stub", async () => {
+  const source = await Deno.readTextFile(new URL("./cloud.ts", import.meta.url));
+  assertEquals(source.includes('from "../_shared/cloud-organization-link.ts"'), true);
+  assertEquals(source.includes("readValidatedControlOrganizationId"), true);
+  assertEquals(source.includes("readControlOrganizationId?:"), false);
+  assertEquals(source.includes("async function readValidatedControlOrganizationId"), false);
+});
+
 Deno.test("a Control organization link read error is 500 and creates no session", async () => {
   let createdSessions = 0;
   let createdCustomers = 0;
@@ -562,7 +635,7 @@ Deno.test("a Control organization link read error is 500 and creates no session"
     user: { id: "admin-1", email: "admin@example.test" },
     userClient: jsonUserClient() as never,
     serviceClient: jsonServiceClient({ linkError: "connection refused" }) as never,
-    body: { organizationId: "org-b" },
+    body: { organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     corsHeaders: {},
     env: {
       get(key: string) {

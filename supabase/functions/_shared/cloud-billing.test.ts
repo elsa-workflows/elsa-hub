@@ -15,12 +15,12 @@ import {
   isCloudStripeEvent,
   orgHasBlockingCloudSubscription,
   readStoredStripeCustomerId,
-  readValidatedControlOrganizationId,
   requireCloudOrganizationId,
   selectLinkedHubOrganization,
   stripeWebhookRoute,
   unlinkedControlOrganizationError,
 } from "./cloud-billing.ts";
+import { readValidatedControlOrganizationId } from "./cloud-organization-link.ts";
 
 type StoredRow = {
   ownerId: string;
@@ -98,6 +98,8 @@ Deno.test("Control organization id comes from a validated link row, not the Hub 
 });
 
 Deno.test("the Control organization link reader uses the store row, not the Hub org id", async () => {
+  const hubOrg = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const controlOrg = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
   const present = {
     from(table: string) {
       assertEquals(table, "cloud_organization_links");
@@ -111,7 +113,8 @@ Deno.test("the Control organization link reader uses the store row, not the Hub 
         maybeSingle() {
           return Promise.resolve({
             data: {
-              control_organization_id: "ctrl-org-1",
+              hub_organization_id: hubOrg,
+              control_organization_id: controlOrg,
               validated_at: "2026-10-16T00:00:00.000Z",
             },
             error: null,
@@ -121,7 +124,7 @@ Deno.test("the Control organization link reader uses the store row, not the Hub 
       return query;
     },
   };
-  assertEquals(await readValidatedControlOrganizationId(present, "hub-org-1"), "ctrl-org-1");
+  assertEquals(await readValidatedControlOrganizationId(present, hubOrg), controlOrg);
 
   const missing = {
     from() {
@@ -139,7 +142,7 @@ Deno.test("the Control organization link reader uses the store row, not the Hub 
       return query;
     },
   };
-  assertEquals(await readValidatedControlOrganizationId(missing, "hub-org-1"), null);
+  assertEquals(await readValidatedControlOrganizationId(missing, hubOrg), null);
 
   const failing = {
     from() {
@@ -161,7 +164,7 @@ Deno.test("the Control organization link reader uses the store row, not the Hub 
     },
   };
   await assertRejects(
-    () => readValidatedControlOrganizationId(failing, "hub-org-1"),
+    () => readValidatedControlOrganizationId(failing, hubOrg),
     Error,
     "Failed to read Control organization link",
   );

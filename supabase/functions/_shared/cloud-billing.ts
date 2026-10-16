@@ -5,10 +5,12 @@
  * - elsa-hub#47 / #57 `getOrCreateStripeCustomer(owner, deps?)` (unchanged)
  * - elsa-control#825 Hub-originated subscription metadata
  *   (`elsa_control_organization_id` on the session and subscription)
- * - cloud-bff (#53 / #44) Hub-org → Control-org mapping
+ * - elsa-hub#79 `readValidatedControlOrganizationId` from
+ *   `cloud_organization_links` (Control org id for checkout metadata)
  *
- * Cloud checkout is org-only. Stripe org identifiers come from
- * organization_members for the signed-in user.
+ * Cloud checkout is org-only. The Hub organization comes from
+ * organization_members plus `is_org_admin`. The Control organization id
+ * comes from #79's validated link row, never from the Hub org id or the client.
  */
 
 export const CLOUD_KIND = "cloud";
@@ -247,47 +249,6 @@ export function cloudLinkFromControlOrganizationId(
   controlOrganizationId: string | null | undefined,
 ): "linked" | "missing" {
   return controlOrganizationId ? "linked" : "missing";
-}
-
-export const CLOUD_ORGANIZATION_LINKS_TABLE = "cloud_organization_links";
-
-type ControlOrganizationLinkStore = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        maybeSingle: () => PromiseLike<{
-          data: ControlOrganizationLinkRow | null;
-          error: { message: string } | null;
-        }>;
-      };
-    };
-  };
-};
-
-/**
- * Control organization id from the validated Hub-to-Control link (#79).
- * Null when the Hub org has no validated `cloud_organization_links` row.
- * Throws on a store read error so an outage is not treated as unlinked.
- */
-export async function readValidatedControlOrganizationId(
-  supabase: unknown,
-  hubOrganizationId: string,
-): Promise<string | null> {
-  const hubId = hubOrganizationId.trim();
-  if (!hubId) return null;
-
-  const store = supabase as ControlOrganizationLinkStore;
-  const { data, error } = await store
-    .from(CLOUD_ORGANIZATION_LINKS_TABLE)
-    .select("control_organization_id, validated_at")
-    .eq("hub_organization_id", hubId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Failed to read Control organization link: ${error.message}`);
-  }
-
-  return controlOrganizationIdFromLink(data);
 }
 
 export function buildCloudCheckoutMetadata(input: {

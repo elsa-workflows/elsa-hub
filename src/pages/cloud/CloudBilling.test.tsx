@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -8,10 +7,6 @@ const { invoke, navigate, redirectTo } = vi.hoisted(() => ({
   invoke: vi.fn(),
   navigate: vi.fn(),
   redirectTo: vi.fn(),
-}));
-
-vi.mock("@/components/layout/Layout", () => ({
-  Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock("@/components/Seo", () => ({
@@ -32,6 +27,13 @@ vi.mock("@/contexts/OrganizationContext", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useOrganizations", () => ({
+  useOrganizations: () => ({
+    organizations: [{ slug: "acme" }],
+    loading: false,
+  }),
+}));
+
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: { invoke },
@@ -49,7 +51,6 @@ vi.mock("react-router-dom", async () => {
 });
 
 import CloudBilling from "./CloudBilling";
-import CloudHome from "./CloudHome";
 
 function renderAt(path: string) {
   const client = new QueryClient({
@@ -59,8 +60,8 @@ function renderAt(path: string) {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route path="/cloud" element={<CloudHome />} />
-          <Route path="/cloud/billing" element={<CloudBilling />} />
+          <Route path="/dashboard/org/:slug/cloud/billing" element={<CloudBilling />} />
+          <Route path="/dashboard/cloud/billing" element={<CloudBilling />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -78,7 +79,7 @@ describe("Cloud billing pages", () => {
           data: {
             billingAccount: "linked",
             cloudLink: "linked",
-            controlOrganizationId: "ctrl-org-1",
+            controlOrganizationId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
             canManage: true,
             subscriptions: [
               {
@@ -104,15 +105,15 @@ describe("Cloud billing pages", () => {
     });
   });
 
-  it("shows the plan on /cloud once Control reports the entitlement", async () => {
-    renderAt("/cloud");
-    expect(await screen.findByText(/current plan/i)).toBeInTheDocument();
-    expect(screen.getByText("Elsa Cloud Hosted", { selector: "span" })).toBeInTheDocument();
+  it("shows the plan on Cloud billing once Control reports the entitlement", async () => {
+    renderAt("/dashboard/org/acme/cloud/billing");
+    expect(await screen.findByRole("heading", { level: 1, name: "Cloud billing" })).toBeInTheDocument();
+    expect(await screen.findByText("Elsa Cloud Hosted")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /pricing/i })).not.toBeInTheDocument();
   });
 
-  it("opens the Hub billing portal from /cloud/billing and never links to public pricing", async () => {
-    renderAt("/cloud/billing");
+  it("opens the Hub billing portal from Cloud billing and never links to public pricing", async () => {
+    renderAt("/dashboard/org/acme/cloud/billing");
     const manage = await screen.findByRole("button", { name: /manage or cancel billing/i });
     fireEvent.click(manage);
 

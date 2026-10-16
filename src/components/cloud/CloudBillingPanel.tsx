@@ -129,7 +129,7 @@ export function CloudBillingPanel({
               </Button>
             )}
           </div>
-        ) : canManage && hasOrganization && !linkedToControl ? (
+        ) : canManage && hasOrganization && !linkedToControl && !isLoading ? (
           <p className="text-sm text-muted-foreground">
             This organization is not linked to Elsa Cloud. Checkout is unavailable until the
             Hub-to-Control organization link is validated.

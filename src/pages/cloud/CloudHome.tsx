@@ -1,87 +1,73 @@
 import { useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
-import { Layout } from "@/components/layout/Layout";
-import { CloudAuthGate } from "@/components/cloud/CloudAuthGate";
-import { CloudBillingPanel } from "@/components/cloud/CloudBillingPanel";
-import { useCloudBilling } from "@/hooks/useCloudBilling";
+import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
+import { CloudEmptyState } from "@/components/cloud/CloudEmptyState";
+import { CloudEngineList } from "@/components/cloud/CloudEngineList";
+import { CloudErrorState } from "@/components/cloud/CloudErrorState";
+import { CloudLoadingState } from "@/components/cloud/CloudLoadingState";
+import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
+import { CloudSetupState } from "@/components/cloud/CloudSetupState";
+import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
+import { useCloudEngines } from "@/hooks/useCloudEngines";
+import { CLOUD_ENGINES_INTRO, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
+import { useCloudConsolePaths } from "@/lib/cloudPaths";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-function CloudHomeBody() {
+export default function CloudHome() {
+  const { pathname } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const billing = useCloudBilling();
+  const { view, refetch, setupCloud, setupPending, workspaces, selectWorkspace, selectedWorkspace } =
+    useCloudEngines();
+  const { home } = useCloudConsolePaths();
+  const inDashboard = pathname.startsWith("/dashboard");
 
   useEffect(() => {
-    const payment = searchParams.get("payment");
-    if (payment === "success") {
-      toast.success("Checkout complete", {
-        description: "Your Elsa Cloud plan will appear here once Control reports the entitlement.",
-      });
-      const next = new URLSearchParams(searchParams);
-      next.delete("payment");
-      setSearchParams(next, { replace: true });
-      billing.refresh();
-    }
-    // billing.refresh is stable enough for this post-checkout toast.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (searchParams.get("payment") !== "success") return;
+    toast.success("Checkout complete", {
+      description: "Your Elsa Cloud plan will appear here once Control reports the entitlement.",
+    });
+    const next = new URLSearchParams(searchParams);
+    next.delete("payment");
+    setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
   return (
-    <div className="container max-w-3xl py-10 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Elsa Cloud</h1>
-        <p className="text-muted-foreground mt-2">
-          Your hosted Elsa engines and subscription live here.
-        </p>
-      </div>
+    <OrgCloudMembershipGate>
+      <>
+        <Seo
+          path={pathname}
+          title={`${CLOUD_PAGE_TITLE} — Elsa Workflows`}
+          description="View your Elsa Cloud engines."
+          noIndex
+        />
+        <section className={inDashboard ? "p-6" : "py-10 md:py-16"}>
+          <div className={inDashboard ? "space-y-6" : "container max-w-3xl space-y-6"}>
+            <CloudPageHeader
+              description={CLOUD_ENGINES_INTRO}
+              workspaces={workspaces}
+              selectedWorkspace={selectedWorkspace}
+              onSelectWorkspace={selectWorkspace}
+            />
 
-      {billing.planName ? (
-        <p>
-          Current plan: <span className="font-medium">{billing.planName}</span>
-        </p>
-      ) : (
-        <p className="text-muted-foreground">
-          No engines yet. Subscribe to Elsa Cloud to get started. The plan appears once Control
-          reports the entitlement.
-        </p>
-      )}
+            {view.kind === "loading" && <CloudLoadingState />}
+            {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
+            {view.kind === "error" && (
+              <CloudErrorState message={view.message} onRetry={() => void refetch()} />
+            )}
+            {view.kind === "needsSetup" && (
+              <CloudSetupState onSetup={setupCloud} pending={setupPending} />
+            )}
+            {view.kind === "empty" && <CloudEmptyState />}
+            {view.kind === "list" && <CloudEngineList engines={view.engines} />}
 
-      <CloudBillingPanel
-        isLoading={billing.isLoading}
-        error={billing.error}
-        planName={billing.planName}
-        planStatus={billing.planStatus}
-        subscription={billing.subscription}
-        canManage={billing.canManage}
-        hasOrganization={Boolean(billing.organizationId)}
-        billingAccount={billing.billingAccount}
-        cloudLink={billing.cloudLink}
-        onSubscribe={() => billing.startCheckout.mutate()}
-        onManage={() => billing.openPortal.mutate()}
-        checkoutPending={billing.startCheckout.isPending}
-        portalPending={billing.openPortal.isPending}
-      />
-
-      <Button variant="outline" asChild className="min-h-11">
-        <Link to="/cloud/billing">Billing details</Link>
-      </Button>
-    </div>
-  );
-}
-
-export default function CloudHome() {
-  return (
-    <Layout>
-      <Seo
-        path="/cloud"
-        title="Elsa Cloud — Elsa+"
-        description="Manage your Elsa Cloud engines and subscription in Elsa Hub."
-        noIndex
-      />
-      <CloudAuthGate>
-        <CloudHomeBody />
-      </CloudAuthGate>
-    </Layout>
+            <Button variant="outline" asChild className="min-h-11">
+              <Link to={`${home}/billing`}>Billing details</Link>
+            </Button>
+          </div>
+        </section>
+      </>
+    </OrgCloudMembershipGate>
   );
 }

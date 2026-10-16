@@ -8,9 +8,9 @@ import {
   cloudBillingCustomerOwner,
   readControlEntitlement,
   readStoredStripeCustomerId,
-  readValidatedControlOrganizationId,
   stripeLivemodeFromSecret,
 } from "../_shared/cloud-billing.ts";
+import { readValidatedControlOrganizationId } from "../_shared/cloud-organization-link.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

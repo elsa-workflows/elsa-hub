@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { LEGACY_CLOUD_PATH } from "@/lib/cloudPaths";
 import {
   ELSA_RUNTIME_PATH,
   LEGACY_VALENCE_RUNTIME_PATH,
@@ -37,6 +38,12 @@ const ElsaRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
 const Distributions = lazy(() => import("./pages/enterprise/Distributions"));
 const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
+const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
+const CloudEngineOverview = lazy(() => import("./pages/cloud/CloudEngineOverview"));
+const CloudBilling = lazy(() => import("./pages/cloud/CloudBilling"));
+const LegacyCloudRedirect = lazy(() =>
+  import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.LegacyCloudRedirect }))
+);
 const Training = lazy(() => import("./pages/enterprise/Training"));
 const RuntimeBuilderLanding = lazy(() => import("./pages/enterprise/RuntimeBuilderLanding"));
 const RuntimeBuilderComposer = lazy(() => import("./pages/enterprise/RuntimeBuilderComposer"));
@@ -55,9 +62,6 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
-const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
-const CloudBilling = lazy(() => import("./pages/cloud/CloudBilling"));
-
 // Dashboard
 const DashboardLayout = lazy(() =>
   import("@/components/dashboard").then((m) => ({ default: m.DashboardLayout }))
@@ -166,6 +170,8 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
+              <Route path={LEGACY_CLOUD_PATH} element={<LegacyCloudRedirect />} />
+              <Route path={`${LEGACY_CLOUD_PATH}/*`} element={<LegacyCloudRedirect />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />
@@ -191,8 +197,6 @@ const App = () => (
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/auth/confirm" element={<AuthConfirm />} />
-              <Route path="/cloud" element={<CloudHome />} />
-              <Route path="/cloud/billing" element={<CloudBilling />} />
               <Route path="/invite/:token" element={<AcceptInvitation />} />
               <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
               <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
@@ -202,7 +206,13 @@ const App = () => (
                 <Route index element={<DashboardHome />} />
                 <Route path="settings" element={<ProfileSettings />} />
                 <Route path="settings/notifications" element={<NotificationSettings />} />
+                <Route path="cloud" element={<CloudHome />} />
+                <Route path="cloud/billing" element={<CloudBilling />} />
+                <Route path="cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug" element={<OrgOverview />} />
+                <Route path="org/:slug/cloud" element={<CloudHome />} />
+                <Route path="org/:slug/cloud/billing" element={<CloudBilling />} />
+                <Route path="org/:slug/cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug/orders" element={<OrgOrders />} />
                 <Route path="org/:slug/credits" element={<OrgCredits />} />
                 <Route path="org/:slug/team" element={<OrgTeam />} />

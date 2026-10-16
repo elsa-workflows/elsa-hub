@@ -15,10 +15,10 @@ import {
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
   readLinkedHubAdminOrganizations,
-  readValidatedControlOrganizationId,
   selectLinkedHubOrganization,
   unlinkedControlOrganizationError,
 } from "../_shared/cloud-billing.ts";
+import { readValidatedControlOrganizationId } from "../_shared/cloud-organization-link.ts";
 
 export type CloudCheckoutContext = {
   req: Request;
@@ -34,9 +34,6 @@ export type CloudCheckoutContext = {
     owner: StripeCustomerOwner,
     deps?: GetOrCreateStripeCustomerDeps,
   ) => Promise<string>;
-  readValidatedControlOrganizationId?: (
-    hubOrganizationId: string,
-  ) => Promise<string | null>;
   stripe?: {
     customers: {
       create: (
@@ -107,13 +104,12 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     });
   }
 
-  const resolveControlOrganizationId =
-    ctx.readValidatedControlOrganizationId ??
-    ((hubOrganizationId: string) =>
-      readValidatedControlOrganizationId(serviceClient, hubOrganizationId));
   let controlOrganizationId: string | null;
   try {
-    controlOrganizationId = await resolveControlOrganizationId(organizationId);
+    controlOrganizationId = await readValidatedControlOrganizationId(
+      serviceClient,
+      organizationId,
+    );
   } catch (error) {
     const message = error instanceof Error
       ? error.message

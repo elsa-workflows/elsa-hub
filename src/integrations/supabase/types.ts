@@ -348,6 +348,38 @@ export type Database = {
         }
         Relationships: []
       }
+      cloud_organization_links: {
+        Row: {
+          control_organization_id: string
+          created_at: string
+          hub_organization_id: string
+          updated_at: string
+          validated_at: string
+        }
+        Insert: {
+          control_organization_id: string
+          created_at?: string
+          hub_organization_id: string
+          updated_at?: string
+          validated_at: string
+        }
+        Update: {
+          control_organization_id?: string
+          created_at?: string
+          hub_organization_id?: string
+          updated_at?: string
+          validated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cloud_organization_links_hub_organization_id_fkey"
+            columns: ["hub_organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           created_at: string
