@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   STALE_COMPLETE_ZIP_PREFIX,
+  SUPERSEDED_COMPLETE_ZIP_PREFIX,
   STRIPE_PRICE_ID_RE,
   applyExactRewrites,
   applyPlanWithStore,
@@ -92,7 +93,7 @@ function boxManifest(overrides: Record<string, unknown> = {}): AcademyManifest {
       storage_path: "kits/solo-bundle-20261013/kit.zip",
       owner_course: "demo-core",
     },
-    excluded_asset_sha256_prefixes: [STALE_COMPLETE_ZIP_PREFIX],
+    excluded_asset_sha256_prefixes: [STALE_COMPLETE_ZIP_PREFIX, SUPERSEDED_COMPLETE_ZIP_PREFIX],
     module_rewrites: {
       "demo-core": [
         {
@@ -489,6 +490,28 @@ describe("import planning", () => {
     const plan = planImport({ manifest, mapping, sourceRoot: root });
     const skipped = plan.assets.find((op) => op.kind === "skip");
     expect(skipped?.reason).toMatch(/excluded sha prefix 7380ab47/);
+  });
+
+  it("skips the superseded Complete zip prefix 464b8b0a", () => {
+    const root = tmpDir();
+    writeTree(root, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+      "packs/superseded.zip": Buffer.from("superseded"),
+    });
+    const supersededSha = SUPERSEDED_COMPLETE_ZIP_PREFIX;
+    const manifest = boxManifest();
+    manifest.courses[0].assets = [
+      {
+        label: "Superseded Complete zip",
+        source: "packs/superseded.zip",
+        sha256: supersededSha,
+        size_bytes: 10,
+      },
+    ];
+    const plan = planImport({ manifest, mapping, sourceRoot: root });
+    const skipped = plan.assets.find((op) => op.kind === "skip");
+    expect(skipped?.reason).toMatch(/excluded sha prefix 464b8b0a/);
   });
 
   it("reads git content/courses bodies without re-applying box rewrites", () => {

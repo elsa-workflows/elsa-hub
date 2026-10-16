@@ -12,6 +12,8 @@ export const ACADEMY_KITS_BUCKET = "academy-kits";
 export const STALE_COMPLETE_ZIP_PREFIX =
   "7380ab47d2343bf329a109a723ed31c95130e91f81b3ebe079ac7e1d552316c1";
 export const REBUILT_COMPLETE_ZIP_SHA256 =
+  "cdba949ef4def6a5997a29efa5c51c3b10056b5f21477eb8e604243a9eb593df";
+export const SUPERSEDED_COMPLETE_ZIP_PREFIX =
   "464b8b0a6765e69ed46544e503e5e9c09b5e96a0f967c3c86f7338d3fa8c9271";
 export const KIT_SHA256 =
   "3184ea17f87a76c9de4370cddd797635c21509cf28af09994f1bf8b44e81f9c2";
@@ -368,8 +370,8 @@ export function remapStoragePath(
   if (kit && sha === kit.sha256) {
     return kitStoragePath(kit);
   }
-  if (sha === REBUILT_COMPLETE_ZIP_SHA256 || sha?.startsWith("464b8b0a")) {
-    return `courses/elsa-3.9.0-20261015/${fileName}`;
+  if (sha === REBUILT_COMPLETE_ZIP_SHA256) {
+    return `courses/elsa-3.9.0-20261016/${fileName}`;
   }
   const source = asset.source ?? asset.file ?? "";
   const pack = source.match(/packaging\/(elsa-[^/]+)\//);
@@ -811,7 +813,7 @@ function loadGitCourse(layout: SourceLayout, slug: string): ManifestCourse | nul
 
 function excludedPrefixes(manifest: AcademyManifest): string[] {
   const extra = (manifest.excluded_asset_sha256_prefixes ?? []).map((item) => item.toLowerCase());
-  const defaults = [STALE_COMPLETE_ZIP_PREFIX];
+  const defaults = [STALE_COMPLETE_ZIP_PREFIX, SUPERSEDED_COMPLETE_ZIP_PREFIX];
   return [...new Set([...defaults, ...extra])];
 }
 

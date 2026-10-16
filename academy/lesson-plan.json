@@ -318,11 +318,11 @@
           "label": "Course lessons, offline copy (Complete)",
           "storage_path": "fundamentals-complete/fundamentals-complete-self-paced.zip",
           "lesson_slug": null,
-          "source": "self-paced/packaging/elsa-3.9.0-20261015/fundamentals-complete-self-paced.zip",
+          "source": "self-paced/packaging/elsa-3.9.0-20261016/fundamentals-complete-self-paced.zip",
           "extras": {
-            "sha256": "464b8b0a6765e69ed46544e503e5e9c09b5e96a0f967c3c86f7338d3fa8c9271",
-            "bytes": 36369,
-            "description": "Complete course zip rebuilt 2026-10-15 with the s01 line 45 fix and the kit release line in KIT-ACCESS (kit workshop/solo-bundle-20261013). Supersedes 7380ab47 (kept unchanged in elsa-3.9.0/)."
+            "sha256": "cdba949ef4def6a5997a29efa5c51c3b10056b5f21477eb8e604243a9eb593df",
+            "bytes": 36338,
+            "description": "Complete course zip rebuilt 2026-10-16 with the PR #100 review fixes (s02, s04 wording; trailing spaces) on top of the s01 line 45 fix; kit workshop/solo-bundle-20261013. Supersedes 464b8b0a (elsa-3.9.0-20261015/) and 7380ab47 (elsa-3.9.0/), both kept."
           }
         }
       ],
@@ -774,6 +774,7 @@
   ],
   "source_root_note": "Pass --source-root at runtime. Box layout is a curriculum checkout; git layout is valence-works/elsa-plus-training content/courses.",
   "excluded_asset_sha256_prefixes": [
-    "7380ab47d2343bf329a109a723ed31c95130e91f81b3ebe079ac7e1d552316c1"
+    "7380ab47d2343bf329a109a723ed31c95130e91f81b3ebe079ac7e1d552316c1",
+    "464b8b0a6765e69ed46544e503e5e9c09b5e96a0f967c3c86f7338d3fa8c9271"
   ]
 }
