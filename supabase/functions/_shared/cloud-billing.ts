@@ -7,9 +7,8 @@
  *   (`elsa_control_organization_id` on the session and subscription)
  * - cloud-bff (#53 / #44) Hub-org → Control-org mapping
  *
- * Cloud checkout is org-only. The Control organization id comes from a
- * validated row in cloud_organization_links. The Hub org id is never used
- * as a stand-in, and the client never supplies the Control org id.
+ * Cloud checkout is org-only. Stripe org identifiers come from
+ * organization_members for the signed-in user.
  */
 
 export const CLOUD_KIND = "cloud";
@@ -49,7 +48,6 @@ export type StoredStripeCustomerStore = {
 
 export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
 export const CLOUD_ORG_NOT_LINKED_CODE = "cloud_org_not_linked";
-export const CLOUD_ORGANIZATION_LINKS_TABLE = "cloud_organization_links";
 
 export function isCloudCheckoutRequest(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
@@ -137,68 +135,39 @@ export function requireCloudOrganizationId(organizationId?: string | null): stri
   return resolved;
 }
 
-export type HubControlOrganizationLink = {
-  hubOrganizationId: string;
-  controlOrganizationId: string;
-  validatedAt: string;
+export type HubOrganizationMembership = {
+  organization_id: string;
+  role?: string;
 };
 
 export type LinkedHubOrganization =
-  | { organizationId: string; controlOrganizationId: string }
+  | { organizationId: string }
   | { status: number; error: string; code?: string };
 
-export function cloudOrgNotLinkedError(): {
-  status: 403;
-  error: string;
-  code: typeof CLOUD_ORG_NOT_LINKED_CODE;
-} {
-  return {
-    status: 403,
-    code: CLOUD_ORG_NOT_LINKED_CODE,
-    error: "No organization is linked to this account",
-  };
-}
-
-export function isValidatedControlOrganizationLink(
-  link: HubControlOrganizationLink | null | undefined,
-): link is HubControlOrganizationLink {
-  return Boolean(
-    link?.hubOrganizationId?.trim() &&
-      link.controlOrganizationId.trim() &&
-      link.validatedAt.trim(),
-  );
-}
-
-export function billingAccountFromOrganizationLink(
-  link: HubControlOrganizationLink | null | undefined,
-): "linked" | "missing" {
-  return isValidatedControlOrganizationLink(link) ? "linked" : "missing";
-}
-
-/**
- * Control organization id for Stripe metadata. Only the id stored on a
- * validated Hub-to-Control link record. Never the Hub org id, never a
- * client-supplied value.
- */
-export function controlOrganizationIdFromHubOrg(
-  link: HubControlOrganizationLink | null | undefined,
-): string {
-  if (!isValidatedControlOrganizationLink(link)) {
-    throw new Error("No organization is linked to this account");
-  }
-  return link.controlOrganizationId.trim();
-}
-
-export function resolveControlOrganizationId(input: {
-  link?: HubControlOrganizationLink | null;
-}): string {
-  return controlOrganizationIdFromHubOrg(input.link);
+function isAdminMembershipRole(role?: string): boolean {
+  return role === "admin" || role === "owner" || role === undefined;
 }
 
 export function selectLinkedHubOrganization(
-  link: HubControlOrganizationLink | null | undefined,
+  memberships: HubOrganizationMembership[],
   clientOrganizationId?: string | null,
 ): LinkedHubOrganization {
+  const linkedIds = [
+    ...new Set(
+      memberships
+        .filter((row) => isAdminMembershipRole(row.role) && row.organization_id)
+        .map((row) => row.organization_id),
+    ),
+  ];
+
+  if (linkedIds.length === 0) {
+    return {
+      status: 403,
+      code: CLOUD_ORG_NOT_LINKED_CODE,
+      error: "No organization is linked to this account",
+    };
+  }
+
   let requested: string;
   try {
     requested = requireCloudOrganizationId(clientOrganizationId);
@@ -209,60 +178,60 @@ export function selectLinkedHubOrganization(
     };
   }
 
-  if (
-    !isValidatedControlOrganizationLink(link) ||
-    link.hubOrganizationId !== requested
-  ) {
-    return cloudOrgNotLinkedError();
+  const matched = linkedIds.find((id) => id === requested);
+  if (!matched) {
+    return {
+      status: 403,
+      code: CLOUD_ORG_NOT_LINKED_CODE,
+      error: "No organization is linked to this account",
+    };
   }
 
-  return {
-    organizationId: link.hubOrganizationId,
-    controlOrganizationId: controlOrganizationIdFromHubOrg(link),
-  };
+  return { organizationId: matched };
 }
 
-export type HubControlOrganizationLinkStore = {
+export type HubOrganizationMembershipStore = {
   from: (table: string) => {
     select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        maybeSingle: () => PromiseLike<{
-          data: {
-            hub_organization_id: string;
-            control_organization_id: string;
-            validated_at: string | null;
-          } | null;
-          error: { message: string } | null;
-        }>;
-      };
+      eq: (column: string, value: string) => PromiseLike<{
+        data: HubOrganizationMembership[] | null;
+        error: { message: string } | null;
+      }>;
     };
   };
 };
 
-export async function readValidatedControlOrganizationLink(
+export async function readLinkedHubAdminOrganizations(
   supabase: unknown,
-  hubOrganizationId: string,
-): Promise<HubControlOrganizationLink | null> {
-  const store = supabase as HubControlOrganizationLinkStore;
+  userId: string,
+): Promise<HubOrganizationMembership[]> {
+  const store = supabase as HubOrganizationMembershipStore;
   const { data, error } = await store
-    .from(CLOUD_ORGANIZATION_LINKS_TABLE)
-    .select("hub_organization_id, control_organization_id, validated_at")
-    .eq("hub_organization_id", hubOrganizationId)
-    .maybeSingle();
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", userId);
 
   if (error) {
-    throw new Error(`Failed to read Control organization link: ${error.message}`);
+    throw new Error(`Failed to read organization membership: ${error.message}`);
   }
 
-  const link = data
-    ? {
-        hubOrganizationId: data.hub_organization_id,
-        controlOrganizationId: data.control_organization_id,
-        validatedAt: data.validated_at ?? "",
-      }
-    : null;
+  return (data ?? []).filter((row) => isAdminMembershipRole(row.role) && row.organization_id);
+}
 
-  return isValidatedControlOrganizationLink(link) ? link : null;
+export function controlOrganizationIdFromHubOrg(hubOrganizationId: string): string {
+  const resolved = hubOrganizationId.trim();
+  if (!resolved) {
+    throw new Error("A Control organization is required for Cloud checkout");
+  }
+  return resolved;
+}
+
+export function resolveControlOrganizationId(input: {
+  hubOrganizationId?: string | null;
+}): string {
+  return controlOrganizationIdFromHubOrg(
+    requireCloudOrganizationId(input.hubOrganizationId),
+  );
 }
 
 export function buildCloudCheckoutMetadata(input: {

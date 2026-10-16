@@ -3,12 +3,10 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import {
   assertStripeTestMode,
-  billingAccountFromOrganizationLink,
   classifyStripeDataObject,
   cloudBillingCustomerOwner,
   readControlEntitlement,
   readStoredStripeCustomerId,
-  readValidatedControlOrganizationLink,
   stripeLivemodeFromSecret,
 } from "../_shared/cloud-billing.ts";
 
@@ -51,9 +49,8 @@ serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const organizationId = typeof body?.organizationId === "string" ? body.organizationId.trim() : undefined;
+    const organizationId = typeof body?.organizationId === "string" ? body.organizationId : undefined;
     let canManage = true;
-    let organizationLink = null;
 
     if (organizationId) {
       const { data: isMember } = await userClient.rpc("is_org_member", {
@@ -66,10 +63,7 @@ serve(async (req) => {
         p_org_id: organizationId,
       });
       canManage = isAdmin === true;
-      organizationLink = await readValidatedControlOrganizationLink(userClient, organizationId);
     }
-
-    const billingAccount = billingAccountFromOrganizationLink(organizationLink);
 
     try {
       assertStripeTestMode(Deno.env.get("STRIPE_SECRET_KEY"));
@@ -99,7 +93,7 @@ serve(async (req) => {
 
     if (!customerId) {
       return json(200, {
-        billingAccount,
+        billingAccount: "missing",
         canManage,
         subscriptions: [],
         entitlement,
@@ -133,7 +127,7 @@ serve(async (req) => {
       });
 
     return json(200, {
-      billingAccount,
+      billingAccount: "linked",
       canManage,
       subscriptions,
       entitlement,

@@ -116,12 +116,10 @@ export function useCloudBilling() {
 
   const planName = snapshot?.entitlement?.planName || stripeSubscription?.planName || null;
   const planStatus = snapshot?.entitlement?.status || stripeSubscription?.status || null;
-  const organizationLinked = snapshot?.billingAccount === "linked";
 
   return {
     organizationId,
     isAdmin: organizationId ? isAdmin : true,
-    organizationLinked,
     orgLoading,
     isLoading: statusQuery.isLoading || orgLoading,
     error: statusQuery.error instanceof Error ? statusQuery.error : null,
