@@ -21,11 +21,14 @@ import {
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer, TrainingInterestDialog } from "@/components/enterprise";
 import {
+  ACADEMY_GUMROAD_CLAIM_LIVE,
   FUNDAMENTALS_CORE_GUMROAD_URL,
   type TrainingInterestIntent,
   type TrainingQuoteVariant,
 } from "@/lib/trainingInterest";
 import {
+  ACADEMY_PATH,
+  ACADEMY_SOLO_BUNDLE_PATH,
   TRAINING_DESCRIPTION,
   TRAINING_H1,
   TRAINING_INTRO_AFTER,
@@ -72,7 +75,14 @@ const prerequisites = [
   "Git",
 ];
 
-const extraFormats = [
+const extraFormats: Array<{
+  icon: typeof Award;
+  title: string;
+  description: string;
+  later: boolean;
+  href?: string;
+  linkLabel?: string;
+}> = [
   {
     icon: Award,
     title: "Completion certificates",
@@ -81,15 +91,22 @@ const extraFormats = [
   },
   {
     icon: Video,
-    title: "Courses",
-    description: "Structured learning paths are not sold yet.",
-    later: true,
+    title: "Academy courses",
+    description: "Lessons and lab kit downloads in Elsa Hub, unlocked by the Solo Bundle.",
+    later: false,
+    href: ACADEMY_PATH,
+    linkLabel: "Browse the Academy",
   },
 ];
 
 const privatePackages = ["€3,200", "€5,200", "€7,200"];
 
-function GumroadCta({
+const SOLO_CHECKOUT_MICROCOPY =
+  "Checkout is in Elsa Hub. Sign in or create a free account to buy.";
+const GUMROAD_CLAIM_MICROCOPY =
+  "Bought on Gumroad? Sign in to Elsa Hub with the same verified email and your access is waiting.";
+
+function BuyCta({
   href,
   label,
   size = "default",
@@ -98,19 +115,45 @@ function GumroadCta({
   label: string;
   size?: "default" | "lg";
 }) {
+  const external = /^https?:\/\//.test(href);
+  const content = (
+    <>
+      {label}
+      <ArrowRight className="h-4 w-4" />
+    </>
+  );
+
   return (
     <Button size={size} className="gap-2" asChild>
-      <a href={href} target="_blank" rel="noopener noreferrer">
-        {label}
-        <ArrowRight className="h-4 w-4" />
-      </a>
+      {external ? (
+        <a href={href} target="_blank" rel="noopener noreferrer">
+          {content}
+        </a>
+      ) : (
+        <Link to={href}>{content}</Link>
+      )}
     </Button>
   );
 }
 
 function BuySoloBundleButton({ size = "default" }: { size?: "default" | "lg" }) {
+  return <BuyCta href={ACADEMY_SOLO_BUNDLE_PATH} label="Buy the Solo Bundle" size={size} />;
+}
+
+function SoloCheckoutMicrocopy({
+  showClaim = false,
+  className = "text-xs text-muted-foreground",
+}: {
+  showClaim?: boolean;
+  className?: string;
+}) {
   return (
-    <GumroadCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Buy the Solo Bundle" size={size} />
+    <>
+      <p className={className}>{SOLO_CHECKOUT_MICROCOPY}</p>
+      {ACADEMY_GUMROAD_CLAIM_LIVE && showClaim ? (
+        <p className={className}>{GUMROAD_CLAIM_MICROCOPY}</p>
+      ) : null}
+    </>
   );
 }
 
@@ -160,8 +203,11 @@ export default function Training() {
             <p className="text-xl text-muted-foreground leading-relaxed mb-8">
               {TRAINING_INTRO_BEFORE}<strong>{TRAINING_INTRO_EMPHASIS}</strong>{TRAINING_INTRO_AFTER}
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
-              <BuySoloBundleButton size="lg" />
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center sm:items-start mb-8">
+              <div className="flex flex-col items-center gap-2">
+                <BuySoloBundleButton size="lg" />
+                <SoloCheckoutMicrocopy className="text-sm text-muted-foreground" />
+              </div>
               <Button
                 size="lg"
                 variant="outline"
@@ -278,6 +324,9 @@ export default function Training() {
                       €{TRAINING_LAUNCH_PRICE_EUR} at launch until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR}. EUR excl. VAT.
                     </p>
                     <BuySoloBundleButton />
+                    <div className="mt-2 space-y-1">
+                      <SoloCheckoutMicrocopy showClaim className="text-xs text-muted-foreground" />
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -311,9 +360,9 @@ export default function Training() {
                       Team 5 €349 · Team 10 €599.
                     </p>
                     <p className="text-sm text-muted-foreground mb-6">
-                      EUR excl. VAT. Pick Team 5 or Team 10 at checkout.
+                      EUR excl. VAT. Team packs are still sold on Gumroad for now. Pick Team 5 or Team 10 at checkout.
                     </p>
-                    <GumroadCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Buy a Team pack" />
+                    <BuyCta href={FUNDAMENTALS_CORE_GUMROAD_URL} label="Buy a Team pack" />
                     <p className="text-sm text-muted-foreground mt-3">
                       Need 25+ seats? Team packs of 25 or more are by quote.{" "}
                       <Button variant="link" className="p-0 h-auto" onClick={() => openQuote("seat_quote")}>
@@ -380,6 +429,13 @@ export default function Training() {
                         </Badge>
                       </div>
                       <p className="text-muted-foreground text-sm">{format.description}</p>
+                      {format.href && format.linkLabel ? (
+                        <p className="mt-3">
+                          <Button variant="link" className="p-0 h-auto" asChild>
+                            <Link to={format.href}>{format.linkLabel}</Link>
+                          </Button>
+                        </p>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>
@@ -431,6 +487,9 @@ export default function Training() {
                     Get a private quote
                   </Button>
                 </div>
+                <div className="mt-3 space-y-1">
+                  <SoloCheckoutMicrocopy showClaim className="text-sm text-muted-foreground" />
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -466,10 +525,13 @@ export default function Training() {
               </div>
               <h2 className="text-2xl md:text-3xl font-bold mb-4">Looking for training?</h2>
               <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                Buy the Solo Bundle or a Team pack now, or leave your details and we’ll follow up about a private team workshop or a 25+ seat quote.
+                Buy the Solo Bundle in the Elsa Hub Academy or a Team pack now, or leave your details and we’ll follow up about a private team workshop or a 25+ seat quote.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-                <BuySoloBundleButton size="lg" />
+              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center sm:items-start mb-6">
+                <div className="flex flex-col items-center gap-2">
+                  <BuySoloBundleButton size="lg" />
+                  <SoloCheckoutMicrocopy className="text-sm text-muted-foreground" />
+                </div>
                 <Button size="lg" variant="outline" onClick={() => openQuote()}>
                   Request a private quote
                 </Button>
