@@ -161,7 +161,7 @@ describe("CloudHome", () => {
     expect(screen.getByText(CLOUD_EMPTY_MESSAGE)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: CLOUD_MANAGE_LINK })).toHaveAttribute(
       "href",
-      "https://elsacloud.app",
+      "/dashboard/org/acme/cloud",
     );
     expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /billing details/i })).toHaveAttribute(
