@@ -296,6 +296,7 @@ export function normalizeEngineOverview(
       restart: actionDecision(allowed?.restart ?? allowed?.Restart),
       applyRelease: actionDecision(allowed?.applyRelease ?? allowed?.ApplyRelease),
       open: actionDecision(allowed?.open ?? allowed?.Open),
+      delete: actionDecision(allowed?.delete ?? allowed?.Delete),
     },
   };
 }

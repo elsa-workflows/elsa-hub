@@ -135,6 +135,7 @@ export type CloudEngineOverview = CloudEngineSummary & {
     restart: CloudEngineActionDecision;
     applyRelease: CloudEngineActionDecision;
     open: CloudEngineActionDecision;
+    delete: CloudEngineActionDecision;
   };
 };
 

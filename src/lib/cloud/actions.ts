@@ -1,5 +1,5 @@
 /**
- * cloud-bff action contract for the Hub /cloud console.
+ * cloud-bff action contract for the Hub dashboard Cloud console.
  *
  * Issue #45 (and later Cloud leaves) must import these types rather than
  * inventing a parallel request or response shape. The Edge Function in
@@ -264,6 +264,7 @@ export type CloudEngineOverview = CloudEngineSummary & {
     restart: CloudEngineActionDecision;
     applyRelease: CloudEngineActionDecision;
     open: CloudEngineActionDecision;
+    delete: CloudEngineActionDecision;
   };
 };
 

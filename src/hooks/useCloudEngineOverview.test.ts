@@ -66,6 +66,7 @@ describe("fetchCloudEngineOverview", () => {
               restart: { allowed: true, reasonCode: null },
               applyRelease: { allowed: true, reasonCode: null },
               open: { allowed: true, reasonCode: null },
+              delete: { allowed: true, reasonCode: null },
             },
           },
         };

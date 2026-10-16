@@ -17,7 +17,6 @@ import {
   onboardingChoices,
   slugifyEngineName,
 } from "@/lib/cloud";
-import { elsaCloudEnginePath } from "@/lib/elsaCloud";
 import {
   CLOUD_CREATE_ENGINE,
   CLOUD_ENGINE_NAME_LABEL,
@@ -27,6 +26,7 @@ import {
   type CloudBffResponse,
   type CloudOnboardingOptions,
 } from "@/lib/cloudClient";
+import { useCloudConsolePaths } from "@/lib/cloudPaths";
 import { cn } from "@/lib/utils";
 
 export function CloudCreateEngineDialog({
@@ -46,6 +46,7 @@ export function CloudCreateEngineDialog({
   }) => Promise<CloudBffResponse>;
 }) {
   const navigate = useNavigate();
+  const { engine: enginePath } = useCloudConsolePaths();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +69,7 @@ export function CloudCreateEngineDialog({
     }
     if (result.ok && "engine" in result && result.engine) {
       setOpen(false);
-      navigate(elsaCloudEnginePath(result.engine.id));
+      navigate(enginePath(result.engine.id));
     }
   }
 

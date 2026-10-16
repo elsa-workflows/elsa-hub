@@ -36,12 +36,15 @@ describe("Navigation Cloud leaf", () => {
     expect(screen.queryByRole("link", { name: "Cloud" })).not.toBeInTheDocument();
   });
 
-  it("keeps the Elsa+ Cloud landing page", () => {
+  it("keeps one Elsa Cloud Early access entry pointed at the dashboard Cloud route", () => {
     renderNav();
     fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
-    const cloudServices = screen.getAllByRole("link").filter(
-      (link) => link.getAttribute("href") === "/elsa-plus/cloud-services",
-    );
-    expect(cloudServices.length).toBeGreaterThanOrEqual(1);
+    const cloud = screen.getAllByRole("link", { name: /elsa cloud/i });
+    expect(cloud.length).toBeGreaterThanOrEqual(1);
+    expect(cloud.every((link) => link.getAttribute("href") === "/dashboard/cloud")).toBe(true);
+    expect(screen.queryByRole("link", { name: /managed cloud hosting/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryAllByRole("link").filter((link) => link.getAttribute("href") === "/elsa-plus/cloud-services"),
+    ).toHaveLength(0);
   });
 });

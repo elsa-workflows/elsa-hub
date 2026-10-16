@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -28,12 +28,21 @@ import {
   CLOUD_RESTART,
   CLOUD_RESTART_CONFIRM,
   CLOUD_STRUCTURED_LOGS,
-  isCloudUpdating,
   type CloudAvailableRelease,
   type CloudDeleteConfirmation,
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import { cn } from "@/lib/utils";
+
+function resultError(result: unknown): string | null {
+  if (!result || typeof result !== "object" || !("ok" in result) || result.ok) {
+    return null;
+  }
+  if ("error" in result && typeof result.error === "string" && result.error) {
+    return result.error;
+  }
+  return "That action could not be completed.";
+}
 
 export function CloudEngineActions({
   engine,
@@ -80,47 +89,74 @@ export function CloudEngineActions({
   const [applyOpen, setApplyOpen] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState(releases[0]?.version ?? "");
   const [confirmation, setConfirmation] = useState<CloudDeleteConfirmation | null>(null);
+  const [restartError, setRestartError] = useState<string | null>(null);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const ifMatch = engine.etag ?? (engine.version !== null ? `"${engine.version}"` : "");
   const canRestart = engine.allowedActions.restart.allowed && !disabled && Boolean(ifMatch);
   const canApply = engine.allowedActions.applyRelease.allowed && !disabled && Boolean(ifMatch) && releases.length > 0;
-  const canOpen = (engine.canOpen || engine.allowedActions.open.allowed) &&
+  const canOpen = engine.allowedActions.open.allowed &&
     !disabled &&
     Boolean(engine.organizationId && engine.audience && engine.redirectUri);
-  const canDelete = !disabled && Boolean(ifMatch);
+  const canDelete = engine.allowedActions.delete.allowed && !disabled && Boolean(ifMatch);
 
-  async function restart() {
+  async function restart(event: MouseEvent) {
+    event.preventDefault();
     if (!canRestart) return;
-    await onRestart({ idempotencyKey: crypto.randomUUID(), ifMatch });
+    setRestartError(null);
+    const error = resultError(await onRestart({ idempotencyKey: crypto.randomUUID(), ifMatch }));
+    if (error) {
+      setRestartError(error);
+      return;
+    }
     setRestartOpen(false);
   }
 
-  async function apply() {
+  async function apply(event: MouseEvent) {
+    event.preventDefault();
     if (!canApply || !selectedRelease) return;
-    await onApplyRelease({
+    setApplyError(null);
+    const error = resultError(await onApplyRelease({
       version: selectedRelease,
       idempotencyKey: crypto.randomUUID(),
       ifMatch,
-    });
+    }));
+    if (error) {
+      setApplyError(error);
+      return;
+    }
     setApplyOpen(false);
   }
 
   async function startDelete() {
     if (!canDelete) return;
+    setDeleteError(null);
+    setConfirmation(null);
+    setDeleteOpen(true);
     const result = await onConfirmDelete();
-    if (isCloudUpdating(result as never)) return;
+    const error = resultError(result);
+    if (error) {
+      setDeleteError(error);
+      return;
+    }
     if (result && typeof result === "object" && "ok" in result && result.ok && "confirmation" in result) {
       setConfirmation((result as { confirmation: CloudDeleteConfirmation }).confirmation);
-      setDeleteOpen(true);
     }
   }
 
-  async function finishDelete() {
+  async function finishDelete(event: MouseEvent) {
+    event.preventDefault();
     if (!confirmation || !canDelete) return;
-    await onDelete({
+    setDeleteError(null);
+    const error = resultError(await onDelete({
       deleteConfirmationId: confirmation.id,
       idempotencyKey: crypto.randomUUID(),
       ifMatch,
-    });
+    }));
+    if (error) {
+      setDeleteError(error);
+      return;
+    }
     setDeleteOpen(false);
   }
 
@@ -158,7 +194,10 @@ export function CloudEngineActions({
         variant="outline"
         className={cn(CLOUD_TAP_TARGET)}
         disabled={!canRestart || restarting}
-        onClick={() => setRestartOpen(true)}
+        onClick={() => {
+          setRestartError(null);
+          setRestartOpen(true);
+        }}
       >
         {CLOUD_RESTART}
       </Button>
@@ -168,6 +207,7 @@ export function CloudEngineActions({
         disabled={!canApply || applying}
         onClick={() => {
           setSelectedRelease(releases[0]?.version ?? "");
+          setApplyError(null);
           setApplyOpen(true);
         }}
       >
@@ -182,24 +222,40 @@ export function CloudEngineActions({
         {CLOUD_DELETE_ENGINE}
       </Button>
 
-      <AlertDialog open={restartOpen} onOpenChange={setRestartOpen}>
+      <AlertDialog
+        open={restartOpen}
+        onOpenChange={(open) => {
+          if (!open && restarting) return;
+          setRestartOpen(open);
+          if (!open) setRestartError(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{CLOUD_RESTART_CONFIRM}</AlertDialogTitle>
+            {restartError && <AlertDialogDescription>{restartError}</AlertDialogDescription>}
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className={CLOUD_TAP_TARGET}>Cancel</AlertDialogCancel>
-            <AlertDialogAction className={CLOUD_TAP_TARGET} onClick={() => void restart()}>
+            <AlertDialogCancel className={CLOUD_TAP_TARGET} disabled={restarting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className={CLOUD_TAP_TARGET} disabled={restarting} onClick={(event) => void restart(event)}>
               {CLOUD_RESTART}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={applyOpen} onOpenChange={setApplyOpen}>
+      <AlertDialog
+        open={applyOpen}
+        onOpenChange={(open) => {
+          if (!open && applying) return;
+          setApplyOpen(open);
+          if (!open) setApplyError(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{CLOUD_APPLY_RELEASE}</AlertDialogTitle>
+            {applyError && <AlertDialogDescription>{applyError}</AlertDialogDescription>}
           </AlertDialogHeader>
           <div className="space-y-2">
             <Label htmlFor="cloud-release">{CLOUD_APPLY_RELEASE}</Label>
@@ -217,27 +273,39 @@ export function CloudEngineActions({
             </Select>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel className={CLOUD_TAP_TARGET}>Cancel</AlertDialogCancel>
-            <AlertDialogAction className={CLOUD_TAP_TARGET} onClick={() => void apply()}>
+            <AlertDialogCancel className={CLOUD_TAP_TARGET} disabled={applying}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className={CLOUD_TAP_TARGET} disabled={applying} onClick={(event) => void apply(event)}>
               {CLOUD_APPLY_RELEASE}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!open && deleting) return;
+          setDeleteOpen(open);
+          if (!open) {
+            setDeleteError(null);
+            setConfirmation(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{CLOUD_DELETE_CONFIRM}</AlertDialogTitle>
             {confirmation?.billingNotice && (
               <AlertDialogDescription>{confirmation.billingNotice.message}</AlertDialogDescription>
             )}
+            {deleteError && <AlertDialogDescription>{deleteError}</AlertDialogDescription>}
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className={CLOUD_TAP_TARGET}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className={CLOUD_TAP_TARGET} disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className={cn(CLOUD_TAP_TARGET, "bg-destructive text-destructive-foreground")}
-              onClick={() => void finishDelete()}
+              disabled={deleting || !confirmation}
+              onClick={(event) => void finishDelete(event)}
             >
               {CLOUD_DELETE_ENGINE}
             </AlertDialogAction>

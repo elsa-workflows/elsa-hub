@@ -256,6 +256,7 @@ Deno.test("each read action returns the normalized shape for a signed-in user", 
         restart: { allowed: false, reasonCode: null },
         applyRelease: { allowed: false, reasonCode: null },
         open: { allowed: false, reasonCode: null },
+        delete: { allowed: false, reasonCode: null },
       },
     },
   });
