@@ -171,7 +171,7 @@ export default function Training() {
               </Button>
             </div>
             <p className="text-sm font-medium mb-3">
-              Solo Bundle <strong>€{TRAINING_LAUNCH_PRICE_EUR}</strong> at launch (until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR}) · Team packs from <strong>€349</strong> · Private team workshops from <strong>€3,200</strong>. EUR excl. VAT.
+              Solo Bundle <strong>€{TRAINING_LAUNCH_PRICE_EUR}</strong> incl. VAT at launch (until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT) · Team packs from <strong>€349</strong> and private team workshops from <strong>€3,200</strong>, both excl. VAT.
             </p>
           </div>
         </div>
@@ -275,7 +275,7 @@ export default function Training() {
                       </li>
                     </ul>
                     <p className="text-sm font-medium mb-6">
-                      €{TRAINING_LAUNCH_PRICE_EUR} at launch until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR}. EUR excl. VAT.
+                      €{TRAINING_LAUNCH_PRICE_EUR} incl. VAT at launch until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT.
                     </p>
                     <BuySoloBundleButton />
                   </div>
@@ -402,7 +402,7 @@ export default function Training() {
                     </p>
                     <p className="text-2xl font-bold mb-2">€{TRAINING_LAUNCH_PRICE_EUR}</p>
                     <p className="text-sm text-muted-foreground">
-                      Launch price until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} · Elsa 3.9.0
+                      Launch price incl. VAT until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} · Elsa 3.9.0
                     </p>
                   </div>
                   <div>
@@ -424,7 +424,7 @@ export default function Training() {
                     </p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-8">EUR excl. VAT.</p>
+                <p className="text-sm text-muted-foreground mb-8">Solo prices include VAT. Team packs and private workshops are excl. VAT.</p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <BuySoloBundleButton />
                   <Button variant="outline" onClick={() => openQuote()}>
