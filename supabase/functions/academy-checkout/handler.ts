@@ -1,9 +1,9 @@
 import {
-  ACADEMY_INVOICE_FOOTER,
   ACADEMY_STATEMENT_DESCRIPTOR_SUFFIX,
   ACADEMY_STRIPE_SUBMIT_MESSAGE,
   ACADEMY_STRIPE_TOS_ACCEPTANCE,
   ACADEMY_TERMS_VERSION,
+  academyInvoiceFooter,
   isAcademyTosConsentEnabled,
 } from "../_shared/academyLegal.ts";
 import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
@@ -206,7 +206,7 @@ export async function runAcademyCheckout(params: {
       invoice_data: {
         description: course.title,
         metadata,
-        footer: ACADEMY_INVOICE_FOOTER,
+        footer: academyInvoiceFooter(tosConsentEnabled),
         ...(customFields.length > 0 && { custom_fields: customFields }),
       },
     },

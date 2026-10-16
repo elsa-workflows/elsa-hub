@@ -37,6 +37,14 @@ export const ACADEMY_INVOICE_FOOTER =
   `${ACADEMY_CONFIRMATION_SENTENCE} ${ACADEMY_SELLER_FOOTER_LINE}`;
 
 /**
+ * Invoice footer. The waiver sentence is only used when Stripe actually
+ * collected ToS consent. Otherwise the footer is the seller line alone.
+ */
+export function academyInvoiceFooter(tosConsentEnabled: boolean): string {
+  return tosConsentEnabled ? ACADEMY_INVOICE_FOOTER : ACADEMY_SELLER_FOOTER_LINE;
+}
+
+/**
  * Card statement descriptor suffix. Stripe concatenates
  * `{prefix}* {suffix}` and the combined descriptor is max 22 characters.
  * This suffix is 12 characters (also under the 22-character suffix cap).

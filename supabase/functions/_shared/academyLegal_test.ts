@@ -11,6 +11,7 @@ import {
   ACADEMY_TERMS_PATH,
   ACADEMY_TERMS_URL,
   ACADEMY_TERMS_VERSION,
+  academyInvoiceFooter,
   isAcademyTosConsentEnabled,
 } from "./academyLegal.ts";
 
@@ -48,6 +49,8 @@ Deno.test("checkout strings include the terms URL and never the seller address",
     true,
   );
   assertEquals(ACADEMY_STRIPE_SUBMIT_MESSAGE.includes(ACADEMY_REFUNDS_URL), true);
+  assertEquals(ACADEMY_STRIPE_SUBMIT_MESSAGE.includes("withdrawal"), false);
+  assertEquals(ACADEMY_STRIPE_SUBMIT_MESSAGE.includes("confirmed"), false);
   assertEquals(ACADEMY_CONFIRMATION_SENTENCE.includes(ACADEMY_TERMS_VERSION), true);
 
   const checkoutStrings = [
@@ -65,7 +68,7 @@ Deno.test("checkout strings include the terms URL and never the seller address",
   }
 });
 
-Deno.test("invoice footer is the waiver line plus the exact seller line", () => {
+Deno.test("invoice footer includes the waiver sentence only when consent is collected", () => {
   assertEquals(
     ACADEMY_SELLER_FOOTER_LINE,
     "Skywalker Digital BV, trading as Valence Works, KvK 88244520, VAT NL864551484B01",
@@ -74,6 +77,9 @@ Deno.test("invoice footer is the waiver line plus the exact seller line", () => 
     ACADEMY_INVOICE_FOOTER,
     `${ACADEMY_CONFIRMATION_SENTENCE} ${ACADEMY_SELLER_FOOTER_LINE}`,
   );
+  assertEquals(academyInvoiceFooter(true), ACADEMY_INVOICE_FOOTER);
+  assertEquals(academyInvoiceFooter(false), ACADEMY_SELLER_FOOTER_LINE);
+  assertEquals(academyInvoiceFooter(false).includes(ACADEMY_CONFIRMATION_SENTENCE), false);
 });
 
 Deno.test("statement descriptor suffix stays within Stripe length rules", () => {

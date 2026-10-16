@@ -1,5 +1,6 @@
 import { assertEquals, assertExists } from "https://deno.land/std@0.190.0/testing/asserts.ts";
 import {
+  ACADEMY_CONFIRMATION_SENTENCE,
   ACADEMY_INVOICE_FOOTER,
   ACADEMY_SELLER_FOOTER_LINE,
   ACADEMY_STATEMENT_DESCRIPTOR_SUFFIX,
@@ -225,7 +226,19 @@ function assertCommonAcademySessionParams(
     invoice_data: { footer: string; metadata: Record<string, string> };
   };
   assertEquals(invoice.enabled, true);
-  assertEquals(invoice.invoice_data.footer, ACADEMY_INVOICE_FOOTER);
+  if (options.consentEnabled) {
+    assertEquals(invoice.invoice_data.footer, ACADEMY_INVOICE_FOOTER);
+    assertEquals(invoice.invoice_data.footer, `${ACADEMY_CONFIRMATION_SENTENCE} ${ACADEMY_SELLER_FOOTER_LINE}`);
+    assertEquals(session.consent_collection, { terms_of_service: "required" });
+    assertEquals(customText.terms_of_service_acceptance, {
+      message: ACADEMY_STRIPE_TOS_ACCEPTANCE,
+    });
+  } else {
+    assertEquals(invoice.invoice_data.footer, ACADEMY_SELLER_FOOTER_LINE);
+    assertEquals(invoice.invoice_data.footer.includes(ACADEMY_CONFIRMATION_SENTENCE), false);
+    assertEquals(session.consent_collection, undefined);
+    assertEquals(customText.terms_of_service_acceptance, undefined);
+  }
   assertEquals(invoice.invoice_data.footer.includes(ACADEMY_SELLER_FOOTER_LINE), true);
   assertEquals(invoice.invoice_data.footer.includes("Meervelderweg"), false);
   assertEquals(invoice.invoice_data.footer.includes("3888"), false);
@@ -236,16 +249,6 @@ function assertCommonAcademySessionParams(
   assertEquals(metadata.product_code, options.productCode);
   assertEquals(metadata.seats, options.seats);
   assertEquals(metadata.terms_version, ACADEMY_TERMS_VERSION);
-
-  if (options.consentEnabled) {
-    assertEquals(session.consent_collection, { terms_of_service: "required" });
-    assertEquals(customText.terms_of_service_acceptance, {
-      message: ACADEMY_STRIPE_TOS_ACCEPTANCE,
-    });
-  } else {
-    assertEquals(session.consent_collection, undefined);
-    assertEquals(customText.terms_of_service_acceptance, undefined);
-  }
 
   if (options.team) {
     assertEquals(session.billing_address_collection, "required");
@@ -437,7 +440,7 @@ async function checkoutTeam(options: { consentEnabled: boolean; productCode: "te
   return stripe.sessions[0];
 }
 
-Deno.test("Solo consent off: tax id off, submit and footer always, no ToS consent params", async () => {
+Deno.test("Solo consent off: footer is seller line only, no waiver, no ToS consent params", async () => {
   const session = await checkoutSolo({ consentEnabled: false });
   assertCommonAcademySessionParams(session, {
     consentEnabled: false,
@@ -457,7 +460,7 @@ Deno.test("Solo consent on: ToS required plus acceptance text, tax id still off"
   });
 });
 
-Deno.test("Team 5 consent off: tax id on, billing address required, no ToS consent params", async () => {
+Deno.test("Team 5 consent off: footer is seller line only, tax id on, no ToS consent params", async () => {
   const session = await checkoutTeam({ consentEnabled: false, productCode: "team_5" });
   assertCommonAcademySessionParams(session, {
     consentEnabled: false,
@@ -477,7 +480,7 @@ Deno.test("Team 5 consent on: ToS required plus acceptance text, VAT collection 
   });
 });
 
-Deno.test("Team 10 consent off and on both keep tax id, billing address and footer", async () => {
+Deno.test("Team 10 consent off and on: seller-only footer vs waiver footer", async () => {
   const off = await checkoutTeam({ consentEnabled: false, productCode: "team_10" });
   const on = await checkoutTeam({ consentEnabled: true, productCode: "team_10" });
   assertCommonAcademySessionParams(off, {
