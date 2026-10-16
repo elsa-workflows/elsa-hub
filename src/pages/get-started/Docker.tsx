@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, AlertTriangle, Boxes } from "lucide-react";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
+import { CommunityImageTagsTable } from "@/components/docker-images";
 import {
+  APPS_IMAGES,
+  COMMUNITY_IMAGES,
+  ELSA_COMMUNITY_DOCKER_MINOR_TAG,
+  ELSA_COMMUNITY_DOCKER_TAG,
   ELSA_DOCKER_PULL_COMMAND,
   ELSA_DOCKER_RUN_COMMAND,
   ELSA_DOCKER_SERVER_PULL_COMMAND,
@@ -16,7 +21,6 @@ import {
   PAID_REGISTRY_LOGIN_COMMAND,
   PAID_IMAGES,
 } from "@/data/canonicalSamples";
-import { RUNTIME_IMAGES_SHARE_TAG_COPY } from "@/data/runtimeImage";
 
 const dockerOptions = [
   {
@@ -97,8 +101,9 @@ export default function Docker() {
                   Community images — free to explore
                 </h3>
                 <p className="text-muted-foreground">
-                  The commands below use the free Community images, published publicly on GitHub
-                  Container Registry. They are intended for exploration and evaluation. For
+                  The commands below use the Elsa 3 Community images on Docker Hub, pinned to{" "}
+                  <code className="font-mono text-sm">{ELSA_COMMUNITY_DOCKER_TAG}</code> (linux/amd64
+                  and linux/arm64). They are intended for exploration and evaluation. For
                   production deployments, use the{" "}
                   <Link
                     to={ELSA_RUNTIME_PATH}
@@ -106,7 +111,10 @@ export default function Docker() {
                   >
                     {ELSA_RUNTIME_DISPLAY_NAME} ready-to-deploy images
                   </Link>
-                  .
+                  . The Apps aliases{" "}
+                  <code className="font-mono text-xs">{APPS_IMAGES.server}</code> and{" "}
+                  <code className="font-mono text-xs">{APPS_IMAGES.studio}</code> are a separate
+                  product and have not changed.
                 </p>
 
               </div>
@@ -133,12 +141,17 @@ export default function Docker() {
           <h2 className="text-2xl font-bold">Community and paid registries</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="rounded-lg border bg-card p-6 space-y-2">
-              <h3 className="font-semibold">Community — public, no login</h3>
+              <h3 className="font-semibold">Community — Docker Hub, no login</h3>
               <ul className="text-xs font-mono text-muted-foreground space-y-1">
-                <li>ghcr.io/valence-works/runtime-ce-server</li>
-                <li>ghcr.io/valence-works/runtime-ce-studio</li>
-                <li>ghcr.io/valence-works/runtime-ce-combined</li>
+                <li>{COMMUNITY_IMAGES.server}</li>
+                <li>{COMMUNITY_IMAGES.studio}</li>
+                <li>{COMMUNITY_IMAGES.combined}</li>
               </ul>
+              <p className="text-sm text-muted-foreground">
+                Snippets pin <code className="font-mono text-xs">{ELSA_COMMUNITY_DOCKER_TAG}</code>.{" "}
+                <code className="font-mono text-xs">{ELSA_COMMUNITY_DOCKER_MINOR_TAG}</code> is the
+                floating minor.
+              </p>
             </div>
             <div className="rounded-lg border bg-card p-6 space-y-2">
               <h3 className="font-semibold">Paid — private registry, subscription required</h3>
@@ -154,10 +167,14 @@ export default function Docker() {
           <div className="space-y-2">
             <h3 className="font-semibold">Pinning versions</h3>
             <p className="text-sm text-muted-foreground">
-              {RUNTIME_IMAGES_SHARE_TAG_COPY}
+              Prefer a pinned <code className="font-mono text-xs">{ELSA_COMMUNITY_DOCKER_TAG}</code>{" "}
+              tag in copy-paste snippets.{" "}
+              <code className="font-mono text-xs">{ELSA_COMMUNITY_DOCKER_MINOR_TAG}</code> follows the
+              current minor.
             </p>
             <CodeBlock code={ELSA_DOCKER_VERSIONED_EXAMPLE} language="bash" />
           </div>
+          <CommunityImageTagsTable />
         </div>
       </section>
 
