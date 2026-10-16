@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getOrCreateStripeCustomer } from "../_shared/stripe-customer.ts";
+import { isCloudCheckoutRequest } from "../_shared/cloud-billing.ts";
+import { handleCloudCheckout } from "./cloud.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,7 +67,19 @@ serve(async (req) => {
     const userEmail = user.email;
 
     // Parse request body
-    const { bundleId, productId, organizationId } = await req.json();
+    const body = await req.json();
+    if (isCloudCheckoutRequest(body)) {
+      return await handleCloudCheckout({
+        req,
+        user,
+        userClient,
+        serviceClient,
+        body,
+        corsHeaders,
+      });
+    }
+
+    const { bundleId, productId, organizationId } = body;
     if (!organizationId) {
       return new Response(
         JSON.stringify({ error: "organizationId is required" }),

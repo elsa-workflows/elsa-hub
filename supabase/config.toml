@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.customer-portal]
 verify_jwt = false
 
+[functions.cloud-billing]
+verify_jwt = false
+
 [functions.send-notification]
 verify_jwt = false
 
@@ -80,4 +83,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.author-avatar]
+verify_jwt = false
+
+[functions.academy-checkout]
+verify_jwt = false
+
+[functions.cloud-bff]
 verify_jwt = false

@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { isCloudCheckoutRequest } from "../_shared/cloud-billing.ts";
+import { handleCloudPortal } from "./cloud.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +46,19 @@ serve(async (req) => {
     }
     const userEmail = user.email;
 
+    // Parse request body
+    const body = await req.json();
+    if (isCloudCheckoutRequest(body)) {
+      return await handleCloudPortal({
+        req,
+        user,
+        userClient,
+        serviceClient,
+        body,
+        corsHeaders,
+      });
+    }
+
     if (!userEmail) {
       return new Response(
         JSON.stringify({ error: "User email not found" }),
@@ -51,8 +66,7 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const { organizationId } = await req.json();
+    const { organizationId } = body;
     if (!organizationId) {
       return new Response(
         JSON.stringify({ error: "organizationId is required" }),

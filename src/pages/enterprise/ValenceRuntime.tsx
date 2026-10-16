@@ -313,7 +313,7 @@ export default function ValenceRuntime() {
           <p className="text-sm text-muted-foreground leading-relaxed">
             Not yet a supported distribution — stable release guarantees are on the roadmap.
             Production hardening, container scanning, and image signing are already in place.
-            Elsa 3.8 remains in preview.
+            The public Community images currently ship Elsa 3.8.x and have no Elsa 3.9 tag yet.
           </p>
         </div>
       </section>
