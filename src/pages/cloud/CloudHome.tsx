@@ -1,6 +1,7 @@
 import { useLocation, useParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { CloudCreateEngineDialog } from "@/components/cloud/CloudCreateEngineDialog";
+import { CloudLinkOrganizationState } from "@/components/cloud/CloudLinkOrganizationState";
 import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
 import { CloudEmptyState } from "@/components/cloud/CloudEmptyState";
 import { CloudEngineList } from "@/components/cloud/CloudEngineList";
@@ -10,7 +11,7 @@ import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
-import { useEnsureCloudOrganizationLink } from "@/hooks/useCloudOrganizationLink";
+import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { isHubOrgAdmin } from "@/lib/cloud";
 import { CLOUD_ENGINES_INTRO, CLOUD_LIMIT_MESSAGE, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
@@ -35,15 +36,11 @@ export default function CloudHome() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngines();
-  useEnsureCloudOrganizationLink({
-    hubOrganizationId,
-    isOrgAdmin: isHubOrgAdmin(currentOrg?.role),
-    setupCloud,
-    setupPending,
-  });
+  const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
-  const createAction = canCreate && options
+  const showConsole = orgLink.kind === "idle" || orgLink.kind === "linked";
+  const createAction = showConsole && canCreate && options
     ? (
       <CloudCreateEngineDialog
         options={options}
@@ -79,19 +76,27 @@ export default function CloudHome() {
               <p className="rounded-lg border px-3 py-3 text-sm">{CLOUD_LIMIT_MESSAGE}</p>
             )}
 
-            {view.kind === "loading" && <CloudLoadingState />}
-            {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
+            {orgLink.kind === "pending" && <CloudLoadingState />}
+            {showConsole && view.kind === "loading" && <CloudLoadingState />}
+            {showConsole && view.kind === "updating" && <CloudUpdatingState message={view.message} />}
             {view.kind === "error" && (
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
-            {view.kind === "needsSetup" && (
+            {orgLink.kind === "needsLink" && view.kind !== "error" && (
+              <CloudLinkOrganizationState
+                canLink={orgLink.canLink}
+                onLink={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
+                pending={setupPending}
+              />
+            )}
+            {showConsole && view.kind === "needsSetup" && (
               <CloudSetupState
                 onSetup={() => setupCloud(hubOrganizationId)}
                 pending={setupPending}
               />
             )}
-            {view.kind === "empty" && <CloudEmptyState action={createAction} />}
-            {view.kind === "list" && <CloudEngineList engines={view.engines} />}
+            {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}
+            {showConsole && view.kind === "list" && <CloudEngineList engines={view.engines} />}
           </div>
         </section>
       </>

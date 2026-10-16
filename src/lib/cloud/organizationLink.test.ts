@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isHubOrgAdmin, shouldEnsureCloudOrganizationLink } from "./organizationLink";
+import { cloudOrganizationLinkView, isHubOrgAdmin } from "./organizationLink";
 
 describe("isHubOrgAdmin", () => {
   it("treats admin and owner as org admins", () => {
@@ -10,33 +10,50 @@ describe("isHubOrgAdmin", () => {
   });
 });
 
-describe("shouldEnsureCloudOrganizationLink", () => {
-  const ready = {
-    hubOrganizationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-    isOrgAdmin: true,
-    linkLoading: false,
-    linked: false,
-    persistPending: false,
-    alreadyAttempted: false,
-  };
+describe("cloudOrganizationLinkView", () => {
+  const hubOrganizationId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-  it("persists when an org admin is on an unlinked org Cloud route", () => {
-    expect(shouldEnsureCloudOrganizationLink(ready)).toBe(true);
+  it("is idle when there is no Hub org on the route", () => {
+    expect(cloudOrganizationLinkView({
+      isOrgAdmin: true,
+      linkLoading: false,
+      linked: false,
+    })).toEqual({ kind: "idle" });
   });
 
-  it("does not persist while the link row is loading", () => {
-    expect(shouldEnsureCloudOrganizationLink({ ...ready, linkLoading: true })).toBe(false);
+  it("waits while the link row is loading", () => {
+    expect(cloudOrganizationLinkView({
+      hubOrganizationId,
+      isOrgAdmin: true,
+      linkLoading: true,
+      linked: false,
+    })).toEqual({ kind: "pending" });
   });
 
-  it("does not persist when the org already has a link", () => {
-    expect(shouldEnsureCloudOrganizationLink({ ...ready, linked: true })).toBe(false);
+  it("is linked when the org already has a validated row", () => {
+    expect(cloudOrganizationLinkView({
+      hubOrganizationId,
+      isOrgAdmin: true,
+      linkLoading: false,
+      linked: true,
+    })).toEqual({ kind: "linked" });
   });
 
-  it("does not persist for a non-admin member", () => {
-    expect(shouldEnsureCloudOrganizationLink({ ...ready, isOrgAdmin: false })).toBe(false);
+  it("asks an admin to link when the org has no row", () => {
+    expect(cloudOrganizationLinkView({
+      hubOrganizationId,
+      isOrgAdmin: true,
+      linkLoading: false,
+      linked: false,
+    })).toEqual({ kind: "needsLink", canLink: true });
   });
 
-  it("does not persist without a Hub org id", () => {
-    expect(shouldEnsureCloudOrganizationLink({ ...ready, hubOrganizationId: undefined })).toBe(false);
+  it("asks a member to wait for an admin when the org has no row", () => {
+    expect(cloudOrganizationLinkView({
+      hubOrganizationId,
+      isOrgAdmin: false,
+      linkLoading: false,
+      linked: false,
+    })).toEqual({ kind: "needsLink", canLink: false });
   });
 });

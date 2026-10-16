@@ -6,6 +6,8 @@ import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_ENGINE,
   CLOUD_ERROR_HEADING,
+  CLOUD_LINK_ORG_ACTION,
+  CLOUD_LINK_ORG_ASK_ADMIN,
   CLOUD_OPEN_STUDIO,
   CLOUD_PAGE_TITLE,
   CLOUD_RESTART,
@@ -15,6 +17,7 @@ import {
   CLOUD_UPDATING_MESSAGE,
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
+import type { CloudOrganizationLinkView } from "@/lib/cloud";
 import type { CloudEngineOverviewView } from "@/hooks/useCloudEngineOverview";
 
 const engine: CloudEngineOverview = {
@@ -82,12 +85,26 @@ vi.mock("@/hooks/useCloudEngineLifecycle", () => ({
   useCloudEngineLifecycle: () => lifecycle,
 }));
 
+const HUB_ORG_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+const orgState = vi.hoisted(() => ({
+  organizations: [{ slug: "acme", id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" }] as {
+    slug: string;
+    id: string;
+  }[],
+  loading: false,
+}));
+
 vi.mock("@/hooks/useOrganizations", () => ({
-  useOrganizations: () => ({ organizations: [{ slug: "acme" }], loading: false }),
+  useOrganizations: () => orgState,
+}));
+
+const orgLinkState = vi.hoisted(() => ({
+  current: { kind: "idle" } as CloudOrganizationLinkView,
 }));
 
 vi.mock("@/hooks/useCloudOrganizationLink", () => ({
-  useEnsureCloudOrganizationLink: vi.fn(),
+  useCloudOrganizationLinkView: () => orgLinkState.current,
 }));
 
 import CloudEngineOverviewPage from "./CloudEngineOverview";
@@ -118,6 +135,8 @@ describe("CloudEngineOverview", () => {
     Object.values(lifecycle).forEach((value) => {
       if (typeof value === "function" && "mockReset" in value) value.mockReset();
     });
+    orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
+    orgLinkState.current = { kind: "idle" };
   });
 
   it("shows overview actions for a Ready engine", () => {
@@ -189,6 +208,24 @@ describe("CloudEngineOverview", () => {
     viewState.current = { kind: "needsSetup" };
     renderOverview();
     expect(screen.getByRole("button", { name: CLOUD_SETUP_ACTION })).toBeInTheDocument();
+  });
+
+  it("shows Link this organization when a ready engine exists but the org has no validated link", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "ready", engine };
+    renderOverview();
+    expect(screen.queryByRole("button", { name: CLOUD_OPEN_STUDIO })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION }));
+    expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
+  });
+
+  it("asks a member to wait for an admin when the org is unlinked", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: false };
+    viewState.current = { kind: "ready", engine };
+    renderOverview();
+    expect(screen.getByText(CLOUD_LINK_ORG_ASK_ADMIN)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
+    expect(viewState.setupCloud).not.toHaveBeenCalled();
   });
 
   it("keeps the delete dialog open until the action resolves and shows errors", async () => {

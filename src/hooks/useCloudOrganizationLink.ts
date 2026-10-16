@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { shouldEnsureCloudOrganizationLink } from "@/lib/cloud/organizationLink";
+import {
+  cloudOrganizationLinkView,
+  type CloudOrganizationLinkView,
+} from "@/lib/cloud/organizationLink";
 
 export const CLOUD_ORGANIZATION_LINK_QUERY_KEY = ["cloud", "organization-link"] as const;
 
@@ -25,28 +27,15 @@ export function useCloudOrganizationLink(hubOrganizationId: string | undefined) 
   });
 }
 
-export function useEnsureCloudOrganizationLink(input: {
-  hubOrganizationId?: string;
-  isOrgAdmin: boolean;
-  setupCloud: (hubOrganizationId?: string) => void;
-  setupPending: boolean;
-}) {
-  const { hubOrganizationId, isOrgAdmin, setupCloud, setupPending } = input;
+export function useCloudOrganizationLinkView(
+  hubOrganizationId: string | undefined,
+  isOrgAdmin: boolean,
+): CloudOrganizationLinkView {
   const link = useCloudOrganizationLink(hubOrganizationId);
-  const attemptedForOrg = useRef<string | null>(null);
-
-  const shouldPersist = shouldEnsureCloudOrganizationLink({
+  return cloudOrganizationLinkView({
     hubOrganizationId,
     isOrgAdmin,
     linkLoading: Boolean(hubOrganizationId) && (link.isPending || link.isFetching),
     linked: Boolean(link.data),
-    persistPending: setupPending,
-    alreadyAttempted: attemptedForOrg.current === hubOrganizationId,
   });
-
-  useEffect(() => {
-    if (!shouldPersist || !hubOrganizationId) return;
-    attemptedForOrg.current = hubOrganizationId;
-    setupCloud(hubOrganizationId);
-  }, [hubOrganizationId, setupCloud, shouldPersist]);
 }

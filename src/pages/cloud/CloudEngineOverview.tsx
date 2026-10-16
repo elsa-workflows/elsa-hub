@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CloudActivityLog } from "@/components/cloud/CloudActivityLog";
 import { CloudEngineActions } from "@/components/cloud/CloudEngineActions";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
+import { CloudLinkOrganizationState } from "@/components/cloud/CloudLinkOrganizationState";
 import { CloudLoadingState } from "@/components/cloud/CloudLoadingState";
 import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
 import { CloudProvisioningTimeline } from "@/components/cloud/CloudProvisioningTimeline";
@@ -15,7 +16,7 @@ import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
-import { useEnsureCloudOrganizationLink } from "@/hooks/useCloudOrganizationLink";
+import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
 import { CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
@@ -39,12 +40,8 @@ export default function CloudEngineOverviewPage() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngineOverview(engineId);
-  useEnsureCloudOrganizationLink({
-    hubOrganizationId,
-    isOrgAdmin: isHubOrgAdmin(currentOrg?.role),
-    setupCloud,
-    setupPending,
-  });
+  const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
+  const showConsole = orgLink.kind === "idle" || orgLink.kind === "linked";
   const titleName = view.kind === "ready" ? view.engine.name : "Engine";
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
@@ -94,21 +91,29 @@ export default function CloudEngineOverviewPage() {
               Back to {CLOUD_PAGE_TITLE}
             </Link>
 
-            {view.kind === "loading" && <CloudLoadingState />}
-            {view.kind === "updating" && <CloudUpdatingState message={view.message} />}
+            {orgLink.kind === "pending" && <CloudLoadingState />}
+            {showConsole && view.kind === "loading" && <CloudLoadingState />}
+            {showConsole && view.kind === "updating" && <CloudUpdatingState message={view.message} />}
             {view.kind === "error" && (
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
-            {view.kind === "needsSetup" && (
+            {orgLink.kind === "needsLink" && view.kind !== "error" && (
+              <CloudLinkOrganizationState
+                canLink={orgLink.canLink}
+                onLink={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
+                pending={setupPending}
+              />
+            )}
+            {showConsole && view.kind === "needsSetup" && (
               <CloudSetupState
                 onSetup={() => setupCloud(hubOrganizationId)}
                 pending={setupPending}
               />
             )}
-            {view.kind === "missing" && (
+            {showConsole && view.kind === "missing" && (
               <p className="text-muted-foreground">This engine could not be found.</p>
             )}
-            {view.kind === "ready" && (
+            {showConsole && view.kind === "ready" && (
               <>
                 <Card>
                   <CardHeader>

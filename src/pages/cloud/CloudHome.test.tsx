@@ -8,6 +8,8 @@ import {
   CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
   CLOUD_LIMIT_MESSAGE,
+  CLOUD_LINK_ORG_ACTION,
+  CLOUD_LINK_ORG_ASK_ADMIN,
   CLOUD_MANAGE_LINK,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
@@ -16,6 +18,7 @@ import {
   CLOUD_UPDATING_MESSAGE,
   type CloudOnboardingOptions,
 } from "@/lib/cloudClient";
+import type { CloudOrganizationLinkView } from "@/lib/cloud";
 import type { CloudEngineListView } from "@/hooks/useCloudEngines";
 
 const options: CloudOnboardingOptions = {
@@ -85,8 +88,12 @@ vi.mock("@/hooks/useOrganizations", () => ({
   useOrganizations: () => orgState,
 }));
 
+const orgLinkState = vi.hoisted(() => ({
+  current: { kind: "idle" } as CloudOrganizationLinkView,
+}));
+
 vi.mock("@/hooks/useCloudOrganizationLink", () => ({
-  useEnsureCloudOrganizationLink: vi.fn(),
+  useCloudOrganizationLinkView: () => orgLinkState.current,
 }));
 
 import CloudHome from "./CloudHome";
@@ -124,6 +131,7 @@ describe("CloudHome", () => {
     viewState.creating = false;
     orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
     orgState.loading = false;
+    orgLinkState.current = { kind: "idle" };
   });
 
   it("shows a loading state", () => {
@@ -256,6 +264,73 @@ describe("CloudHome", () => {
     renderHome();
     expect(screen.getByText(CLOUD_ERROR_HEADING)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_ORG_LINK_CONFLICT)).toBeInTheDocument();
+  });
+
+  it("shows Link this organization after /dashboard/cloud redirects to an unlinked org", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "needsSetup" };
+    renderHome("/dashboard/cloud");
+    expect(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_SETUP_ACTION })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION }));
+    expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
+  });
+
+  it("shows Link this organization when engines already exist but the org has no validated link", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = {
+      kind: "list",
+      engines: [{
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Production",
+        slug: "production",
+        status: "Ready",
+        release: "3.8.4",
+      }],
+    };
+    renderHome();
+    expect(screen.queryByText("Production")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION }));
+    expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
+  });
+
+  it("links a second unlinked org with that org's Hub id", () => {
+    const secondOrgId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    orgState.organizations = [
+      { slug: "acme", id: HUB_ORG_ID },
+      { slug: "other-co", id: secondOrgId },
+    ];
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "needsSetup" };
+    renderHome("/dashboard/org/other-co/cloud");
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION }));
+    expect(viewState.setupCloud).toHaveBeenCalledWith(secondOrgId);
+  });
+
+  it("asks a member to wait for an admin when the org is unlinked", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: false };
+    viewState.current = {
+      kind: "list",
+      engines: [{
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Production",
+        slug: "production",
+        status: "Ready",
+        release: "3.8.4",
+      }],
+    };
+    renderHome();
+    expect(screen.getByText(CLOUD_LINK_ORG_ASK_ADMIN)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
+    expect(viewState.setupCloud).not.toHaveBeenCalled();
+  });
+
+  it("still shows a link conflict when the org needs a link", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "error", message: CLOUD_ORG_LINK_CONFLICT };
+    renderHome();
+    expect(screen.getByText(CLOUD_ORG_LINK_CONFLICT)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
   });
 
   it("creates an engine from the empty state", async () => {

@@ -12,6 +12,12 @@ export const CLOUD_SETUP_HEADING = "Set up Elsa Cloud";
 export const CLOUD_SETUP_ACTION = "Set up Elsa Cloud";
 export const CLOUD_SETUP_MESSAGE =
   "Create your Elsa Cloud organization to view managed engines, or reopen an existing one. Opening this page does not create one.";
+export const CLOUD_LINK_ORG_HEADING = "Link this organization";
+export const CLOUD_LINK_ORG_ACTION = "Link this organization";
+export const CLOUD_LINK_ORG_MESSAGE =
+  "Connect this Hub organization to Elsa Cloud so engines and checkout can use it.";
+export const CLOUD_LINK_ORG_ASK_ADMIN =
+  "Ask an organization admin to link Elsa Cloud for this organization.";
 export const CLOUD_CREATE_ENGINE = "Create engine";
 export const CLOUD_ENGINE_NAME_LABEL = "Engine name";
 export const CLOUD_OPEN_STUDIO = "Open Studio";
