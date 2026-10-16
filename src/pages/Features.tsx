@@ -319,7 +319,7 @@ export default function Features() {
           </ul>
           <p className="text-sm text-muted-foreground mt-6 leading-relaxed">
             <strong className="text-foreground">Preview / roadmap.</strong> BPMN import and export on
-            the React Flow Studio canvas (the 3.10 React Studio preview) is not available yet — Studio
+            the React Flow Studio canvas (the 3.11 React Studio preview) is not available yet — Studio
             shows that BPMN is not yet on that canvas. Elsa 4 continues BPMN work in{" "}
             <a
               href="https://github.com/elsa-workflows/elsa-foundation"

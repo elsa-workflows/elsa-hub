@@ -21,8 +21,8 @@ import { SITE_URL } from "@/lib/site";
 import { track } from "@/lib/analytics";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 import { HomeCodeSample } from "@/components/home";
-import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
-import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
+import elsaStudioDesigner from "@/assets/elsa-studio-designer.webp";
+import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.webp";
 import {
   ELSA_EMBED_SNIPPET,
   ELSA_DOCKER_QUICKSTART,
@@ -163,21 +163,24 @@ export default function Home() {
             </div>
 
             <div className="relative min-w-0">
-              <div className="rounded-xl border border-border bg-card p-1.5 shadow-sm">
+              <figure className="rounded-xl border border-border bg-card p-1.5 shadow-sm">
                 <picture>
-                  <source media="(max-width: 767px)" srcSet={elsaStudioDesignerMobile} />
+                  <source media="(max-width: 767px)" srcSet={elsaStudioDesignerMobile} type="image/webp" />
                   <img
                     src={elsaStudioDesigner}
-                    alt="Elsa Studio visual workflow designer showing a workflow with connected activities"
+                    alt="The new React-based Elsa Studio designer (preview)"
                     className="w-full h-auto rounded-lg"
-                    width={1600}
-                    height={1000}
+                    width={1826}
+                    height={1480}
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
                   />
                 </picture>
-              </div>
+                <figcaption className="px-3 pt-2.5 pb-1 text-sm text-muted-foreground">
+                  Preview, coming in Elsa 3.11
+                </figcaption>
+              </figure>
             </div>
           </div>
         </div>
