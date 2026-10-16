@@ -19,7 +19,7 @@ import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
-import { CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
+import { CLOUD_LINK_CHECK_ERROR, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 
 export default function CloudEngineOverviewPage() {
@@ -94,7 +94,10 @@ export default function CloudEngineOverviewPage() {
             {orgLink.kind === "pending" && <CloudLoadingState />}
             {showConsole && view.kind === "loading" && <CloudLoadingState />}
             {showConsole && view.kind === "updating" && <CloudUpdatingState message={view.message} />}
-            {view.kind === "error" && (
+            {orgLink.kind === "error" && (
+              <CloudErrorState message={CLOUD_LINK_CHECK_ERROR} onRetry={orgLink.refetch} />
+            )}
+            {view.kind === "error" && orgLink.kind !== "error" && (
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
             {orgLink.kind === "needsLink" && view.kind !== "error" && (

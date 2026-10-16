@@ -56,4 +56,14 @@ describe("cloudOrganizationLinkView", () => {
       linked: false,
     })).toEqual({ kind: "needsLink", canLink: false });
   });
+
+  it("is an error when the link check fails", () => {
+    expect(cloudOrganizationLinkView({
+      hubOrganizationId,
+      isOrgAdmin: true,
+      linkLoading: false,
+      linked: false,
+      linkError: true,
+    })).toEqual({ kind: "error" });
+  });
 });

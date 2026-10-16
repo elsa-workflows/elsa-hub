@@ -1,4 +1,5 @@
 import { useLocation, useParams } from "react-router-dom";
+import { preferredCloudOrgSlug } from "@/lib/selectedOrganization";
 
 export const ELSACLOUD_APP_URL = "https://elsacloud.app";
 export const CLOUD_PUBLIC_HOME = "/elsa-plus/cloud-services";
@@ -49,6 +50,7 @@ export function dashboardCloudHomePath(orgSlug?: string | null): string {
 
 export type OrgCloudMembershipDecision =
   | { kind: "stay" }
+  | { kind: "pickOrg" }
   | { kind: "pending" }
   | { kind: "redirect"; to: string };
 
@@ -68,14 +70,16 @@ export function orgCloudMembershipDecision(
 }
 
 /**
- * Org Cloud routes stay on a membership slug. The no-org `/dashboard/cloud`
- * route sends signed-in users who have a Hub org to that org's Cloud path,
- * the same way `LegacyCloudRedirect` does.
+ * Org Cloud routes stay on a membership slug. `/dashboard/cloud` sends a
+ * signed-in user to their only Hub org, or to the last-used org when they
+ * belong to more than one. With several orgs and no last-used membership,
+ * the console stays put so the caller can show a picker.
  */
 export function dashboardCloudRouteDecision(
   pathname: string,
   organizations: ReadonlyArray<{ slug: string }>,
   orgsLoading: boolean,
+  preferredSlug?: string | null,
 ): OrgCloudMembershipDecision {
   const orgMatch = pathname.match(/^\/dashboard\/org\/([^/]+)/);
   if (orgMatch) {
@@ -85,8 +89,10 @@ export function dashboardCloudRouteDecision(
     return { kind: "stay" };
   }
   if (orgsLoading) return { kind: "pending" };
-  const slug = organizations[0]?.slug;
-  if (!slug) return { kind: "stay" };
+  const slug = preferredCloudOrgSlug(organizations, preferredSlug);
+  if (!slug) {
+    return organizations.length > 1 ? { kind: "pickOrg" } : { kind: "stay" };
+  }
   return {
     kind: "redirect",
     to: `${dashboardCloudHomePath(slug)}${pathname.slice(DASHBOARD_CLOUD_PATH.length)}`,
