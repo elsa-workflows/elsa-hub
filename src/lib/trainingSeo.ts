@@ -4,7 +4,7 @@ import { SITE_URL } from "./site";
 export const TRAINING_PATH = "/elsa-plus/training";
 export const TRAINING_TITLE = "Elsa Workflows Training | Hands-on Elsa 3 Course for .NET";
 export const TRAINING_DESCRIPTION =
-  "Learn Elsa Workflows 3 hands-on: self-paced course and lab kit for hosting, Studio, HTTP workflows and approvals. Solo Bundle, team packs, workshops.";
+  "Learn Elsa Workflows 3 hands-on: self-paced course and lab kit for hosting, Studio, HTTP workflows and approvals. Solo Bundle, team packs, workshops. Solo prices include VAT; Team packs and workshops are excl. VAT.";
 export const TRAINING_H1 = "Elsa Workflows Training for .NET Developers and Teams";
 
 export const TRAINING_INTRO_BEFORE = "The ";
