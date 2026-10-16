@@ -26,10 +26,6 @@ import {
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
   ELSA_TEMPLATES_CSHELLS_VERSION,
   ELSA_UPGRADE_GUIDE_URL,
-  ELSA_LATEST_STABLE_VERSION,
-  ELSA_LATEST_STABLE_RELEASE_DATE,
-  ELSA_LATEST_STABLE_RELEASE_LINKS,
-  ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL,
 } from "@/data/elsaVersion";
 
 
@@ -130,7 +126,7 @@ const resources = [
 export default function GetStarted() {
   return (
     <Layout>
-      <Seo path="/get-started" title="Get started with the workflow and BPMN engine for .NET" description="Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.9.0 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks." />
+      <Seo path="/get-started" title="Get started with the workflow and BPMN engine for .NET" description={`Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa ${ELSA_VERSION} ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.`} />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="container">
@@ -138,7 +134,7 @@ export default function GetStarted() {
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Get Started with Elsa</h1>
             <p className="text-xl text-muted-foreground">
               Whether you want to explore Elsa quickly or build a production solution, we have you covered.
-              Elsa 3.9.0 ships <code className="font-mono text-base">Elsa.Bpmn</code>,{" "}
+              Elsa {ELSA_VERSION} ships <code className="font-mono text-base">Elsa.Bpmn</code>,{" "}
               <code className="font-mono text-base">Elsa.Bpmn.Interchange</code>, and User Tasks in Core —
               register them on the server when you need BPMN execution,{" "}
               <code className="font-mono text-base">.bpmn</code> import and export, or human tasks.
@@ -152,57 +148,22 @@ export default function GetStarted() {
         <div className="container">
           <div className="max-w-4xl rounded-lg border bg-card p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-3 mb-3">
-              <h2 className="text-2xl font-bold">Latest stable release: Elsa {ELSA_LATEST_STABLE_VERSION}</h2>
-              <Badge variant="secondary" className="font-mono">{ELSA_LATEST_STABLE_RELEASE_DATE}</Badge>
-            </div>
-            <p className="text-muted-foreground mb-4">
-              Elsa {ELSA_LATEST_STABLE_VERSION} ships Core, Studio and Extensions together, so upgrade all three at
-              once. It moves permissions to a <code className="font-mono">resource:verb</code> model, opens a
-              permission-gated dashboard to every signed-in user, adds a sign-out that revokes the session, and adds
-              User Tasks and BPMN modules.
-            </p>
-            <p className="text-sm text-muted-foreground mb-5 rounded-md border border-border/70 bg-background p-4">
-              <strong className="text-foreground">The setup guides are still pinned to Elsa {ELSA_VERSION}</strong>, the
-              version they were last verified against. Elsa {ELSA_LATEST_STABLE_VERSION} removes{" "}
-              <code className="font-mono">EnableLocalHostPermissionGrantForSecurityRoot()</code> and renames
-              permissions, so follow the{" "}
-              <a href={ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
-                upgrade guide for {ELSA_LATEST_STABLE_VERSION}
-              </a>{" "}
-              before you move a guide project to {ELSA_LATEST_STABLE_VERSION}.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-sm mb-8">
-              <a href={ELSA_LATEST_STABLE_RELEASE_LINKS.core} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
-                <Github className="h-4 w-4" /> Elsa Core {ELSA_LATEST_STABLE_VERSION} release notes <ArrowRight className="h-4 w-4" />
-              </a>
-              <span className="text-muted-foreground">·</span>
-              <a href={ELSA_LATEST_STABLE_RELEASE_LINKS.studio} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
-                <Github className="h-4 w-4" /> Elsa Studio {ELSA_LATEST_STABLE_VERSION} <ArrowRight className="h-4 w-4" />
-              </a>
-              <span className="text-muted-foreground">·</span>
-              <a href={ELSA_LATEST_STABLE_RELEASE_LINKS.extensions} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-primary hover:gap-3 transition-all">
-                <Github className="h-4 w-4" /> Elsa Extensions {ELSA_LATEST_STABLE_VERSION} <ArrowRight className="h-4 w-4" />
-              </a>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 mb-3">
-              <h3 className="text-lg font-semibold">Elsa {ELSA_VERSION}, the version the guides use</h3>
+              <h2 className="text-2xl font-bold">Latest stable release: Elsa {ELSA_VERSION}</h2>
               <Badge variant="secondary" className="font-mono">{ELSA_RELEASE_DATE}</Badge>
             </div>
             <p className="text-muted-foreground mb-5">
-              Elsa {ELSA_VERSION} adds opt-in diagnostics (structured logs, console logs, OpenTelemetry),
-              runtime operations such as drain and pause/resume, a Secrets module, external
-              authentication, the StateMachine activity, a Dashboard API, and the Weaver AI host.
-              Elsa Studio {ELSA_VERSION} adds a dashboard shell, a diagnostics workspace, a React Flow
-              sequence designer, and a rebuilt state-machine designer. These modules are separate
-              packages: existing hosts do not opt into them automatically.
+              Elsa {ELSA_VERSION} ships Core, Studio and Extensions together, so upgrade all three at
+              once. It moves permissions to a <code className="font-mono">resource:verb</code> model,
+              opens a permission-gated dashboard to every signed-in user, adds a sign-out that
+              revokes the session, and adds User Tasks and BPMN modules. The setup guides below
+              are verified on this train.
             </p>
 
-            <h3 className="font-semibold mb-2 text-sm">Before you upgrade to {ELSA_VERSION}</h3>
+            <h3 className="font-semibold mb-2 text-sm">Before you upgrade</h3>
             <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1.5 mb-5">
               <li>
                 <strong className="text-foreground">Identity secrets are required.</strong> The reference
-                server no longer ships usable admin credentials or API keys. Configure the initial
+                server ships no usable admin credentials or API keys. Configure the initial
                 user/application yourself, and set a JWT signing key of at least 32 printable ASCII
                 characters with no surrounding whitespace (
                 <code className="font-mono">Identity__Tokens__SigningKey</code>). Known public defaults are
@@ -210,25 +171,29 @@ export default function GetStarted() {
                 <code className="font-mono">Demo</code>.
               </li>
               <li>
-                <strong className="text-foreground">Localhost bootstrap is opt-in.</strong> Localhost requests
-                no longer receive security-root permissions unless the host calls{" "}
-                <code className="font-mono">EnableLocalHostPermissionGrantForSecurityRoot()</code>.
+                <strong className="text-foreground">The localhost SecurityRoot grant is gone.</strong>{" "}
+                <code className="font-mono">EnableLocalHostPermissionGrantForSecurityRoot()</code> was
+                removed. Localhost requests get no special access. Bootstrap the first admin with{" "}
+                <code className="font-mono">UseDefaultAdmin(...)</code> or an admin API key.
               </li>
               <li>
-                <strong className="text-foreground">Script execution is privileged.</strong> C# and Python
-                expressions require <code className="font-mono">AllowHostCodeExecution</code> plus the{" "}
+                <strong className="text-foreground">Permissions are <code className="font-mono">resource:verb</code>.</strong>{" "}
+                Legacy strings such as <code className="font-mono">read:workflow-definitions</code> no
+                longer grant anything. <code className="font-mono">*</code> still means everything, so
+                a seeded admin role keeps working.{" "}
                 <code className="font-mono">exec:csharp-expressions</code> /{" "}
-                <code className="font-mono">exec:python-expressions</code> permission. They run host code and
-                are not sandboxes.
+                <code className="font-mono">exec:python-expressions</code> are removed;{" "}
+                <code className="font-mono">AllowHostCodeExecution</code> is the only control for C#
+                and Python, and they are not sandboxes.
               </li>
               <li>
-                <strong className="text-foreground">Studio picks exactly one auth provider.</strong> Legacy
-                Elsa.Studio.Login, Elsa Identity, direct OIDC and brokered External Authentication must not be
-                mixed, and Studio {ELSA_VERSION} consumes Elsa.Api.Client {ELSA_VERSION} — upgrade Core first.
+                <strong className="text-foreground">Access tokens default to 15 minutes</strong>{" "}
+                (was 1 hour). A lifetime you set explicitly still applies.
               </li>
               <li>
-                <strong className="text-foreground">.NET 10 package set</strong> moves FastEndpoints to 8.2.0;
-                new Secrets and external-authentication EF Core packages add provider migrations.
+                <strong className="text-foreground">Studio {ELSA_VERSION} requires Core {ELSA_VERSION}.</strong>{" "}
+                Select exactly one authentication provider. Legacy Elsa.Studio.Login, Elsa Identity,
+                direct OIDC and brokered External Authentication must not be mixed.
               </li>
             </ul>
 
@@ -327,6 +292,8 @@ export default function GetStarted() {
                     <code className="font-mono px-1 py-0.5 rounded bg-muted border">password</code>. Outside
                     Development there are no built-in credentials — the identity source, administrator bootstrap
                     and JWT signing key are deployment-owned settings you must provide yourself.
+                    On first start a freshly generated server may log that no users exist; sign-in still
+                    works with the Development administrator.
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Migrating an existing solution instead of scaffolding a new one? Follow the{" "}
