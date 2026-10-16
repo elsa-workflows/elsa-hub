@@ -65,6 +65,9 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
+const AcademyCatalog = lazy(() => import("./pages/academy/AcademyCatalog"));
+const AcademyCourse = lazy(() => import("./pages/academy/AcademyCourse"));
+const AcademyLesson = lazy(() => import("./pages/academy/AcademyLesson"));
 
 // Dashboard
 const DashboardLayout = lazy(() =>
@@ -192,6 +195,9 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/academy" element={<AcademyCatalog />} />
+              <Route path="/academy/:courseSlug" element={<AcademyCourse />} />
+              <Route path="/academy/:courseSlug/:lessonSlug" element={<AcademyLesson />} />
               {/* The .html variant is a prerendered download/import target for
                   crawlers and Medium. If a real browser lands on it, send the
                   user to the clean SPA route so React Router doesn't 404. */}
