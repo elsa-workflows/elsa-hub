@@ -1,0 +1,780 @@
+{
+  "issue": "https://github.com/elsa-workflows/elsa-hub/issues/40",
+  "schema": "https://github.com/elsa-workflows/elsa-hub/issues/37",
+  "generated": "2026-10-15",
+  "elsa_version": "3.9.0",
+  "kit_release": {
+    "tag": "workshop/solo-bundle-20261013",
+    "commit": "9ff05b84558d50684d070172aaa64abb0bf4ac47",
+    "asset": "elsa-fundamentals-workshop-kit.zip",
+    "sha256": "3184ea17f87a76c9de4370cddd797635c21509cf28af09994f1bf8b44e81f9c2",
+    "bytes": 132084,
+    "storage_path": "kits/solo-bundle-20261013/elsa-fundamentals-workshop-kit.zip",
+    "owner_course": "fundamentals-core"
+  },
+  "source_root": null,
+  "link_convention": "lesson links are absolute /academy/<courseSlug>/<lessonSlug> (routes per #38)",
+  "import_rules": [
+    "strip the leading '# ' H1 from every source_md (it becomes title)",
+    "apply module_rewrites (exact match, exactly one hit, fail otherwise)",
+    "do not import labs/*-README.md mirrors, DH-INDEX.md, modules/INDEX.md, meta/, facilitator/"
+  ],
+  "courses": [
+    {
+      "slug": "fundamentals-core",
+      "sort_order": 0,
+      "title": "Elsa Workflows Fundamentals: Core",
+      "summary": "Get productive with Elsa Workflows 3.9.0 on your own: host Elsa in ASP.NET Core, build and publish Flowcharts in Elsa Studio, expose HTTP workflows and debug instances. Modules 0 to 5 with hands-on Labs A to C.",
+      "price_cents": null,
+      "currency": null,
+      "product_code": null,
+      "todo": "price_cents, currency, product_code: Lead / Commercial (AC4)",
+      "lessons": [
+        {
+          "slug": "overview",
+          "title": "Course overview",
+          "source_md": "academy/web-sources/fundamentals-core/overview.md",
+          "estimated_minutes": 5,
+          "is_preview": false,
+          "built_from": [
+            "self-paced/packaging/fundamentals-core/START-HERE.md",
+            "self-paced/packaging/fundamentals-core/README.md"
+          ],
+          "sort_order": 0
+        },
+        {
+          "slug": "kit-setup",
+          "title": "Lab kit access & run",
+          "source_md": "academy/web-sources/fundamentals-core/kit-setup.md",
+          "estimated_minutes": 15,
+          "is_preview": false,
+          "built_from": [
+            "self-paced/packaging/fundamentals-core/KIT-ACCESS.md"
+          ],
+          "sort_order": 1
+        },
+        {
+          "slug": "start-here",
+          "title": "Module 0: Start here",
+          "source_md": "self-paced/packaging/fundamentals-core/modules/m00-start-here.md",
+          "estimated_minutes": 30,
+          "is_preview": true,
+          "preview_reason": "Free taster: shows how the course works and gets the kit running, no paid lab content.",
+          "sort_order": 2
+        },
+        {
+          "slug": "mental-model",
+          "title": "Module 1: Elsa 3 mental model",
+          "source_md": "self-paced/packaging/fundamentals-core/modules/m01-mental-model.md",
+          "estimated_minutes": 30,
+          "is_preview": false,
+          "sort_order": 3
+        },
+        {
+          "slug": "hosting-persistence",
+          "title": "Module 2: Hosting & persistence",
+          "source_md": "self-paced/packaging/fundamentals-core/modules/m02-hosting-persistence.md",
+          "estimated_minutes": 60,
+          "is_preview": false,
+          "sort_order": 4
+        },
+        {
+          "slug": "studio-fundamentals",
+          "title": "Module 3: Studio fundamentals",
+          "source_md": "self-paced/packaging/fundamentals-core/modules/m03-studio-fundamentals.md",
+          "estimated_minutes": 75,
+          "is_preview": false,
+          "sort_order": 5
+        },
+        {
+          "slug": "http-workflows",
+          "title": "Module 4: HTTP workflows",
+          "source_md": "self-paced/packaging/fundamentals-core/modules/m04-http-workflows.md",
+          "estimated_minutes": 75,
+          "is_preview": false,
+          "sort_order": 6
+        },
+        {
+          "slug": "instances-debug",
+          "title": "Module 5: Instances & debug (Core exit)",
+          "source_md": "self-paced/packaging/fundamentals-core/modules/m05-instances-debug.md",
+          "estimated_minutes": 45,
+          "is_preview": false,
+          "sort_order": 7
+        }
+      ],
+      "assets": [
+        {
+          "label": "Lab kit (Elsa 3.9.0)",
+          "storage_path": "fundamentals-core/elsa-fundamentals-workshop-kit.zip",
+          "lesson_slug": null,
+          "source": "self-paced/packaging/elsa-3.9.0/elsa-fundamentals-workshop-kit.zip",
+          "extras": {
+            "sha256": "3184ea17f87a76c9de4370cddd797635c21509cf28af09994f1bf8b44e81f9c2",
+            "bytes": 132084,
+            "description": "Workshop kit release workshop/solo-bundle-20261013 (commit 9ff05b84): host, Studio, labs A to H, S1 to S4, Approval Lite. Byte-identical to the GitHub release asset."
+          }
+        },
+        {
+          "label": "Course lessons, offline copy (Core)",
+          "storage_path": "fundamentals-core/fundamentals-core-self-paced.zip",
+          "lesson_slug": null,
+          "source": "self-paced/packaging/elsa-3.9.0/fundamentals-core-self-paced.zip",
+          "extras": {
+            "sha256": "ea870a03c51931a856b88cb1c7cecb2c86210fefd0105d792f7190e6fccf60ee",
+            "bytes": 10662,
+            "description": "Current Core course zip (Markdown lessons for offline reading)."
+          }
+        }
+      ],
+      "extras": {
+        "elsa_version": "3.9.0",
+        "estimated_minutes_total": 335
+      },
+      "notes": [
+        "Second preview suggestion: mental-model (Module 1), concept only, no kit needed."
+      ],
+      "extra_assets": []
+    },
+    {
+      "slug": "fundamentals-complete",
+      "sort_order": 1,
+      "title": "Elsa Workflows Fundamentals: Complete",
+      "summary": "The full Elsa Workflows 3.9.0 fundamentals path: everything in Core plus code-first workflows, control flow, bookmarks, testing and a capstone, with Labs A to H and the Securing an Elsa 3.9 host add-on (S1 to S4).",
+      "price_cents": null,
+      "currency": null,
+      "product_code": null,
+      "todo": "price_cents, currency, product_code: Lead / Commercial (AC4)",
+      "lessons": [
+        {
+          "slug": "overview",
+          "title": "Course overview",
+          "source_md": "academy/web-sources/fundamentals-complete/overview.md",
+          "estimated_minutes": 5,
+          "is_preview": false,
+          "built_from": [
+            "self-paced/packaging/fundamentals-complete/START-HERE.md",
+            "self-paced/packaging/fundamentals-complete/README.md"
+          ],
+          "sort_order": 0
+        },
+        {
+          "slug": "kit-setup",
+          "title": "Lab kit access & run (Complete)",
+          "source_md": "academy/web-sources/fundamentals-complete/kit-setup.md",
+          "estimated_minutes": 15,
+          "is_preview": false,
+          "built_from": [
+            "self-paced/packaging/fundamentals-complete/KIT-ACCESS.md"
+          ],
+          "sort_order": 1
+        },
+        {
+          "slug": "start-here",
+          "title": "Module 0: Start here",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m00-start-here.md",
+          "estimated_minutes": 30,
+          "is_preview": true,
+          "preview_reason": "Same free taster as Core: course method and kit setup, no paid lab content.",
+          "sort_order": 2
+        },
+        {
+          "slug": "mental-model",
+          "title": "Module 1: Elsa 3 mental model",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m01-mental-model.md",
+          "estimated_minutes": 30,
+          "is_preview": false,
+          "sort_order": 3
+        },
+        {
+          "slug": "hosting-persistence",
+          "title": "Module 2: Hosting & persistence",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m02-hosting-persistence.md",
+          "estimated_minutes": 60,
+          "is_preview": false,
+          "sort_order": 4
+        },
+        {
+          "slug": "studio-fundamentals",
+          "title": "Module 3: Studio fundamentals",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m03-studio-fundamentals.md",
+          "estimated_minutes": 75,
+          "is_preview": false,
+          "sort_order": 5
+        },
+        {
+          "slug": "http-workflows",
+          "title": "Module 4: HTTP workflows",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m04-http-workflows.md",
+          "estimated_minutes": 75,
+          "is_preview": false,
+          "sort_order": 6
+        },
+        {
+          "slug": "instances-debug",
+          "title": "Module 5: Instances & debug (Core exit)",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m05-instances-debug.md",
+          "estimated_minutes": 45,
+          "is_preview": false,
+          "sort_order": 7
+        },
+        {
+          "slug": "code-first",
+          "title": "Module 6: Code-first workflows",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m06-code-first.md",
+          "estimated_minutes": 75,
+          "is_preview": false,
+          "sort_order": 8
+        },
+        {
+          "slug": "control-flow",
+          "title": "Module 7: Control flow",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m07-control-flow.md",
+          "estimated_minutes": 60,
+          "is_preview": false,
+          "sort_order": 9
+        },
+        {
+          "slug": "bookmarks",
+          "title": "Module 8: Bookmarks & long-running",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m08-bookmarks.md",
+          "estimated_minutes": 60,
+          "is_preview": false,
+          "sort_order": 10
+        },
+        {
+          "slug": "testing-debug",
+          "title": "Module 9: Testing & team debugging",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m09-testing-debug.md",
+          "estimated_minutes": 60,
+          "is_preview": false,
+          "sort_order": 11
+        },
+        {
+          "slug": "capstone",
+          "title": "Module 10: Capstone & close",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/m10-capstone.md",
+          "estimated_minutes": 90,
+          "is_preview": false,
+          "sort_order": 12
+        },
+        {
+          "slug": "security-overview",
+          "title": "Add-on: Securing an Elsa 3.9 host",
+          "source_md": "academy/web-sources/fundamentals-complete/security-overview.md",
+          "estimated_minutes": 5,
+          "is_preview": false,
+          "built_from": [
+            "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md"
+          ],
+          "sort_order": 13
+        },
+        {
+          "slug": "security-model",
+          "title": "Security S1: The 3.9 security model",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/security/s01-security-model.md",
+          "estimated_minutes": 30,
+          "is_preview": false,
+          "sort_order": 14
+        },
+        {
+          "slug": "permissions",
+          "title": "Security S2: Permissions as resource:verb",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/security/s02-permissions.md",
+          "estimated_minutes": 50,
+          "is_preview": false,
+          "sort_order": 15
+        },
+        {
+          "slug": "users-roles-applications",
+          "title": "Security S3: Users, roles and applications over the API",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/security/s03-users-roles-applications.md",
+          "estimated_minutes": 40,
+          "is_preview": false,
+          "sort_order": 16
+        },
+        {
+          "slug": "tokens-signout",
+          "title": "Security S4: Tokens, refresh and sign-out",
+          "source_md": "self-paced/packaging/fundamentals-complete/modules/security/s04-tokens-signout.md",
+          "estimated_minutes": 50,
+          "is_preview": false,
+          "sort_order": 17
+        }
+      ],
+      "assets": [
+        {
+          "label": "Lab kit (Elsa 3.9.0)",
+          "storage_path": "fundamentals-complete/elsa-fundamentals-workshop-kit.zip",
+          "lesson_slug": null,
+          "source": "self-paced/packaging/elsa-3.9.0/elsa-fundamentals-workshop-kit.zip",
+          "extras": {
+            "sha256": "3184ea17f87a76c9de4370cddd797635c21509cf28af09994f1bf8b44e81f9c2",
+            "bytes": 132084,
+            "description": "Workshop kit release workshop/solo-bundle-20261013 (commit 9ff05b84): host, Studio, labs A to H, S1 to S4, Approval Lite. Byte-identical to the GitHub release asset."
+          }
+        },
+        {
+          "label": "Course lessons, offline copy (Complete)",
+          "storage_path": "fundamentals-complete/fundamentals-complete-self-paced.zip",
+          "lesson_slug": null,
+          "source": "self-paced/packaging/elsa-3.9.0-20261016/fundamentals-complete-self-paced.zip",
+          "extras": {
+            "sha256": "648b8486635a1be6d1cd55e7255986ab9387f0854d195cc91ce0fb588f70feff",
+            "bytes": 36338,
+            "description": "Complete course zip rebuilt 2026-10-16 with the PR #100 review fixes (s02, s04 wording; trailing spaces) on top of the s01 line 45 fix; kit workshop/solo-bundle-20261013. Supersedes 464b8b0a (elsa-3.9.0-20261015/) and 7380ab47 (elsa-3.9.0/), both kept."
+          }
+        }
+      ],
+      "extras": {
+        "elsa_version": "3.9.0",
+        "estimated_minutes_total": 855
+      },
+      "notes": [
+        "Second preview suggestion: security-model (S1), a strong teaser for the add-on."
+      ],
+      "extra_assets": [],
+      "extra_assets_note": "S1 to S4 is already in this course (lessons 13 to 17: security-overview through tokens-signout), in the Complete zip and in the kit. No extra add-on files are coming. extra_assets stays empty; the array remains for any later local file (label, file, sha256, size_bytes)."
+    },
+    {
+      "slug": "advanced-patterns",
+      "sort_order": 2,
+      "title": "Elsa Workflows: Advanced Patterns v1",
+      "summary": "Design a multi-role approval in Elsa Workflows 3.9.0: an architecture decision tree for approvals, then hands-on practice with Event bookmarks, HTTP stimulus and same-instance rewind. Includes the Approval Lite approval-flow lab.",
+      "price_cents": null,
+      "currency": null,
+      "product_code": null,
+      "todo": "price_cents, currency, product_code: Lead / Commercial (AC4)",
+      "lessons": [
+        {
+          "slug": "overview",
+          "title": "Course overview",
+          "source_md": "academy/web-sources/advanced-patterns/overview.md",
+          "estimated_minutes": 5,
+          "is_preview": false,
+          "built_from": [
+            "advanced/packaging/advanced-patterns-self-paced/START-HERE.md",
+            "advanced/packaging/advanced-patterns-self-paced/README.md"
+          ],
+          "sort_order": 0
+        },
+        {
+          "slug": "kit-setup",
+          "title": "Lab kit access & run (Advanced)",
+          "source_md": "academy/web-sources/advanced-patterns/kit-setup.md",
+          "estimated_minutes": 15,
+          "is_preview": false,
+          "built_from": [
+            "advanced/packaging/advanced-patterns-self-paced/KIT-ACCESS.md"
+          ],
+          "sort_order": 1
+        },
+        {
+          "slug": "advanced-map",
+          "title": "AP0: Advanced map & placement",
+          "source_md": "advanced/packaging/advanced-patterns-self-paced/modules/ap00-start-here.md",
+          "estimated_minutes": 15,
+          "is_preview": true,
+          "preview_reason": "Orientation only: shows what Advanced covers and where it sits, no lab content.",
+          "sort_order": 2
+        },
+        {
+          "slug": "approval-architecture",
+          "title": "AP1: Approval Lite architecture",
+          "source_md": "advanced/packaging/advanced-patterns-self-paced/modules/ap01-approval-architecture.md",
+          "estimated_minutes": 60,
+          "is_preview": false,
+          "sort_order": 3
+        },
+        {
+          "slug": "approval-lite-lab",
+          "title": "AP2: Approval Lite lab",
+          "source_md": "advanced/packaging/advanced-patterns-self-paced/modules/ap02-approval-lite-lab.md",
+          "estimated_minutes": 120,
+          "is_preview": false,
+          "sort_order": 4
+        }
+      ],
+      "assets": [
+        {
+          "label": "Lab kit (Elsa 3.9.0)",
+          "storage_path": "advanced-patterns/elsa-fundamentals-workshop-kit.zip",
+          "lesson_slug": null,
+          "source": "self-paced/packaging/elsa-3.9.0/elsa-fundamentals-workshop-kit.zip",
+          "extras": {
+            "sha256": "3184ea17f87a76c9de4370cddd797635c21509cf28af09994f1bf8b44e81f9c2",
+            "bytes": 132084,
+            "description": "Workshop kit release workshop/solo-bundle-20261013 (commit 9ff05b84): host, Studio, labs A to H, S1 to S4, Approval Lite. Byte-identical to the GitHub release asset."
+          }
+        },
+        {
+          "label": "Course lessons, offline copy (Advanced)",
+          "storage_path": "advanced-patterns/advanced-patterns-self-paced.zip",
+          "lesson_slug": null,
+          "source": "advanced/packaging/elsa-3.9.0/advanced-patterns-self-paced.zip",
+          "extras": {
+            "sha256": "74bcdd8c424b1b9e7651125c3b059acba5421b0edaed7cdca6b7ed3feb5559f8",
+            "bytes": 21004,
+            "description": "Current Advanced course zip."
+          }
+        }
+      ],
+      "extras": {
+        "elsa_version": "3.9.0",
+        "estimated_minutes_total": 215
+      },
+      "notes": [
+        "Second preview suggestion: overview.",
+        "Approval Lite is not a separate course (Training Lead, #40): its learner content (AP1 + AP2) lives here."
+      ],
+      "extra_assets": []
+    }
+  ],
+  "module_rewrites": {
+    "fundamentals-core": [
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m00-start-here.md",
+        "from": "1. Unzip the kit (`elsa-fundamentals-workshop-kit.zip`)",
+        "to": "1. Download and unzip the kit (`elsa-fundamentals-workshop-kit.zip` from the lab kit download on this course page)"
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m00-start-here.md",
+        "from": "(same commands as the kit README and `KIT-ACCESS.md`)",
+        "to": "(same commands as the kit README and [Lab kit access and run](/academy/fundamentals-core/kit-setup))"
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m00-start-here.md",
+        "from": "Proceed to Module 1.",
+        "to": "Proceed to [Module 1](/academy/fundamentals-core/mental-model)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m01-mental-model.md",
+        "from": "Proceed to Module 2 + Lab A.",
+        "to": "Proceed to [Module 2](/academy/fundamentals-core/hosting-persistence) + Lab A."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m02-hosting-persistence.md",
+        "from": "Proceed to Module 3.",
+        "to": "Proceed to [Module 3](/academy/fundamentals-core/studio-fundamentals)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m03-studio-fundamentals.md",
+        "from": "Proceed to Module 4.",
+        "to": "Proceed to [Module 4](/academy/fundamentals-core/http-workflows)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m04-http-workflows.md",
+        "from": "Proceed to Module 5.",
+        "to": "Proceed to [Module 5](/academy/fundamentals-core/instances-debug)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-core/modules/m05-instances-debug.md",
+        "from": "when ready, in the Complete course pack.",
+        "to": "when ready, in the Fundamentals Complete course."
+      }
+    ],
+    "fundamentals-complete": [
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m00-start-here.md",
+        "from": "1. Unzip the kit (`elsa-fundamentals-workshop-kit.zip`)",
+        "to": "1. Download and unzip the kit (`elsa-fundamentals-workshop-kit.zip` from the lab kit download on this course page)"
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m00-start-here.md",
+        "from": "(same commands as the kit README and `KIT-ACCESS.md`)",
+        "to": "(same commands as the kit README and [Lab kit access and run](/academy/fundamentals-complete/kit-setup))"
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m00-start-here.md",
+        "from": "Proceed to Module 1.",
+        "to": "Proceed to [Module 1](/academy/fundamentals-complete/mental-model)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m01-mental-model.md",
+        "from": "Proceed to Module 2 + Lab A.",
+        "to": "Proceed to [Module 2](/academy/fundamentals-complete/hosting-persistence) + Lab A."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m02-hosting-persistence.md",
+        "from": "Proceed to Module 3.",
+        "to": "Proceed to [Module 3](/academy/fundamentals-complete/studio-fundamentals)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m03-studio-fundamentals.md",
+        "from": "Proceed to Module 4.",
+        "to": "Proceed to [Module 4](/academy/fundamentals-complete/http-workflows)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m04-http-workflows.md",
+        "from": "Proceed to Module 5.",
+        "to": "Proceed to [Module 5](/academy/fundamentals-complete/instances-debug)."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m05-instances-debug.md",
+        "from": "**Continue to Complete** (Modules 6 to 10 + Labs D to H) when ready, in the Complete course pack.",
+        "to": "**Continue to Complete**: [Module 6](/academy/fundamentals-complete/code-first) to Module 10 + Labs D to H, in this course."
+      },
+      {
+        "source": "self-paced/packaging/fundamentals-complete/modules/m08-bookmarks.md",
+        "from": "That is its own course pack;",
+        "to": "That is its own course;"
+      }
+    ],
+    "advanced-patterns": [
+      {
+        "course": "advanced-patterns",
+        "source": "advanced/packaging/advanced-patterns-self-paced/modules/ap00-start-here.md",
+        "from": "| **Advanced (this pack)** |",
+        "to": "| **Advanced (this course)** |"
+      },
+      {
+        "course": "advanced-patterns",
+        "source": "advanced/packaging/advanced-patterns-self-paced/modules/ap00-start-here.md",
+        "from": "this zip is the self-paced path.",
+        "to": "this course is the self-paced path."
+      },
+      {
+        "course": "advanced-patterns",
+        "source": "advanced/packaging/advanced-patterns-self-paced/modules/ap00-start-here.md",
+        "from": "Proceed to **AP1**.",
+        "to": "Proceed to **[AP1](/academy/advanced-patterns/approval-architecture)**."
+      },
+      {
+        "course": "advanced-patterns",
+        "source": "advanced/packaging/advanced-patterns-self-paced/modules/ap01-approval-architecture.md",
+        "from": "Real RBAC and claims are out of scope for this pack.",
+        "to": "Real RBAC and claims are out of scope for this course."
+      },
+      {
+        "course": "advanced-patterns",
+        "source": "advanced/packaging/advanced-patterns-self-paced/modules/ap02-approval-lite-lab.md",
+        "from": "(offline copy: `labs/approval-lite-README.md` in this course zip; the kit copy wins if they differ)",
+        "to": "in your unzipped kit folder"
+      },
+      {
+        "course": "advanced-patterns",
+        "source": "advanced/packaging/advanced-patterns-self-paced/modules/ap02-approval-lite-lab.md",
+        "from": "- Run commands, smoke commands and the reset warning: `KIT-ACCESS.md`",
+        "to": "- Run commands, smoke commands and the reset warning: [Lab kit access and run](/academy/advanced-patterns/kit-setup)"
+      },
+      {
+        "course": "advanced-patterns",
+        "source": "advanced/packaging/advanced-patterns-self-paced/modules/ap02-approval-lite-lab.md",
+        "from": "then start the host again. See `KIT-ACCESS.md`.",
+        "to": "then start the host again. See [Lab kit access and run](/academy/advanced-patterns/kit-setup)."
+      }
+    ]
+  },
+  "web_source_rewrites": [
+    {
+      "file": "self-paced/packaging/fundamentals-core/START-HERE.md",
+      "from": "2. **Unzip** your purchase (course + kit). Open `KIT-ACCESS.md` and get host `:5000` + Studio `:5001` running (`workshop` / `elsa-class`).",
+      "to": "2. **Download and unzip** the lab kit, then follow [Lab kit access and run](/academy/fundamentals-core/kit-setup) to get host `:5000` + Studio `:5001` running (`workshop` / `elsa-class`)."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/START-HERE.md",
+      "from": "3. **Open** `modules/INDEX.md` and begin **Module 0**.",
+      "to": "3. Begin **[Module 0](/academy/fundamentals-core/start-here)**."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/README.md",
+      "from": "1. Read `START-HERE.md`",
+      "to": "1. Read this overview"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/README.md",
+      "from": "2. Follow `KIT-ACCESS.md` (unzip kit → run host + Studio)",
+      "to": "2. Follow [Lab kit access and run](/academy/fundamentals-core/kit-setup) (download and unzip kit → run host + Studio)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/README.md",
+      "from": "3. Work `modules/m00` → `m05` in order",
+      "to": "3. Work [Module 0](/academy/fundamentals-core/start-here) → [Module 5](/academy/fundamentals-core/instances-debug) in order"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/README.md",
+      "from": "- Labs D to H / Complete path (in the Complete course pack)",
+      "to": "- Labs D to H / Complete path (in the Fundamentals Complete course)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/README.md",
+      "from": "- LMS app\n",
+      "to": ""
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/README.md",
+      "from": "## What’s in this package (table of zip paths)",
+      "to": "(dropped: zip contents table; the course page lists the lessons)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/START-HERE.md + README.md",
+      "from": "two files",
+      "to": "merged into one Overview lesson; START-HERE heading becomes '## Start here (5 minutes)'"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-core/KIT-ACCESS.md",
+      "from": "**Fulfillment:** your download has two files: this course zip and the lab kit zip `elsa-fundamentals-workshop-kit.zip` (workshop host, Studio, labs). It is a download, **not** a GitHub repo invite.",
+      "to": "**Download:** get `elsa-fundamentals-workshop-kit.zip` from the lab kit download on this course page (workshop host, Studio, labs). It is a download, **not** a GitHub repo invite."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/START-HERE.md",
+      "from": "2. **Unzip** course + kit. Open `KIT-ACCESS.md`: host `:5000` + Studio `:5001` (`workshop` / `elsa-class`).",
+      "to": "2. **Download and unzip** the lab kit. Follow [Lab kit access and run](/academy/fundamentals-complete/kit-setup): host `:5000` + Studio `:5001` (`workshop` / `elsa-class`)."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/START-HERE.md",
+      "from": "3. Open `modules/INDEX.md`. If you already finished **Core**, jump to **Module 6** after confirming Labs A to C still green.",
+      "to": "3. If you already finished **Core**, jump to **[Module 6](/academy/fundamentals-complete/code-first)** after confirming Labs A to C still green."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/START-HERE.md",
+      "from": "4. Otherwise begin **Module 0** and do Labs A→H in order.",
+      "to": "4. Otherwise begin **[Module 0](/academy/fundamentals-complete/start-here)** and do Labs A→H in order."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/START-HERE.md",
+      "from": "6. Add-on: **Securing an Elsa 3.9 host** (Lessons and Labs S1 to S4) in `modules/security/INDEX.md`, any time after Labs A to C.",
+      "to": "6. Add-on: **[Securing an Elsa 3.9 host](/academy/fundamentals-complete/security-overview)** (Lessons and Labs S1 to S4), any time after Labs A to C."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/README.md",
+      "from": "1. `START-HERE.md` → `KIT-ACCESS.md`",
+      "to": "1. This overview → [Lab kit access and run](/academy/fundamentals-complete/kit-setup)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/README.md",
+      "from": "- Advanced Patterns (Approval Lite AP0 to AP2, in its own course zip)",
+      "to": "- Advanced Patterns (Approval Lite AP0 to AP2, in its own course)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/README.md",
+      "from": "- Live public cohorts / LMS app",
+      "to": "- Live public cohorts"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/README.md",
+      "from": "**Includes:** Modules 0 to 10 + pointers/mirrors for Labs A to H",
+      "to": "**Includes:** Modules 0 to 10 + pointers for Labs A to H + add-on Lessons S1 to S4"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/README.md",
+      "from": "## What’s in this package (table of zip paths)",
+      "to": "(dropped)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/KIT-ACCESS.md",
+      "from": "**Fulfillment:** course zip + `elsa-fundamentals-workshop-kit.zip` (same kit as Core). You do not need Git or GitHub access.",
+      "to": "**Download:** get `elsa-fundamentals-workshop-kit.zip` from the lab kit download on this course page (same kit as Core). You do not need Git or GitHub access."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/KIT-ACCESS.md",
+      "from": "Lab READMEs: `labs/LabA` … `labs/LabH`. This course pack also mirrors D to H under `labs/` for offline reading; **kit paths win** if they differ after a kit update.",
+      "to": "Lab READMEs: `labs/LabA` … `labs/LabH` in the kit folder."
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md",
+      "from": "**Kit:** workshop kit zip (`elsa-fundamentals-workshop-kit.zip`), Labs S1 to S4",
+      "to": "**Kit:** the lab kit download (`elsa-fundamentals-workshop-kit.zip`), Labs S1 to S4"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md",
+      "from": "([Module 2: Hosting & persistence](../m02-hosting-persistence.md))",
+      "to": "([Module 2: Hosting & persistence](/academy/fundamentals-complete/hosting-persistence))"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md",
+      "from": "[s01-security-model.md](s01-security-model.md)",
+      "to": "[Open lesson](/academy/fundamentals-complete/security-model)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md",
+      "from": "[s02-permissions.md](s02-permissions.md)",
+      "to": "[Open lesson](/academy/fundamentals-complete/permissions)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md",
+      "from": "[s03-users-roles-applications.md](s03-users-roles-applications.md)",
+      "to": "[Open lesson](/academy/fundamentals-complete/users-roles-applications)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md",
+      "from": "[s04-tokens-signout.md](s04-tokens-signout.md)",
+      "to": "[Open lesson](/academy/fundamentals-complete/tokens-signout)"
+    },
+    {
+      "file": "self-paced/packaging/fundamentals-complete/modules/security/INDEX.md",
+      "from": "| Lesson | File | Lab | Solo time |",
+      "to": "| Lesson | Link | Lab | Solo time |"
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/START-HERE.md",
+      "from": "Recommended order: Core labs A to C, then Complete labs D to H, then this pack.",
+      "to": "Recommended order: Core labs A to C, then Complete labs D to H, then this course."
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/START-HERE.md",
+      "from": "3. **Unzip** course + kit. Follow `KIT-ACCESS.md`:",
+      "to": "3. **Download and unzip** the lab kit. Follow [Lab kit access and run](/academy/advanced-patterns/kit-setup):"
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/START-HERE.md",
+      "from": "4. Open `modules/INDEX.md` → **AP0** → **AP1** → **AP2** (kit lab).",
+      "to": "4. **[AP0](/academy/advanced-patterns/advanced-map)** → **[AP1](/academy/advanced-patterns/approval-architecture)** → **[AP2](/academy/advanced-patterns/approval-lite-lab)** (kit lab)."
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "**Includes:** AP0 to AP2 lessons + the Approval Lite lab (in the workshop kit, mirrored under `labs/`)",
+      "to": "**Includes:** AP0 to AP2 lessons + the Approval Lite lab (in the workshop kit)"
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "then this pack.",
+      "to": "then this course."
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "1. `START-HERE.md` → `KIT-ACCESS.md`",
+      "to": "1. This overview → [Lab kit access and run](/academy/advanced-patterns/kit-setup)"
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "2. `modules/ap00` → `ap01` → `ap02` + kit lab",
+      "to": "2. [AP0](/academy/advanced-patterns/advanced-map) → [AP1](/academy/advanced-patterns/approval-architecture) → [AP2](/academy/advanced-patterns/approval-lite-lab) + kit lab"
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "They are not in this zip yet.",
+      "to": "They are not in this course yet."
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "- Fundamentals Core and Complete lessons (they have their own course zips)",
+      "to": "- Fundamentals Core and Complete lessons (they have their own courses)"
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "- LMS app\n",
+      "to": ""
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/README.md",
+      "from": "## What’s in this package (table) / ## Not in this zip",
+      "to": "(table dropped) / ## Not in this course"
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/KIT-ACCESS.md",
+      "from": "**Fulfillment:** this course zip plus the lab kit zip `elsa-fundamentals-workshop-kit.zip` (the same kit as Fundamentals Core and Complete). You do not need Git or GitHub access.",
+      "to": "**Download:** get `elsa-fundamentals-workshop-kit.zip` from the lab kit download on this course page (the same kit as Fundamentals Core and Complete). You do not need Git or GitHub access."
+    },
+    {
+      "file": "advanced/packaging/advanced-patterns-self-paced/KIT-ACCESS.md",
+      "from": "Lab page: kit `advanced/approval-lite/README.md` (course module AP2; offline copy in `labs/approval-lite-README.md`, the kit copy wins if they differ).",
+      "to": "Lab page: kit `advanced/approval-lite/README.md` (course lesson [AP2](/academy/advanced-patterns/approval-lite-lab))."
+    }
+  ],
+  "source_root_note": "Pass --source-root at runtime. Box layout is a curriculum checkout; git layout is valence-works/elsa-plus-training content/courses.",
+  "excluded_asset_sha256_prefixes": [
+    "7380ab47d2343bf329a109a723ed31c95130e91f81b3ebe079ac7e1d552316c1",
+    "464b8b0a6765e69ed46544e503e5e9c09b5e96a0f967c3c86f7338d3fa8c9271"
+  ]
+}
