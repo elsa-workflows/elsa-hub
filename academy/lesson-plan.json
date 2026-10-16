@@ -320,7 +320,7 @@
           "lesson_slug": null,
           "source": "self-paced/packaging/elsa-3.9.0-20261016/fundamentals-complete-self-paced.zip",
           "extras": {
-            "sha256": "cdba949ef4def6a5997a29efa5c51c3b10056b5f21477eb8e604243a9eb593df",
+            "sha256": "648b8486635a1be6d1cd55e7255986ab9387f0854d195cc91ce0fb588f70feff",
             "bytes": 36338,
             "description": "Complete course zip rebuilt 2026-10-16 with the PR #100 review fixes (s02, s04 wording; trailing spaces) on top of the s01 line 45 fix; kit workshop/solo-bundle-20261013. Supersedes 464b8b0a (elsa-3.9.0-20261015/) and 7380ab47 (elsa-3.9.0/), both kept."
           }
