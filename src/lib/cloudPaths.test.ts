@@ -3,7 +3,10 @@ import {
   CLOUD_PUBLIC_HOME,
   DASHBOARD_CLOUD_PATH,
   cloudConsoleBasePath,
+  CLOUD_SIGN_IN_HREF,
+  CLOUD_WAITLIST_HREF,
   cloudLoginRedirect,
+  cloudSignupRedirect,
   dashboardCloudEnginePath,
   dashboardCloudHomePath,
   getLegacyCloudRedirectTarget,
@@ -38,6 +41,14 @@ describe("cloud dashboard paths", () => {
     expect(cloudLoginRedirect("/cloud/engines/eng-1")).toBe(
       "/login?redirect=%2Fcloud%2Fengines%2Feng-1",
     );
+  });
+
+  it("sends public Cloud CTAs through Hub signup and login back to /dashboard/cloud", () => {
+    expect(cloudSignupRedirect(DASHBOARD_CLOUD_PATH)).toBe(
+      "/signup?redirect=%2Fdashboard%2Fcloud",
+    );
+    expect(CLOUD_WAITLIST_HREF).toBe("/signup?redirect=%2Fdashboard%2Fcloud");
+    expect(CLOUD_SIGN_IN_HREF).toBe("/login?redirect=%2Fdashboard%2Fcloud");
   });
 });
 

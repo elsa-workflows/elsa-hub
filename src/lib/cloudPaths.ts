@@ -110,6 +110,14 @@ export function cloudLoginRedirect(returnPath: string): string {
   return `/login?redirect=${encodeURIComponent(returnPath)}`;
 }
 
+export function cloudSignupRedirect(returnPath: string): string {
+  return `/signup?redirect=${encodeURIComponent(returnPath)}`;
+}
+
+/** Public Cloud page: waitlist (Hub signup) and sign-in, both returning to Cloud. */
+export const CLOUD_WAITLIST_HREF = cloudSignupRedirect(DASHBOARD_CLOUD_PATH);
+export const CLOUD_SIGN_IN_HREF = cloudLoginRedirect(DASHBOARD_CLOUD_PATH);
+
 /**
  * Resolve the signed-in Cloud console base path from the current route.
  * `/cloud` remains as a fallback so existing #59 tests keep working.
