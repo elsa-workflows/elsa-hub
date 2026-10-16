@@ -52,6 +52,8 @@ describe("BPMN positioning copy", () => {
       screen.getByAltText("The new React-based Elsa Studio designer (preview)"),
     ).toBeInTheDocument();
     expect(screen.getByText("Preview, coming in Elsa 3.11")).toBeInTheDocument();
+    expect(screen.getByText(/through the Elsa 3\.9 API/)).toBeInTheDocument();
+    expect(screen.getByText(/Elsa 3\.9 exposes workflow instances and execution journals/)).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn.Interchange", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(FORBIDDEN);
@@ -86,6 +88,7 @@ describe("BPMN positioning copy", () => {
     expect(screen.getByText(/remain on the extensions roadmap/i)).toBeInTheDocument();
     expect(screen.queryByText(/BPMN 2\.0 certified/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/fully compliant/i)).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(FORBIDDEN);
   });
 
   it("mentions 3.9.0 BPMN packages on get-started without rewriting the release card", async () => {
@@ -97,7 +100,7 @@ describe("BPMN positioning copy", () => {
     expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
       "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.9.0 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
     );
-    expect(screen.getByText(/Elsa 3\.9\.0 ships/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Elsa 3\.9\.0 ships/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/BPMN 2\.0 certified|fully compliant/i);
   });
