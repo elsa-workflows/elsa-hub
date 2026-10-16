@@ -10,14 +10,17 @@ import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
+import { useEnsureCloudOrganizationLink } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
+import { isHubOrgAdmin } from "@/lib/cloud";
 import { CLOUD_ENGINES_INTRO, CLOUD_LIMIT_MESSAGE, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 
 export default function CloudHome() {
   const { pathname } = useLocation();
   const { slug } = useParams<{ slug?: string }>();
   const { organizations } = useOrganizations();
-  const hubOrganizationId = organizations.find((org) => org.slug === slug)?.id;
+  const currentOrg = organizations.find((org) => org.slug === slug);
+  const hubOrganizationId = currentOrg?.id;
   const {
     view,
     refetch,
@@ -32,6 +35,12 @@ export default function CloudHome() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngines();
+  useEnsureCloudOrganizationLink({
+    hubOrganizationId,
+    isOrgAdmin: isHubOrgAdmin(currentOrg?.role),
+    setupCloud,
+    setupPending,
+  });
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
   const createAction = canCreate && options

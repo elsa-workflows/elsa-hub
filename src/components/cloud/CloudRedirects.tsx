@@ -1,9 +1,9 @@
-import { Navigate, useLocation, useParams } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import {
+  dashboardCloudRouteDecision,
   getLegacyCloudRedirectTarget,
-  orgCloudMembershipDecision,
   type OrgCloudMembershipDecision,
 } from "@/lib/cloudPaths";
 
@@ -16,15 +16,16 @@ function CloudRedirectPending() {
 }
 
 export function useOrgCloudMembership(): OrgCloudMembershipDecision {
-  const { slug } = useParams<{ slug?: string }>();
+  const { pathname } = useLocation();
   const { organizations, loading } = useOrganizations();
-  return orgCloudMembershipDecision(slug, organizations, loading);
+  return dashboardCloudRouteDecision(pathname, organizations, loading);
 }
 
 export function OrgCloudMembershipGate({ children }: { children: React.ReactNode }) {
+  const { search, hash } = useLocation();
   const decision = useOrgCloudMembership();
   if (decision.kind === "pending") return <CloudRedirectPending />;
-  if (decision.kind === "redirect") return <Navigate to={decision.to} replace />;
+  if (decision.kind === "redirect") return <Navigate to={`${decision.to}${search}${hash}`} replace />;
   return children;
 }
 

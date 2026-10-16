@@ -757,6 +757,62 @@ Deno.test("bootstrap refuses a client Control organization id", async () => {
   assertEquals((await readJson(extra)).code, "unexpected_fields");
 });
 
+Deno.test("a failed Control bootstrap does not persist a link", async () => {
+  let persistCalls = 0;
+  const persist = async () => {
+    persistCalls += 1;
+    return {
+      ok: true as const,
+      link: {
+        hubOrganizationId: HUB_ORG_ID,
+        controlOrganizationId: ORGANIZATION_ID,
+        validatedAt: "2026-10-16T00:00:00Z",
+      },
+    };
+  };
+  const extra = {
+    persistLinkFromValidatedBootstrap: persist,
+    userClient: { rpc: async () => ({ data: true, error: null }) },
+    serviceClient: {},
+  };
+
+  const outage = await handleCloudBff(
+    request({ action: "bootstrap", hubOrganizationId: HUB_ORG_ID }),
+    {
+      resolveHubUser: signedInResolver(USER),
+      controlFetch: async () => ({ ok: false, kind: "updating" }),
+      ...extra,
+    },
+  );
+  assertEquals(outage.status, 503);
+  assertEquals((await readJson(outage)).code, CLOUD_UPDATING_CODE);
+
+  const forbidden = await handleCloudBff(
+    request({ action: "bootstrap", hubOrganizationId: HUB_ORG_ID }),
+    {
+      resolveHubUser: signedInResolver(USER),
+      controlFetch: async () => ({ ok: false, kind: "forbidden" }),
+      ...extra,
+    },
+  );
+  assertEquals(forbidden.status, 403);
+  assertEquals((await readJson(forbidden)).code, "forbidden");
+
+  const invalid = await signedIn({
+    action: "bootstrap",
+    hubOrganizationId: HUB_ORG_ID,
+  }, {
+    "POST /api/cloud/bootstrap": {
+      ok: true,
+      status: 200,
+      body: { organizationId: "not-a-guid", workspaceId: WORKSPACE_ID },
+    },
+  }, extra);
+  assertEquals(invalid.status, 503);
+  assertEquals((await readJson(invalid)).code, CLOUD_UPDATING_CODE);
+  assertEquals(persistCalls, 0);
+});
+
 Deno.test("bootstrap persist forbidden is a clear admin-only error", async () => {
   const response = await signedIn({
     action: "bootstrap",

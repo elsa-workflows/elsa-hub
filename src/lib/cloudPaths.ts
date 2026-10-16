@@ -67,6 +67,32 @@ export function orgCloudMembershipDecision(
   return { kind: "redirect", to: DASHBOARD_CLOUD_PATH };
 }
 
+/**
+ * Org Cloud routes stay on a membership slug. The no-org `/dashboard/cloud`
+ * route sends signed-in users who have a Hub org to that org's Cloud path,
+ * the same way `LegacyCloudRedirect` does.
+ */
+export function dashboardCloudRouteDecision(
+  pathname: string,
+  organizations: ReadonlyArray<{ slug: string }>,
+  orgsLoading: boolean,
+): OrgCloudMembershipDecision {
+  const orgMatch = pathname.match(/^\/dashboard\/org\/([^/]+)/);
+  if (orgMatch) {
+    return orgCloudMembershipDecision(orgMatch[1], organizations, orgsLoading);
+  }
+  if (pathname !== DASHBOARD_CLOUD_PATH && !pathname.startsWith(`${DASHBOARD_CLOUD_PATH}/`)) {
+    return { kind: "stay" };
+  }
+  if (orgsLoading) return { kind: "pending" };
+  const slug = organizations[0]?.slug;
+  if (!slug) return { kind: "stay" };
+  return {
+    kind: "redirect",
+    to: `${dashboardCloudHomePath(slug)}${pathname.slice(DASHBOARD_CLOUD_PATH.length)}`,
+  };
+}
+
 export function dashboardCloudEnginePath(
   engineId: string,
   orgSlug?: string | null,

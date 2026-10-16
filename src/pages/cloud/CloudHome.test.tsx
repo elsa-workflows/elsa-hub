@@ -85,6 +85,10 @@ vi.mock("@/hooks/useOrganizations", () => ({
   useOrganizations: () => orgState,
 }));
 
+vi.mock("@/hooks/useCloudOrganizationLink", () => ({
+  useEnsureCloudOrganizationLink: vi.fn(),
+}));
+
 import CloudHome from "./CloudHome";
 
 function LocationProbe() {
@@ -220,6 +224,22 @@ describe("CloudHome", () => {
       </HelmetProvider>,
     );
     expect(screen.getByTestId("location")).toHaveTextContent("/dashboard/cloud");
+    expect(screen.queryByText(CLOUD_EMPTY_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it("sends /dashboard/cloud to the org Cloud route when the user has a Hub org", () => {
+    viewState.current = { kind: "empty" };
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/dashboard/cloud"]}>
+          <Routes>
+            <Route path="/dashboard/cloud" element={<CloudHome />} />
+            <Route path="/dashboard/org/:slug/cloud" element={<LocationProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent("/dashboard/org/acme/cloud");
     expect(screen.queryByText(CLOUD_EMPTY_MESSAGE)).not.toBeInTheDocument();
   });
 

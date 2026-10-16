@@ -15,8 +15,9 @@ import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
+import { useEnsureCloudOrganizationLink } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
-import { isCloudTerminalOperationState, isCloudUpdating } from "@/lib/cloud";
+import { isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
 import { CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 
@@ -24,7 +25,8 @@ export default function CloudEngineOverviewPage() {
   const { engineId, slug } = useParams<{ engineId: string; slug?: string }>();
   const { pathname } = useLocation();
   const { organizations } = useOrganizations();
-  const hubOrganizationId = organizations.find((org) => org.slug === slug)?.id;
+  const currentOrg = organizations.find((org) => org.slug === slug);
+  const hubOrganizationId = currentOrg?.id;
   const navigate = useNavigate();
   const { home } = useCloudConsolePaths();
   const {
@@ -37,6 +39,12 @@ export default function CloudEngineOverviewPage() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngineOverview(engineId);
+  useEnsureCloudOrganizationLink({
+    hubOrganizationId,
+    isOrgAdmin: isHubOrgAdmin(currentOrg?.role),
+    setupCloud,
+    setupPending,
+  });
   const titleName = view.kind === "ready" ? view.engine.name : "Engine";
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";

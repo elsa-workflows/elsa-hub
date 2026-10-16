@@ -7,6 +7,7 @@ import {
   dashboardCloudEnginePath,
   dashboardCloudHomePath,
   getLegacyCloudRedirectTarget,
+  dashboardCloudRouteDecision,
   orgCloudMembershipDecision,
 } from "./cloudPaths";
 
@@ -60,6 +61,23 @@ describe("org Cloud membership", () => {
 
   it("does not redirect the no-org Cloud route", () => {
     expect(orgCloudMembershipDecision(undefined, [], false)).toEqual({ kind: "stay" });
+  });
+
+  it("sends /dashboard/cloud visitors who have a Hub org to that org Cloud route", () => {
+    expect(dashboardCloudRouteDecision("/dashboard/cloud", [{ slug: "acme" }], false)).toEqual({
+      kind: "redirect",
+      to: "/dashboard/org/acme/cloud",
+    });
+    expect(
+      dashboardCloudRouteDecision("/dashboard/cloud/engines/eng-1", [{ slug: "acme" }], false),
+    ).toEqual({
+      kind: "redirect",
+      to: "/dashboard/org/acme/cloud/engines/eng-1",
+    });
+  });
+
+  it("keeps /dashboard/cloud when the user has no Hub org", () => {
+    expect(dashboardCloudRouteDecision("/dashboard/cloud", [], false)).toEqual({ kind: "stay" });
   });
 });
 

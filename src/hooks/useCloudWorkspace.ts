@@ -14,6 +14,7 @@ import {
   setCloudSetupMarker,
 } from "@/lib/cloudClient/setupMarker";
 import { selectPreferredCloudWorkspace } from "@/lib/cloudClient/workspace";
+import { CLOUD_ORGANIZATION_LINK_QUERY_KEY } from "./useCloudOrganizationLink";
 
 export const CLOUD_WORKSPACE_QUERY_KEY = ["cloud", "workspaces"] as const;
 export const CLOUD_WORKSPACE_STALE_TIME = 5 * 60_000;
@@ -137,6 +138,7 @@ export function useCloudWorkspace() {
         setSetupReady(true);
       }
       void queryClient.invalidateQueries({ queryKey: CLOUD_WORKSPACE_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: CLOUD_ORGANIZATION_LINK_QUERY_KEY });
     },
   });
 

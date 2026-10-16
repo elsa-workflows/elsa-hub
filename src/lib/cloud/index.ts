@@ -77,5 +77,6 @@ export type {
   SelectWorkspaceResponse,
 } from "./actions";
 
+export { isHubOrgAdmin, shouldEnsureCloudOrganizationLink } from "./organizationLink";
 export { buildCreateEngineIntent, onboardingChoices, slugifyEngineName } from "./intent";
 export { createCloudPkcePair, submitStudioHandoff } from "./studio";
