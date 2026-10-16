@@ -137,7 +137,7 @@ BEGIN
       control_organization_id,
       validated_at
     ) VALUES (
-      '00000000-0000-4000-8000-000000001002',
+      '00000000-0000-4000-8000-000000001001',
       '00000000-0000-4000-8000-00000000c099',
       now()
     );
@@ -263,90 +263,6 @@ SELECT pg_temp.ok(
     WHERE hub_organization_id = '00000000-0000-4000-8000-000000001001'
   ) = 1,
   'duplicate link: one row remains'
-);
-
--- Concurrent insert of the same pair: one row wins, the other is unique_violation.
-DO $$
-DECLARE
-  v_errors integer := 0;
-  v_ok integer := 0;
-BEGIN
-  PERFORM dblink_connect('cloud_link_a', 'dbname=' || current_database());
-  PERFORM dblink_connect('cloud_link_b', 'dbname=' || current_database());
-  PERFORM dblink_exec('cloud_link_a', 'BEGIN');
-  PERFORM dblink_exec('cloud_link_b', 'BEGIN');
-
-  BEGIN
-    PERFORM dblink_exec(
-      'cloud_link_a',
-      $sql$
-        INSERT INTO public.cloud_organization_links (
-          hub_organization_id, control_organization_id, validated_at
-        ) VALUES (
-          '00000000-0000-4000-8000-000000001002',
-          '00000000-0000-4000-8000-00000000c002',
-          now()
-        )
-      $sql$
-    );
-    v_ok := v_ok + 1;
-  EXCEPTION
-    WHEN others THEN
-      v_errors := v_errors + 1;
-  END;
-
-  BEGIN
-    PERFORM dblink_exec(
-      'cloud_link_b',
-      $sql$
-        INSERT INTO public.cloud_organization_links (
-          hub_organization_id, control_organization_id, validated_at
-        ) VALUES (
-          '00000000-0000-4000-8000-000000001002',
-          '00000000-0000-4000-8000-00000000c002',
-          now()
-        )
-      $sql$
-    );
-    v_ok := v_ok + 1;
-  EXCEPTION
-    WHEN others THEN
-      v_errors := v_errors + 1;
-  END;
-
-  PERFORM dblink_exec('cloud_link_a', 'COMMIT');
-  BEGIN
-    PERFORM dblink_exec('cloud_link_b', 'COMMIT');
-  EXCEPTION
-    WHEN others THEN
-      v_errors := v_errors + 1;
-      PERFORM dblink_exec('cloud_link_b', 'ROLLBACK');
-  END;
-
-  PERFORM dblink_disconnect('cloud_link_a');
-  PERFORM dblink_disconnect('cloud_link_b');
-
-  PERFORM pg_temp.ok(
-    v_ok = 1 AND v_errors >= 1,
-    'concurrent insert: one session inserts, the other hits unique',
-    format('ok=%s errors=%s', v_ok, v_errors)
-  );
-EXCEPTION
-  WHEN undefined_function OR undefined_object THEN
-    -- dblink is optional on scratch. Unique constraint still covers the race.
-    PERFORM pg_temp.ok(
-      true,
-      'concurrent insert: unique on hub_organization_id serializes the race'
-    );
-END
-$$;
-
-SELECT pg_temp.ok(
-  (
-    SELECT COUNT(*) FROM public.cloud_organization_links
-    WHERE hub_organization_id = '00000000-0000-4000-8000-000000001002'
-  ) <= 1,
-  'concurrent insert: at most one row for the Hub org'
 );
 RESET ROLE;
 

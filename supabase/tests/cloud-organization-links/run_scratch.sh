@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 DB_NAME="${CLOUD_LINK_TEST_DB:-cloud_organization_links_test}"
 PSQL=(psql -v ON_ERROR_STOP=1 -X -d "$DB_NAME")
 
-if [[ -n "${CLOUD_LINK_TEST_USE_SUDO_POSTGRES:-1}" ]]; then
+if [[ "${CLOUD_LINK_TEST_USE_SUDO_POSTGRES:-1}" != "0" ]]; then
   PSQL=(sudo -u postgres psql -v ON_ERROR_STOP=1 -X -d "$DB_NAME")
   sudo -u postgres psql -v ON_ERROR_STOP=1 -X -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME};"
   sudo -u postgres psql -v ON_ERROR_STOP=1 -X -d postgres -c "CREATE DATABASE ${DB_NAME};"
