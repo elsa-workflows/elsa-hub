@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Check, Copy, Terminal, Container, ArrowRight, BookOpen, Server, Layers, Layout as LayoutIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
+import { ELSA_TEMPLATES_VERSION } from "@/data/elsaVersion";
 
 
 interface CommandCardProps {
@@ -83,7 +84,7 @@ export function Quickstart() {
           <CommandCard
             icon={Terminal}
             label="Build with .NET"
-            command={"dotnet new install Elsa.Templates@3.8.0\ndotnet new elsa-combined -n MyElsaApp"}
+            command={`dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}\ndotnet new elsa-combined -n MyElsaApp`}
             helper="Scaffold a complete Elsa Server + Studio solution from the official .NET templates. Also available: elsa-server and elsa-studio."
             href="/get-started#templates"
             hrefLabel="Template options"

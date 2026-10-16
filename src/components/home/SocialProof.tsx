@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Github, Package, Users, MessageCircle } from "lucide-react";
-import { ELSA_VERSION } from "@/data/elsaVersion";
+import { ELSA_NUGET_URL } from "@/data/elsaVersion";
 
 type Stat = {
   icon: typeof Github;
@@ -76,7 +76,7 @@ export function SocialProof() {
       icon: Package,
       label: "NuGet packages",
       value: "60+",
-      href: `https://www.nuget.org/packages/Elsa/${ELSA_VERSION}`,
+      href: ELSA_NUGET_URL,
     },
     {
       icon: MessageCircle,

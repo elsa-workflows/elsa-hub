@@ -22,9 +22,38 @@ export const ELSA_RELEASE_DATE = "2026-09-05";
 /** Official release notes for the pinned release line. */
 export const ELSA_RELEASE_LINKS = {
   core: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
-  studio: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
-  extensions: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
+  studio: `https://github.com/elsa-workflows/elsa-studio/releases/tag/${ELSA_VERSION}`,
+  extensions: `https://github.com/elsa-workflows/elsa-extensions/releases/tag/${ELSA_VERSION}`,
 } as const;
+
+/**
+ * Latest stable Elsa 3 release published on GitHub (Core, Studio and
+ * Extensions ship as one aligned train). This can be ahead of ELSA_VERSION:
+ * the guides stay pinned to ELSA_VERSION until they have been re-verified on
+ * the newer release. When the guides are re-verified, bump ELSA_VERSION to
+ * match and both values point at the same release again.
+ *
+ * Source: https://github.com/elsa-workflows/elsa-core/releases/tag/3.9.0
+ * (checked 2026-10-15; no newer stable or prerelease on GitHub or nuget.org).
+ */
+export const ELSA_LATEST_STABLE_VERSION = "3.9.0";
+
+/** Publication date of the latest stable release (UTC, from GitHub). */
+export const ELSA_LATEST_STABLE_RELEASE_DATE = "2026-10-04";
+
+/** Release notes for the latest stable release train. */
+export const ELSA_LATEST_STABLE_RELEASE_LINKS = {
+  core: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_LATEST_STABLE_VERSION}`,
+  studio: `https://github.com/elsa-workflows/elsa-studio/releases/tag/${ELSA_LATEST_STABLE_VERSION}`,
+  extensions: `https://github.com/elsa-workflows/elsa-extensions/releases/tag/${ELSA_LATEST_STABLE_VERSION}`,
+} as const;
+
+/** Upgrade guide for the latest stable release. */
+export const ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL =
+  "https://docs.elsaworkflows.io/getting-started/upgrading-to-3.9";
+
+/** NuGet listing for the Elsa package (unversioned, so it always shows the newest release). */
+export const ELSA_NUGET_URL = "https://www.nuget.org/packages/Elsa";
 
 /**
  * The `Elsa.Templates` package ships on its own cadence and is NOT part of the
