@@ -1,8 +1,10 @@
 // Single course lookup for academy-checkout.
 // Solo: published catalog row by slug or id. Every catalog course uses
 // product_code solo_bundle, so a product_code lookup is not unique.
+// The Solo Stripe price is the one shared stripe_price_id on every
+// published solo_bundle row. Differing prices fail closed.
 // Team: exactly one unpublished SKU row at slug team-5 or team-10.
-// Those SKU rows are the only unpublished rows that may be sold.
+// That row's product_code must equal the requested SKU.
 
 import { teamSkuSlug } from "./product.ts";
 
@@ -42,7 +44,17 @@ export async function loadAcademyCourse(
 ): Promise<LoadAcademyCourseResult> {
   const teamSlug = body.productCode ? teamSkuSlug(body.productCode) : null;
   if (teamSlug) {
-    return loadExactlyOneBySlug(serviceClient, teamSlug);
+    const loaded = await loadExactlyOneBySlug(serviceClient, teamSlug);
+    if (loaded.error || !loaded.course) return loaded;
+    if (loaded.course.product_code !== body.productCode) {
+      return {
+        error: {
+          status: 409,
+          body: { error: "Team SKU row product_code does not match the requested SKU" },
+        },
+      };
+    }
+    return loaded;
   }
 
   if (body.productCode === "solo_bundle" && !body.courseSlug && !body.courseId) {
@@ -75,10 +87,11 @@ export async function loadAcademyCourse(
     };
   }
 
-  if (body.courseSlug) {
-    return loadPublished(serviceClient, "slug", body.courseSlug);
-  }
-  return loadPublished(serviceClient, "id", body.courseId!);
+  const loaded = body.courseSlug
+    ? await loadPublished(serviceClient, "slug", body.courseSlug)
+    : await loadPublished(serviceClient, "id", body.courseId!);
+  if (loaded.error || !loaded.course) return loaded;
+  return assertSharedSoloBundlePrice(serviceClient, loaded.course);
 }
 
 async function loadPublished(
@@ -116,6 +129,53 @@ async function loadExactlyOneBySlug(
     return { error: { status: 409, body: { error: "Ambiguous Team SKU row" } } };
   }
   return { course: rows[0] as AcademyCourseRow };
+}
+
+async function assertSharedSoloBundlePrice(
+  serviceClient: AcademyCourseQuery,
+  course: AcademyCourseRow,
+): Promise<LoadAcademyCourseResult> {
+  if (course.product_code !== "solo_bundle") {
+    return {
+      error: {
+        status: 409,
+        body: { error: "Published course is not a Solo SKU" },
+      },
+    };
+  }
+
+  const listed = await serviceClient
+    .from("academy_courses")
+    .select("stripe_price_id")
+    .eq("product_code", "solo_bundle")
+    .eq("is_published", true)
+    .limit(200);
+  if (listed.error) {
+    return { error: { status: 500, body: { error: listed.error.message || "Course lookup failed" } } };
+  }
+
+  const rows = Array.isArray(listed.data) ? listed.data : listed.data ? [listed.data] : [];
+  const prices = new Set(
+    rows.map((row) => (row as { stripe_price_id?: string | null }).stripe_price_id ?? ""),
+  );
+  if (prices.size === 0) {
+    return {
+      error: {
+        status: 409,
+        body: { error: "Published Solo courses have no shared Stripe price" },
+      },
+    };
+  }
+  if (prices.size > 1) {
+    return {
+      error: {
+        status: 409,
+        body: { error: "Published Solo courses have conflicting Stripe prices" },
+      },
+    };
+  }
+
+  return { course };
 }
 
 function readOne(

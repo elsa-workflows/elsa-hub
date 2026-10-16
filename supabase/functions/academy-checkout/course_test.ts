@@ -121,3 +121,85 @@ Deno.test("Team SKU with more than one matching slug row is a hard error", async
   );
   assertEquals(loaded.error?.status, 409);
 });
+
+Deno.test("Team SKU row whose product_code does not match the requested SKU fails closed", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([
+      {
+        ...TEAM5,
+        product_code: "solo_bundle",
+      },
+    ]),
+    { productCode: "team_5" },
+  );
+  assertEquals(loaded.error?.status, 409);
+  assertEquals(loaded.course, undefined);
+});
+
+Deno.test("Team SKU row for team_10 at the team-5 slug fails closed", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([
+      {
+        ...TEAM5,
+        product_code: "team_10",
+      },
+    ]),
+    { productCode: "team_5" },
+  );
+  assertEquals(loaded.error?.status, 409);
+});
+
+Deno.test("published Solo courses that share one stripe_price_id use that price", async () => {
+  const other: AcademyCourseRow = {
+    ...PUBLISHED,
+    id: "00000000-0000-4000-8000-000000002002",
+    slug: "other-published",
+    title: "Other Published",
+  };
+  const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED, other, DRAFT_CATALOG]), {
+    courseSlug: "other-published",
+  });
+  assertEquals(loaded.course?.id, other.id);
+  assertEquals(loaded.course?.stripe_price_id, "price_solo_test");
+});
+
+Deno.test("published Solo courses with differing stripe_price_id fail closed", async () => {
+  const other: AcademyCourseRow = {
+    ...PUBLISHED,
+    id: "00000000-0000-4000-8000-000000002002",
+    slug: "other-published",
+    title: "Other Published",
+    stripe_price_id: "price_other_solo",
+  };
+  const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED, other]), {
+    courseSlug: "published-course",
+  });
+  assertEquals(loaded.error?.status, 409);
+  assertEquals(loaded.course, undefined);
+});
+
+Deno.test("a published Solo course with a null price next to a priced course fails closed", async () => {
+  const other: AcademyCourseRow = {
+    ...PUBLISHED,
+    id: "00000000-0000-4000-8000-000000002002",
+    slug: "other-published",
+    stripe_price_id: null,
+  };
+  const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED, other]), {
+    courseId: PUBLISHED.id,
+  });
+  assertEquals(loaded.error?.status, 409);
+});
+
+Deno.test("a published catalog row that is not solo_bundle is not sold as Solo", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([
+      {
+        ...PUBLISHED,
+        product_code: "team_5",
+      },
+    ]),
+    { courseSlug: "published-course" },
+  );
+  assertEquals(loaded.error?.status, 409);
+});
