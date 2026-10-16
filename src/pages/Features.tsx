@@ -572,7 +572,7 @@ export default function Features() {
                   </h2>
                   <p className="text-lg text-muted-foreground">
                     Pull the Docker image, install the NuGet packages, or read the docs.
-                    Open source, MIT licensed, production-tested.
+                    Open source, MIT licensed.
                   </p>
                 </div>
                 <div className="md:col-span-5 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-3 md:justify-end">
