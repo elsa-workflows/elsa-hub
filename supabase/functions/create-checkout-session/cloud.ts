@@ -9,15 +9,15 @@ import {
 import {
   assertStripeTestMode,
   buildCloudCheckoutMetadata,
-  CLOUD_ORG_NOT_LINKED_CODE,
+  cloudOrgNotLinkedError,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
   controlOrganizationIdFromHubOrg,
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
-  readLinkedHubAdminOrganizations,
-  selectLinkedHubOrganization,
+  readValidatedControlOrganizationLink,
+  requireCloudOrganizationId,
 } from "../_shared/cloud-billing.ts";
 
 export type CloudCheckoutContext = {
@@ -78,22 +78,29 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     return jsonResponse(corsHeaders, 503, { error: message });
   }
 
-  let memberships: Awaited<ReturnType<typeof readLinkedHubAdminOrganizations>>;
+  let organizationId: string;
   try {
-    memberships = await readLinkedHubAdminOrganizations(userClient, user.id);
+    organizationId = requireCloudOrganizationId(body.organizationId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to read organization membership";
+    const message = error instanceof Error ? error.message : "Cloud checkout requires an organization";
+    return jsonResponse(corsHeaders, 400, { error: message });
+  }
+
+  let link;
+  try {
+    link = await readValidatedControlOrganizationLink(userClient, organizationId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to read Control organization link";
     return jsonResponse(corsHeaders, 500, { error: message });
   }
 
-  const linked = selectLinkedHubOrganization(memberships, body.organizationId);
-  if ("error" in linked) {
-    return jsonResponse(corsHeaders, linked.status, {
-      error: linked.error,
-      ...(linked.code ? { code: linked.code } : {}),
+  if (!link) {
+    const missing = cloudOrgNotLinkedError();
+    return jsonResponse(corsHeaders, missing.status, {
+      error: missing.error,
+      code: missing.code,
     });
   }
-  const organizationId = linked.organizationId;
 
   const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
     p_org_id: organizationId,
@@ -104,7 +111,7 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     });
   }
 
-  const controlOrganizationId = controlOrganizationIdFromHubOrg(organizationId);
+  const controlOrganizationId = controlOrganizationIdFromHubOrg(link);
 
   let stripePriceId: string;
   try {

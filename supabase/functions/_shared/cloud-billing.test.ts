@@ -7,6 +7,7 @@
 import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   assertStripeTestMode,
+  billingAccountFromOrganizationLink,
   classifyStripeEvent,
   cloudBillingCustomerOwner,
   controlOrganizationIdFromHubOrg,
@@ -14,11 +15,18 @@ import {
   isCloudStripeEvent,
   orgHasBlockingCloudSubscription,
   readStoredStripeCustomerId,
+  readValidatedControlOrganizationLink,
   requireCloudOrganizationId,
   resolveControlOrganizationId,
   selectLinkedHubOrganization,
   stripeWebhookRoute,
 } from "./cloud-billing.ts";
+
+const VALIDATED_LINK = {
+  hubOrganizationId: "hub-org-1",
+  controlOrganizationId: "control-org-9",
+  validatedAt: "2026-10-16T00:00:00.000Z",
+};
 
 type StoredRow = {
   ownerId: string;
@@ -73,39 +81,127 @@ Deno.test("personal Cloud checkout is rejected", () => {
   assertEquals(threw, true);
 });
 
-Deno.test("Control organization id comes from the linked Hub org", () => {
-  assertEquals(controlOrganizationIdFromHubOrg("hub-org-1"), "hub-org-1");
+Deno.test("Control organization id comes from the validated link record, not the Hub org id", () => {
+  assertEquals(controlOrganizationIdFromHubOrg(VALIDATED_LINK), "control-org-9");
+  assertEquals(controlOrganizationIdFromHubOrg(VALIDATED_LINK) === "hub-org-1", false);
   assertEquals(
     resolveControlOrganizationId({
-      hubOrganizationId: "hub-org-1",
+      link: VALIDATED_LINK,
     }),
-    "hub-org-1",
+    "control-org-9",
   );
 });
 
-Deno.test("linked Hub org is the membership row, not a client foreign id", () => {
-  const linked = selectLinkedHubOrganization(
-    [{ organization_id: "org-b", role: "admin" }],
-    "org-foreign",
-  );
+Deno.test("linked state is the validated Control link, not admin membership", () => {
+  const linked = selectLinkedHubOrganization(VALIDATED_LINK, "org-foreign");
   assertEquals("organizationId" in linked, false);
   if ("error" in linked) {
     assertEquals(linked.status, 403);
     assertEquals(linked.code, "cloud_org_not_linked");
   }
 
-  const missing = selectLinkedHubOrganization([], "org-b");
+  const missing = selectLinkedHubOrganization(null, "org-b");
   assertEquals("organizationId" in missing, false);
   if ("error" in missing) {
     assertEquals(missing.status, 403);
     assertEquals(missing.code, "cloud_org_not_linked");
   }
 
-  const matched = selectLinkedHubOrganization(
-    [{ organization_id: "org-b", role: "admin" }],
-    "org-b",
+  const adminWithoutLink = selectLinkedHubOrganization(null, "hub-org-1");
+  assertEquals("organizationId" in adminWithoutLink, false);
+  if ("error" in adminWithoutLink) {
+    assertEquals(adminWithoutLink.status, 403);
+    assertEquals(adminWithoutLink.code, "cloud_org_not_linked");
+  }
+
+  const matched = selectLinkedHubOrganization(VALIDATED_LINK, "hub-org-1");
+  assertEquals(matched, {
+    organizationId: "hub-org-1",
+    controlOrganizationId: "control-org-9",
+  });
+  assertEquals(billingAccountFromOrganizationLink(VALIDATED_LINK), "linked");
+  assertEquals(billingAccountFromOrganizationLink(null), "missing");
+  assertEquals(
+    billingAccountFromOrganizationLink({
+      hubOrganizationId: "hub-org-1",
+      controlOrganizationId: "control-org-9",
+      validatedAt: "",
+    }),
+    "missing",
   );
-  assertEquals(matched, { organizationId: "org-b" });
+});
+
+Deno.test("readValidatedControlOrganizationLink returns only a validated row", async () => {
+  const store = {
+    from(table: string) {
+      assertEquals(table, "cloud_organization_links");
+      let hubOrganizationId: string | undefined;
+      const query = {
+        select() {
+          return query;
+        },
+        eq(column: string, value: string) {
+          if (column === "hub_organization_id") hubOrganizationId = value;
+          return query;
+        },
+        maybeSingle() {
+          if (hubOrganizationId === "hub-org-1") {
+            return Promise.resolve({
+              data: {
+                hub_organization_id: "hub-org-1",
+                control_organization_id: "control-org-9",
+                validated_at: "2026-10-16T00:00:00.000Z",
+              },
+              error: null,
+            });
+          }
+          return Promise.resolve({ data: null, error: null });
+        },
+      };
+      return query;
+    },
+  };
+
+  const linked = await readValidatedControlOrganizationLink(store, "hub-org-1");
+  assertEquals(linked, VALIDATED_LINK);
+
+  const unlinked = await readValidatedControlOrganizationLink(store, "hub-org-unlinked");
+  assertEquals(unlinked, null);
+});
+
+Deno.test("an unvalidated link row is not linked", async () => {
+  const store = {
+    from() {
+      const query = {
+        select() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        maybeSingle() {
+          return Promise.resolve({
+            data: {
+              hub_organization_id: "hub-org-1",
+              control_organization_id: "control-org-9",
+              validated_at: null,
+            },
+            error: null,
+          });
+        },
+      };
+      return query;
+    },
+  };
+
+  assertEquals(await readValidatedControlOrganizationLink(store, "hub-org-1"), null);
+  let threw = false;
+  try {
+    controlOrganizationIdFromHubOrg(null);
+  } catch (error) {
+    threw = error instanceof Error && error.message.includes("linked");
+  }
+  assertEquals(threw, true);
 });
 
 Deno.test("org B never resolves to org A's customer or the admin's personal customer", async () => {
@@ -208,6 +304,10 @@ Deno.test("Cloud checkout, portal, and status never list Stripe customers by ema
   assertEquals(status.includes("customers.list("), false);
   assertEquals(helper.includes("customers.list"), false);
   assertEquals(checkout.includes("getOrCreateStripeCustomer"), true);
+  assertEquals(checkout.includes("readValidatedControlOrganizationLink"), true);
+  assertEquals(checkout.includes("controlOrganizationIdFromHubOrg(organizationId)"), false);
+  assertEquals(checkout.includes("body.controlOrganizationId"), false);
+  assertEquals(status.includes("billingAccountFromOrganizationLink"), true);
   assertEquals(portal.includes("readStoredStripeCustomerId"), true);
   assertEquals(status.includes("readStoredStripeCustomerId"), true);
 });

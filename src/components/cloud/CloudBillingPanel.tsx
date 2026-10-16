@@ -24,6 +24,7 @@ export function CloudBillingPanel({
   subscription,
   canManage,
   hasOrganization,
+  organizationLinked,
   onSubscribe,
   onManage,
   checkoutPending,
@@ -36,6 +37,7 @@ export function CloudBillingPanel({
   subscription: CloudSubscriptionStatus | null;
   canManage: boolean;
   hasOrganization: boolean;
+  organizationLinked: boolean;
   onSubscribe: () => void;
   onManage: () => void;
   checkoutPending: boolean;
@@ -97,7 +99,11 @@ export function CloudBillingPanel({
           </div>
         )}
 
-        {canManage ? (
+        {!isLoading && !error && hasOrganization && !organizationLinked ? (
+          <p className="text-sm text-muted-foreground">
+            This organization is not linked to Elsa Cloud.
+          </p>
+        ) : !isLoading && canManage ? (
           <div className="flex flex-col sm:flex-row gap-3">
             {!hasPlan && (
               <Button
@@ -123,11 +129,11 @@ export function CloudBillingPanel({
               </Button>
             )}
           </div>
-        ) : (
+        ) : !isLoading && !error ? (
           <p className="text-sm text-muted-foreground">
             Only organization admins can start checkout or open the billing portal.
           </p>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

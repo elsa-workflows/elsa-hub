@@ -10,6 +10,7 @@ import {
   cloudCheckoutSuccessPath,
   cloudPortalReturnPath,
   CONTROL_ORGANIZATION_METADATA_KEY,
+  billingAccountFromOrganizationLink,
   controlOrganizationIdFromHubOrg,
   HUB_ORGANIZATION_METADATA_KEY,
   HUB_USER_METADATA_KEY,
@@ -38,32 +39,43 @@ describe("Cloud billing contract", () => {
     const metadata = buildCloudCheckoutMetadata({
       hubUserId: "user-1",
       hubOrganizationId: "hub-org-1",
-      controlOrganizationId: "hub-org-1",
+      controlOrganizationId: "control-org-9",
     });
     expect(metadata.kind).toBe("cloud");
     expect(metadata.product_type).toBe("cloud");
     expect(metadata[HUB_USER_METADATA_KEY]).toBe("user-1");
     expect(metadata[HUB_ORGANIZATION_METADATA_KEY]).toBe("hub-org-1");
-    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).toBe("hub-org-1");
+    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).toBe("control-org-9");
+    expect(metadata[CONTROL_ORGANIZATION_METADATA_KEY]).not.toBe("hub-org-1");
   });
 
-  it("derives the Control org from the linked Hub org", () => {
-    expect(controlOrganizationIdFromHubOrg("hub-org-1")).toBe("hub-org-1");
-    expect(
-      resolveControlOrganizationId({
-        hubOrganizationId: "hub-org-1",
-      }),
-    ).toBe("hub-org-1");
-    expect(
-      selectLinkedHubOrganization([{ organization_id: "org-b", role: "admin" }], "org-foreign"),
-    ).toMatchObject({ status: 403, code: "cloud_org_not_linked" });
-    expect(selectLinkedHubOrganization([], "org-b")).toMatchObject({
+  it("derives the Control org from the validated link record, not admin status", () => {
+    const link = {
+      hubOrganizationId: "hub-org-1",
+      controlOrganizationId: "control-org-9",
+      validatedAt: "2026-10-16T00:00:00.000Z",
+    };
+    expect(controlOrganizationIdFromHubOrg(link)).toBe("control-org-9");
+    expect(controlOrganizationIdFromHubOrg(link)).not.toBe("hub-org-1");
+    expect(resolveControlOrganizationId({ link })).toBe("control-org-9");
+    expect(selectLinkedHubOrganization(link, "org-foreign")).toMatchObject({
       status: 403,
       code: "cloud_org_not_linked",
     });
-    expect(
-      selectLinkedHubOrganization([{ organization_id: "org-b", role: "admin" }], "org-b"),
-    ).toEqual({ organizationId: "org-b" });
+    expect(selectLinkedHubOrganization(null, "org-b")).toMatchObject({
+      status: 403,
+      code: "cloud_org_not_linked",
+    });
+    expect(selectLinkedHubOrganization(null, "hub-org-1")).toMatchObject({
+      status: 403,
+      code: "cloud_org_not_linked",
+    });
+    expect(selectLinkedHubOrganization(link, "hub-org-1")).toEqual({
+      organizationId: "hub-org-1",
+      controlOrganizationId: "control-org-9",
+    });
+    expect(billingAccountFromOrganizationLink(link)).toBe("linked");
+    expect(billingAccountFromOrganizationLink(null)).toBe("missing");
   });
 
   it("does not record Hub orders or credits for Cloud subscription events", () => {

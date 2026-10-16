@@ -19,6 +19,7 @@ describe("CloudBillingPanel", () => {
         }}
         canManage={false}
         hasOrganization
+        organizationLinked
         onSubscribe={vi.fn()}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -33,6 +34,51 @@ describe("CloudBillingPanel", () => {
     ).toBeInTheDocument();
   });
 
+  it("treats linked as the Control organization link, not admin status", () => {
+    render(
+      <CloudBillingPanel
+        isLoading={false}
+        error={null}
+        planName={null}
+        planStatus={null}
+        subscription={null}
+        canManage
+        hasOrganization
+        organizationLinked={false}
+        onSubscribe={vi.fn()}
+        onManage={vi.fn()}
+        checkoutPending={false}
+        portalPending={false}
+      />,
+    );
+
+    expect(screen.getByText(/this organization is not linked to elsa cloud/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
+  });
+
+  it("does not treat a loading admin as linked", () => {
+    render(
+      <CloudBillingPanel
+        isLoading
+        error={null}
+        planName={null}
+        planStatus={null}
+        subscription={null}
+        canManage
+        hasOrganization
+        organizationLinked={false}
+        onSubscribe={vi.fn()}
+        onManage={vi.fn()}
+        checkoutPending={false}
+        portalPending={false}
+      />,
+    );
+
+    expect(screen.getByText(/loading billing/i)).toBeInTheDocument();
+    expect(screen.queryByText(/this organization is not linked to elsa cloud/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
+  });
+
   it("lets an admin subscribe when there is no plan", () => {
     const onSubscribe = vi.fn();
     render(
@@ -44,6 +90,7 @@ describe("CloudBillingPanel", () => {
         subscription={null}
         canManage
         hasOrganization
+        organizationLinked
         onSubscribe={onSubscribe}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -71,6 +118,7 @@ describe("CloudBillingPanel", () => {
         }}
         canManage
         hasOrganization
+        organizationLinked
         onSubscribe={vi.fn()}
         onManage={vi.fn()}
         checkoutPending={false}

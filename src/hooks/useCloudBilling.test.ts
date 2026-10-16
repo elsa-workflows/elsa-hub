@@ -117,4 +117,41 @@ describe("useCloudBilling", () => {
       }),
     );
   });
+
+  it("sets organizationLinked from the validated link record, not admin status", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        billingAccount: "missing",
+        canManage: true,
+        subscriptions: [],
+        entitlement: null,
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useCloudBilling(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.isAdmin).toBe(true);
+    expect(result.current.canManage).toBe(true);
+    expect(result.current.organizationLinked).toBe(false);
+  });
+
+  it("marks the org linked when the status payload has a validated link", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        billingAccount: "linked",
+        canManage: false,
+        subscriptions: [],
+        entitlement: null,
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useCloudBilling(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.organizationLinked).toBe(true);
+    expect(result.current.canManage).toBe(false);
+  });
 });
