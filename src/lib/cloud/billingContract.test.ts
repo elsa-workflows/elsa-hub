@@ -9,7 +9,7 @@ import {
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
   cloudPortalReturnPath,
-  billingAccountFromControlLink,
+  cloudLinkFromControlOrganizationId,
   CONTROL_ORGANIZATION_METADATA_KEY,
   controlOrganizationIdFromLink,
   HUB_ORGANIZATION_METADATA_KEY,
@@ -69,8 +69,11 @@ describe("Cloud billing contract", () => {
       }),
     ).toBeNull();
     expect(controlOrganizationIdFromLink(null)).toBeNull();
-    expect(billingAccountFromControlLink("ctrl-org-1")).toBe("linked");
-    expect(billingAccountFromControlLink(null)).toBe("missing");
+    expect(cloudLinkFromControlOrganizationId("ctrl-org-1")).toBe("linked");
+    expect(cloudLinkFromControlOrganizationId(null)).toBe("missing");
+    expect(
+      selectLinkedHubOrganization([{ organization_id: "org-b" }], "org-b"),
+    ).toMatchObject({ status: 403, code: "cloud_org_not_linked" });
     expect(unlinkedControlOrganizationError()).toMatchObject({
       status: 403,
       code: "cloud_org_not_linked",

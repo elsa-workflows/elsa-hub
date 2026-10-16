@@ -117,7 +117,7 @@ export type LinkedHubOrganization =
   | { status: number; error: string; code?: string };
 
 function isAdminMembershipRole(role?: string): boolean {
-  return role === "admin" || role === "owner" || role === undefined;
+  return role === "admin" || role === "owner";
 }
 
 export function selectLinkedHubOrganization(
@@ -187,7 +187,7 @@ export function unlinkedControlOrganizationError(): {
   };
 }
 
-export function billingAccountFromControlLink(
+export function cloudLinkFromControlOrganizationId(
   controlOrganizationId: string | null | undefined,
 ): "linked" | "missing" {
   return controlOrganizationId ? "linked" : "missing";

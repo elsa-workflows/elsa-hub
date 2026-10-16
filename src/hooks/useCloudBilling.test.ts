@@ -131,28 +131,10 @@ describe("useCloudBilling", () => {
     );
   });
 
-  it("sets linked from the Control organization id, not from billingAccount alone", async () => {
+  it("keeps billingAccount as the stored Stripe customer and cloudLink as the Control org link", async () => {
     invoke.mockResolvedValue({
       data: {
         billingAccount: "linked",
-        canManage: true,
-        subscriptions: [],
-        entitlement: null,
-      },
-      error: null,
-    });
-
-    const { result } = renderHook(() => useCloudBilling(), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.billingAccount).toBe("missing");
-    expect(result.current.controlOrganizationId).toBeNull();
-  });
-
-  it("sets linked when the snapshot includes a Control organization id", async () => {
-    invoke.mockResolvedValue({
-      data: {
-        billingAccount: "linked",
-        controlOrganizationId: "ctrl-org-1",
         canManage: true,
         subscriptions: [],
         entitlement: null,
@@ -163,6 +145,26 @@ describe("useCloudBilling", () => {
     const { result } = renderHook(() => useCloudBilling(), { wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.billingAccount).toBe("linked");
+    expect(result.current.cloudLink).toBe("missing");
+    expect(result.current.controlOrganizationId).toBeNull();
+  });
+
+  it("sets cloudLink when the snapshot includes a Control organization id", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        billingAccount: "missing",
+        controlOrganizationId: "ctrl-org-1",
+        canManage: true,
+        subscriptions: [],
+        entitlement: null,
+      },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useCloudBilling(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.billingAccount).toBe("missing");
+    expect(result.current.cloudLink).toBe("linked");
     expect(result.current.controlOrganizationId).toBe("ctrl-org-1");
   });
 });

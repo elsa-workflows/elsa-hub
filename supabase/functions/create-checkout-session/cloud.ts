@@ -111,7 +111,15 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     ctx.readValidatedControlOrganizationId ??
     ((hubOrganizationId: string) =>
       readValidatedControlOrganizationId(serviceClient, hubOrganizationId));
-  const controlOrganizationId = await resolveControlOrganizationId(organizationId);
+  let controlOrganizationId: string | null;
+  try {
+    controlOrganizationId = await resolveControlOrganizationId(organizationId);
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : "Failed to read Control organization link";
+    return jsonResponse(corsHeaders, 500, { error: message });
+  }
   if (!controlOrganizationId) {
     const unlinked = unlinkedControlOrganizationError();
     return jsonResponse(corsHeaders, unlinked.status, {

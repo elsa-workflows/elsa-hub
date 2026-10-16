@@ -7,7 +7,7 @@
 import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   assertStripeTestMode,
-  billingAccountFromControlLink,
+  cloudLinkFromControlOrganizationId,
   classifyStripeEvent,
   cloudBillingCustomerOwner,
   controlOrganizationIdFromLink,
@@ -75,7 +75,7 @@ Deno.test("personal Cloud checkout is rejected", () => {
   assertEquals(threw, true);
 });
 
-Deno.test("Control organization id comes from a validated link row, not the Hub org id", async () => {
+Deno.test("Control organization id comes from a validated link row, not the Hub org id", () => {
   assertEquals(
     controlOrganizationIdFromLink({
       control_organization_id: "ctrl-org-1",
@@ -91,11 +91,80 @@ Deno.test("Control organization id comes from a validated link row, not the Hub 
     null,
   );
   assertEquals(controlOrganizationIdFromLink(null), null);
-  assertEquals(billingAccountFromControlLink("ctrl-org-1"), "linked");
-  assertEquals(billingAccountFromControlLink(null), "missing");
+  assertEquals(cloudLinkFromControlOrganizationId("ctrl-org-1"), "linked");
+  assertEquals(cloudLinkFromControlOrganizationId(null), "missing");
   assertEquals(unlinkedControlOrganizationError().status, 403);
   assertEquals(unlinkedControlOrganizationError().code, "cloud_org_not_linked");
-  assertEquals(await readValidatedControlOrganizationId({}, "hub-org-1"), null);
+});
+
+Deno.test("the Control organization link reader uses the store row, not the Hub org id", async () => {
+  const present = {
+    from(table: string) {
+      assertEquals(table, "cloud_organization_links");
+      const query = {
+        select() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        maybeSingle() {
+          return Promise.resolve({
+            data: {
+              control_organization_id: "ctrl-org-1",
+              validated_at: "2026-10-16T00:00:00.000Z",
+            },
+            error: null,
+          });
+        },
+      };
+      return query;
+    },
+  };
+  assertEquals(await readValidatedControlOrganizationId(present, "hub-org-1"), "ctrl-org-1");
+
+  const missing = {
+    from() {
+      const query = {
+        select() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        maybeSingle() {
+          return Promise.resolve({ data: null, error: null });
+        },
+      };
+      return query;
+    },
+  };
+  assertEquals(await readValidatedControlOrganizationId(missing, "hub-org-1"), null);
+
+  const failing = {
+    from() {
+      const query = {
+        select() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        maybeSingle() {
+          return Promise.resolve({
+            data: null,
+            error: { message: "connection refused" },
+          });
+        },
+      };
+      return query;
+    },
+  };
+  await assertRejects(
+    () => readValidatedControlOrganizationId(failing, "hub-org-1"),
+    Error,
+    "Failed to read Control organization link",
+  );
 });
 
 Deno.test("linked Hub org is the membership row, not a client foreign id", () => {
@@ -121,6 +190,15 @@ Deno.test("linked Hub org is the membership row, not a client foreign id", () =>
     "org-b",
   );
   assertEquals(matched, { organizationId: "org-b" });
+
+  const missingRole = selectLinkedHubOrganization(
+    [{ organization_id: "org-b" }],
+    "org-b",
+  );
+  assertEquals("organizationId" in missingRole, false);
+  if ("error" in missingRole) {
+    assertEquals(missingRole.status, 403);
+  }
 });
 
 Deno.test("org B never resolves to org A's customer or the admin's personal customer", async () => {

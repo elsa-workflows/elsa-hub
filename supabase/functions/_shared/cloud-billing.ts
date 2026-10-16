@@ -145,7 +145,7 @@ export type LinkedHubOrganization =
   | { status: number; error: string; code?: string };
 
 function isAdminMembershipRole(role?: string): boolean {
-  return role === "admin" || role === "owner" || role === undefined;
+  return role === "admin" || role === "owner";
 }
 
 export function selectLinkedHubOrganization(
@@ -243,21 +243,51 @@ export function unlinkedControlOrganizationError(): {
   };
 }
 
-export function billingAccountFromControlLink(
+export function cloudLinkFromControlOrganizationId(
   controlOrganizationId: string | null | undefined,
 ): "linked" | "missing" {
   return controlOrganizationId ? "linked" : "missing";
 }
 
+export const CLOUD_ORGANIZATION_LINKS_TABLE = "cloud_organization_links";
+
+type ControlOrganizationLinkStore = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (column: string, value: string) => {
+        maybeSingle: () => PromiseLike<{
+          data: ControlOrganizationLinkRow | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+};
+
 /**
- * Hub has no Control organization link table or field yet.
- * cloud-bff bootstrap returns Control organizationId in the HTTP body and does not persist it.
+ * Control organization id from the validated Hub-to-Control link (#79).
+ * Null when the Hub org has no validated `cloud_organization_links` row.
+ * Throws on a store read error so an outage is not treated as unlinked.
  */
 export async function readValidatedControlOrganizationId(
-  _supabase: unknown,
-  _hubOrganizationId: string,
+  supabase: unknown,
+  hubOrganizationId: string,
 ): Promise<string | null> {
-  return null;
+  const hubId = hubOrganizationId.trim();
+  if (!hubId) return null;
+
+  const store = supabase as ControlOrganizationLinkStore;
+  const { data, error } = await store
+    .from(CLOUD_ORGANIZATION_LINKS_TABLE)
+    .select("control_organization_id, validated_at")
+    .eq("hub_organization_id", hubId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to read Control organization link: ${error.message}`);
+  }
+
+  return controlOrganizationIdFromLink(data);
 }
 
 export function buildCloudCheckoutMetadata(input: {

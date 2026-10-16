@@ -20,6 +20,7 @@ describe("CloudBillingPanel", () => {
         canManage={false}
         hasOrganization
         billingAccount="linked"
+        cloudLink="linked"
         onSubscribe={vi.fn()}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -46,6 +47,7 @@ describe("CloudBillingPanel", () => {
         canManage
         hasOrganization
         billingAccount="linked"
+        cloudLink="linked"
         onSubscribe={onSubscribe}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -74,6 +76,7 @@ describe("CloudBillingPanel", () => {
         canManage
         hasOrganization
         billingAccount="linked"
+        cloudLink="linked"
         onSubscribe={vi.fn()}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -97,6 +100,7 @@ describe("CloudBillingPanel", () => {
         canManage
         hasOrganization
         billingAccount="missing"
+        cloudLink="missing"
         onSubscribe={vi.fn()}
         onManage={vi.fn()}
         checkoutPending={false}
@@ -106,5 +110,34 @@ describe("CloudBillingPanel", () => {
 
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
     expect(screen.getByText(/not linked to elsa cloud/i)).toBeInTheDocument();
+  });
+
+  it("lets an admin open the portal when a Cloud subscription exists without a Control link", () => {
+    render(
+      <CloudBillingPanel
+        isLoading={false}
+        error={null}
+        planName="Elsa Cloud Hosted"
+        planStatus="active"
+        subscription={{
+          id: "sub_1",
+          status: "active",
+          cancelAtPeriodEnd: false,
+          currentPeriodEnd: "2026-11-15T00:00:00.000Z",
+          planName: "Elsa Cloud Hosted",
+        }}
+        canManage
+        hasOrganization
+        billingAccount="linked"
+        cloudLink="missing"
+        onSubscribe={vi.fn()}
+        onManage={vi.fn()}
+        checkoutPending={false}
+        portalPending={false}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /manage or cancel billing/i })).toBeInTheDocument();
   });
 });

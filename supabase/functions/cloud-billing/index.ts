@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import {
   assertStripeTestMode,
   classifyStripeDataObject,
-  billingAccountFromControlLink,
+  cloudLinkFromControlOrganizationId,
   cloudBillingCustomerOwner,
   readControlEntitlement,
   readStoredStripeCustomerId,
@@ -95,11 +95,13 @@ serve(async (req) => {
     const controlOrganizationId = organizationId
       ? await readValidatedControlOrganizationId(serviceClient, organizationId)
       : null;
-    const billingAccount = billingAccountFromControlLink(controlOrganizationId);
+    const cloudLink = cloudLinkFromControlOrganizationId(controlOrganizationId);
+    const billingAccount = customerId ? "linked" : "missing";
 
     if (!customerId) {
       return json(200, {
         billingAccount,
+        cloudLink,
         controlOrganizationId,
         canManage,
         subscriptions: [],
@@ -135,6 +137,7 @@ serve(async (req) => {
 
     return json(200, {
       billingAccount,
+      cloudLink,
       controlOrganizationId,
       canManage,
       subscriptions,

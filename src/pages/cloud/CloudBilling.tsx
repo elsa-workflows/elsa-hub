@@ -43,6 +43,7 @@ function CloudBillingBody() {
         canManage={billing.canManage}
         hasOrganization={Boolean(billing.organizationId)}
         billingAccount={billing.billingAccount}
+        cloudLink={billing.cloudLink}
         onSubscribe={() => billing.startCheckout.mutate()}
         onManage={() => billing.openPortal.mutate()}
         checkoutPending={billing.startCheckout.isPending}

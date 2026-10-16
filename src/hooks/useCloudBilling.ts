@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import {
-  billingAccountFromControlLink,
+  cloudLinkFromControlOrganizationId,
   CLOUD_PRODUCT_TYPE,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
 } from "@/lib/cloud/billingContract";
@@ -19,6 +19,7 @@ export type CloudSubscriptionStatus = {
 
 export type CloudBillingSnapshot = {
   billingAccount: "missing" | "linked";
+  cloudLink: "missing" | "linked";
   controlOrganizationId: string | null;
   canManage: boolean;
   subscriptions: CloudSubscriptionStatus[];
@@ -56,7 +57,8 @@ export function useCloudBilling() {
           ? data.controlOrganizationId.trim()
           : null;
       return {
-        billingAccount: billingAccountFromControlLink(controlOrganizationId),
+        billingAccount: data?.billingAccount === "linked" ? "linked" : "missing",
+        cloudLink: cloudLinkFromControlOrganizationId(controlOrganizationId),
         controlOrganizationId,
         canManage: data?.canManage === true,
         subscriptions: Array.isArray(data?.subscriptions) ? data.subscriptions : [],
@@ -140,6 +142,7 @@ export function useCloudBilling() {
     error: statusQuery.error instanceof Error ? statusQuery.error : null,
     snapshot,
     billingAccount: snapshot?.billingAccount ?? "missing",
+    cloudLink: snapshot?.cloudLink ?? "missing",
     controlOrganizationId: snapshot?.controlOrganizationId ?? null,
     planName,
     planStatus,

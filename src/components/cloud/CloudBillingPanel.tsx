@@ -25,6 +25,7 @@ export function CloudBillingPanel({
   canManage,
   hasOrganization,
   billingAccount,
+  cloudLink,
   onSubscribe,
   onManage,
   checkoutPending,
@@ -38,13 +39,15 @@ export function CloudBillingPanel({
   canManage: boolean;
   hasOrganization: boolean;
   billingAccount: "missing" | "linked";
+  cloudLink: "missing" | "linked";
   onSubscribe: () => void;
   onManage: () => void;
   checkoutPending: boolean;
   portalPending: boolean;
 }) {
   const hasPlan = Boolean(planName && planStatus && planStatus !== "canceled");
-  const linkedToControl = billingAccount === "linked";
+  const linkedToControl = cloudLink === "linked";
+  const hasStoredCustomer = billingAccount === "linked";
   const periodEnd = subscription?.currentPeriodEnd
     ? format(new Date(subscription.currentPeriodEnd), "MMM d, yyyy")
     : null;
@@ -100,9 +103,9 @@ export function CloudBillingPanel({
           </div>
         )}
 
-        {canManage && linkedToControl ? (
+        {canManage && (linkedToControl || hasPlan || hasStoredCustomer) ? (
           <div className="flex flex-col sm:flex-row gap-3">
-            {!hasPlan && (
+            {linkedToControl && !hasPlan && (
               <Button
                 type="button"
                 onClick={onSubscribe}
@@ -113,7 +116,7 @@ export function CloudBillingPanel({
                 Subscribe to Elsa Cloud
               </Button>
             )}
-            {hasPlan && (
+            {(hasPlan || hasStoredCustomer) && (
               <Button
                 type="button"
                 variant="outline"
