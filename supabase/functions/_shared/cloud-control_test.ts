@@ -65,3 +65,40 @@ Deno.test("createControlFetch forwards the Hub session and never treats 200 JSON
     assertFalse("error" in (result.body as object));
   }
 });
+
+Deno.test("createControlFetch forwards mutation headers and maps instance_limit_reached", async () => {
+  let seenKey = "";
+  let seenMatch = "";
+  const env = {
+    get(key: string) {
+      return key === "ELSA_CONTROL_API_BASE_URL" ? "https://control.example.test" : undefined;
+    },
+  };
+  const fetchImpl: typeof fetch = async (_input, init) => {
+    const headers = new Headers(init?.headers);
+    seenKey = headers.get("Idempotency-Key") ?? "";
+    seenMatch = headers.get("If-Match") ?? "";
+    return new Response(JSON.stringify({
+      code: "instance_limit_reached",
+      currentInstances: 1,
+      maxInstances: 1,
+      detail: "provider-secret",
+    }), { status: 422 });
+  };
+  const result = await createControlFetch(env, fetchImpl)({
+    method: "POST",
+    path: "/api/workspaces/1/instances",
+    headers: { "Idempotency-Key": "abc", "If-Match": '"1"' },
+    body: { name: "Prod" },
+  }, "hub-session");
+  assertEquals(seenKey, "abc");
+  assertEquals(seenMatch, '"1"');
+  assertEquals(result, {
+    ok: false,
+    kind: "limit",
+    code: "instance_limit_reached",
+    currentInstances: 1,
+    maxInstances: 1,
+  });
+  assertFalse(JSON.stringify(result).includes("provider-secret"));
+});

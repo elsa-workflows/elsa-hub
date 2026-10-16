@@ -1,8 +1,20 @@
 import {
+  CLOUD_LIMIT_CODE,
   CLOUD_REQUIRED_CAPABILITIES,
   CLOUD_SUPPORTED_CONTRACT_VERSION,
+  type CloudActivityItem,
+  type CloudAvailableRelease,
+  type CloudDeleteConfirmation,
+  type CloudEngineActionDecision,
   type CloudEngineOverview,
   type CloudEngineSummary,
+  type CloudLaunchProfile,
+  type CloudOnboardingOptions,
+  type CloudOperation,
+  type CloudProvisioningProgress,
+  type CloudProvisioningStage,
+  type CloudReleaseOption,
+  type CloudStudioHandoff,
   type CloudWorkspace,
   isGuid,
 } from "./cloud-types.ts";
@@ -10,18 +22,23 @@ import {
 const CONTROL_TIMEOUT_MS = 15_000;
 
 export type ControlCall = {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "PATCH";
   path: string;
   body?: unknown;
+  headers?: Record<string, string>;
 };
 
 export type ControlResult = {
   ok: true;
   status: number;
   body: unknown;
+  etag?: string;
 } | {
   ok: false;
-  kind: "updating" | "forbidden" | "not_found" | "invalid";
+  kind: "updating" | "forbidden" | "not_found" | "invalid" | "limit";
+  code?: string;
+  currentInstances?: number;
+  maxInstances?: number;
 };
 
 export type ControlFetch = (
@@ -46,6 +63,7 @@ export function createControlFetch(
           Accept: "application/json",
           Authorization: `Bearer ${accessToken}`,
           ...(call.body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...call.headers,
         },
         body: call.body !== undefined ? JSON.stringify(call.body) : undefined,
         signal: ctrl.signal,
@@ -64,13 +82,28 @@ export function createControlFetch(
       }
       if (res.status === 403) return { ok: false, kind: "forbidden" };
       if (res.status === 404) return { ok: false, kind: "not_found" };
-      if (res.status === 400 || res.status === 409 || res.status === 422) {
-        return { ok: false, kind: "invalid" };
+      const problem = problemFrom(parsed);
+      if (problem?.code === CLOUD_LIMIT_CODE) {
+        return {
+          ok: false,
+          kind: "limit",
+          code: CLOUD_LIMIT_CODE,
+          currentInstances: problem.currentInstances,
+          maxInstances: problem.maxInstances,
+        };
+      }
+      if (res.status === 400 || res.status === 409 || res.status === 412 || res.status === 422 || res.status === 428) {
+        return { ok: false, kind: "invalid", code: problem?.code };
       }
       if (res.status < 200 || res.status >= 300) {
         return { ok: false, kind: "updating" };
       }
-      return { ok: true, status: res.status, body: parsed };
+      return {
+        ok: true,
+        status: res.status,
+        body: parsed,
+        etag: res.headers.get("ETag") ?? undefined,
+      };
     } catch {
       return { ok: false, kind: "updating" };
     } finally {
@@ -87,6 +120,24 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function problemFrom(body: unknown): {
+  code?: string;
+  currentInstances?: number;
+  maxInstances?: number;
+} | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  return {
+    code: asString(record.code) ?? undefined,
+    currentInstances: asNumber(record.currentInstances),
+    maxInstances: asNumber(record.maxInstances),
+  };
 }
 
 export function normalizeCompatibility(body: unknown): {
@@ -201,7 +252,19 @@ export function normalizeEngineSummary(value: unknown): CloudEngineSummary | nul
   };
 }
 
-export function normalizeEngineOverview(value: unknown): CloudEngineOverview | null {
+function actionDecision(value: unknown): CloudEngineActionDecision {
+  const record = asRecord(value);
+  if (!record) return { allowed: false, reasonCode: null };
+  return {
+    allowed: Boolean(record.allowed ?? record.Allowed),
+    reasonCode: asString(record.reasonCode) ?? asString(record.ReasonCode),
+  };
+}
+
+export function normalizeEngineOverview(
+  value: unknown,
+  etag?: string,
+): CloudEngineOverview | null {
   const record = asRecord(value);
   if (!record) return null;
   const summarySource = asRecord(record.summary) ?? record;
@@ -215,9 +278,224 @@ export function normalizeEngineOverview(value: unknown): CloudEngineOverview | n
   const health = healthRecord
     ? asString(healthRecord.status) ?? "Unknown"
     : asString(record.health) ?? "Unknown";
+  const allowed = asRecord(record.allowedActions);
+  const versionValue = summarySource.version ?? record.version;
+  const version = typeof versionValue === "number" && Number.isInteger(versionValue)
+    ? versionValue
+    : null;
   return {
     ...summary,
     health,
     canOpen: Boolean(summarySource.canOpen ?? record.canOpen),
+    version,
+    etag: etag ?? (version !== null ? `"${version}"` : null),
+    organizationId: asString(summarySource.organizationId) ?? asString(record.organizationId),
+    audience: asString(summarySource.audience) ?? asString(record.audience),
+    redirectUri: asString(summarySource.redirectUri) ?? asString(record.redirectUri),
+    allowedActions: {
+      restart: actionDecision(allowed?.restart ?? allowed?.Restart),
+      applyRelease: actionDecision(allowed?.applyRelease ?? allowed?.ApplyRelease),
+      open: actionDecision(allowed?.open ?? allowed?.Open),
+      delete: actionDecision(allowed?.delete ?? allowed?.Delete),
+    },
   };
+}
+
+function normalizeReleaseOption(value: unknown): CloudReleaseOption | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const distributionId = asString(record.distributionId);
+  const releaseLine = asString(record.releaseLine);
+  const version = asString(record.version);
+  const channel = asString(record.channel);
+  const topologyId = asString(record.topologyId);
+  if (!distributionId || !releaseLine || !version || !channel || !topologyId) return null;
+  return {
+    distributionId,
+    releaseLine,
+    version,
+    channel,
+    topologyId,
+    previewManifestDigest: asString(record.previewManifestDigest) ?? asString(record.manifestDigest),
+  };
+}
+
+function normalizeLaunchProfile(value: unknown): CloudLaunchProfile | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const targetMode = asString(record.targetMode);
+  const regionCode = asString(record.regionCode);
+  const isolationProfile = asString(record.isolationProfile);
+  const capacityProfile = asString(record.capacityProfile);
+  const networkOutcome = asString(record.networkOutcome);
+  const domainOutcome = asString(record.domainOutcome);
+  if (!targetMode || !regionCode || !isolationProfile || !capacityProfile || !networkOutcome || !domainOutcome) {
+    return null;
+  }
+  return {
+    name: asString(record.name) ?? targetMode,
+    description: asString(record.description) ?? "",
+    targetMode,
+    regionCode,
+    isolationProfile,
+    capacityProfile,
+    networkOutcome,
+    domainOutcome,
+  };
+}
+
+export function normalizeOnboardingOptions(body: unknown): CloudOnboardingOptions | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  const launchProfile = normalizeLaunchProfile(record.launchProfile);
+  if (!launchProfile) return null;
+  const releases: CloudReleaseOption[] = [];
+  if (Array.isArray(record.releases)) {
+    for (const item of record.releases) {
+      const release = normalizeReleaseOption(item);
+      if (!release) return null;
+      releases.push(release);
+    }
+  }
+  const previewReleases: CloudReleaseOption[] = [];
+  if (Array.isArray(record.previewReleases)) {
+    for (const item of record.previewReleases) {
+      const release = normalizeReleaseOption(item);
+      if (!release) return null;
+      previewReleases.push(release);
+    }
+  }
+  return { releases, previewReleases, launchProfile };
+}
+
+export function normalizeAcceptedCreate(body: unknown): {
+  engine: CloudEngineSummary;
+  operation: CloudOperation;
+} | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  const engine = normalizeEngineSummary(record.instance ?? record);
+  const operation = normalizeOperation(record.operation ?? record);
+  if (!engine || !operation) return null;
+  return { engine, operation };
+}
+
+export function normalizeOperation(value: unknown): CloudOperation | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const id = asString(record.id) ?? asString(record.operationId);
+  const state = asString(record.state);
+  if (!isGuid(id) || !state) return null;
+  return {
+    id,
+    action: asString(record.action) ?? "Unknown",
+    state,
+  };
+}
+
+export function normalizeProvisioningProgress(body: unknown): CloudProvisioningProgress | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  const state = asString(record.state);
+  if (!state) return null;
+  const stages: CloudProvisioningStage[] = [];
+  if (Array.isArray(record.stages)) {
+    for (const item of record.stages) {
+      const stage = asRecord(item);
+      if (!stage) return null;
+      const code = asString(stage.code);
+      const status = asString(stage.status);
+      if (!code || !status) return null;
+      stages.push({
+        code,
+        status,
+        startedAt: asString(stage.startedAt),
+        completedAt: asString(stage.completedAt),
+      });
+    }
+  }
+  return {
+    state,
+    currentStage: asString(record.currentStage),
+    startedAt: asString(record.startedAt),
+    lastUpdatedAt: asString(record.lastUpdatedAt),
+    completedAt: asString(record.completedAt),
+    diagnosticCode: asString(record.diagnosticCode),
+    stages,
+  };
+}
+
+export function normalizeActivity(body: unknown): { items: CloudActivityItem[]; hasMore: boolean } | null {
+  const record = asRecord(body);
+  if (!record || !Array.isArray(record.items)) return null;
+  const items: CloudActivityItem[] = [];
+  for (const item of record.items) {
+    const row = asRecord(item);
+    if (!row) return null;
+    const sequence = typeof row.sequence === "number" ? row.sequence : null;
+    const eventType = asString(row.eventType);
+    const occurredAt = asString(row.occurredAt);
+    if (sequence === null || !eventType || !occurredAt) return null;
+    items.push({
+      sequence,
+      eventType,
+      occurredAt,
+      action: asString(row.action),
+      diagnosticCode: asString(row.diagnosticCode),
+      severity: asString(row.severity) ?? "Informational",
+      message: asString(row.message),
+    });
+  }
+  return { items, hasMore: Boolean(record.hasMore) };
+}
+
+export function normalizeAvailableReleases(body: unknown): CloudAvailableRelease[] | null {
+  const record = asRecord(body);
+  const source = Array.isArray(record?.items) ? record!.items : Array.isArray(body) ? body : null;
+  if (!source) return null;
+  const releases: CloudAvailableRelease[] = [];
+  for (const item of source) {
+    const row = asRecord(item);
+    if (!row) return null;
+    const releaseLine = asString(row.releaseLine);
+    const version = asString(row.version);
+    const channel = asString(row.channel);
+    if (!releaseLine || !version || !channel) return null;
+    releases.push({
+      releaseLine,
+      version,
+      channel,
+      changeKind: asString(row.changeKind) ?? "unknown",
+    });
+  }
+  return releases;
+}
+
+export function normalizeDeleteConfirmation(body: unknown): CloudDeleteConfirmation | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  const id = asString(record.id);
+  const expiresAt = asString(record.expiresAt);
+  if (!isGuid(id) || !expiresAt) return null;
+  const notice = asRecord(record.billingNotice);
+  return {
+    id,
+    expiresAt,
+    billingNotice: notice && asString(notice.code) && asString(notice.message)
+      ? { code: asString(notice.code)!, message: asString(notice.message)! }
+      : null,
+  };
+}
+
+export function normalizeStudioHandoff(body: unknown): CloudStudioHandoff | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  const token = asString(record.token);
+  const tokenType = asString(record.tokenType);
+  const audience = asString(record.audience);
+  const redirectUri = asString(record.redirectUri);
+  const issuedAt = asString(record.issuedAt);
+  const expiresAt = asString(record.expiresAt);
+  if (!token || !tokenType || !audience || !redirectUri || !issuedAt || !expiresAt) return null;
+  return { token, tokenType, audience, redirectUri, issuedAt, expiresAt };
 }

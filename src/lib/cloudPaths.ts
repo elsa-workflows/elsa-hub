@@ -4,42 +4,43 @@ export const ELSACLOUD_APP_URL = "https://elsacloud.app";
 export const CLOUD_PUBLIC_HOME = "/elsa-plus/cloud-services";
 export const DASHBOARD_CLOUD_PATH = "/dashboard/cloud";
 export const LEGACY_CLOUD_PATH = "/cloud";
+export const ELSA_PLUS_CLOUD_PATH = "/elsa-plus/cloud";
 
 /** `/cloud` or `/cloud/…` only — `/cloud-services` must not be rewritten. */
 const LEGACY_CLOUD_PREFIX = new RegExp(`^${LEGACY_CLOUD_PATH}(?=/|$)`);
+/** `/elsa-plus/cloud` or `/elsa-plus/cloud/…` only — not `/elsa-plus/cloud-services`. */
+const ELSA_PLUS_CLOUD_PREFIX = new RegExp(`^${ELSA_PLUS_CLOUD_PATH}(?=/|$)`);
 
-function isLegacyCloudIndex(pathname: string): boolean {
-  return pathname === LEGACY_CLOUD_PATH || pathname === `${LEGACY_CLOUD_PATH}/`;
+function mapConsolePathname(pathname: string, orgSlug?: string | null): string | null {
+  const home = dashboardCloudHomePath(orgSlug);
+  if (LEGACY_CLOUD_PREFIX.test(pathname)) {
+    return pathname.replace(LEGACY_CLOUD_PREFIX, home);
+  }
+  if (ELSA_PLUS_CLOUD_PREFIX.test(pathname)) {
+    return pathname.replace(ELSA_PLUS_CLOUD_PREFIX, home);
+  }
+  return null;
 }
 
 /**
- * Keep old `/cloud` and `/cloud/*` URLs working for login `?redirect=/cloud`,
- * logout returns, Stripe success/cancel, and email links. Preserves subpath,
- * query string, and hash. Signed-in visitors go to the dashboard Cloud
- * location; anonymous `/cloud` goes to the public home; anonymous engine
- * (or other console) URLs go to login and then return.
+ * Keep old `/cloud`, `/cloud/*`, `/elsa-plus/cloud` and `/elsa-plus/cloud/*`
+ * URLs working. Preserves subpath, query string, and hash. All of these
+ * resolve to the dashboard Cloud route. `/elsa-plus/cloud-services` is
+ * unchanged.
  */
 export function getLegacyCloudRedirectTarget(
   location: { pathname: string; search: string; hash: string },
   options: { signedIn: boolean; orgSlug?: string | null },
 ): string {
   const suffix = `${location.search}${location.hash}`;
-  if (!LEGACY_CLOUD_PREFIX.test(location.pathname)) {
+  const mapped = mapConsolePathname(
+    location.pathname,
+    options.signedIn ? options.orgSlug : null,
+  );
+  if (!mapped) {
     return `${location.pathname}${suffix}`;
   }
-
-  if (!options.signedIn) {
-    if (!isLegacyCloudIndex(location.pathname)) {
-      return cloudLoginRedirect(`${location.pathname}${suffix}`);
-    }
-    return `${CLOUD_PUBLIC_HOME}${suffix}`;
-  }
-
-  const pathname = location.pathname.replace(
-    LEGACY_CLOUD_PREFIX,
-    dashboardCloudHomePath(options.orgSlug),
-  );
-  return `${pathname}${suffix}`;
+  return `${mapped}${suffix}`;
 }
 
 export function dashboardCloudHomePath(orgSlug?: string | null): string {
@@ -64,6 +65,32 @@ export function orgCloudMembershipDecision(
   if (orgsLoading) return { kind: "pending" };
   if (organizations.some((org) => org.slug === orgSlug)) return { kind: "stay" };
   return { kind: "redirect", to: DASHBOARD_CLOUD_PATH };
+}
+
+/**
+ * Org Cloud routes stay on a membership slug. The no-org `/dashboard/cloud`
+ * route sends signed-in users who have a Hub org to that org's Cloud path,
+ * the same way `LegacyCloudRedirect` does.
+ */
+export function dashboardCloudRouteDecision(
+  pathname: string,
+  organizations: ReadonlyArray<{ slug: string }>,
+  orgsLoading: boolean,
+): OrgCloudMembershipDecision {
+  const orgMatch = pathname.match(/^\/dashboard\/org\/([^/]+)/);
+  if (orgMatch) {
+    return orgCloudMembershipDecision(orgMatch[1], organizations, orgsLoading);
+  }
+  if (pathname !== DASHBOARD_CLOUD_PATH && !pathname.startsWith(`${DASHBOARD_CLOUD_PATH}/`)) {
+    return { kind: "stay" };
+  }
+  if (orgsLoading) return { kind: "pending" };
+  const slug = organizations[0]?.slug;
+  if (!slug) return { kind: "stay" };
+  return {
+    kind: "redirect",
+    to: `${dashboardCloudHomePath(slug)}${pathname.slice(DASHBOARD_CLOUD_PATH.length)}`,
+  };
 }
 
 export function dashboardCloudEnginePath(

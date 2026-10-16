@@ -172,6 +172,8 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
+              <Route path="/elsa-plus/cloud" element={<LegacyCloudRedirect />} />
+              <Route path="/elsa-plus/cloud/*" element={<LegacyCloudRedirect />} />
               <Route path={LEGACY_CLOUD_PATH} element={<LegacyCloudRedirect />} />
               <Route path={`${LEGACY_CLOUD_PATH}/*`} element={<LegacyCloudRedirect />} />
               <Route path="/elsa-plus/training" element={<Training />} />
