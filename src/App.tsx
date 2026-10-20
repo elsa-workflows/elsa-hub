@@ -9,6 +9,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { ACADEMY_TERMS_INDEX_PATH } from "@/lib/academyLegal";
+import { LEGACY_CLOUD_PATH } from "@/lib/cloudPaths";
 import {
   ELSA_RUNTIME_PATH,
   LEGACY_VALENCE_RUNTIME_PATH,
@@ -16,6 +18,7 @@ import {
   getLegacyElsaRuntimeRedirectTarget,
 } from "@/lib/elsaRuntime";
 import { PROFILE_ROUTE_TABLE } from "@/lib/authRedirect";
+import { LEGACY_TERMS_PATH } from "@/lib/legalRedirects";
 
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
 
@@ -38,12 +41,19 @@ const ElsaRuntime = lazy(() => import("./pages/enterprise/ValenceRuntime"));
 const Distributions = lazy(() => import("./pages/enterprise/Distributions"));
 const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetail"));
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
+const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
+const CloudEngineOverview = lazy(() => import("./pages/cloud/CloudEngineOverview"));
+const LegacyCloudRedirect = lazy(() =>
+  import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.LegacyCloudRedirect }))
+);
 const Training = lazy(() => import("./pages/enterprise/Training"));
 const RuntimeBuilderLanding = lazy(() => import("./pages/enterprise/RuntimeBuilderLanding"));
 const RuntimeBuilderComposer = lazy(() => import("./pages/enterprise/RuntimeBuilderComposer"));
 
 const Resources = lazy(() => import("./pages/Resources"));
 const Roadmap = lazy(() => import("./pages/Roadmap"));
+const AcademyTerms = lazy(() => import("./pages/legal/AcademyTerms"));
+const TermsIndex = lazy(() => import("./pages/legal/TermsIndex"));
 const CommunityContent = lazy(() => import("./pages/resources/CommunityContent"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -165,6 +175,10 @@ const App = () => (
               <Route path="/elsa-plus/production-docker" element={<Navigate to={`${ELSA_RUNTIME_PATH}#images`} replace />} />
 
               <Route path="/elsa-plus/cloud-services" element={<CloudServices />} />
+              <Route path="/elsa-plus/cloud" element={<LegacyCloudRedirect />} />
+              <Route path="/elsa-plus/cloud/*" element={<LegacyCloudRedirect />} />
+              <Route path={LEGACY_CLOUD_PATH} element={<LegacyCloudRedirect />} />
+              <Route path={`${LEGACY_CLOUD_PATH}/*`} element={<LegacyCloudRedirect />} />
               <Route path="/elsa-plus/training" element={<Training />} />
               <Route path="/elsa-plus/runtime-builder" element={<RuntimeBuilderLanding />} />
               <Route path="/elsa-plus/runtime-builder/new" element={<RuntimeBuilderComposer />} />
@@ -185,6 +199,9 @@ const App = () => (
               <Route path="/blog/:slug.html" element={<BlogHtmlRedirect />} />
               <Route path="/resources/community-content" element={<CommunityContent />} />
               <Route path="/roadmap" element={<Roadmap />} />
+              <Route path="/legal/terms" element={<TermsIndex />} />
+              <Route path="/legal/academy-terms" element={<AcademyTerms />} />
+              <Route path={LEGACY_TERMS_PATH} element={<Navigate to={ACADEMY_TERMS_INDEX_PATH} replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
@@ -211,7 +228,11 @@ const App = () => (
                   />
                 ))}
                 <Route path="settings/notifications" element={<NotificationSettings />} />
+                <Route path="cloud" element={<CloudHome />} />
+                <Route path="cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug" element={<OrgOverview />} />
+                <Route path="org/:slug/cloud" element={<CloudHome />} />
+                <Route path="org/:slug/cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug/orders" element={<OrgOrders />} />
                 <Route path="org/:slug/credits" element={<OrgCredits />} />
                 <Route path="org/:slug/team" element={<OrgTeam />} />

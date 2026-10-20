@@ -1,14 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   AUTH_CALLBACK_PATH,
-  AUTH_REDIRECT_STORAGE_KEY,
   AUTH_CONFIRM_PATH,
+  AUTH_REDIRECT_STORAGE_KEY,
   consumeAuthRedirect,
   getAuthCallbackUrl,
   getAuthConfirmUrl,
-  isAuthConfirmPath,
-  peekAuthRedirect,
-  PROFILE_SETTINGS_PATH,
   rememberAuthRedirect,
   sanitizeAuthRedirect,
 } from "./authRedirect";
@@ -34,18 +31,6 @@ describe("getAuthConfirmUrl", () => {
       "http://localhost:8080/auth/confirm",
     );
     expect(AUTH_CONFIRM_PATH).toBe("/auth/confirm");
-  });
-});
-
-describe("isAuthConfirmPath", () => {
-  it("matches /auth/confirm with or without a trailing slash", () => {
-    expect(isAuthConfirmPath("/auth/confirm")).toBe(true);
-    expect(isAuthConfirmPath("/auth/confirm/")).toBe(true);
-    expect(isAuthConfirmPath("/auth/confirm///")).toBe(true);
-    expect(isAuthConfirmPath("/auth/callback")).toBe(false);
-    expect(isAuthConfirmPath("/auth/confirm/extra")).toBe(false);
-    expect(isAuthConfirmPath("/")).toBe(false);
-    expect(isAuthConfirmPath("")).toBe(false);
   });
 });
 
@@ -119,13 +104,5 @@ describe("authRedirect session storage", () => {
     rememberAuthRedirect("/courses?x=1");
     expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe("/courses?x=1");
     expect(consumeAuthRedirect()).toBe("/courses?x=1");
-  });
-
-  it("peeks the stored redirect without consuming it", () => {
-    rememberAuthRedirect(PROFILE_SETTINGS_PATH);
-    expect(peekAuthRedirect()).toBe(PROFILE_SETTINGS_PATH);
-    expect(sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY)).toBe(PROFILE_SETTINGS_PATH);
-    expect(consumeAuthRedirect()).toBe(PROFILE_SETTINGS_PATH);
-    expect(peekAuthRedirect()).toBeNull();
   });
 });

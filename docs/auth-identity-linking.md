@@ -54,7 +54,7 @@ GitHub and Google still use `flowType: "pkce"` and `{origin}/auth/callback`. A m
 
 ## Redirects
 
-GitHub and Google use `redirectTo` = `{origin}/auth/callback`. After a session exists, the callback honours a validated same-site `sessionStorage.authRedirect` (from `?redirect=` on `/login`) or `/dashboard`. Magic-link and signup send `emailRedirectTo` = `{origin}/auth/confirm`. `/auth/confirm` peeks the stored redirect, calls `verifyOtp`, and consumes the stored path only on success. AuthContext does not hard-redirect while the confirm page is open, so a failed verify leaves the stored path in place. The page then honours that stored path, an optional same-site `redirect` query, or `/dashboard`. `/profile` and `/dashboard/settings/profile` redirect to `/dashboard/settings`.
+GitHub and Google use `redirectTo` = `{origin}/auth/callback`. After a session exists, the callback honours a validated same-site `sessionStorage.authRedirect` (from `?redirect=` on `/login`) or `/dashboard`. Magic-link and signup send `emailRedirectTo` = `{origin}/auth/confirm`. `/auth/confirm` accepts only `type=email` and `type=signup` (`type=magiclink` is rejected) and strips `token_hash` and `type` from the URL on mount. It consumes `sessionStorage.authRedirect` before `verifyOtp` so AuthContext's SIGNED_IN handler cannot race, then continues to that stored path, else an optional same-site `redirect` query, else `/dashboard`. The stored path winning over `?redirect=` is deliberate (a deviation from #32 R4 item 3). After verifying it shows "Signed in as {email}. Not you? Sign out" for 3 seconds before navigating. Details and the allow-list caveats are in `docs/auth-email-templates.md`. `/profile` and `/dashboard/settings/profile` redirect to `/dashboard/settings`.
 
 ## Magic-link send latency
 
@@ -62,8 +62,8 @@ GitHub and Google use `redirectTo` = `{origin}/auth/callback`. After a session e
 
 Prod logs showed a ~30s (one case 86s) pause before `POST /auth/v1/otp`. The request reached Supabase only after that client silence and was answered in about 1.25s. There were no retries, no 5xx, and no slow SMTP. The delay is therefore client-side or on the network before Supabase.
 
-The cause of that stall is unknown. In `@supabase/auth-js` 2.93.1 the email path of `signInWithOtp` does not take the auth lock and does not await initialization, so an `onAuthStateChange` lock cannot explain a signed-out visitor on `/login`. The old `refreshSession()` inside that callback also cannot explain it: it ran only when a sign-in changed the user, which a signed-out visitor never hits.
+The cause of that stall is unknown. In `@supabase/auth-js` 2.93.1 the email path of `signInWithOtp` does not take the auth lock and does not await initialization, so an `onAuthStateChange` lock cannot explain a signed-out visitor on `/login`. The old `refreshSession()` inside that callback also cannot explain it: it ran only when a sign-in changed the user, which a signed-out visitor never hits. It has been removed.
 
-`onAuthStateChange` uses `setTimeout(0)` only to defer the post-sign-in `window.location` redirect until after React renders. The callback itself stays synchronous: supabase-js guidance is not to await supabase calls inside `onAuthStateChange`. AuthContext does not call other auth APIs from that callback. The `/auth/callback` listener stays synchronous and does not call supabase.auth.
+`onAuthStateChange` uses `setTimeout(0)` only to defer the post-sign-in `window.location` redirect until after React renders. The callback itself stays synchronous: supabase-js guidance is not to await supabase calls inside `onAuthStateChange`. AuthContext makes no supabase.auth calls from that callback. The `/auth/callback` listener stays synchronous and does not call supabase.auth.
 
 The form stays on the in-flight request and, after about 8 seconds, still shows "Still sending...". That mitigates a remaining stall; it does not fix the unknown cause.

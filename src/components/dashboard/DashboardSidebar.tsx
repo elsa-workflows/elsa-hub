@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Receipt,
@@ -21,6 +22,9 @@ import {
   KeyRound,
   Inbox,
   GraduationCap,
+  Cloud,
+  Server,
+  Compass,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,26 +37,33 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { ContextSwitcher } from "./ContextSwitcher";
 import { useDashboardContext } from "@/contexts/DashboardContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { PROFILE_SETTINGS_PATH } from "@/lib/authRedirect";
+import { useOrganizations } from "@/hooks/useOrganizations";
+import { shouldShowOrgCloudNav, useOwnedHubProducts } from "@/hooks/useOwnedHubProducts";
+import { dashboardCloudHomePath } from "@/lib/cloudPaths";
 
-const orgNavItems = [
-  { label: "Overview", icon: LayoutDashboard, path: "" },
-  { label: "Orders", icon: Receipt, path: "orders" },
-  { label: "Credits", icon: Coins, path: "credits" },
-  { label: "Bookings", icon: CalendarDays, path: "bookings" },
-  { label: "Workspaces", icon: Layers, path: "workspaces" },
-  { label: "Team", icon: Users, path: "team" },
-  { label: "Messages", icon: MessageSquare, path: "messages" },
-  { label: "Activity", icon: Activity, path: "activity" },
-  { label: "Settings", icon: Settings, path: "settings" },
-];
+type NavItem = {
+  label: string;
+  icon: LucideIcon;
+  path?: string;
+  to?: string;
+  children?: NavItem[];
+};
 
-const providerNavItems = [
+type NavGroup = {
+  label?: string;
+  items: NavItem[];
+};
+
+const providerNavItems: NavItem[] = [
   { label: "Overview", icon: LayoutDashboard, path: "" },
   { label: "Usage", icon: BarChart3, path: "usage" },
   { label: "Orders", icon: Receipt, path: "orders" },
@@ -67,7 +78,7 @@ const providerNavItems = [
   { label: "Settings", icon: Settings, path: "settings" },
 ];
 
-const adminNavItems = [
+const adminNavItems: NavItem[] = [
   { label: "Overview", icon: LayoutDashboard, path: "" },
   { label: "Users", icon: Users, path: "users" },
   { label: "Organizations", icon: Building2, path: "organizations" },
@@ -78,20 +89,35 @@ const adminNavItems = [
   { label: "Training leads", icon: GraduationCap, path: "training" },
 ];
 
-export function DashboardSidebar() {
+function itemHref(item: NavItem, basePath: string) {
+  if (item.to) return item.to;
+  return item.path ? `${basePath}/${item.path}` : basePath;
+}
+
+function pathIsActive(pathname: string, href: string, exact: boolean) {
+  if (exact) {
+    return pathname === href || pathname === `${href}/`;
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function DashboardSidebar({
+  productOverride,
+}: {
+  productOverride?: { ownsCloud: boolean; ownsAcademy: boolean };
+} = {}) {
   const location = useLocation();
   const { contextType, slug, isAdminContext } = useDashboardContext();
   const { data: isAdmin } = useIsAdmin();
+  const { organizations } = useOrganizations();
+  const currentOrg = organizations.find((org) => org.slug === slug);
+  const owned = useOwnedHubProducts(currentOrg?.id);
+  const ownsCloud = productOverride?.ownsCloud ?? owned.ownsCloud;
+  const ownsAcademy = productOverride?.ownsAcademy ?? owned.ownsAcademy;
+  const onNoOrgCloud = location.pathname.startsWith("/dashboard/cloud");
 
-  // Determine if we have a valid context (org/provider selected or admin mode)
   const hasValidContext = isAdminContext || (contextType && slug);
-
-  const getNavItems = () => {
-    if (isAdminContext) return adminNavItems;
-    if (contextType === "provider") return providerNavItems;
-    if (contextType === "org") return orgNavItems;
-    return []; // No nav items when no context is selected
-  };
+  const cloudHome = dashboardCloudHomePath(contextType === "org" ? slug : null);
 
   const getBasePath = () => {
     if (isAdminContext) return "/dashboard/admin";
@@ -99,22 +125,74 @@ export function DashboardSidebar() {
     return "/dashboard";
   };
 
-  const navItems = getNavItems();
   const basePath = getBasePath();
 
-  const isActive = (itemPath: string) => {
-    const fullPath = itemPath ? `${basePath}/${itemPath}` : basePath;
-    if (itemPath === "") {
-      return location.pathname === basePath || location.pathname === `${basePath}/`;
+  const orgGroups = (): NavGroup[] => {
+    const products: NavItem[] = [];
+    if (ownsAcademy) {
+      products.push({ label: "Academy", icon: GraduationCap, to: "/elsa-plus" });
     }
-    return location.pathname.startsWith(fullPath);
+    if (shouldShowOrgCloudNav()) {
+      products.push({
+        label: "Elsa Cloud",
+        icon: Cloud,
+        to: cloudHome,
+        children: [{ label: "Engines", icon: Server, to: cloudHome }],
+      });
+    }
+    if (!ownsAcademy && !ownsCloud) {
+      products.push({ label: "Explore products", icon: Compass, to: "/elsa-plus" });
+    }
+
+    return [
+      {
+        items: [
+          { label: "Overview", icon: LayoutDashboard, path: "" },
+          { label: "Inbox", icon: Inbox, path: "messages" },
+        ],
+      },
+      {
+        label: "Services",
+        items: [
+          { label: "Engagements", icon: Layers, path: "workspaces" },
+          { label: "Bookings", icon: CalendarDays, path: "bookings" },
+          { label: "Credits & Hours", icon: Coins, path: "credits" },
+          { label: "Orders", icon: Receipt, path: "orders" },
+        ],
+      },
+      { label: "Products", items: products },
+      {
+        label: "Organization",
+        items: [
+          { label: "Team", icon: Users, path: "team" },
+          { label: "Activity", icon: Activity, path: "activity" },
+          { label: "Settings", icon: Settings, path: "settings" },
+        ],
+      },
+    ];
   };
 
-  const getGroupLabel = () => {
-    if (isAdminContext) return "Platform Admin";
-    if (contextType === "provider") return "Provider";
-    if (contextType === "org") return "Organization";
-    return "Navigation";
+  const getGroups = (): NavGroup[] => {
+    if (isAdminContext) return [{ label: "Platform Admin", items: adminNavItems }];
+    if (contextType === "provider") return [{ label: "Provider", items: providerNavItems }];
+    if (contextType === "org") return orgGroups();
+    if (ownsCloud || onNoOrgCloud) {
+      return [
+        {
+          label: "Products",
+          items: [{ label: "Elsa Cloud", icon: Cloud, to: dashboardCloudHomePath() }],
+        },
+      ];
+    }
+    return [];
+  };
+
+  const groups = getGroups();
+
+  const isItemActive = (item: NavItem) => {
+    const href = itemHref(item, basePath);
+    const exact = !item.path && !item.to;
+    return pathIsActive(location.pathname, href, exact);
   };
 
   return (
@@ -126,29 +204,46 @@ export function DashboardSidebar() {
       <SidebarSeparator />
 
       <SidebarContent>
-        {hasValidContext && navItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{getGroupLabel()}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive(item.path)}
-                      tooltip={item.label}
-                    >
-                      <Link to={item.path ? `${basePath}/${item.path}` : basePath}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        {(hasValidContext || groups.length > 0) &&
+          groups.map((group, groupIndex) => (
+            <SidebarGroup key={group.label ?? `top-${groupIndex}`}>
+              {group.label ? <SidebarGroupLabel>{group.label}</SidebarGroupLabel> : null}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => {
+                    const href = itemHref(item, basePath);
+                    return (
+                      <SidebarMenuItem key={`${item.label}-${href}`}>
+                        <SidebarMenuButton asChild isActive={isItemActive(item)} tooltip={item.label}>
+                          <Link to={href}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                        {item.children && item.children.length > 0 ? (
+                          <SidebarMenuSub>
+                            {item.children.map((child) => {
+                              const childHref = itemHref(child, basePath);
+                              return (
+                                <SidebarMenuSubItem key={`${child.label}-${childHref}`}>
+                                  <SidebarMenuSubButton asChild isActive={isItemActive(child)}>
+                                    <Link to={childHref}>
+                                      <child.icon className="h-4 w-4" />
+                                      <span>{child.label}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              );
+                            })}
+                          </SidebarMenuSub>
+                        ) : null}
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
       </SidebarContent>
 
       <SidebarFooter>

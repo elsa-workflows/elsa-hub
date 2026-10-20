@@ -1,14 +1,14 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { User, Session, type SignOutScope } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AUTH_REDIRECT_STORAGE_KEY,
   getAuthCallbackUrl,
   getAuthConfirmUrl,
-  isAuthConfirmPath,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
+import { clearCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 
 export type OAuthSignInProvider = "github" | "google";
 
@@ -23,7 +23,7 @@ interface AuthContextType {
   signInWithGitHub: () => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
+  signOut: (options?: { scope?: SignOutScope }) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,20 +59,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Clear stale organization context from localStorage
           localStorage.removeItem("selected_organization");
+          if (event === "SIGNED_OUT" && previousUserId) {
+            clearCloudSetupMarker(previousUserId);
+          }
         }
 
         // Handle OAuth redirect - check for stored redirect URL.
-        // /auth/confirm owns its own redirect after verifyOtp so it can
-        // keep the stored path when verify fails, and show the signed-in
-        // banner before navigating.
-        // Keep this callback synchronous: supabase-js guidance is not to
-        // await supabase calls inside onAuthStateChange. setTimeout(0) only
-        // defers window.location until after React renders. The cause of
-        // the magic-link send stall is unknown.
+        // /auth/confirm consumes the stored redirect before verifyOtp, so this
+        // finds nothing there and the page keeps its signed-in banner.
+        // This callback makes no supabase.auth calls (supabase-js guidance is not
+        // to await supabase calls inside onAuthStateChange). setTimeout(0) only
+        // defers window.location until after React renders.
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
-          if (isAuthConfirmPath(window.location.pathname)) {
-            return;
-          }
           const stored = sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY);
           if (stored) {
             hasHandledRedirect.current = true;
@@ -133,9 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = () => signInWithOAuth("google");
 
   const signInWithMagicLink = async (email: string) => {
-    // Single signInWithOtp, no extra awaits. The listener above stays
-    // synchronous (supabase-js: do not await supabase calls inside
-    // onAuthStateChange). The cause of the POST /otp stall is unknown.
+    // Single signInWithOtp, no extra awaits. The cause of the POST /otp stall
+    // seen in prod is unknown; see docs/auth-identity-linking.md.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -146,8 +143,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut = async (options?: { scope?: SignOutScope }) => {
+    const id = user?.id ?? currentUserIdRef.current;
+    const { error } = await supabase.auth.signOut(options);
+    // Only forget the cloud setup once this session is really gone. "others" leaves
+    // this session signed in, and a failed sign-out leaves the user signed in too.
+    if (id && !error && options?.scope !== "others") clearCloudSetupMarker(id);
+    return { error };
   };
 
   return (

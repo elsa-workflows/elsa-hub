@@ -21,8 +21,8 @@ import { SITE_URL } from "@/lib/site";
 import { track } from "@/lib/analytics";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 import { HomeCodeSample } from "@/components/home";
-import elsaStudioDesigner from "@/assets/elsa-studio-designer.png";
-import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.png";
+import elsaStudioDesigner from "@/assets/elsa-studio-designer.webp";
+import elsaStudioDesignerMobile from "@/assets/elsa-studio-designer-mobile.webp";
 import {
   ELSA_EMBED_SNIPPET,
   ELSA_DOCKER_QUICKSTART,
@@ -37,7 +37,7 @@ const lifecycleSteps = [
   {
     icon: Workflow,
     title: "Build",
-    body: "Author workflows in C#, visually in Elsa Studio, or store them as JSON — the same definition powers every surface.",
+    body: "Author workflows in C#, visually in Elsa Studio, as JSON, or import BPMN 2.0 XML. The same runtime executes each of them.",
   },
   {
     icon: Boxes,
@@ -54,7 +54,7 @@ const lifecycleSteps = [
 const useCases = [
   {
     title: "Business process automation",
-    body: "Approvals, onboarding, and back-office processes with human-in-the-loop steps and durable state.",
+    body: "Approvals, onboarding, and back-office processes with human-in-the-loop User Tasks and durable state. Import a .bpmn file when the process already lives as BPMN 2.0.",
   },
   {
     title: "Integration & orchestration",
@@ -102,8 +102,8 @@ export default function Home() {
     <Layout>
       <Seo
         path="/"
-        title="The Workflow Engine for .NET"
-        description="Build workflow-driven .NET apps with Elsa: visual designer, C# code, and scale from small apps to enterprise systems. Open source."
+        title="The workflow and BPMN engine for .NET"
+        description="Build workflow-driven .NET apps with Elsa: C#, Elsa Studio, and BPMN 2.0 import, execution, and export in 3.9. Open source."
         jsonLd={jsonLd}
       />
 
@@ -113,7 +113,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="min-w-0">
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-brand mb-4">
-                THE WORKFLOW ENGINE FOR .NET
+                THE WORKFLOW AND BPMN ENGINE FOR .NET
               </p>
               <h1 className="font-display text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.05] font-semibold tracking-tight mb-6">
                 Build, run, and operate workflows in your .NET stack.
@@ -121,7 +121,11 @@ export default function Home() {
               <p className="text-lg text-muted-foreground max-w-xl mb-8 leading-relaxed">
                 Elsa gives .NET teams an embeddable workflow engine and a deployable
                 Server and Studio for building long-running, event-driven, and
-                scheduled processes.
+                scheduled processes. Elsa 3.9 ships{" "}
+                <code className="font-mono text-sm">Elsa.Bpmn</code> to execute BPMN
+                2.0 processes and{" "}
+                <code className="font-mono text-sm">Elsa.Bpmn.Interchange</code> to
+                import and export <code className="font-mono text-sm">.bpmn</code> XML.
               </p>
               <div className="flex flex-wrap items-center gap-3">
                 <Button size="lg" className="gap-2" asChild>
@@ -159,21 +163,24 @@ export default function Home() {
             </div>
 
             <div className="relative min-w-0">
-              <div className="rounded-xl border border-border bg-card p-1.5 shadow-sm">
+              <figure className="rounded-xl border border-border bg-card p-1.5 shadow-sm">
                 <picture>
-                  <source media="(max-width: 767px)" srcSet={elsaStudioDesignerMobile} />
+                  <source media="(max-width: 767px)" srcSet={elsaStudioDesignerMobile} type="image/webp" />
                   <img
                     src={elsaStudioDesigner}
-                    alt="Elsa Studio visual workflow designer showing a workflow with connected activities"
+                    alt="The new React-based Elsa Studio designer (preview)"
                     className="w-full h-auto rounded-lg"
-                    width={1600}
-                    height={1000}
+                    width={1826}
+                    height={1480}
                     loading="eager"
                     fetchPriority="high"
                     decoding="async"
                   />
                 </picture>
-              </div>
+                <figcaption className="px-3 pt-2.5 pb-1 text-sm text-muted-foreground">
+                  Preview, coming in Elsa 3.11
+                </figcaption>
+              </figure>
             </div>
           </div>
         </div>

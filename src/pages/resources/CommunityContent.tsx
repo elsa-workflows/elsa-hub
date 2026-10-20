@@ -17,7 +17,7 @@ import { BookOpen, Zap, Bot, Puzzle, Megaphone, MessageSquare, ArrowRight } from
 
 /*
  * ============================================================================
- * URL AUDIT REPORT (Last audited: 2025-01-25)
+ * URL AUDIT REPORT (Last audited: 2026-10-16)
  * ============================================================================
  *
  * | Card Title                                      | Old URL                                                                 | New URL                                                                                                  | Reason              |
@@ -26,7 +26,7 @@ import { BookOpen, Zap, Bot, Puzzle, Megaphone, MessageSquare, ArrowRight } from
  * | AI Workflows in .NET with Elsa 3                | youtube.com/watch?v=ai-workflows-elsa-3 (placeholder)                  | abp.io/community/videos/ai-workflows-in-.net-elsa-3-abp-framework-integration-stepbystep-u8ownpse       | Placeholder URL     |
  * | From Text to Summary: LLaMA 3.1 + .NET          | substack.com/llama-dotnet-text-summary (placeholder)                   | engincanveske.substack.com/p/from-text-to-summary-llama-31-net                                          | Placeholder URL     |
  * | Using Elsa 3 with the ABP Framework             | abp.io/community/articles/using-elsa-3-with-abp-framework              | abp.io/community/articles/using-elsa-3-workflow-with-abp-framework-usqk8afg                             | Incomplete slug     |
- * | ABP Elsa Module Documentation                   | abp.io/docs/latest/modules/elsa                                        | abp.io/docs/latest/modules/elsa-workflow                                                                 | Path updated        |
+ * | ABP Elsa Module Documentation                   | abp.io/docs/latest/modules/elsa-workflow                               | abp.io/docs/latest/modules/elsa-pro                                                                      | ABP renamed module  |
  * | Elsa Workflows for Orchard Core                 | orcharddojo.net/blog/elsa-workflows-orchard-core-publish-unpublish     | orcharddojo.net/blog/elsa-workflows-for-orchard-core-improve-handling-of-publish-unpublish-operations-this-week-in-orchard-28-02-2025 | Incomplete slug |
  * | Elsa 3.1 – Elevating Reliability                | medium.com/@sipke/...2a3b4c5d6e7f                                      | sipkeschoorstra.medium.com/elsa-3-1-9e7a516f3f8f                                                        | Placeholder slug    |
  * | Reusing Triggers in Elsa Workflows 3.5          | medium.com/@sipke/...8g9h0i1j2k3l                                      | sipkeschoorstra.medium.com/reusing-triggers-in-elsa-workflows-3-5-d86a484f40b3                          | Placeholder slug    |
@@ -149,7 +149,7 @@ const frameworkIntegrationsResources: CommunityResource[] = [
     title: "ABP Elsa Module Documentation",
     description:
       "Official documentation for integrating Elsa into ABP applications with permission management and OAuth support.",
-    href: "https://abp.io/docs/latest/modules/elsa-workflow",
+    href: "https://abp.io/docs/latest/modules/elsa-pro",
     source: "ABP Official",
     type: "official",
   },

@@ -1,21 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { Loader2, Mail, MailCheck } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { describeAuthError } from "@/lib/authErrors";
 import {
   consumeAuthRedirect,
   DEFAULT_POST_AUTH_PATH,
-  peekAuthRedirect,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
 
 const OTP_TYPES = new Set<string>(["email", "signup"]);
 
+// Long enough to read "Not you?" and reach the Sign out button before we navigate away.
 export const AUTH_CONFIRM_SIGNED_IN_MS = 3000;
 
 function parseOtpType(value: string | null): EmailOtpType | null {
@@ -40,6 +41,7 @@ function stripTokenFromUrl() {
 export default function AuthConfirm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [tokenHash] = useState(() => searchParams.get("token_hash") ?? "");
   const [otpType] = useState(() => parseOtpType(searchParams.get("type")));
   const [redirectParam] = useState(() => searchParams.get("redirect"));
@@ -49,7 +51,6 @@ export default function AuthConfirm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     tokenHash ? null : "This sign-in link is missing its token. Request a new one.",
   );
-  const cancelBannerNav = useRef(false);
 
   useEffect(() => {
     stripTokenFromUrl();
@@ -58,7 +59,6 @@ export default function AuthConfirm() {
   useEffect(() => {
     if (!signedInEmail || !destination) return;
     const id = window.setTimeout(() => {
-      if (cancelBannerNav.current) return;
       navigate(destination);
     }, AUTH_CONFIRM_SIGNED_IN_MS);
     return () => window.clearTimeout(id);
@@ -80,10 +80,12 @@ export default function AuthConfirm() {
     setBusy(true);
     setErrorMessage(null);
 
-    const dest =
-      peekAuthRedirect() ??
-      sanitizeAuthRedirect(redirectParam) ??
-      DEFAULT_POST_AUTH_PATH;
+    // Consume the stored redirect before verifyOtp so AuthContext's SIGNED_IN handler
+    // cannot find it and navigate first. Trade-off: if verification fails, the stored
+    // redirect is already gone, so a retry falls back to ?redirect= or the default path.
+    const dest = consumeAuthRedirect(
+      sanitizeAuthRedirect(redirectParam) ?? DEFAULT_POST_AUTH_PATH,
+    );
 
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
@@ -96,8 +98,6 @@ export default function AuthConfirm() {
       return;
     }
 
-    consumeAuthRedirect(dest);
-
     const email =
       data.user?.email || data.session?.user?.email || "your account";
     setDestination(dest);
@@ -106,10 +106,20 @@ export default function AuthConfirm() {
   };
 
   const onSignOut = async () => {
-    cancelBannerNav.current = true;
-    setSignedInEmail(null);
+    setBusy(true);
+    setErrorMessage(null);
+    // Drop the destination first: that cancels the pending navigation timer, so the
+    // user cannot be sent on to the destination while sign-out is in flight.
     setDestination(null);
-    await supabase.auth.signOut();
+    // Local scope: "Not you?" must end only this browser's session, not every
+    // session of the account's real owner.
+    const { error } = await signOut({ scope: "local" });
+    setBusy(false);
+    if (error) {
+      setErrorMessage("Could not sign you out. Try again.");
+      return;
+    }
+    setSignedInEmail(null);
     navigate("/login");
   };
 
@@ -141,7 +151,7 @@ export default function AuthConfirm() {
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
             {signedInEmail ? (
-              <Button className="w-full" variant="outline" onClick={() => void onSignOut()}>
+              <Button className="w-full" variant="outline" onClick={() => void onSignOut()} disabled={busy}>
                 Sign out
               </Button>
             ) : tokenHash ? (

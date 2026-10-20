@@ -7,6 +7,7 @@ const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const refreshSession = vi.fn(async () => ({ error: null }));
+const signOut = vi.fn(async (_args?: unknown): Promise<{ error: Error | null }> => ({ error: null }));
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -23,12 +24,13 @@ vi.mock("@/integrations/supabase/client", () => ({
       signUp: (args: unknown) => signUp(args),
       signInWithOAuth: (args: unknown) => signInWithOAuth(args),
       signInWithOtp: (args: unknown) => signInWithOtp(args),
-      signOut: async () => ({ error: null }),
+      signOut: (args?: unknown) => signOut(args),
       refreshSession: () => refreshSession(),
     },
   },
 }));
 
+import { hasCloudSetupMarker, setCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -46,8 +48,10 @@ describe("AuthContext passwordless methods", () => {
     signInWithOtp.mockClear();
     signUp.mockClear();
     refreshSession.mockClear();
+    signOut.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it("sends GitHub and Google OAuth through /auth/callback, not the site root", async () => {
@@ -121,47 +125,6 @@ describe("AuthContext passwordless methods", () => {
     });
   });
 
-  async function expectConfirmPathSkipsRedirect(pathname: string) {
-    sessionStorage.setItem("authRedirect", "/dashboard/org/acme");
-    let assigned = "";
-    const original = window.location;
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: {
-        ...original,
-        origin: original.origin,
-        pathname,
-        get href() {
-          return assigned || original.href;
-        },
-        set href(value: string) {
-          assigned = value;
-        },
-      },
-    });
-
-    renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
-
-    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(assigned).toBe("");
-    expect(sessionStorage.getItem("authRedirect")).toBe("/dashboard/org/acme");
-
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: original,
-    });
-  }
-
-  it("does not consume the stored redirect on SIGNED_IN while /auth/confirm is open", async () => {
-    await expectConfirmPathSkipsRedirect("/auth/confirm");
-  });
-
-  it("treats /auth/confirm/ as the confirm page when skipping the SIGNED_IN redirect", async () => {
-    await expectConfirmPathSkipsRedirect("/auth/confirm/");
-  });
-
   it("does not call refreshSession from onAuthStateChange", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -169,5 +132,57 @@ describe("AuthContext passwordless methods", () => {
     authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(refreshSession).not.toHaveBeenCalled();
+  });
+
+  it("clears the cloud setup marker for the signed-out Hub user", async () => {
+    setCloudSetupMarker("u1");
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    expect(hasCloudSetupMarker("u1")).toBe(true);
+
+    await result.current.signOut();
+    expect(hasCloudSetupMarker("u1")).toBe(false);
+  });
+
+  it("forwards the sign-out scope and returns the sign-out error", async () => {
+    const failure = new Error("network down");
+    signOut.mockResolvedValueOnce({ error: failure });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await expect(result.current.signOut({ scope: "local" })).resolves.toEqual({ error: failure });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  describe("cloud setup marker on sign-out", () => {
+    async function signedInHook() {
+      setCloudSetupMarker("u1");
+      const rendered = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+      authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+      await waitFor(() => expect(rendered.result.current.user?.id).toBe("u1"));
+      return rendered.result;
+    }
+
+    it("keeps the marker when sign-out fails", async () => {
+      const result = await signedInHook();
+      signOut.mockResolvedValueOnce({ error: new Error("network down") });
+      await result.current.signOut({ scope: "local" });
+      expect(hasCloudSetupMarker("u1")).toBe(true);
+    });
+
+    it("clears the marker after a successful local sign-out", async () => {
+      const result = await signedInHook();
+      await result.current.signOut({ scope: "local" });
+      expect(hasCloudSetupMarker("u1")).toBe(false);
+    });
+
+    it("keeps the marker for scope others, where this session stays signed in", async () => {
+      const result = await signedInHook();
+      await result.current.signOut({ scope: "others" });
+      expect(hasCloudSetupMarker("u1")).toBe(true);
+    });
   });
 });
