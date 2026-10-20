@@ -170,6 +170,7 @@ export function handleBuyCourse(): void {
 type AcademyStubModule = typeof import("./academyStub");
 
 async function loadAcademyStub(): Promise<AcademyStubModule | null> {
+  // Inline on import.meta.env (not a helper taking the env object) so Vite folds it and tree-shakes the stub from production builds.
   if (import.meta.env.DEV === true || (import.meta.env.PROD !== true && import.meta.env.VITE_ACADEMY_STUB === "1")) {
     return import("./academyStub");
   }
