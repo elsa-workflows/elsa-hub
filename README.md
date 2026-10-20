@@ -75,3 +75,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 ## Blog prerender sync
 
 See [docs/blog-sync.md](docs/blog-sync.md).
+
+## Academy import
+
+See [docs/academy-import.md](docs/academy-import.md).
