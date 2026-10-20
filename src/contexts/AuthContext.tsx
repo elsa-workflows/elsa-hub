@@ -1,8 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { User, Session, type SignOutScope } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AUTH_REDIRECT_STORAGE_KEY, getAuthCallbackUrl, sanitizeAuthRedirect } from "@/lib/authRedirect";
+import {
+  AUTH_REDIRECT_STORAGE_KEY,
+  getAuthCallbackUrl,
+  getAuthConfirmUrl,
+  sanitizeAuthRedirect,
+} from "@/lib/authRedirect";
 import { clearCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 
 export type OAuthSignInProvider = "github" | "google";
@@ -18,7 +23,7 @@ interface AuthContextType {
   signInWithGitHub: () => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
+  signOut: (options?: { scope?: SignOutScope }) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -106,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: getAuthCallbackUrl(),
+        emailRedirectTo: getAuthConfirmUrl(),
       },
     });
     return { error };
@@ -130,17 +135,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: getAuthCallbackUrl(),
+        emailRedirectTo: getAuthConfirmUrl(),
         shouldCreateUser: true,
       },
     });
     return { error };
   };
 
-  const signOut = async () => {
+  const signOut = async (options?: { scope?: SignOutScope }) => {
     const id = user?.id ?? currentUserIdRef.current;
-    if (id) clearCloudSetupMarker(id);
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut(options);
+    // Only forget the cloud setup once this session is really gone. "others" leaves
+    // this session signed in, and a failed sign-out leaves the user signed in too.
+    if (id && !error && options?.scope !== "others") clearCloudSetupMarker(id);
+    return { error };
   };
 
   return (

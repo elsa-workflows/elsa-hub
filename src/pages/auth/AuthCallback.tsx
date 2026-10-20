@@ -90,7 +90,9 @@ export default function AuthCallback() {
               navigate(redirectTo);
             }, 1500);
           } else {
-            // OAuth, magic link (type=magiclink|email), and other sign-ins.
+            // OAuth and other sign-ins. Email magic links now land on /auth/confirm
+            // (token_hash + verifyOtp), so the type=magiclink handling here is legacy
+            // coverage for links issued before that change.
             navigate(redirectTo);
           }
         } else {
