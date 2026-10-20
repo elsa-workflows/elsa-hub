@@ -231,6 +231,16 @@ for (const failOn of ["is", "neq", "maybeSingle"] as const) {
   });
 }
 
+Deno.test("a failing Team SKU slug lookup is a generic 500 and logs the detail", async () => {
+  const { result: loaded, logged } = await captureConsoleError(() =>
+    loadAcademyCourse(createCourseClient([TEAM5], { failOn: "limit" }), { productCode: "team_5" })
+  );
+  assertEquals(loaded.error?.status, 500);
+  assertEquals(loaded.error?.body.error, "Course lookup failed");
+  assertEquals(loaded.course, undefined);
+  assertEquals(logged.includes(SECRET_DB_ERROR.message), true);
+});
+
 Deno.test("a missing published course is a 404, not a lookup failure", async () => {
   const { result: loaded, logged } = await captureConsoleError(() =>
     loadAcademyCourse(createCourseClient([PUBLISHED]), { courseSlug: "nope" })

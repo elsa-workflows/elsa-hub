@@ -3,14 +3,15 @@
 type Row = Record<string, unknown>;
 
 // Query calls that can be made to fail, to exercise error handling.
-export type FailingQueryCall = "is" | "neq" | "maybeSingle";
+export type FailingQueryCall = "is" | "neq" | "maybeSingle" | "limit";
 
 export const SECRET_DB_ERROR = { message: "secret db detail", code: "XX000" };
 
 // Structural stand-in for a supabase-js query on one table. Mirrors PostgREST:
 // is(null) matches only NULL, and neq never matches NULL. failOn makes the
-// query return SECRET_DB_ERROR: a "maybeSingle" lookup always fails, and a
-// limit() list fails if the query used the is/neq filter named.
+// query return SECRET_DB_ERROR: a "maybeSingle" lookup always fails, a
+// limit() list fails if the query used the is/neq filter named, and "limit"
+// fails every limit() list (the Team SKU slug lookup uses no is/neq filter).
 export function createQuery(rows: readonly object[], options: { failOn?: FailingQueryCall } = {}) {
   const predicates: Array<(row: Row) => boolean> = [];
   const calls = new Set<string>();
@@ -20,8 +21,8 @@ export function createQuery(rows: readonly object[], options: { failOn?: Failing
     return api;
   };
   const match = () => rows.filter((row) => predicates.every((test) => test(row as Row)));
-  // limit() fails when the query used the filter named by failOn.
-  const limitFails = () => options.failOn !== undefined && calls.has(options.failOn);
+  const limitFails = () =>
+    options.failOn === "limit" || (options.failOn !== undefined && calls.has(options.failOn));
 
   const api = {
     select: (_columns: string) => api,

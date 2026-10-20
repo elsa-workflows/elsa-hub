@@ -579,6 +579,27 @@ for (const failOn of ["maybeSingle", "is", "neq"] as const) {
   });
 }
 
+Deno.test("Team checkout returns a generic 500 and no session when the SKU slug lookup fails", async () => {
+  const stripe = createStripeMock();
+  const { result: res, logged } = await captureConsoleError(() =>
+    runAcademyCheckout({
+      user: USER,
+      body: { productCode: "team_5", organizationId: ORG_ID },
+      origin: "https://hub.example",
+      deps: {
+        userClient: createUserClient(true),
+        serviceClient: createServiceClient({ failCourseQueryOn: "limit" }),
+        stripe: stripe.stripe,
+      },
+    })
+  );
+  const { status, body } = await parseJson(res);
+  assertEquals(status, 500);
+  assertEquals(body.error, "Course lookup failed");
+  assertEquals(logged.includes("secret db detail"), true);
+  assertEquals(stripe.sessions.length, 0);
+});
+
 Deno.test("Team checkout fails closed when the SKU row product_code does not match", async () => {
   const stripe = createStripeMock();
   const res = await runAcademyCheckout({

@@ -2,8 +2,10 @@
 // Solo: published catalog row by slug or id. Every catalog course uses
 // product_code solo_bundle, so a product_code lookup is not unique.
 // The Solo Stripe price is the one shared stripe_price_id on every
-// published solo_bundle row. Any published row with a different or missing
-// price fails closed, however large the catalog is.
+// published solo_bundle row. When the selected course has a price, any
+// published solo_bundle row with a different or missing price fails closed,
+// however large the catalog is. A selected course without a price is left to
+// the handler's 400 "not configured for purchase yet".
 // Team: exactly one unpublished SKU row at slug team-5 or team-10.
 // That row's product_code must equal the requested SKU.
 
