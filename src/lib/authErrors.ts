@@ -91,6 +91,7 @@ function isAuthRateLimit(error: AuthLikeError): boolean {
   const blob = `${code} ${message}`;
   return (
     blob.includes("over_request_rate_limit") ||
+    blob.includes("over_email_send_rate_limit") ||
     blob.includes("too many requests") ||
     blob.includes("rate limit")
   );

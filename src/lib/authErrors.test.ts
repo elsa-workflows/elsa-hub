@@ -68,6 +68,17 @@ describe("describeAuthError", () => {
     expect(describeAuthError({ status: 429 })).not.toBe(EMAIL_SEND_RATE_LIMIT_MESSAGE);
   });
 
+  it("uses the neutral attempts wording for a bare email-send code without a status", () => {
+    // Callback URLs carry error_code and error_description but no HTTP status.
+    expect(
+      describeAuthError({
+        error_code: "over_email_send_rate_limit",
+        error_description: "Something GoTrue has not said before",
+      }),
+    ).toBe(AUTH_RATE_LIMIT_MESSAGE);
+    expect(describeAuthError({ code: "over_email_send_rate_limit" })).toBe(AUTH_RATE_LIMIT_MESSAGE);
+  });
+
   it("reads retry-after seconds from the GoTrue message, headers, or retryAfter", () => {
     expect(
       parseEmailSendRetryAfterMs({
