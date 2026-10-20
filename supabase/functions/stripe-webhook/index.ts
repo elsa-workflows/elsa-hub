@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import {
+  handleAcademyAsyncPaymentFailed,
+  handleAcademyCheckout,
+  handleAcademyRefund,
+} from "./academy.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,17 +82,31 @@ serve(async (req) => {
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-      const billingType = session.metadata?.billing_type;
-
-      // Sync billing info from Stripe back to our database
-      await syncBillingInfoFromSession(supabase, session);
-
-      if (billingType === "recurring") {
-        // Handle subscription checkout completion
-        await handleSubscriptionCheckout(supabase, stripe, session);
+      if (session.metadata?.kind === "academy") {
+        await handleAcademyCheckout(supabase, session);
       } else {
-        // Handle one-time payment checkout completion
-        await handleOneTimePaymentCheckout(supabase, stripe, session);
+        const billingType = session.metadata?.billing_type;
+
+        // Sync billing info from Stripe back to our database
+        await syncBillingInfoFromSession(supabase, session);
+
+        if (billingType === "recurring") {
+          // Handle subscription checkout completion
+          await handleSubscriptionCheckout(supabase, stripe, session);
+        } else {
+          // Handle one-time payment checkout completion
+          await handleOneTimePaymentCheckout(supabase, stripe, session);
+        }
+      }
+    } else if (event.type === "checkout.session.async_payment_succeeded") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.kind === "academy") {
+        await handleAcademyCheckout(supabase, session);
+      }
+    } else if (event.type === "checkout.session.async_payment_failed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.metadata?.kind === "academy") {
+        handleAcademyAsyncPaymentFailed(session);
       }
     } else if (event.type === "checkout.session.expired") {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -111,7 +130,11 @@ serve(async (req) => {
       // Handle subscription cancellation
       await handleSubscriptionDeleted(supabase, event.data.object as Stripe.Subscription);
     } else if (event.type === "charge.refunded") {
-      await handleChargeRefunded(supabase, event.data.object as Stripe.Charge);
+      const charge = event.data.object as Stripe.Charge;
+      const academyRefund = await handleAcademyRefund(supabase, stripe, charge);
+      if (!academyRefund.handled) {
+        await handleChargeRefunded(supabase, charge);
+      }
     }
 
     return new Response(

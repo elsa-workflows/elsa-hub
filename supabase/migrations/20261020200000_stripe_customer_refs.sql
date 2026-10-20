@@ -58,14 +58,14 @@ GRANT SELECT ON TABLE public.user_stripe_customers TO authenticated;
 GRANT ALL ON TABLE public.org_stripe_customers TO service_role;
 GRANT ALL ON TABLE public.user_stripe_customers TO service_role;
 
-CREATE POLICY "Org admins can read org stripe customer refs"
+CREATE POLICY org_stripe_customers_select_admin
 ON public.org_stripe_customers
 FOR SELECT
 TO authenticated
 USING (public.is_org_admin(organization_id));
 
-CREATE POLICY "Users can read their own stripe customer refs"
+CREATE POLICY user_stripe_customers_select_own
 ON public.user_stripe_customers
 FOR SELECT
 TO authenticated
-USING (user_id = auth.uid());
+USING ((SELECT auth.uid()) = user_id);
