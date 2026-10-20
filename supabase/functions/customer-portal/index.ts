@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getStoredStripeCustomerId } from "../_shared/stripe-customer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,23 +77,16 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const livemode = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_live_");
-    const { data: stored, error: storedError } = await serviceClient
-      .from("org_stripe_customers")
-      .select("stripe_customer_id")
-      .eq("organization_id", organizationId)
-      .eq("livemode", livemode)
-      .maybeSingle();
-    if (storedError) {
-      throw storedError;
-    }
-    if (!stored?.stripe_customer_id) {
+    const customerId = await getStoredStripeCustomerId(
+      { orgId: organizationId },
+      { supabase: serviceClient, stripeSecretKey: Deno.env.get("STRIPE_SECRET_KEY") },
+    );
+    if (!customerId) {
       return new Response(
         JSON.stringify({ error: "No Stripe customer found for this organization" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const customerId = stored.stripe_customer_id;
 
     // Create customer portal session
     const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";

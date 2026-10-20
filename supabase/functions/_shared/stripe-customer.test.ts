@@ -1,5 +1,9 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { getOrCreateStripeCustomer } from "./stripe-customer.ts";
+import { assertEquals, assertRejects } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import {
+  getOrCreateStripeCustomer,
+  getStoredStripeCustomerId,
+  isLiveStripeKey,
+} from "./stripe-customer.ts";
 
 type StoredRow = {
   ownerId: string;
@@ -15,10 +19,15 @@ type CreatedCustomer = {
   idempotencyKey?: string;
 };
 
+const sameParams = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+// honorIdempotency mimics Stripe: a reused key replays the first result, and a
+// reused key with different parameters is rejected.
 function createMockStripe(options?: { honorIdempotency?: boolean }) {
   const created: CreatedCustomer[] = [];
   const deleted: string[] = [];
-  const updates: Array<{ id: string; email?: string }> = [];
+  const updates: Array<{ id: string; email?: string; metadata?: Record<string, string> }> = [];
+  const createParams = new Map<string, unknown>();
   let next = 1;
 
   return {
@@ -31,6 +40,13 @@ function createMockStripe(options?: { honorIdempotency?: boolean }) {
         createOptions?: { idempotencyKey?: string },
       ) => {
         if (options?.honorIdempotency && createOptions?.idempotencyKey) {
+          const previous = createParams.get(createOptions.idempotencyKey);
+          if (previous !== undefined && !sameParams(previous, params)) {
+            return Promise.reject(
+              new Error("Keys for idempotent requests can only be used with the same parameters"),
+            );
+          }
+          createParams.set(createOptions.idempotencyKey, params);
           const existing = created.find((row) =>
             row.idempotencyKey === createOptions.idempotencyKey && !row.deleted
           );
@@ -46,8 +62,8 @@ function createMockStripe(options?: { honorIdempotency?: boolean }) {
         created.push(row);
         return Promise.resolve(row);
       },
-      update: (id: string, params: { email?: string }) => {
-        updates.push({ id, email: params.email });
+      update: (id: string, params: { email?: string; metadata?: Record<string, string> }) => {
+        updates.push({ id, email: params.email, metadata: params.metadata });
         return Promise.resolve({ id });
       },
       del: (id: string) => {
@@ -216,27 +232,6 @@ Deno.test("concurrent calls leave one ref and no orphan Stripe customers", async
   assertEquals(stripe.created[0].idempotencyKey, "cust:org:org-race:false");
 });
 
-Deno.test("AC4 migration: org admins can read the org ref and writers are service_role only", () => {
-  const migration = Deno.readTextFileSync(
-    new URL("../../migrations/20261015193000_stripe_customer_refs.sql", import.meta.url),
-  );
-  const sqlTests = Deno.readTextFileSync(
-    new URL("../../tests/database/stripe_customer_refs.sql", import.meta.url),
-  );
-
-  assertEquals(migration.includes("PRIMARY KEY (organization_id, livemode)"), true);
-  assertEquals(migration.includes("PRIMARY KEY (user_id, livemode)"), true);
-  assertEquals(migration.includes("ENABLE ROW LEVEL SECURITY"), true);
-  assertEquals(migration.includes("USING (public.is_org_admin(organization_id))"), true);
-  assertEquals(migration.includes("USING (user_id = auth.uid())"), true);
-  assertEquals(migration.includes("FOR INSERT"), false);
-  assertEquals(migration.includes("FOR UPDATE"), false);
-  assertEquals(migration.includes("FOR DELETE"), false);
-  assertEquals(sqlTests.includes("SELECT plan(16)"), true);
-  assertEquals(sqlTests.includes("SELECT * FROM finish()"), true);
-  assertEquals(sqlTests.includes("AC4 non-admin cannot read org customer ref"), true);
-});
-
 Deno.test("checkout creates customers and portal does not", () => {
   const checkout = Deno.readTextFileSync(new URL("../create-checkout-session/index.ts", import.meta.url));
   const portal = Deno.readTextFileSync(new URL("../customer-portal/index.ts", import.meta.url));
@@ -247,6 +242,7 @@ Deno.test("checkout creates customers and portal does not", () => {
   assertEquals(helper.includes("customers.list"), false);
   assertEquals(checkout.includes("getOrCreateStripeCustomer"), true);
   assertEquals(portal.includes("getOrCreateStripeCustomer"), false);
+  assertEquals(portal.includes("getStoredStripeCustomerId"), true);
   assertEquals(portal.includes("No Stripe customer found"), true);
 });
 
@@ -278,4 +274,103 @@ Deno.test("does not look up Stripe customers by email", async () => {
 
   assertEquals(listed, 0);
   assertEquals(stripe.created.length, 1);
+});
+
+Deno.test("concurrent calls with an honoring idempotency key create exactly one customer", async () => {
+  const stripe = createMockStripe({ honorIdempotency: true });
+  const supabase = createMockStore();
+  const owner = { orgId: "org-race" };
+  const deps = { stripe, supabase, email: "buyer@example.test", stripeSecretKey: testKey };
+
+  const ids = await Promise.all(Array.from({ length: 5 }, () => getOrCreateStripeCustomer(owner, deps)));
+
+  assertEquals(new Set(ids).size, 1);
+  assertEquals(supabase.orgRows.length, 1);
+  assertEquals(stripe.created.length, 1);
+  assertEquals(stripe.deleted.length, 0);
+});
+
+Deno.test("two admins of one org racing never send different create parameters for one key", async () => {
+  const stripe = createMockStripe({ honorIdempotency: true });
+  const supabase = createMockStore();
+  const owner = { orgId: "org-race" };
+  const base = { stripe, supabase, stripeSecretKey: testKey };
+
+  const ids = await Promise.all([
+    getOrCreateStripeCustomer(owner, { ...base, email: "a@example.test", metadata: { user_id: "admin-a" } }),
+    getOrCreateStripeCustomer(owner, { ...base, email: "b@example.test", metadata: { user_id: "admin-b" } }),
+  ]);
+
+  assertEquals(ids[0], ids[1]);
+  assertEquals(stripe.created.length, 1);
+  assertEquals(stripe.created[0].metadata, { organization_id: "org-race", livemode: "false" });
+  // The caller's own metadata still lands on the customer, through update.
+  assertEquals(stripe.updates.some((row) => row.metadata?.user_id === "admin-a"), true);
+});
+
+Deno.test("a store failure after create is retried onto the same Stripe customer", async () => {
+  const stripe = createMockStripe({ honorIdempotency: true });
+  const supabase = createMockStore();
+  const owner = { orgId: "org-retry" };
+  const realFrom = supabase.from.bind(supabase);
+  let failNextInsert = true;
+  const flaky = {
+    from(table: string) {
+      const query = realFrom(table);
+      const insert = query.insert.bind(query);
+      query.insert = (row: Record<string, string | boolean>) => {
+        if (failNextInsert) {
+          failNextInsert = false;
+          return Promise.resolve({ error: { message: "timeout", code: "57014" } });
+        }
+        return insert(row);
+      };
+      return query;
+    },
+  };
+  const deps = { stripe, supabase: flaky, stripeSecretKey: testKey };
+
+  await assertRejects(() => getOrCreateStripeCustomer(owner, deps), Error, "Failed to store");
+  const retried = await getOrCreateStripeCustomer(owner, deps);
+
+  assertEquals(retried, "cus_test_1");
+  assertEquals(stripe.created.length, 1);
+  assertEquals(supabase.orgRows.length, 1);
+});
+
+Deno.test("only a 23505 store error counts as a lost race", async () => {
+  const stripe = createMockStripe();
+  const supabase = createMockStore();
+  const failing = {
+    from(table: string) {
+      const query = supabase.from(table);
+      query.insert = () => Promise.resolve({ error: { message: "violates unique constraint (but no code)" } });
+      return query;
+    },
+  };
+
+  await assertRejects(
+    () => getOrCreateStripeCustomer({ orgId: "org-1" }, { stripe, supabase: failing, stripeSecretKey: testKey }),
+    Error,
+    "Failed to store",
+  );
+});
+
+Deno.test("getStoredStripeCustomerId reads the stored ref and never creates", async () => {
+  const stripe = createMockStripe();
+  const supabase = createMockStore();
+
+  assertEquals(await getStoredStripeCustomerId({ orgId: "org-1" }, { supabase, stripeSecretKey: testKey }), null);
+
+  const created = await getOrCreateStripeCustomer({ orgId: "org-1" }, { stripe, supabase, stripeSecretKey: testKey });
+  assertEquals(await getStoredStripeCustomerId({ orgId: "org-1" }, { supabase, stripeSecretKey: testKey }), created);
+  assertEquals(await getStoredStripeCustomerId({ orgId: "org-1" }, { supabase, stripeSecretKey: liveKey }), null);
+  assertEquals(stripe.created.length, 1);
+});
+
+Deno.test("live and restricted live keys are live mode", () => {
+  assertEquals(isLiveStripeKey("sk_live_example"), true);
+  assertEquals(isLiveStripeKey("rk_live_example"), true);
+  assertEquals(isLiveStripeKey("sk_test_example"), false);
+  assertEquals(isLiveStripeKey(undefined), false);
 });

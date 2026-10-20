@@ -9,13 +9,21 @@
  *   ): Promise<string>
  *
  * Returns the stored Stripe customer id for that owner and livemode. When none
- * exists, creates one in Stripe with metadata only (idempotency key
- * cust:org:<id>:<livemode> or cust:user:<id>:<livemode>), stores the ref, then
- * updates email, name, and address. Concurrent creates rely on unique
- * (owner, livemode) plus an on-conflict re-read. If this call created a
- * different Stripe customer than the stored winner, that orphan is deleted.
+ * exists, creates one in Stripe with owner-derived metadata only (idempotency
+ * key cust:org:<id>:<livemode> or cust:user:<id>:<livemode>), stores the ref,
+ * then updates email, name, address, and the caller's extra metadata. The
+ * create parameters must depend on the owner alone: Stripe rejects a reused
+ * idempotency key whose parameters differ, so two admins of one org racing
+ * (or retrying within 24 hours) would otherwise fail. Concurrent creates rely
+ * on unique (owner, livemode) plus an on-conflict re-read. If this call
+ * created a different Stripe customer than the stored winner, that orphan is
+ * deleted.
  *
- * livemode is derived from the Stripe secret key prefix (sk_live_ is live).
+ * getStoredStripeCustomerId is the read-only lookup (customer-portal): it
+ * never creates a customer.
+ *
+ * livemode is derived from the Stripe secret key prefix (sk_live_ and rk_live_
+ * are live; see isLiveStripeKey).
  *
  * deps.stripe and deps.supabase are required in tests. In edge functions they
  * may be omitted and are then built from STRIPE_SECRET_KEY, SUPABASE_URL, and
@@ -102,8 +110,9 @@ function ownerValue(owner: StripeCustomerOwner): string {
   return isOrgOwner(owner) ? owner.orgId : owner.userId;
 }
 
-function livemodeFromStripeKey(key: string | undefined): boolean {
-  return (key ?? "").startsWith("sk_live_");
+/** Live secret (sk_live_) and restricted (rk_live_) keys are live mode; everything else is test. */
+export function isLiveStripeKey(key: string | undefined): boolean {
+  return (key ?? "").startsWith("sk_live_") || (key ?? "").startsWith("rk_live_");
 }
 
 function idempotencyKey(owner: StripeCustomerOwner, livemode: boolean): string {
@@ -112,10 +121,8 @@ function idempotencyKey(owner: StripeCustomerOwner, livemode: boolean): string {
     : `cust:user:${owner.userId}:${livemode}`;
 }
 
-function isUniqueViolation(error: { message: string; code?: string }): boolean {
-  if (error.code === "23505") return true;
-  const message = error.message.toLowerCase();
-  return message.includes("duplicate") || message.includes("unique");
+function isUniqueViolation(error: StripeCustomerQueryError): boolean {
+  return error.code === "23505";
 }
 
 function envGet(name: string): string | undefined {
@@ -219,22 +226,17 @@ export async function getOrCreateStripeCustomer(
   }
 
   const resolved = await resolveDeps(deps);
-  const livemode = livemodeFromStripeKey(resolved.stripeSecretKey);
+  const livemode = isLiveStripeKey(resolved.stripeSecretKey);
   const stored = await readStoredCustomerId(resolved.supabase, owner, livemode);
   if (stored) return stored;
 
-  const metadata: Record<string, string> = {
-    ...(resolved.metadata ?? {}),
-  };
-  if (isOrgOwner(owner)) {
-    metadata.organization_id = owner.orgId;
-  } else {
-    metadata.user_id = owner.userId;
-  }
-  metadata.livemode = String(livemode);
+  const ownerMetadata: Record<string, string> = isOrgOwner(owner)
+    ? { organization_id: owner.orgId, livemode: String(livemode) }
+    : { user_id: owner.userId, livemode: String(livemode) };
+  const metadata: Record<string, string> = { ...(resolved.metadata ?? {}), ...ownerMetadata };
 
   const created = await resolved.stripe.customers.create(
-    { metadata },
+    { metadata: ownerMetadata },
     { idempotencyKey: idempotencyKey(owner, livemode) },
   );
 
@@ -260,4 +262,22 @@ export async function getOrCreateStripeCustomer(
   });
 
   return created.id;
+}
+
+/**
+ * Read-only: the stored customer id for this owner in the mode of the Stripe
+ * key, or null. Never creates a customer or calls Stripe.
+ */
+export async function getStoredStripeCustomerId(
+  owner: StripeCustomerOwner,
+  deps: { supabase: unknown; stripeSecretKey?: string },
+): Promise<string | null> {
+  if (isOrgOwner(owner) ? !owner.orgId : !owner.userId) {
+    throw new Error("getStoredStripeCustomerId requires owner.userId or owner.orgId");
+  }
+  return await readStoredCustomerId(
+    deps.supabase as StripeCustomerStore,
+    owner,
+    isLiveStripeKey(deps.stripeSecretKey ?? envGet("STRIPE_SECRET_KEY")),
+  );
 }
