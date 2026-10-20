@@ -891,7 +891,9 @@ type PriceContext = {
   existing: CatalogSnapshot;
   setPrices: boolean | string[];
   env: NodeJS.Dict<string>;
-  stripeOpts: { required: boolean; errors: string[] };
+  // Stripe price ids must come from the environment (true under --apply).
+  requireStripeIds: boolean;
+  errors: string[];
 };
 
 const PRICE_FIELDS = ["price_cents", "currency", "stripe_price_id"] as const;
@@ -910,49 +912,68 @@ function keptPrices(row: Record<string, unknown>): CoursePrices {
 // - An existing row keeps what the database holds (for example the 1 Nov Solo
 //   price), so a content refresh cannot revert a price switch.
 // - --set-prices=<codes> moves existing rows of those product codes to the
-//   mapping. Bare --set-prices moves every existing row except a catalog-SKU row
-//   already at the post-launch price, which must be named explicitly.
-// - A new row inherits the prices of existing rows with the same product_code
-//   (refusing if they disagree), so a Solo course added after the switch does not
-//   come in at the launch price. Only with no such rows does it take the mapping.
+//   mapping. Bare --set-prices moves every existing row too, but never a
+//   catalog-SKU row whose prices differ from the mapping: that run is refused,
+//   and moving Solo needs solo_bundle named.
+// - A new row takes the same prices its siblings end up with. If --set-prices
+//   moves that product code, that is the mapping. Otherwise it inherits the
+//   prices of existing rows with the same product_code (refused if they
+//   disagree or the id is not a usable Stripe price id), so a Solo course added
+//   after the switch does not come in at the launch price. With no siblings it
+//   takes the mapping.
 function coursePrices(
   ctx: PriceContext,
   product: ProductDef | undefined,
   productCode: string,
   slug: string,
 ): CoursePrices {
-  const { mapping, existing, setPrices, stripeOpts } = ctx;
+  const { mapping, existing, setPrices, errors } = ctx;
   const fromMapping = (): CoursePrices => ({
     price_cents: product?.price_cents ?? mapping.launchPriceCents,
     currency: (product?.currency ?? mapping.currency).toLowerCase(),
-    stripe_price_id: product ? resolveStripePriceId(product, ctx.env, stripeOpts) : null,
+    stripe_price_id: product
+      ? resolveStripePriceId(product, ctx.env, { required: ctx.requireStripeIds, errors })
+      : null,
     write_prices: true,
     inherited_prices: false,
   });
+  const named = Array.isArray(setPrices) && setPrices.includes(productCode);
+  const moved = named || setPrices === true;
 
   const row = existing.courses[slug];
   if (row) {
-    if (Array.isArray(setPrices)) return setPrices.includes(productCode) ? fromMapping() : keptPrices(row);
-    if (!setPrices) return keptPrices(row);
-    if (productCode === mapping.catalogSku && Number(row.price_cents) === mapping.postLaunchPriceCents) {
-      stripeOpts.errors.push(
-        `${slug}: refusing bare --set-prices: ${productCode} is already at the post-launch price (${mapping.postLaunchPriceCents}). Name it explicitly (--set-prices=${productCode}) if you mean to move it back.`,
-      );
-      return keptPrices(row);
+    if (!moved) return keptPrices(row);
+    if (!named && productCode === mapping.catalogSku) {
+      const target = fromMapping();
+      const differing = PRICE_FIELDS.filter((field) => !sameValue(row[field], target[field]));
+      if (differing.length) {
+        errors.push(
+          `${slug}: refusing bare --set-prices: ${productCode} differs from the mapping on ${differing.join(", ")}. Name it (--set-prices=${productCode}) if you mean to move it.`,
+        );
+        return keptPrices(row);
+      }
+      return target;
     }
     return fromMapping();
   }
 
+  if (moved) return fromMapping();
   const siblings = Object.values(existing.courses).filter((candidate) => candidate.product_code === productCode);
   if (siblings.length === 0) return fromMapping();
   const [first, ...rest] = siblings;
   const disagreeing = PRICE_FIELDS.filter((field) => rest.some((other) => !sameValue(other[field], first[field])));
   if (disagreeing.length) {
-    stripeOpts.errors.push(
+    errors.push(
       `${slug}: existing ${productCode} rows disagree on ${disagreeing.join(", ")}; make them agree before adding a ${productCode} row`,
     );
   }
-  return { ...keptPrices(first), write_prices: true, inherited_prices: true };
+  const inherited = keptPrices(first);
+  if (ctx.requireStripeIds && !(inherited.stripe_price_id && STRIPE_PRICE_ID_RE.test(inherited.stripe_price_id))) {
+    errors.push(
+      `${slug}: existing ${productCode} rows have no usable Stripe price id (${JSON.stringify(inherited.stripe_price_id)}); fix them or name ${productCode} in --set-prices`,
+    );
+  }
+  return { ...inherited, write_prices: true, inherited_prices: true };
 }
 
 export function planImport(options: PlanOptions): ImportPlan {
@@ -971,10 +992,16 @@ export function planImport(options: PlanOptions): ImportPlan {
   const prefixes = excludedPrefixes(options.manifest);
   const catalog = options.mapping.products.find((p) => p.product_code === options.mapping.catalogSku);
   if (!catalog) errors.push(`product mapping is missing catalog SKU ${options.mapping.catalogSku}`);
-  const stripeOpts = { required: options.requireStripePriceIds === true, errors };
   const publishCatalog = options.publish === true;
   const setPrices = options.setPrices ?? false;
-  const priceCtx: PriceContext = { mapping: options.mapping, existing, setPrices, env, stripeOpts };
+  const priceCtx: PriceContext = {
+    mapping: options.mapping,
+    existing,
+    setPrices,
+    env,
+    requireStripeIds: options.requireStripePriceIds === true,
+    errors,
+  };
   if (setPrices && !options.existing) {
     errors.push("--set-prices needs the live catalog to decide what moves: add --compare-live (dry-run) or --apply");
   }
@@ -1352,7 +1379,7 @@ export function formatDryRun(
       : "Writes: none. Pass --apply to write. The npm script does not pass --apply.",
     apply || flags?.compareLive
       ? "Catalog: read from the database, so price changes below show old -> new."
-      : "Catalog: not read (pass --compare-live for old -> new prices and rows the plan does not cover).",
+      : "Catalog: not read, so prices shown are for new rows; existing rows keep theirs unless named in --set-prices. Pass --compare-live for old -> new prices and rows the plan does not cover.",
     publish
       ? "Publish: yes, as the last step after courses, lessons and assets succeed (--publish requires --apply)."
       : "Publish: no. Pass --publish with --apply to set is_published after content and assets succeed.",
@@ -1794,10 +1821,12 @@ npm run academy:import does not pass --apply.
 Existing rows keep their price_cents, currency and stripe_price_id, so a rerun
 after the 1 Nov price switch cannot revert Solo. A new row inherits the prices of
 existing rows with the same product_code (refused if they disagree); with none,
-it gets the mapping's launch price. --set-prices overwrites existing rows: bare,
-it moves every existing row except a catalog-SKU row already at the post-launch
-price; --set-prices=<codes> (for example team_5,team_10) moves only rows of those
-product codes, and --set-prices=solo_bundle is how Solo is deliberately moved.
+it gets the mapping's launch price. --set-prices overwrites existing rows:
+--set-prices=<codes> (for example team_5,team_10) moves only rows of those product
+codes. Bare --set-prices moves every existing row but refuses the whole run when
+a solo_bundle row differs from the mapping; moving Solo always needs it named
+(--set-prices=solo_bundle,team_5,team_10). A new row of a moved product code gets
+the mapping prices like its siblings. Every row written needs its STRIPE_PRICE_ID_*.
 --set-prices reads the live catalog, so it needs --apply or --compare-live.
 --compare-live reads the catalog (read-only) so a dry-run shows old -> new
 prices and database rows the plan does not cover. Nothing is ever deleted.

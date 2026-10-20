@@ -11,8 +11,8 @@ Code: `scripts/academy-import.ts` and `scripts/academy-import-lib.ts`. Config: `
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are read only under `--apply` or `--compare-live` (a read-only look at the catalog). A plain dry-run never reads them.
 - The importer never deletes rows or objects.
 - Catalog courses stay unpublished unless you pass `--publish` with `--apply`. Publish is the last step, after courses, lessons and assets succeed. Team sku-rows (`team-5`, `team-10`) are never published by it.
-- Existing rows keep their `price_cents`, `currency` and `stripe_price_id`. A rerun after the 1 Nov price switch therefore cannot revert Solo to the launch price. A new row inherits the prices of existing rows with the same `product_code` (so a Solo course added after the switch comes in at the switched price); if those rows disagree the import is refused. Only when no such row exists does a new row get the launch price from `academy/product-mapping.json`.
-- `--set-prices` overwrites price fields on existing rows and reads the live catalog, so it needs `--apply` or `--compare-live`. `--set-prices=team_5,team_10` moves only rows of those product codes. Bare `--set-prices` moves every existing row except a `solo_bundle` row already at the post-launch price (3900); to move Solo on purpose, name it: `--set-prices=solo_bundle`.
+- Existing rows keep their `price_cents`, `currency` and `stripe_price_id`. A rerun after the 1 Nov price switch therefore cannot revert Solo to the launch price. A new row inherits the prices of existing rows with the same `product_code` (so a Solo course added after the switch comes in at the switched price); if those rows disagree, or their Stripe price id is missing or not `price_...` under `--apply`, the import is refused. Only when no such row exists does a new row get the launch price from `academy/product-mapping.json`.
+- `--set-prices` overwrites price fields on existing rows and reads the live catalog, so it needs `--apply` or `--compare-live`. `--set-prices=team_5,team_10` moves only rows of those product codes to the mapping. Bare `--set-prices` moves every existing row, but it refuses the whole run if any `solo_bundle` row differs from the mapping (price, currency or Stripe id), so it is safe to run only when Solo is already at the mapping. Moving Solo always needs it named: `--set-prices=solo_bundle,team_5,team_10`. A new row of a product code that `--set-prices` moves gets the mapping prices, like its siblings.
 
 ## Dry-run
 
@@ -24,7 +24,7 @@ npm run academy:import -- \
   --assets-dir /path/to/zips
 ```
 
-Add `--compare-live` (with the Supabase env vars set) to compare against the live catalog. The plan then shows old -> new for price fields and warns about lessons and assets that are in the database for a planned course but not in the plan.
+A plain dry-run does not read the database, so the prices it shows are for new rows; existing rows keep theirs unless named in `--set-prices`. Add `--compare-live` (with the Supabase env vars set) to compare against the live catalog. The plan then shows old -> new for price fields and warns about lessons and assets that are in the database for a planned course but not in the plan.
 
 `--source-root` is required and is never read from the JSON. It may be:
 
@@ -55,7 +55,7 @@ npm run academy:import -- \
 # add --set-prices=<codes> (with --apply) only to deliberately overwrite prices on existing rows
 ```
 
-A `STRIPE_PRICE_ID_*` variable is needed only for a row that is being written with prices: new rows with no sibling row to inherit from, or any row named by `--set-prices`. Each must match `^price_[A-Za-z0-9_]+$`.
+A `STRIPE_PRICE_ID_*` variable is needed only for a row that is being written with prices: new rows with no sibling row to inherit from, any row named by `--set-prices`, and, under bare `--set-prices`, every existing row (it writes the mapping prices to each, so the variables for all product codes are needed). Each must match `^price_[A-Za-z0-9_]+$`.
 
 Uploads take their content type from the file extension (`zip`, `pdf`, `txt`, `md`, `json`, `png`, `jpg`, `jpeg`; anything else is `application/octet-stream`).
 

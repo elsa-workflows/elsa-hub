@@ -944,7 +944,10 @@ function liveAfterSwitch(root: string) {
 }
 
 describe("prices across product codes", () => {
-  const plan = (rows: ReturnType<typeof liveAfterSwitch>, extra: Record<string, unknown> = {}) =>
+  type Live = ReturnType<typeof liveAfterSwitch>;
+  // Each test gets its own fresh rows, so mutating them cannot leak.
+  const freshLive = (): Live => liveAfterSwitch(simpleRoot());
+  const plan = (rows: Live = freshLive(), extra: Record<string, unknown> = {}) =>
     planImport({
       manifest: twoCourseManifest(),
       mapping,
@@ -955,9 +958,11 @@ describe("prices across product codes", () => {
       ...extra,
     });
   const op = (p: ReturnType<typeof planImport>, slug: string) => p.courses.find((c) => c.key === slug)!;
+  const solo = (rows: Live) => rows.courses.filter((course) => course.product_code === "solo_bundle");
+  const MAPPED_SOLO = { price_cents: 2900, stripe_price_id: "price_test_solo_bundle", currency: "eur" };
 
   it("gives a Solo course added after the switch the live Solo price, not the launch price", async () => {
-    const p = plan(liveAfterSwitch(simpleRoot()), { env: {} });
+    const p = plan(freshLive(), { env: {} });
     expect(p.errors).toEqual([]);
     expect(op(p, "demo-extra").kind).toBe("insert");
     expect(op(p, "demo-extra").desired).toMatchObject({
@@ -977,66 +982,90 @@ describe("prices across product codes", () => {
   });
 
   it("refuses to add a Solo course when the existing Solo rows disagree", () => {
-    const rows = liveAfterSwitch(simpleRoot());
-    rows.courses.push({
-      ...(rows.courses.find((c) => c.product_code === "solo_bundle") as object),
-      id: "other",
-      slug: "legacy",
-      price_cents: 2900,
-    });
+    const rows = freshLive();
+    rows.courses.push({ ...solo(rows)[0], id: "other", slug: "legacy", price_cents: 2900 });
     const p = plan(rows);
     expect(p.errors.some((error) => /existing solo_bundle rows disagree on price_cents/.test(error))).toBe(true);
   });
 
-  it("refuses a bare --set-prices that would move Solo off the post-launch price", () => {
-    const p = plan(liveAfterSwitch(simpleRoot()), { setPrices: true });
-    expect(p.errors.some((error) => /refusing bare --set-prices: solo_bundle is already at the post-launch price/.test(error))).toBe(true);
+  it("refuses to inherit a missing or malformed Stripe price id under --apply", () => {
+    for (const bad of [null, "prod_1"]) {
+      const rows = freshLive();
+      for (const course of solo(rows)) course.stripe_price_id = bad;
+      const p = plan(rows);
+      expect(p.errors.some((error) => /no usable Stripe price id/.test(error))).toBe(true);
+      // A dry-run without the apply requirement only reports what it would inherit.
+      expect(plan(rows, { requireStripePriceIds: false }).errors).toEqual([]);
+    }
+  });
+
+  it("refuses a bare --set-prices that would move Solo off a switched price", () => {
+    const p = plan(freshLive(), { setPrices: true });
+    expect(p.errors.some((error) => /refusing bare --set-prices: solo_bundle differs from the mapping on price_cents, stripe_price_id/.test(error))).toBe(true);
     expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 3900, write_prices: false });
   });
 
+  it.each([
+    ["a hand-set price", { price_cents: 4900, stripe_price_id: "price_test_solo_bundle" }, "price_cents"],
+    ["a different id at the launch price", { price_cents: 2900, stripe_price_id: "price_other" }, "stripe_price_id"],
+    ["a different currency", { price_cents: 2900, stripe_price_id: "price_test_solo_bundle", currency: "usd" }, "currency"],
+  ])("refuses a bare --set-prices over Solo with %s", (_name, fields, differing) => {
+    const rows = freshLive();
+    for (const course of solo(rows)) Object.assign(course, fields);
+    const p = plan(rows, { setPrices: true });
+    expect(p.errors.some((error) => error.includes(`differs from the mapping on ${differing}`))).toBe(true);
+    expect(op(p, "demo-core").desired.write_prices).toBe(false);
+  });
+
+  it("lets a bare --set-prices run when Solo already equals the mapping, and moves the other rows", () => {
+    const rows = freshLive();
+    for (const course of solo(rows)) Object.assign(course, MAPPED_SOLO);
+    const p = plan(rows, { setPrices: true });
+    expect(p.errors).toEqual([]);
+    expect(op(p, "demo-core").kind).toBe("unchanged");
+    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 34900, write_prices: true });
+    expect(op(p, "demo-extra").desired).toMatchObject({ ...MAPPED_SOLO, inherited_prices: false });
+  });
+
   it("moves only team_5 with --set-prices=team_5", () => {
-    const p = plan(liveAfterSwitch(simpleRoot()), { setPrices: ["team_5"] });
+    const p = plan(freshLive(), { setPrices: ["team_5"] });
     expect(p.errors).toEqual([]);
     expect(op(p, "team-5").kind).toBe("update");
     expect(op(p, "team-5").desired).toMatchObject({ price_cents: 34900, stripe_price_id: "price_test_team_5" });
     expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 3900, stripe_price_id: "price_nov1", write_prices: false });
+    expect(op(p, "demo-extra").desired).toMatchObject({ price_cents: 3900, inherited_prices: true });
     const text = formatDryRun(p, { compareLive: true });
     expect(text).toContain("price_cents 30000 -> 34900");
     expect(text).toContain("stripe_price_id price_live_team5 -> price_test_team_5");
     expect(text).toContain("prices kept at 3900 eur / price_nov1");
   });
 
-  it("moves Solo with --set-prices=solo_bundle and shows old -> new", () => {
-    const p = plan(liveAfterSwitch(simpleRoot()), { setPrices: ["solo_bundle"] });
+  it("moves Solo with --set-prices=solo_bundle, shows old -> new, and prices a new Solo course the same", () => {
+    const p = plan(freshLive(), { setPrices: ["solo_bundle"] });
     expect(p.errors).toEqual([]);
-    expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 2900, stripe_price_id: "price_test_solo_bundle" });
+    expect(op(p, "demo-core").desired).toMatchObject(MAPPED_SOLO);
+    expect(op(p, "demo-extra").desired).toMatchObject({ ...MAPPED_SOLO, inherited_prices: false });
     expect(op(p, "team-5").desired).toMatchObject({ price_cents: 30000, write_prices: false });
     const text = formatDryRun(p, { compareLive: true });
     expect(text).toContain("price_cents 3900 -> 2900");
     expect(text).toContain("stripe_price_id price_nov1 -> price_test_solo_bundle");
   });
 
-  it("lets a bare --set-prices move other rows when Solo is not at the post-launch price", () => {
-    const rows = liveAfterSwitch(simpleRoot());
-    for (const course of rows.courses) {
-      if (course.product_code === "solo_bundle") Object.assign(course, { price_cents: 2900, stripe_price_id: "price_old" });
-    }
-    const p = plan(rows, { setPrices: true });
-    expect(p.errors).toEqual([]);
-    expect(op(p, "demo-core").desired).toMatchObject({ stripe_price_id: "price_test_solo_bundle", write_prices: true });
-    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 34900 });
-  });
-
   it("needs the live catalog and a known product code for --set-prices", () => {
     const noLive = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV, setPrices: true });
     expect(noLive.errors.some((error) => /needs the live catalog/.test(error))).toBe(true);
-    const unknown = plan(liveAfterSwitch(simpleRoot()), { setPrices: ["team_7"] });
+    const unknown = plan(freshLive(), { setPrices: ["team_7"] });
     expect(unknown.errors.some((error) => /unknown product code team_7/.test(error))).toBe(true);
   });
 
   it("uses the mapping when no row of the product code exists yet", () => {
     const p = planImport({ manifest: twoCourseManifest(), mapping, sourceRoot: twoCourseRoot(), env: SOLO_ENV });
     expect(op(p, "demo-extra").desired).toMatchObject({ price_cents: 2900, inherited_prices: false });
+  });
+
+  it("tells a plain dry-run that the prices shown are for new rows", () => {
+    const p = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV });
+    expect(formatDryRun(p)).toContain("prices shown are for new rows; existing rows keep theirs unless named in --set-prices");
   });
 });
 
