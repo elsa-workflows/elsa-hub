@@ -98,27 +98,36 @@ export async function listSoleOwnerOrganizationIds(
   return orgIds.filter((id) => !orgsWithOtherOwners.has(id));
 }
 
+// Deletes the customer stored for (kind, ownerId, livemode) and then clears the
+// ref. Returns a warning when the customer was kept. Safe to run again after
+// any failure: the ref is only cleared once the customer is gone from Stripe.
 async function deleteCustomerByStoredRef(
   stripe: StripeCleanupClient,
   refs: StripeCustomerRefStore,
   kind: "user" | "organization",
   ownerId: string,
   livemode: boolean,
-): Promise<void> {
+): Promise<string | undefined> {
   const customerId = await refs.getCustomerId(kind, ownerId, livemode);
-  if (!customerId) return;
+  if (!customerId) return undefined;
+
+  // Another owner still points at this customer: drop only this ref.
+  if (await refs.isReferencedElsewhere(customerId, kind, ownerId, livemode)) {
+    await refs.clearRef(kind, ownerId, livemode, customerId);
+    return `Stripe customer ${customerId} kept: still referenced by another user or organization`;
+  }
 
   try {
     await stripe.customers.del(customerId);
   } catch (error) {
-    if (isStripeResourceMissing(error)) {
-      await refs.clearRef(kind, ownerId, livemode);
-      return;
+    // Already deleted in Stripe: the ref is stale, so clear it.
+    if (!isStripeResourceMissing(error)) {
+      throw new StripeCustomerDeleteError(customerId, error);
     }
-    throw new StripeCustomerDeleteError(customerId, error);
   }
 
-  await refs.clearRef(kind, ownerId, livemode);
+  await refs.clearRef(kind, ownerId, livemode, customerId);
+  return undefined;
 }
 
 export async function cleanupStripeCustomersForUserDelete(options: {
@@ -159,10 +168,18 @@ export async function cleanupStripeCustomersForUserDelete(options: {
     }
 
     for (const orgId of soleOwnerOrgIds) {
-      await deleteCustomerByStoredRef(stripe, refs, "organization", orgId, livemode);
+      const kept = await deleteCustomerByStoredRef(
+        stripe,
+        refs,
+        "organization",
+        orgId,
+        livemode,
+      );
+      if (kept) warnings.push(kept);
     }
   }
 
-  await deleteCustomerByStoredRef(stripe, refs, "user", userId, livemode);
+  const kept = await deleteCustomerByStoredRef(stripe, refs, "user", userId, livemode);
+  if (kept) warnings.push(kept);
   return { warnings };
 }

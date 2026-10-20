@@ -2,11 +2,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import {
   cleanupStripeCustomersForUserDelete,
+  type ServiceClient,
   StripeCustomerDeleteError,
 } from "./cleanup.ts";
 import {
   createSupabaseStripeRefStore,
   livemodeFromStripeSecretKey,
+  type StripeRefClient,
 } from "./stripe_customer_refs.ts";
 
 const corsHeaders = {
@@ -102,11 +104,15 @@ Deno.serve(async (req) => {
         httpClient: Stripe.createFetchHttpClient(),
       });
       const livemode = livemodeFromStripeSecretKey(stripeSecretKey);
-      const refs = createSupabaseStripeRefStore(serviceClient);
+      // The supabase-js builders satisfy the narrow structural types the
+      // cleanup uses; their generics are not assignable to them directly.
+      const refs = createSupabaseStripeRefStore(
+        serviceClient as unknown as StripeRefClient,
+      );
 
       try {
         const { warnings } = await cleanupStripeCustomersForUserDelete({
-          serviceClient,
+          serviceClient: serviceClient as unknown as ServiceClient,
           stripe,
           refs,
           userId,
