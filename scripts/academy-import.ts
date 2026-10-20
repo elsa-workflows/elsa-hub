@@ -143,6 +143,8 @@ async function main(): Promise<number> {
     await runPriceSwitch({
       mapping: mappingResult.mapping,
       stripePriceId: args.stripePriceId,
+      productCode: args.product,
+      priceCents: args.priceCents,
       apply: args.apply,
       openStore: () => {
         const { url, key } = readServiceRole();
@@ -190,15 +192,15 @@ async function main(): Promise<number> {
     existing,
     sourceCommit: args.sourceCommit,
     publish: args.publish,
-    setPrices: args.setPrices,
-    requireStripePriceIds: args.apply || args.setPrices !== false,
+    requireStripePriceIds: args.apply,
   });
   console.log(formatDryRun(plan, { apply: args.apply, publish: args.publish, compareLive: args.compareLive }));
   if (plan.errors.length) return 1;
   if (!args.apply) return 0;
 
-  if (!supabase) {
-    console.error("Internal error: --apply did not open a client.");
+  // New rows inherit their product's live price, so an apply never plans without the catalog.
+  if (!supabase || !existing) {
+    console.error("Internal error: --apply did not read the live catalog.");
     return 1;
   }
   await applyPlanWithStore(supabaseStore(supabase), plan, mappingResult.mapping, { publish: args.publish });

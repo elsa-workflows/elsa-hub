@@ -288,14 +288,16 @@ describe("flags and stripe guards", () => {
     expect(parseArgs(["--apply"]).apply).toBe(true);
     expect(parseArgs(["--apply"]).dryRun).toBe(false);
     expect(parseArgs(["--apply", "--publish"]).publish).toBe(true);
-    expect(parseArgs([]).setPrices).toBe(false);
     expect(parseArgs([]).compareLive).toBe(false);
-    expect(parseArgs(["--set-prices", "--compare-live"])).toMatchObject({ setPrices: true, compareLive: true, apply: false });
-    expect(parseArgs(["--set-prices=team_5, team_10", "--apply"]).setPrices).toEqual(["team_5", "team_10"]);
-    expect(() => parseArgs(["--set-prices"])).toThrow(/needs the live catalog/);
-    expect(() => parseArgs(["--set-prices=team_5"])).toThrow(/needs the live catalog/);
-    expect(() => parseArgs(["--set-prices=", "--apply"])).toThrow(/comma list of product codes/);
-    expect(() => parseArgs(["--set-prices=Team 5", "--apply"])).toThrow(/comma list of product codes/);
+    expect(parseArgs(["--compare-live"])).toMatchObject({ compareLive: true, apply: false });
+    expect(() => parseArgs(["--set-prices"])).toThrow(/Unknown argument/);
+    expect(parseArgs(["--price-switch", "--product", "team_5", "--price-cents", "39900"])).toMatchObject({
+      priceSwitch: true,
+      product: "team_5",
+      priceCents: 39900,
+    });
+    expect(() => parseArgs(["--product", "team_5"])).toThrow(/only apply to --price-switch/);
+    expect(() => parseArgs(["--price-switch", "--price-cents", "12.5"])).toThrow(/positive integer/);
     expect(() => parseArgs(["--publish"])).toThrow(/--publish requires --apply/);
     expect(() => parseArgs(["--apply", "--dry-run"])).toThrow(/only one of --apply and --dry-run/);
   });
@@ -342,6 +344,10 @@ describe("flags and stripe guards", () => {
     const sql = readFileSync("scripts/academy-price-switch.sql", "utf8");
     expect(sql).toMatch(/\^price_\[A-Za-z0-9_\]\+\$/);
     expect(sql).toMatch(/RAISE EXCEPTION/);
+    // Both the product code and the price are guarded, and a code with no rows is an error.
+    expect(sql).toMatch(/code !~ '\^\[a-z0-9_\]\+\$'/);
+    expect(sql).toMatch(/cents !~ '\^\[1-9\]\[0-9\]\*\$'/);
+    expect(sql).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.academy_courses WHERE product_code = code\)/);
   });
 
   it("never interpolates a psql variable inside a dollar-quoted block", async () => {
@@ -352,7 +358,10 @@ describe("flags and stripe guards", () => {
     const quoted = [...sql.matchAll(/(\$[A-Za-z_]*\$)([\s\S]*?)\1/g)].map((match) => match[2]);
     expect(quoted.length).toBeGreaterThan(0);
     for (const body of quoted) expect(body).not.toMatch(/:'?[A-Za-z_]+'?/);
-    expect(sql).toMatch(/set_config\('academy\.stripe_price_id', :'stripe_price_id'/);
+    for (const name of ["product_code", "price_cents", "stripe_price_id"]) {
+      expect(sql).toMatch(new RegExp(`set_config\\('academy\\.${name}', :'${name}'`));
+    }
+    expect(sql).toMatch(/^\\set ON_ERROR_STOP on$/m);
   });
 });
 
@@ -804,6 +813,9 @@ const SOLO_ENV = {
   STRIPE_PRICE_ID_SOLO_BUNDLE: "price_test_solo_bundle",
   STRIPE_PRICE_ID_TEAM_5: "price_test_team_5",
 };
+const LAUNCH_SOLO = { price_cents: 2900, stripe_price_id: "price_test_solo_bundle", currency: "eur" };
+const NOV1_SOLO = { price_cents: 3900, stripe_price_id: "price_nov1", currency: "eur" };
+const PRICE_COLUMNS = ["price_cents", "currency", "stripe_price_id"];
 
 function simpleRoot(): string {
   const root = tmpDir();
@@ -813,102 +825,6 @@ function simpleRoot(): string {
   });
   return root;
 }
-
-// The catalog as the database holds it after the 1 Nov switch.
-function switchedCatalog(root: string) {
-  const first = planImport({ manifest: boxManifest(), mapping, sourceRoot: root, env: SOLO_ENV });
-  const rows = dbShapedCatalogFromPlan(first);
-  for (const course of rows.courses) {
-    if (course.product_code === "solo_bundle") {
-      course.price_cents = 3900;
-      course.stripe_price_id = "price_nov1";
-    }
-  }
-  return catalogSnapshotFromDbRows(rows);
-}
-
-describe("prices on existing rows", () => {
-  it("leaves a switched Solo price alone on a plain --apply rerun", async () => {
-    const root = simpleRoot();
-    const existing = switchedCatalog(root);
-    // No STRIPE_PRICE_ID_* in the env: nothing is being written, so none is needed.
-    const plan = planImport({
-      manifest: boxManifest(),
-      mapping,
-      sourceRoot: root,
-      existing,
-      env: {},
-      requireStripePriceIds: true,
-    });
-    expect(plan.errors).toEqual([]);
-    const solo = plan.courses.find((op) => op.key === "demo-core")!;
-    expect(solo.kind).toBe("unchanged");
-    expect(solo.desired).toMatchObject({ price_cents: 3900, stripe_price_id: "price_nov1", write_prices: false });
-    expect(courseUpsertRow(solo.desired, mapping)).not.toHaveProperty("price_cents");
-    expect(courseUpsertRow(solo.desired, mapping)).not.toHaveProperty("stripe_price_id");
-    expect(formatDryRun(plan, { apply: true })).toContain("prices kept at 3900 eur / price_nov1");
-
-    const store = memoryStore();
-    await applyPlanWithStore(store, plan, mapping, { publish: false });
-    for (const row of store.courseRows) {
-      expect(row).not.toHaveProperty("price_cents");
-      expect(row).not.toHaveProperty("stripe_price_id");
-      expect(row).not.toHaveProperty("currency");
-    }
-  });
-
-  it("gives a new row the mapping's launch price", () => {
-    const plan = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV });
-    const solo = plan.courses.find((op) => op.key === "demo-core")!;
-    expect(solo.kind).toBe("insert");
-    expect(courseUpsertRow(solo.desired, mapping)).toMatchObject({
-      price_cents: 2900,
-      stripe_price_id: "price_test_solo_bundle",
-      currency: "eur",
-    });
-  });
-
-  it("moves Solo only when --set-prices names solo_bundle, and shows old -> new", async () => {
-    const root = simpleRoot();
-    const existing = switchedCatalog(root);
-    const plan = planImport({
-      manifest: boxManifest(),
-      mapping,
-      sourceRoot: root,
-      existing,
-      env: SOLO_ENV,
-      setPrices: ["solo_bundle"],
-      requireStripePriceIds: true,
-    });
-    expect(plan.errors).toEqual([]);
-    const solo = plan.courses.find((op) => op.key === "demo-core")!;
-    expect(solo.kind).toBe("update");
-    const text = formatDryRun(plan, { compareLive: true });
-    expect(text).toContain("price_cents 3900 -> 2900");
-    expect(text).toContain("stripe_price_id price_nov1 -> price_test_solo_bundle");
-
-    const store = memoryStore();
-    await applyPlanWithStore(store, plan, mapping, { publish: false });
-    expect(store.courseRows.find((row) => row.slug === "demo-core")).toMatchObject({
-      price_cents: 2900,
-      stripe_price_id: "price_test_solo_bundle",
-    });
-  });
-
-  it("requires the Stripe env under --set-prices", () => {
-    const root = simpleRoot();
-    const plan = planImport({
-      manifest: boxManifest(),
-      mapping,
-      sourceRoot: root,
-      existing: switchedCatalog(root),
-      env: {},
-      setPrices: ["solo_bundle"],
-      requireStripePriceIds: true,
-    });
-    expect(plan.errors.some((error) => /STRIPE_PRICE_ID_SOLO_BUNDLE is required/.test(error))).toBe(true);
-  });
-});
 
 // Two catalog courses: demo-core exists, demo-extra is new.
 function twoCourseManifest(): AcademyManifest {
@@ -925,217 +841,231 @@ function twoCourseManifest(): AcademyManifest {
   return manifest;
 }
 
+// A manifest that only lists the new course, so demo-core and legacy are "not in the manifest".
+function partialManifest(): AcademyManifest {
+  const manifest = twoCourseManifest();
+  manifest.courses = manifest.courses.filter((course) => course.slug === "demo-extra");
+  manifest.module_rewrites = {};
+  return manifest;
+}
+
 function twoCourseRoot(): string {
   const root = simpleRoot();
   writeTree(root, { "modules/extra.md": "Extra intro.\n" });
   return root;
 }
 
-// The live catalog after the 1 Nov switch: demo-core on Solo 3900 / price_nov1 and
-// a Team 5 row at a live price that differs from the mapping.
-function liveAfterSwitch(root: string) {
-  const first = planImport({ manifest: boxManifest(), mapping, sourceRoot: root, env: SOLO_ENV });
+// The live catalog after the 1 Nov switch: Solo on demo-core and on a legacy
+// course that no manifest lists, both at NOV1_SOLO, plus a Team 5 row at its own price.
+function liveAfterSwitch() {
+  const first = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV });
   const rows = dbShapedCatalogFromPlan(first);
   for (const course of rows.courses) {
-    if (course.product_code === "solo_bundle") Object.assign(course, { price_cents: 3900, stripe_price_id: "price_nov1" });
+    if (course.product_code === "solo_bundle") Object.assign(course, NOV1_SOLO);
     if (course.product_code === "team_5") Object.assign(course, { price_cents: 30000, stripe_price_id: "price_live_team5" });
   }
+  rows.courses.push({
+    ...rows.courses.find((course) => course.product_code === "solo_bundle")!,
+    id: "legacy-id",
+    slug: "legacy",
+  });
   return rows;
 }
+type LiveRows = ReturnType<typeof liveAfterSwitch>;
+const soloRows = (rows: LiveRows) => rows.courses.filter((course) => course.product_code === "solo_bundle");
 
-describe("prices across product codes", () => {
-  type Live = ReturnType<typeof liveAfterSwitch>;
-  // Each test gets its own fresh rows, so mutating them cannot leak.
-  const freshLive = (): Live => liveAfterSwitch(simpleRoot());
-  const plan = (rows: Live = freshLive(), extra: Record<string, unknown> = {}) =>
+describe("prices: existing rows never change, new rows inherit", () => {
+  const planAgainst = (rows: LiveRows, extra: Record<string, unknown> = {}) =>
     planImport({
+      manifest: partialManifest(),
+      mapping,
+      sourceRoot: twoCourseRoot(),
+      existing: catalogSnapshotFromDbRows(rows),
+      env: {},
+      requireStripePriceIds: true,
+      ...extra,
+    });
+  const course = (p: ReturnType<typeof planImport>, slug: string) => p.courses.find((c) => c.key === slug)!;
+
+  it("gives a new Solo course from a partial manifest the live Solo price held by rows outside the manifest", async () => {
+    const p = planAgainst(liveAfterSwitch());
+    expect(p.errors).toEqual([]);
+    expect(p.courses.map((c) => c.key)).not.toContain("demo-core");
+    expect(course(p, "demo-extra")).toMatchObject({ kind: "insert", desired: { ...NOV1_SOLO, inherited_prices: true } });
+    expect(formatDryRun(p, { compareLive: true })).toContain("inherited from existing solo_bundle rows");
+
+    const store = memoryStore();
+    await applyPlanWithStore(store, p, mapping, { publish: false });
+    expect(store.courseRows.find((row) => row.slug === "demo-extra")).toMatchObject(NOV1_SOLO);
+  });
+
+  it("takes the mapping and the env Stripe id only when no row of the product exists anywhere", () => {
+    const first = planImport({ manifest: twoCourseManifest(), mapping, sourceRoot: twoCourseRoot(), env: SOLO_ENV });
+    expect(first.courses.map((c) => c.desired).filter((c) => !c.sku_row)).toEqual([
+      expect.objectContaining({ ...LAUNCH_SOLO, inherited_prices: false }),
+      expect.objectContaining({ ...LAUNCH_SOLO, inherited_prices: false }),
+    ]);
+    const noEnv = planImport({
       manifest: twoCourseManifest(),
       mapping,
+      sourceRoot: twoCourseRoot(),
+      env: {},
+      requireStripePriceIds: true,
+    });
+    expect(noEnv.errors.some((error) => /STRIPE_PRICE_ID_SOLO_BUNDLE is required/.test(error))).toBe(true);
+  });
+
+  describe.each([
+    ["--compare-live", false],
+    ["--apply", true],
+  ])("refuses to inherit a price that cannot be sold under %s", (_mode, requireStripePriceIds) => {
+    const refused = (mutate: (rows: LiveRows) => void, message: RegExp) => {
+      const rows = liveAfterSwitch();
+      mutate(rows);
+      const p = planAgainst(rows, { requireStripePriceIds });
+      expect(p.errors.some((error) => message.test(error))).toBe(true);
+    };
+
+    it("when existing rows disagree", () =>
+      refused((rows) => Object.assign(soloRows(rows).at(-1)!, { price_cents: 2900 }), /solo_bundle rows disagree on price_cents/));
+    it("when the Stripe id is missing", () =>
+      refused((rows) => soloRows(rows).forEach((row) => (row.stripe_price_id = null)), /cannot be sold \(stripe_price_id null\)/));
+    it("when the Stripe id is not a price_ id", () =>
+      refused((rows) => soloRows(rows).forEach((row) => (row.stripe_price_id = "prod_1")), /stripe_price_id "prod_1"/));
+    it("when price_cents is zero", () =>
+      refused((rows) => soloRows(rows).forEach((row) => (row.price_cents = 0)), /price_cents 0/));
+    it("when the currency is empty", () =>
+      refused((rows) => soloRows(rows).forEach((row) => (row.currency = "")), /currency ""/));
+  });
+
+  it("never writes a price field on an existing row, however the run is configured", async () => {
+    const rows = liveAfterSwitch();
+    // Force real updates on existing rows: a changed title, and a mapping whose prices differ from the live ones.
+    for (const row of rows.courses) row.title = `Old ${String(row.title)}`;
+    const repriced: ProductMapping = {
+      ...mapping,
+      launchPriceCents: 1,
+      products: mapping.products.map((product) => ({ ...product, price_cents: product.price_cents + 100 })),
+    };
+    const p = planImport({
+      manifest: twoCourseManifest(),
+      mapping: repriced,
       sourceRoot: twoCourseRoot(),
       existing: catalogSnapshotFromDbRows(rows),
       env: SOLO_ENV,
       requireStripePriceIds: true,
-      ...extra,
     });
-  const op = (p: ReturnType<typeof planImport>, slug: string) => p.courses.find((c) => c.key === slug)!;
-  const solo = (rows: Live) => rows.courses.filter((course) => course.product_code === "solo_bundle");
-  const MAPPED_SOLO = { price_cents: 2900, stripe_price_id: "price_test_solo_bundle", currency: "eur" };
-
-  it("gives a Solo course added after the switch the live Solo price, not the launch price", async () => {
-    const p = plan(freshLive(), { env: {} });
     expect(p.errors).toEqual([]);
-    expect(op(p, "demo-extra").kind).toBe("insert");
-    expect(op(p, "demo-extra").desired).toMatchObject({
-      price_cents: 3900,
-      stripe_price_id: "price_nov1",
-      currency: "eur",
-      inherited_prices: true,
-    });
-    expect(op(p, "demo-core").kind).toBe("unchanged");
-    expect(formatDryRun(p, { compareLive: true })).toContain("inherited from existing solo_bundle rows");
+    const existingOps = p.courses.filter((c) => c.existing);
+    expect(existingOps.map((c) => c.key).sort()).toEqual(["demo-core", "team-5"]);
+    expect(existingOps.every((c) => c.kind === "update" && !c.desired.write_prices)).toBe(true);
+
     const store = memoryStore();
-    await applyPlanWithStore(store, p, mapping, { publish: false });
-    expect(store.courseRows.find((row) => row.slug === "demo-extra")).toMatchObject({
-      price_cents: 3900,
-      stripe_price_id: "price_nov1",
-    });
-  });
-
-  it("refuses to add a Solo course when the existing Solo rows disagree", () => {
-    const rows = freshLive();
-    rows.courses.push({ ...solo(rows)[0], id: "other", slug: "legacy", price_cents: 2900 });
-    const p = plan(rows);
-    expect(p.errors.some((error) => /existing solo_bundle rows disagree on price_cents/.test(error))).toBe(true);
-  });
-
-  it("refuses to inherit a missing or malformed Stripe price id under --apply", () => {
-    for (const bad of [null, "prod_1"]) {
-      const rows = freshLive();
-      for (const course of solo(rows)) course.stripe_price_id = bad;
-      const p = plan(rows);
-      expect(p.errors.some((error) => /no usable Stripe price id/.test(error))).toBe(true);
-      // A dry-run without the apply requirement only reports what it would inherit.
-      expect(plan(rows, { requireStripePriceIds: false }).errors).toEqual([]);
+    await applyPlanWithStore(store, p, mapping, { publish: true });
+    for (const slug of ["demo-core", "team-5"]) {
+      const written = store.courseRows.find((row) => row.slug === slug)!;
+      expect(written).toBeDefined();
+      for (const column of PRICE_COLUMNS) expect(written).not.toHaveProperty(column);
     }
+    // The only row that carries prices is the new one, and it carries the live Solo price.
+    expect(store.courseRows.filter((row) => "price_cents" in row).map((row) => row.slug)).toEqual(["demo-extra"]);
+    expect(store.courseRows.find((row) => row.slug === "demo-extra")).toMatchObject(NOV1_SOLO);
+    expect(formatDryRun(p, { compareLive: true })).toContain("prices kept at 3900 eur / price_nov1");
   });
 
-  it("refuses a bare --set-prices that would move Solo off a switched price", () => {
-    const p = plan(freshLive(), { setPrices: true });
-    expect(p.errors.some((error) => /refusing bare --set-prices: solo_bundle differs from the mapping on price_cents, stripe_price_id/.test(error))).toBe(true);
-    expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 3900, write_prices: false });
-  });
-
-  it.each([
-    ["a hand-set price", { price_cents: 4900, stripe_price_id: "price_test_solo_bundle" }, "price_cents"],
-    ["a different id at the launch price", { price_cents: 2900, stripe_price_id: "price_other" }, "stripe_price_id"],
-    ["a different currency", { price_cents: 2900, stripe_price_id: "price_test_solo_bundle", currency: "usd" }, "currency"],
-  ])("refuses a bare --set-prices over Solo with %s", (_name, fields, differing) => {
-    const rows = freshLive();
-    for (const course of solo(rows)) Object.assign(course, fields);
-    const p = plan(rows, { setPrices: true });
-    expect(p.errors.some((error) => error.includes(`differs from the mapping on ${differing}`))).toBe(true);
-    expect(op(p, "demo-core").desired.write_prices).toBe(false);
-  });
-
-  it("lets a bare --set-prices run when Solo already equals the mapping, and moves the other rows", () => {
-    const rows = freshLive();
-    for (const course of solo(rows)) Object.assign(course, MAPPED_SOLO);
-    const p = plan(rows, { setPrices: true });
-    expect(p.errors).toEqual([]);
-    expect(op(p, "demo-core").kind).toBe("unchanged");
-    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 34900, write_prices: true });
-    expect(op(p, "demo-extra").desired).toMatchObject({ ...MAPPED_SOLO, inherited_prices: false });
-  });
-
-  it("moves only team_5 with --set-prices=team_5", () => {
-    const p = plan(freshLive(), { setPrices: ["team_5"] });
-    expect(p.errors).toEqual([]);
-    expect(op(p, "team-5").kind).toBe("update");
-    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 34900, stripe_price_id: "price_test_team_5" });
-    expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 3900, stripe_price_id: "price_nov1", write_prices: false });
-    expect(op(p, "demo-extra").desired).toMatchObject({ price_cents: 3900, inherited_prices: true });
-    const text = formatDryRun(p, { compareLive: true });
-    expect(text).toContain("price_cents 30000 -> 34900");
-    expect(text).toContain("stripe_price_id price_live_team5 -> price_test_team_5");
-    expect(text).toContain("prices kept at 3900 eur / price_nov1");
-  });
-
-  it("moves Solo with --set-prices=solo_bundle, shows old -> new, and prices a new Solo course the same", () => {
-    const p = plan(freshLive(), { setPrices: ["solo_bundle"] });
-    expect(p.errors).toEqual([]);
-    expect(op(p, "demo-core").desired).toMatchObject(MAPPED_SOLO);
-    expect(op(p, "demo-extra").desired).toMatchObject({ ...MAPPED_SOLO, inherited_prices: false });
-    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 30000, write_prices: false });
-    const text = formatDryRun(p, { compareLive: true });
-    expect(text).toContain("price_cents 3900 -> 2900");
-    expect(text).toContain("stripe_price_id price_nov1 -> price_test_solo_bundle");
-  });
-
-  it("needs the live catalog and a known product code for --set-prices", () => {
-    const noLive = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV, setPrices: true });
-    expect(noLive.errors.some((error) => /needs the live catalog/.test(error))).toBe(true);
-    const unknown = plan(freshLive(), { setPrices: ["team_7"] });
-    expect(unknown.errors.some((error) => /unknown product code team_7/.test(error))).toBe(true);
-  });
-
-  it("uses the mapping when no row of the product code exists yet", () => {
-    const p = planImport({ manifest: twoCourseManifest(), mapping, sourceRoot: twoCourseRoot(), env: SOLO_ENV });
-    expect(op(p, "demo-extra").desired).toMatchObject({ price_cents: 2900, inherited_prices: false });
-  });
-
-  it("tells a plain dry-run that the prices shown are for new rows", () => {
+  it("tells a plain dry-run what its prices mean", () => {
     const p = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV });
-    expect(formatDryRun(p)).toContain("prices shown are for new rows; existing rows keep theirs unless named in --set-prices");
+    expect(formatDryRun(p)).toContain("existing rows never change price, and a new row inherits its product's live price");
   });
 });
 
 describe("price switch", () => {
-  function fakeStore(rows: { slug: string; price_cents: number | null; stripe_price_id: string | null }[]) {
+  type Row = { slug: string; product_code: string; price_cents: number | null; stripe_price_id: string | null };
+  // Every row of the catalog, whether or not any manifest lists it.
+  const catalog = (): Row[] => [
+    { slug: "demo-core", product_code: "solo_bundle", price_cents: 2900, stripe_price_id: "price_test_solo_bundle" },
+    { slug: "demo-extra", product_code: "solo_bundle", price_cents: 2900, stripe_price_id: "price_test_solo_bundle" },
+    { slug: "legacy-not-in-any-manifest", product_code: "solo_bundle", price_cents: 2900, stripe_price_id: "price_test_solo_bundle" },
+    { slug: "team-5", product_code: "team_5", price_cents: 34900, stripe_price_id: "price_team5" },
+    { slug: "team-10", product_code: "team_10", price_cents: 59900, stripe_price_id: "price_team10" },
+  ];
+  function fakeDb(rows: Row[] = catalog()) {
     const writes: { code: string; cents: number; id: string }[] = [];
     let opened = 0;
     const store: PriceSwitchStore = {
-      async listByProductCode() {
-        return rows;
+      async listByProductCode(code) {
+        return rows.filter((row) => row.product_code === code);
       },
       async setPrices(code, cents, id) {
         writes.push({ code, cents, id });
+        for (const row of rows.filter((candidate) => candidate.product_code === code)) {
+          row.price_cents = cents;
+          row.stripe_price_id = id;
+        }
       },
     };
-    return { writes, opened: () => opened, openStore: () => ((opened += 1), store) };
+    return { rows, writes, opened: () => opened, openStore: () => ((opened += 1), store) };
   }
-  const solo = [
-    { slug: "a", price_cents: 2900, stripe_price_id: "price_test_solo_bundle" },
-    { slug: "b", price_cents: 2900, stripe_price_id: "price_test_solo_bundle" },
-  ];
+  const run = (db: ReturnType<typeof fakeDb>, options: Partial<Parameters<typeof runPriceSwitch>[0]> = {}) =>
+    runPriceSwitch({ mapping, stripePriceId: "price_nov1", apply: true, openStore: db.openStore, log: () => undefined, ...options });
+  const priceOf = (db: ReturnType<typeof fakeDb>, code: string) =>
+    db.rows.filter((row) => row.product_code === code).map((row) => [row.price_cents, row.stripe_price_id]);
 
   it("is a dry-run by default: no store is opened and nothing is written", async () => {
-    const fake = fakeStore(solo);
+    const db = fakeDb();
     const lines: string[] = [];
-    const result = await runPriceSwitch({
-      mapping,
-      stripePriceId: "price_nov1",
-      apply: false,
-      openStore: fake.openStore,
-      log: (line) => lines.push(line),
-    });
+    const result = await run(db, { apply: false, log: (line) => lines.push(line) });
     expect(result.updated).toBe(0);
-    expect(fake.opened()).toBe(0);
-    expect(fake.writes).toEqual([]);
+    expect(db.opened()).toBe(0);
+    expect(db.writes).toEqual([]);
     expect(lines.join("\n")).toContain("Dry-run: no writes");
   });
 
-  it("with --apply updates only the catalog SKU, with the trimmed validated id", async () => {
-    const fake = fakeStore(solo);
-    const result = await runPriceSwitch({
-      mapping,
-      stripePriceId: "  price_nov1  ",
-      apply: true,
-      openStore: fake.openStore,
-      log: () => undefined,
-    });
-    expect(result).toEqual({ stripePriceId: "price_nov1", updated: 2 });
-    expect(fake.writes).toEqual([{ code: "solo_bundle", cents: 3900, id: "price_nov1" }]);
+  it("with --apply moves every row of the code, including rows in no manifest, and no other code", async () => {
+    const db = fakeDb();
+    const result = await run(db, { stripePriceId: "  price_nov1  " });
+    expect(result).toMatchObject({ productCode: "solo_bundle", priceCents: 3900, stripePriceId: "price_nov1", updated: 3 });
+    expect(db.writes).toEqual([{ code: "solo_bundle", cents: 3900, id: "price_nov1" }]);
+    expect(priceOf(db, "solo_bundle")).toEqual([[3900, "price_nov1"], [3900, "price_nov1"], [3900, "price_nov1"]]);
+    expect(priceOf(db, "team_5")).toEqual([[34900, "price_team5"]]);
+    expect(priceOf(db, "team_10")).toEqual([[59900, "price_team10"]]);
   });
 
-  it("writes nothing when the rows are already at the target", async () => {
-    const fake = fakeStore(solo.map((row) => ({ ...row, price_cents: 3900, stripe_price_id: "price_nov1" })));
-    const result = await runPriceSwitch({
-      mapping,
-      stripePriceId: "price_nov1",
-      apply: true,
-      openStore: fake.openStore,
-      log: () => undefined,
-    });
-    expect(result.updated).toBe(0);
-    expect(fake.writes).toEqual([]);
+  it("switches another product when it names the code and the price", async () => {
+    const db = fakeDb();
+    await run(db, { productCode: "team_5", priceCents: 39900, stripePriceId: "price_team5b" });
+    expect(db.writes).toEqual([{ code: "team_5", cents: 39900, id: "price_team5b" }]);
+    expect(priceOf(db, "solo_bundle")[0]).toEqual([2900, "price_test_solo_bundle"]);
+    expect(priceOf(db, "team_10")).toEqual([[59900, "price_team10"]]);
   });
 
-  it("refuses a malformed id before opening the store", async () => {
-    const fake = fakeStore(solo);
-    await expect(
-      runPriceSwitch({ mapping, stripePriceId: "prod_1", apply: true, openStore: fake.openStore, log: () => undefined }),
-    ).rejects.toThrow(/must match/);
-    expect(fake.opened()).toBe(0);
+  it("is idempotent: a second run writes nothing", async () => {
+    const db = fakeDb();
+    await run(db);
+    db.writes.length = 0;
+    expect((await run(db)).updated).toBe(0);
+    expect(db.writes).toEqual([]);
+  });
+
+  it("refuses a product code that matches no row, without writing", async () => {
+    const db = fakeDb();
+    await expect(run(db, { productCode: "team_7", priceCents: 100 })).rejects.toThrow(/No academy_courses row has product_code team_7/);
+    expect(db.writes).toEqual([]);
+  });
+
+  it.each([
+    ["a malformed Stripe id", { stripePriceId: "prod_1" }, /must match/],
+    ["an empty Stripe id", { stripePriceId: "  " }, /must match/],
+    ["a bad product code", { productCode: "Team 5", priceCents: 100 }, /--product must match/],
+    ["a named product without a price", { productCode: "team_5" }, /--price-cents is required/],
+    ["the catalog SKU named without a price", { productCode: "solo_bundle" }, /--price-cents is required/],
+    ["a zero price", { productCode: "team_5", priceCents: 0 }, /positive integer/],
+    ["a fractional price", { productCode: "team_5", priceCents: 12.5 }, /positive integer/],
+  ])("refuses %s before opening the store", async (_name, options, message) => {
+    const db = fakeDb();
+    await expect(run(db, options)).rejects.toThrow(message);
+    expect(db.opened()).toBe(0);
+    expect(db.writes).toEqual([]);
   });
 });
 
@@ -1251,9 +1181,10 @@ describe("rows the plan does not cover", () => {
   it("stays quiet without a database read or when everything is covered", () => {
     const root = simpleRoot();
     expect(planImport({ manifest: boxManifest(), mapping, sourceRoot: root }).warnings).toEqual([]);
-    expect(
-      planImport({ manifest: boxManifest(), mapping, sourceRoot: root, existing: switchedCatalog(root) }).warnings,
-    ).toEqual([]);
+    const covered = catalogSnapshotFromDbRows(
+      dbShapedCatalogFromPlan(planImport({ manifest: boxManifest(), mapping, sourceRoot: root, env: SOLO_ENV })),
+    );
+    expect(planImport({ manifest: boxManifest(), mapping, sourceRoot: root, existing: covered }).warnings).toEqual([]);
   });
 });
 
