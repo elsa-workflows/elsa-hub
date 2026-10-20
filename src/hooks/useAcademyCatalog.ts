@@ -29,7 +29,8 @@ export function useAcademyCatalog() {
     accessByCourseId,
     isLoading:
       authLoading ||
-      coursesQuery.isLoading || (Boolean(user) && courses.length > 0 && accessQuery.isLoading),
+      coursesQuery.isLoading ||
+      (Boolean(user) && courses.length > 0 && accessQuery.isLoading),
     isError: coursesQuery.isError || accessQuery.isError,
     error: coursesQuery.error ?? accessQuery.error,
   } satisfies {

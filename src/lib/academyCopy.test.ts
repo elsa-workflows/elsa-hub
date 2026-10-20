@@ -40,6 +40,15 @@ describe("isAcademySoloLaunchPriceActive", () => {
     expect(isAcademySoloLaunchPriceActive(new Date("2026-11-01T00:00:00Z"))).toBe(false);
   });
 
+  it("falls back to the UTC date when the formatter returns no day part", () => {
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation(
+      () => ({ formatToParts: () => [] }) as unknown as Intl.DateTimeFormat,
+    );
+    // 23:30Z on 31 Oct is already 1 Nov in Amsterdam, so only the UTC fallback keeps it active.
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:30:00Z"))).toBe(true);
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-11-01T00:00:00Z"))).toBe(false);
+  });
+
   it("ends at midnight Amsterdam time after 31 Oct, not at midnight UTC", () => {
     // 31 Oct 23:59 CET is 22:59 UTC; 1 Nov 00:00 CET is 31 Oct 23:00 UTC.
     expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:59:00+01:00"))).toBe(true);

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +23,8 @@ import {
   isAcademyPaymentSuccess,
 } from "@/lib/academyCopy";
 
+export type AcademySoloOwnership = "owned" | "unknown" | "none";
+
 type AcademySoloCtaProps = {
   id?: string;
   locked?: boolean;
@@ -30,7 +33,7 @@ type AcademySoloCtaProps = {
    * of a buy action. "unknown": ownership is still loading or failed to load, so show neither
    * a buy action nor the note. Default "none".
    */
-  ownership?: "owned" | "unknown" | "none";
+  ownership?: AcademySoloOwnership;
   onBuyCourse?: typeof handleBuyCourse;
 };
 
@@ -59,6 +62,31 @@ export function AcademySoloCta({
   const showGumroadClaim = locked && signedIn && ACADEMY_GUMROAD_CLAIM_LIVE;
   const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${search}`)}`;
 
+  let purchaseArea: ReactNode = null;
+  if (ownership === "owned") {
+    purchaseArea = (
+      <p className="text-sm">
+        {ACADEMY_SOLO_OWNED_NOTE}{" "}
+        <a href="#my-courses" className="text-primary hover:underline">
+          {ACADEMY_SOLO_OWNED_LINK}
+        </a>
+      </p>
+    );
+  } else if (ownership === "none" && !paymentSuccess) {
+    purchaseArea = signedIn ? (
+      <Button type="button" onClick={() => onBuyCourse()}>
+        {ACADEMY_SOLO_BUY_LABEL}
+      </Button>
+    ) : (
+      <div className="space-y-2">
+        <Button asChild>
+          <Link to={loginHref}>{ACADEMY_SOLO_SIGN_IN_LABEL}</Link>
+        </Button>
+        <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_SIGNED_OUT_NOTE}</p>
+      </div>
+    );
+  }
+
   return (
     <Card id={id} data-testid="academy-solo-cta">
       <CardHeader>
@@ -76,28 +104,7 @@ export function AcademySoloCta({
           </ul>
         )}
 
-        {ownership === "unknown" ? null : ownership === "owned" ? (
-          <p className="text-sm">
-            {ACADEMY_SOLO_OWNED_NOTE}{" "}
-            <a href="#my-courses" className="text-primary hover:underline">
-              {ACADEMY_SOLO_OWNED_LINK}
-            </a>
-          </p>
-        ) : (
-          !paymentSuccess &&
-          (signedIn ? (
-            <Button type="button" onClick={() => onBuyCourse()}>
-              {ACADEMY_SOLO_BUY_LABEL}
-            </Button>
-          ) : (
-            <div className="space-y-2">
-              <Button asChild>
-                <Link to={loginHref}>{ACADEMY_SOLO_SIGN_IN_LABEL}</Link>
-              </Button>
-              <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_SIGNED_OUT_NOTE}</p>
-            </div>
-          ))
-        )}
+        {purchaseArea}
 
         {showGumroadClaim && (
           <p className="text-sm text-muted-foreground">{ACADEMY_GUMROAD_CLAIM_LINE}</p>

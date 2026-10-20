@@ -58,6 +58,8 @@ const course = {
   product_code: "solo_bundle",
 };
 
+const second = { ...course, id: "course-2", slug: "advanced", title: "Advanced" };
+
 function catalogTree(path = "/academy") {
   return (
     <HelmetProvider>
@@ -81,6 +83,12 @@ function loadedCatalog() {
     isError: false,
     error: null,
   };
+}
+
+/** Signed-in visitor viewing a loaded catalogue, with the given catalogue fields overridden. */
+function arrangeSignedInCatalog(overrides: Record<string, unknown> = {}) {
+  useAuth.mockReturnValue({ user: { id: "user-1" } });
+  useAcademyCatalog.mockReturnValue({ ...loadedCatalog(), ...overrides });
 }
 
 describe("Academy catalog", () => {
@@ -158,8 +166,7 @@ describe("Academy catalog", () => {
   });
 
   it("calls handleBuyCourse from the Solo Bundle Buy CTA", () => {
-    useAuth.mockReturnValue({ user: { id: "user-1" } });
-    useAcademyCatalog.mockReturnValue(loadedCatalog());
+    arrangeSignedInCatalog();
 
     renderCatalog();
     fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
@@ -193,10 +200,7 @@ describe("Academy catalog", () => {
   });
 
   it("replaces the Buy button with an ownership note when the visitor has access to every published course", () => {
-    const second = { ...course, id: "course-2", slug: "advanced", title: "Advanced" };
-    useAuth.mockReturnValue({ user: { id: "user-1" } });
-    useAcademyCatalog.mockReturnValue({
-      ...loadedCatalog(),
+    arrangeSignedInCatalog({
       courses: [course, second],
       myCourses: [course, second],
       accessByCourseId: { [course.id]: true, [second.id]: true },
@@ -214,10 +218,7 @@ describe("Academy catalog", () => {
   });
 
   it("keeps the Buy button when the visitor has access to only some published courses", () => {
-    const second = { ...course, id: "course-2", slug: "advanced", title: "Advanced" };
-    useAuth.mockReturnValue({ user: { id: "user-1" } });
-    useAcademyCatalog.mockReturnValue({
-      ...loadedCatalog(),
+    arrangeSignedInCatalog({
       courses: [course, second],
       myCourses: [course],
       accessByCourseId: { [course.id]: true, [second.id]: false },
@@ -233,8 +234,7 @@ describe("Academy catalog", () => {
     ["is loading", { isLoading: true }],
     ["failed to load", { isError: true, error: new Error("access check failed") }],
   ])("shows neither Buy, sign-in nor the ownership note while ownership %s", (_label, state) => {
-    useAuth.mockReturnValue({ user: { id: "user-1" } });
-    useAcademyCatalog.mockReturnValue({ ...loadedCatalog(), ...state });
+    arrangeSignedInCatalog(state);
 
     renderCatalog();
 
@@ -245,8 +245,7 @@ describe("Academy catalog", () => {
   });
 
   it("keeps the Buy button for a signed-in user who owns nothing", () => {
-    useAuth.mockReturnValue({ user: { id: "user-1" } });
-    useAcademyCatalog.mockReturnValue(loadedCatalog());
+    arrangeSignedInCatalog();
 
     renderCatalog();
 

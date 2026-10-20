@@ -17,6 +17,7 @@ import {
   handleBuyCourse,
   scrollAcademySoloBundleIntoView,
 } from "@/lib/academy";
+import { soloBundleOwnership } from "@/lib/academyOwnership";
 import { ACADEMY_DESCRIPTION, ACADEMY_TITLE, academyCatalogJsonLd } from "@/lib/academySeo";
 import { SITE_URL } from "@/lib/site";
 
@@ -24,14 +25,12 @@ export default function AcademyCatalog() {
   const { hash } = useLocation();
   const { courses, myCourses, accessByCourseId, isLoading, isError, error } = useAcademyCatalog();
 
-  // has_academy_access also grants via a single-course entitlement, a team seat or an admin, so
-  // only access to every published course counts as owning the bundle.
-  const ownership: "owned" | "unknown" | "none" =
-    isLoading || isError
-      ? "unknown"
-      : courses.length > 0 && courses.every((course) => accessByCourseId[course.id])
-        ? "owned"
-        : "none";
+  const ownership = soloBundleOwnership({
+    isLoading,
+    isError,
+    courses,
+    hasAccess: accessByCourseId,
+  });
 
   useLayoutEffect(() => {
     scrollAcademySoloBundleIntoView(hash);
