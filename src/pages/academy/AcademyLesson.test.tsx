@@ -215,4 +215,51 @@ describe("Academy lesson page", () => {
     expect(screen.getByRole("button", { name: "Hosting lab kit" })).toBeInTheDocument();
     expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
   });
+
+  it("shows an empty state, not the buy panel, when an entitled user's lesson has no body", () => {
+    useAcademyLesson.mockReturnValue({
+      course,
+      lesson: paidLesson,
+      bodyMd: null,
+      assets: [],
+      hasAccess: true,
+      isPreview: false,
+      canRead: true,
+      authLoading: false,
+      user: { id: "user-1" },
+      notFound: false,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");
+
+    expect(screen.getByRole("heading", { name: "No content yet" })).toBeInTheDocument();
+    expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state, not the buy panel, when a preview lesson has no body", () => {
+    useAcademyLesson.mockReturnValue({
+      course,
+      lesson: previewLesson,
+      bodyMd: "",
+      assets: [],
+      hasAccess: false,
+      isPreview: true,
+      canRead: true,
+      authLoading: false,
+      user: null,
+      notFound: false,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    renderLesson("/academy/elsa-3-solo-bundle/welcome");
+
+    expect(screen.getByRole("heading", { name: "No content yet" })).toBeInTheDocument();
+    expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
+  });
 });

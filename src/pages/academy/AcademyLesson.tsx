@@ -14,6 +14,7 @@ import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
 import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyMarkdown } from "@/components/academy/AcademyMarkdown";
 import {
+  AcademyEmptyState,
   AcademyErrorState,
   AcademyLoadingState,
   AcademyNotFoundState,
@@ -134,9 +135,16 @@ export default function AcademyLesson() {
           {hasAccess && <AcademyPaymentSuccessNote />}
         </header>
 
-        {canRead && bodyMd ? (
+        {canRead ? (
           <>
-            <AcademyMarkdown markdown={bodyMd} />
+            {bodyMd ? (
+              <AcademyMarkdown markdown={bodyMd} />
+            ) : (
+              <AcademyEmptyState
+                title="No content yet"
+                message="This lesson has no content yet. Check back soon."
+              />
+            )}
             {hasAccess && <AcademyKitDownload assets={assets} title="Lesson files" />}
           </>
         ) : (

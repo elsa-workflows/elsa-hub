@@ -8,7 +8,7 @@ import {
 } from "@/lib/academy";
 
 export function useAcademyCourse(courseSlug: string | undefined) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const courseQuery = useQuery({
     queryKey: ["academy-course", courseSlug],
@@ -44,7 +44,12 @@ export function useAcademyCourse(courseSlug: string | undefined) {
     kitAssets: hasAccess ? (kitsQuery.data ?? []) : [],
     hasAccess,
     notFound: courseQuery.isSuccess && course === null,
-    isLoading: courseQuery.isLoading || (Boolean(course) && lessonsQuery.isLoading),
+    // Wait for the entitlement answer too, or an entitled user sees the buy panel flash.
+    isLoading:
+      authLoading ||
+      courseQuery.isLoading ||
+      (Boolean(course) && lessonsQuery.isLoading) ||
+      (Boolean(user && course) && accessQuery.isLoading),
     isError: courseQuery.isError || lessonsQuery.isError || accessQuery.isError || kitsQuery.isError,
     error: courseQuery.error ?? lessonsQuery.error ?? accessQuery.error ?? kitsQuery.error,
   };
