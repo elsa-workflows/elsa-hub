@@ -11,6 +11,8 @@ import {
   ACADEMY_SOLO_HEADING,
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
+  ACADEMY_SOLO_OWNED_LINK,
+  ACADEMY_SOLO_OWNED_NOTE,
   ACADEMY_SOLO_SIGN_IN_LABEL,
   ACADEMY_SOLO_SIGNED_OUT_NOTE,
   ACADEMY_TEAM_LINE_AFTER,
@@ -23,6 +25,8 @@ import {
 type AcademySoloCtaProps = {
   id?: string;
   locked?: boolean;
+  /** The visitor already owns the Solo Bundle: show a note instead of a buy action. */
+  owned?: boolean;
   onBuyCourse?: typeof handleBuyCourse;
 };
 
@@ -39,6 +43,7 @@ export function AcademyPaymentSuccessNote() {
 export function AcademySoloCta({
   id,
   locked = false,
+  owned = false,
   onBuyCourse = handleBuyCourse,
 }: AcademySoloCtaProps) {
   const { user } = useAuth();
@@ -67,7 +72,15 @@ export function AcademySoloCta({
           </ul>
         )}
 
-        {!paymentSuccess &&
+        {owned ? (
+          <p className="text-sm">
+            {ACADEMY_SOLO_OWNED_NOTE}{" "}
+            <a href="#my-courses" className="text-primary hover:underline">
+              {ACADEMY_SOLO_OWNED_LINK}
+            </a>
+          </p>
+        ) : (
+          !paymentSuccess &&
           (signedIn ? (
             <Button type="button" onClick={() => onBuyCourse()}>
               {ACADEMY_SOLO_BUY_LABEL}
@@ -79,7 +92,8 @@ export function AcademySoloCta({
               </Button>
               <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_SIGNED_OUT_NOTE}</p>
             </div>
-          ))}
+          ))
+        )}
 
         {showGumroadClaim && (
           <p className="text-sm text-muted-foreground">{ACADEMY_GUMROAD_CLAIM_LINE}</p>

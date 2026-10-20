@@ -38,6 +38,8 @@ import AcademyCatalog from "./AcademyCatalog";
 import {
   ACADEMY_SOLO_BUY_LABEL,
   ACADEMY_SOLO_INCLUDED,
+  ACADEMY_SOLO_OWNED_LINK,
+  ACADEMY_SOLO_OWNED_NOTE,
   ACADEMY_SOLO_SIGN_IN_LABEL,
   ACADEMY_SOLO_SIGNED_OUT_NOTE,
   academySoloBundleBody,
@@ -188,5 +190,34 @@ describe("Academy catalog", () => {
     });
     renderCatalog();
     expect(screen.getByText("catalogue down")).toBeInTheDocument();
+  });
+
+  it("replaces the Buy button with an ownership note and a My courses link for an owner", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    useAcademyCatalog.mockReturnValue({
+      ...loadedCatalog(),
+      myCourses: [course],
+      accessByCourseId: { [course.id]: true },
+    });
+
+    renderCatalog();
+
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).not.toBeInTheDocument();
+    expect(screen.getByText(ACADEMY_SOLO_OWNED_NOTE)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: ACADEMY_SOLO_OWNED_LINK })).toHaveAttribute(
+      "href",
+      "#my-courses",
+    );
+  });
+
+  it("keeps the Buy button for a signed-in user who owns nothing", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    useAcademyCatalog.mockReturnValue(loadedCatalog());
+
+    renderCatalog();
+
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
   });
 });

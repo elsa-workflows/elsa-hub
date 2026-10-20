@@ -61,7 +61,7 @@ export default function AcademyCatalog() {
             ) : (
               <>
                 {myCourses.length > 0 && (
-                  <div className="space-y-4">
+                  <div id="my-courses" className="space-y-4">
                     <h2 className="text-2xl font-bold">My courses</h2>
                     <div className="grid gap-6 sm:grid-cols-2">
                       {myCourses.map((course) => (
@@ -94,7 +94,11 @@ export default function AcademyCatalog() {
             )}
           </div>
 
-          <AcademySoloCta id={ACADEMY_SOLO_BUNDLE_ID} onBuyCourse={handleBuyCourse} />
+          <AcademySoloCta
+            id={ACADEMY_SOLO_BUNDLE_ID}
+            owned={myCourses.length > 0}
+            onBuyCourse={handleBuyCourse}
+          />
         </div>
 
         <p className="text-sm text-muted-foreground text-center mt-12">
