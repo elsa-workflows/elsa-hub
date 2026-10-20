@@ -15,7 +15,8 @@ import {
 
 const OTP_TYPES = new Set<string>(["email", "signup"]);
 
-export const AUTH_CONFIRM_SIGNED_IN_MS = 1500;
+// Long enough to read "Not you?" and reach the Sign out button before we navigate away.
+export const AUTH_CONFIRM_SIGNED_IN_MS = 3000;
 
 function parseOtpType(value: string | null): EmailOtpType | null {
   if (!value) return null;
@@ -77,6 +78,9 @@ export default function AuthConfirm() {
     setBusy(true);
     setErrorMessage(null);
 
+    // Consume the stored redirect before verifyOtp so AuthContext's SIGNED_IN handler
+    // cannot find it and navigate first. Trade-off: if verification fails, the stored
+    // redirect is already gone, so a retry falls back to ?redirect= or the default path.
     const dest = consumeAuthRedirect(
       sanitizeAuthRedirect(redirectParam) ?? DEFAULT_POST_AUTH_PATH,
     );
