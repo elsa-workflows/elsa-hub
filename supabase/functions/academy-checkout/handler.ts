@@ -63,6 +63,8 @@ export type AcademyCheckoutServiceClient = {
 
 export type AcademyCheckoutFilter = {
   eq: (column: string, value: string | boolean) => AcademyCheckoutFilter;
+  is: (column: string, value: null) => AcademyCheckoutFilter;
+  neq: (column: string, value: string) => AcademyCheckoutFilter;
   order?: (column: string, options: { ascending: boolean }) => AcademyCheckoutFilter;
   limit: (n: number) => Promise<AcademyQueryResult<unknown[]>>;
   maybeSingle: () => Promise<AcademyQueryResult<unknown>>;
