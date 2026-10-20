@@ -168,10 +168,9 @@ describe("academy data layer", () => {
   });
 
   it("keeps checkout product fields in academyCheckoutFields only", () => {
-    expect(academyCheckoutFields()).toEqual({
-      productCode: ACADEMY_SOLO_PRODUCT_CODE,
-    });
-    expect(academyCheckoutFields()).not.toHaveProperty("organizationId");
+    expect(academyCheckoutFields("course-1")).toEqual({ courseId: "course-1" });
+    expect(academyCheckoutFields("course-1")).not.toHaveProperty("organizationId");
+    expect(academyCheckoutFields("course-1")).not.toHaveProperty("productCode");
     expect(ACADEMY_SOLO_PRODUCT_CODE).toBe("solo_bundle");
     handleBuyCourse();
     expect(toast.message).toHaveBeenCalled();

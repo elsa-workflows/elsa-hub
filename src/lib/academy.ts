@@ -148,21 +148,20 @@ export function scrollAcademySoloBundleIntoView(
 }
 
 /**
- * Fields Stripe checkout will need. Always the Solo Bundle.
- * #54 accepts { productCode } or { courseId }, never both, and 400s if
- * Solo sends organizationId.
+ * Body for the academy-checkout function (main, #86). Solo is a published
+ * course selected by courseId or courseSlug, never both, and never with
+ * organizationId. Every published course sells the Solo Bundle, so any
+ * published course id buys it. A bare { productCode: "solo_bundle" } is
+ * rejected with 400; productCode is for Team SKUs only.
  */
-export function academyCheckoutFields() {
-  return {
-    productCode: ACADEMY_SOLO_PRODUCT_CODE,
-  };
+export function academyCheckoutFields(courseId: string) {
+  return { courseId };
 }
 
 /**
  * Placeholder until Stripe checkout lands. Always buys the Solo Bundle.
  */
 export function handleBuyCourse(): void {
-  academyCheckoutFields();
   toast.message("Checkout is coming soon", {
     description: "Stripe checkout for the Solo Bundle will land in a follow-up.",
   });
