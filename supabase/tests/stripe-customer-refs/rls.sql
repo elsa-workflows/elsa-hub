@@ -282,13 +282,15 @@ SELECT pg_temp.ok(
 -- Column-level grants live in pg_attribute.attacl, not pg_class.relacl, so the
 -- check above cannot see them (for example REFERENCES (stripe_customer_id) or
 -- SELECT (stripe_customer_id) on a single column). System columns such as ctid
--- are included: attnum is not filtered.
+-- are included: attnum is not filtered. Dropped columns are excluded: before
+-- PostgreSQL 17 a dropped column keeps its attacl, which grants nothing.
 SELECT pg_temp.ok(
   NOT EXISTS (
     SELECT 1
     FROM pg_attribute att
     CROSS JOIN LATERAL aclexplode(att.attacl) a
     WHERE att.attrelid IN ('public.org_stripe_customers'::regclass, 'public.user_stripe_customers'::regclass)
+      AND NOT att.attisdropped
       AND (a.grantee = 0 OR a.grantee IN ('anon'::regrole, 'authenticated'::regrole))
   ),
   'no column-level grant to authenticated, anon or PUBLIC on either table'
