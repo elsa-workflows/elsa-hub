@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ELSA_VERSION } from "@/data/elsaVersion";
 import {
   ACADEMY_GUMROAD_CLAIM_LINE,
@@ -28,6 +28,18 @@ describe("academySoloBundleBody", () => {
 });
 
 describe("isAcademySoloLaunchPriceActive", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("falls back to the UTC date when the Amsterdam time zone is unavailable", () => {
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation(() => {
+      throw new RangeError("Invalid time zone specified: Europe/Amsterdam");
+    });
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:30:00Z"))).toBe(true);
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-11-01T00:00:00Z"))).toBe(false);
+  });
+
   it("ends at midnight Amsterdam time after 31 Oct, not at midnight UTC", () => {
     // 31 Oct 23:59 CET is 22:59 UTC; 1 Nov 00:00 CET is 31 Oct 23:00 UTC.
     expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:59:00+01:00"))).toBe(true);

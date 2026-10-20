@@ -6,20 +6,33 @@ import {
   ACADEMY_SOLO_REGULAR_PRICE_EUR,
 } from "./academyLegal";
 
-const AMSTERDAM_DAY = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Europe/Amsterdam",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+/** Amsterdam calendar day as YYYY-MM-DD, or null when the time zone is unavailable. */
+function amsterdamDay(now: Date): string | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Amsterdam",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(now);
+    const part = (type: string) => parts.find((p) => p.type === type)?.value;
+    const [year, month, day] = [part("year"), part("month"), part("day")];
+    return year && month && day ? `${year}-${month}-${day}` : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * The launch price runs through the last calendar day in Amsterdam
  * (ACADEMY_SOLO_LAUNCH_VALID_UNTIL, 31 Oct 2026), so it ends at 00:00 CET on
  * 1 Nov, the same moment the Stripe price on the course rows must switch.
+ * Only if the runtime has no Europe/Amsterdam zone data does it fall back to
+ * the UTC date, which is off by at most the Amsterdam offset.
  */
 export function isAcademySoloLaunchPriceActive(now: Date = new Date()): boolean {
-  return AMSTERDAM_DAY.format(now) <= ACADEMY_SOLO_LAUNCH_VALID_UNTIL;
+  const day = amsterdamDay(now) ?? now.toISOString().slice(0, 10);
+  return day <= ACADEMY_SOLO_LAUNCH_VALID_UNTIL;
 }
 
 /**
