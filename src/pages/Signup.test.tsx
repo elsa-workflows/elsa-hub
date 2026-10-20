@@ -62,4 +62,15 @@ describe("Signup", () => {
     await waitFor(() => expect(signInWithGoogle).toHaveBeenCalled());
     expect(sessionStorage.getItem("authRedirect")).toBe("/dashboard");
   });
+
+  it("honors ?redirect= so Cloud waitlist signup can return to /dashboard/cloud", async () => {
+    render(
+      <MemoryRouter initialEntries={["/signup?redirect=/dashboard/cloud"]}>
+        <Signup />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    await waitFor(() => expect(signInWithGoogle).toHaveBeenCalled());
+    expect(sessionStorage.getItem("authRedirect")).toBe("/dashboard/cloud");
+  });
 });
