@@ -30,10 +30,11 @@ import {
 // ---------------------------------------------------------------------------
 //
 // Elsa.Templates ships on its own cadence, separate from the engine, but the
-// 3.8.0 template package references Elsa Core / Studio 3.8.0, CShells 0.0.28
-// and generates .NET 10 projects — so the old "scaffold at 3.7.0, then bump
-// every package" workaround no longer applies. The 3.8.0 package is tagged at
-// elsa-templates commit c44079008d06f4580374d7c8abbeff2faf748df0.
+// 3.9.0 template package references Elsa Core / Studio 3.9.0, CShells 0.0.28
+// and generates .NET 10 projects. The host project is src/<Name>.Host (for
+// -n ElsaServerAndStudio that is src/ElsaServerAndStudio.Host), not
+// src/Company.ElsaCombined.Host. The 3.9.0 package is tagged at
+// elsa-templates commit 89f7747cba408a75a041cc3328b007c0c483acd1.
 
 
 const installTemplates = `dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`;
@@ -46,7 +47,7 @@ const scaffoldFromTemplate = `dotnet new elsa-combined -n "ElsaServerAndStudio" 
 cd ElsaServerAndStudio
 dotnet restore
 dotnet build
-dotnet run --project src/Company.ElsaCombined.Host`;
+dotnet run --project src/ElsaServerAndStudio.Host`;
 
 
 
@@ -63,7 +64,7 @@ dotnet run --project src/Company.ElsaCombined.Host`;
 const hostCsproj = `<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Host</RootNamespace>
@@ -126,10 +127,10 @@ ${pkg("Elsa.Studio.Workflows.Dashboard")}
 ${pkg("Elsa.Studio.Workflows.Designer")}`;
 
 
-// Externally verified by Codex on 2026-09-05: this exact source (plus
-// Host.csproj and Pages/_Host.cshtml below) restores and builds against the
-// Elsa 3.8.0 packages with 0 warnings and 0 errors, and the host serves Studio
-// on "/" while the Elsa API answers under its configured route prefix.
+// Verified 2026-10-15: this exact source (plus Host.csproj and
+// Pages/_Host.cshtml below) restores and builds against the Elsa 3.9.0
+// packages with 0 warnings and 0 errors, and the host serves Studio on "/"
+// while the Elsa API answers under its configured route prefix.
 const programCs = `using Elsa.Extensions;
 using Elsa.Http.Options;
 using Elsa.Persistence.EFCore.Extensions;
@@ -161,7 +162,7 @@ var configuration = builder.Configuration;
 // -------------------------------------------------------------------------
 builder.Services.AddElsa(elsa =>
 {
-    // Elsa 3.8.0 rejects a missing signing key, a key shorter than 32 ASCII
+    // Elsa 3.9.0 rejects a missing signing key, a key shorter than 32 ASCII
     // characters, and known public defaults outside Development/Demo.
     // UseDefaultAdmin bootstraps the first admin from values you own.
     elsa.UseIdentity(identity =>
@@ -191,8 +192,7 @@ builder.Services.AddElsa(elsa =>
     elsa.UseHttp(http => http.ConfigureHttpOptions = options => configuration.GetSection("Http").Bind(options));
 
     // C# expressions run host code: they need
-    // Scripting:CSharp:AllowHostCodeExecution and the
-    // exec:csharp-expressions permission. Not a sandbox.
+    // Scripting:CSharp:AllowHostCodeExecution. Not a sandbox.
     elsa.UseCSharp(csharp => csharp.CSharpOptions += options => configuration.GetSection("Scripting:CSharp").Bind(options));
     elsa.UseJavaScript();
     elsa.UseLiquid();
@@ -208,7 +208,7 @@ builder.Services.AddServerSideBlazor(options =>
     options.RootComponents.MaxJSRootComponents = 1000;
 });
 
-// Studio 3.8.0 requires exactly one authentication provider to be selected.
+// Studio 3.9.0 requires exactly one authentication provider to be selected.
 builder.Services.AddStudioAuthenticationMode(options => options.Provider = StudioAuthenticationProvider.ElsaIdentity);
 builder.Services.AddElsaIdentity();
 builder.Services.AddElsaIdentityUI();
@@ -439,7 +439,7 @@ export default function ElsaServerAndStudio() {
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono">{ELSA_TEMPLATES_VERSION}</code> package
                   references Elsa Core / Studio {ELSA_VERSION}, CShells {ELSA_TEMPLATES_CSHELLS_VERSION}, and
                   generates {ELSA_TEMPLATES_TARGET_FRAMEWORK} projects, and is tagged as{" "}
-                  <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">Elsa.Templates 3.8.0</a>;
+                  <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">Elsa.Templates {ELSA_TEMPLATES_VERSION}</a>;
                   the 3.7.0 / 3.7.1 packages generated Elsa 3.7.0 references and needed a
                   manual bump.
 
@@ -455,7 +455,7 @@ export default function ElsaServerAndStudio() {
                 <li className="text-muted-foreground">
                   Package versions and registration APIs checked against the tagged{" "}
                   {ELSA_VERSION} sources and NuGet.org on <strong>{PACKAGES_CHECKED_ON}</strong>. Last full
-                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa {ELSA_VERSION}, externally verified by Codex).
+                  clean-room run of this guide: <strong>{LAST_VERIFIED_ON}</strong> (Elsa {ELSA_VERSION}).
                 </li>
 
               </ul>
@@ -495,7 +495,7 @@ export default function ElsaServerAndStudio() {
                     and generates{" "}
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">{ELSA_TEMPLATES_TARGET_FRAMEWORK}</code>{" "}
                     projects, so no post-scaffold package bump is required. See{" "}
-                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">the 3.8.0 release</a>.
+                    <a className="text-primary hover:underline" href={ELSA_TEMPLATES_RELEASE_URL} target="_blank" rel="noopener noreferrer">the {ELSA_TEMPLATES_VERSION} release</a>.
 
                   </p>
                 }
@@ -522,6 +522,11 @@ export default function ElsaServerAndStudio() {
                     Open the URL printed in the terminal and sign in with the generated{" "}
                     <code className="font-mono">Development</code> administrator:{" "}
                     <code className="font-mono">admin</code> / <code className="font-mono">password</code>.
+                    The host project is{" "}
+                    <code className="font-mono">src/ElsaServerAndStudio.Host</code>{" "}
+                    (or <code className="font-mono">src/&lt;Name&gt;.Host</code> if you change{" "}
+                    <code className="font-mono">-n</code>). On first start the server may log that
+                    no users exist; sign-in still works with that Development administrator.
                     Outside Development there are no built-in credentials — the identity source,
                     administrator bootstrap and JWT signing key are deployment-owned settings.
                   </p>
@@ -667,7 +672,7 @@ export default function ElsaServerAndStudio() {
               <StepItem
                 number={4}
                 title="_Imports.razor and Pages/_Host.cshtml"
-                description="Elsa Studio 3.8.0 renders through the Shell's App root component, served from a Razor Pages host page."
+                description={`Elsa Studio ${ELSA_VERSION} renders through the Shell's App root component, served from a Razor Pages host page.`}
               >
                 <div className="space-y-4">
                   <CodeBlock
@@ -707,14 +712,11 @@ export default function ElsaServerAndStudio() {
                     Open the URL printed in the terminal and sign in with the credentials you
                     configured under <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">Identity:DefaultAdmin</code>.
                     Elsa {ELSA_VERSION} ships no default admin account: with nothing configured, every
-                    sign-in is denied.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Localhost requests no longer receive security-root permissions automatically.
-                    A local host that needs that must opt in with{" "}
+                    sign-in is denied. The localhost SecurityRoot grant was removed —{" "}
                     <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
                       EnableLocalHostPermissionGrantForSecurityRoot()
-                    </code>.
+                    </code>{" "}
+                    no longer exists.
                   </p>
                 </div>
 

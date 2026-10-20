@@ -8,7 +8,6 @@ import {
   FileCode2,
   Handshake,
   Boxes,
-  
 } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import {
