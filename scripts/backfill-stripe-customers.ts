@@ -18,7 +18,8 @@
  * row and is never matched to another org or a user by metadata or email. An
  * org whose subscription customer names another org in its metadata is skipped
  * with metadata_conflicts_subscription, and so is an org that such a customer
- * (on another org's row) names. An org that a customer still names but whose
+ * (on another org's row) names, but only when that org has no other candidate
+ * of its own: an unclaimed metadata or admin-email customer is written first. An org that a customer still names but whose
  * customer another owner holds is skipped with customers_claimed_elsewhere, so
  * no org with a candidate customer ends with neither a write nor a skip line.
  *
@@ -216,21 +217,6 @@ function matchOrgCustomer(
     };
   }
 
-  // A customer on another org's subscription row that names this org stays
-  // reserved for that row, so it must not make this org vanish: report it.
-  const namedBySubscriptionOfOtherOrg = snapshot.stripeCustomers.filter((customer) =>
-    !customer.deleted && customer.metadata?.organization_id === orgId &&
-    snapshot.subscriptions.some((row) =>
-      row.stripe_customer_id === customer.id && row.organization_id !== orgId
-    )
-  );
-  if (namedBySubscriptionOfOtherOrg.length > 0) {
-    return {
-      skip: "metadata_conflicts_subscription",
-      ids: namedBySubscriptionOfOtherOrg.map((customer) => customer.id),
-    };
-  }
-
   // Every subscription customer is reserved for the org(s) on its row, so the
   // matching below never hands one to another org.
   claimed = withReservedSubscriptionCustomers(claimed, snapshot);
@@ -269,6 +255,21 @@ function matchOrgCustomer(
   }
   if (emailMatches.length > 1) {
     return { skip: "ambiguous_customers", ids: emailMatches.map((customer) => customer.id) };
+  }
+
+  // A customer on another org's subscription row that names this org stays
+  // reserved for that row, so it must not make this org vanish: report it.
+  const namedBySubscriptionOfOtherOrg = snapshot.stripeCustomers.filter((customer) =>
+    !customer.deleted && customer.metadata?.organization_id === orgId &&
+    snapshot.subscriptions.some((row) =>
+      row.stripe_customer_id === customer.id && row.organization_id !== orgId
+    )
+  );
+  if (namedBySubscriptionOfOtherOrg.length > 0) {
+    return {
+      skip: "metadata_conflicts_subscription",
+      ids: namedBySubscriptionOfOtherOrg.map((customer) => customer.id),
+    };
   }
 
   // Nothing is left for this org. If a customer still names it (its own

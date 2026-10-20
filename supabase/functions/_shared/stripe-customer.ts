@@ -36,7 +36,7 @@
  * error, never silently test mode.
  *
  * deps.stripe and deps.supabase are always injected. This module has no
- * imports so scripts (tsx) can import isLiveStripeKey and stripeKeyMode.
+ * imports so scripts (tsx) can import stripeKeyMode.
  *
  * This module does not list Stripe customers by email.
  */
@@ -170,11 +170,6 @@ export function stripeKeyMode(key: string): "live" | "test" {
   if (LIVE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) return "live";
   if (TEST_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) return "test";
   throw new Error("STRIPE_SECRET_KEY must start with sk_live_, sk_test_, rk_live_ or rk_test_");
-}
-
-/** Lenient form of stripeKeyMode: live only for a live prefix; anything else, or no key, is not live. */
-export function isLiveStripeKey(key: string | undefined): boolean {
-  return LIVE_KEY_PREFIXES.some((prefix) => (key ?? "").startsWith(prefix));
 }
 
 function idempotencyKey(owner: StripeCustomerOwner, livemode: boolean): string {

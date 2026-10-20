@@ -11,7 +11,7 @@ import {
   loadStripeCustomers,
   planStripeCustomerBackfill,
 } from "./backfill-stripe-customers.ts";
-import { isLiveStripeKey, stripeKeyMode } from "../supabase/functions/_shared/stripe-customer.ts";
+import { stripeKeyMode } from "../supabase/functions/_shared/stripe-customer.ts";
 
 const fixture = loadBackfillFixture();
 
@@ -225,8 +225,8 @@ Deno.test("loadStripeCustomers keeps only this mode, fetches subscription custom
 });
 
 Deno.test("restricted live keys count as live", () => {
-  assertEquals(isLiveStripeKey("rk_live_example"), true);
-  assertEquals(isLiveStripeKey("sk_test_example"), false);
+  assertEquals(stripeKeyMode("rk_live_example"), "live");
+  assertEquals(stripeKeyMode("sk_test_example"), "test");
 });
 
 const ORG_2 = "22222222-2222-4222-8222-222222222222";
@@ -420,9 +420,82 @@ Deno.test("P2: org B named by a customer on org A's subscription row is reported
   });
 });
 
+const orgWrites = (plan: ReturnType<typeof planStripeCustomerBackfill>) =>
+  plan.orgWrites.map((row) => [row.organization_id, row.stripe_customer_id]);
+
+Deno.test("P1 regression: org B with its own metadata customer is written it although A's subscription customer names B", () => {
+  const plan = planStripeCustomerBackfill({
+    ...BASE,
+    organizations: [{ id: ORG, adminEmails: [] }, { id: ORG_2, adminEmails: [] }],
+    subscriptions: [{ organization_id: ORG, stripe_customer_id: "cus_X" }],
+    existingOrgRefs: [{ organization_id: ORG, stripe_customer_id: "cus_stored", livemode: false }],
+    stripeCustomers: [
+      { id: "cus_X", metadata: { organization_id: ORG_2 } },
+      { id: "cus_stored" },
+      { id: "cus_Y", metadata: { organization_id: ORG_2 } },
+    ],
+  }, true);
+  assertEquals(orgWrites(plan), [[ORG_2, "cus_Y"]]);
+  assertEquals(skippedFor(plan, ORG_2), undefined);
+});
+
+Deno.test("P1b regression: org B with its own admin-email customer is written it although A's subscription customer names B", () => {
+  const plan = planStripeCustomerBackfill({
+    ...BASE,
+    organizations: [{ id: ORG, adminEmails: [] }, { id: ORG_2, adminEmails: ["b@example.test"] }],
+    subscriptions: [{ organization_id: ORG, stripe_customer_id: "cus_X" }],
+    existingOrgRefs: [{ organization_id: ORG, stripe_customer_id: "cus_stored", livemode: false }],
+    stripeCustomers: [
+      { id: "cus_X", metadata: { organization_id: ORG_2 } },
+      { id: "cus_stored" },
+      { id: "cus_Y", email: "B@Example.test" },
+    ],
+  }, true);
+  assertEquals(orgWrites(plan), [[ORG_2, "cus_Y"]]);
+  assertEquals(skippedFor(plan, ORG_2), undefined);
+});
+
+Deno.test("P6 regression: A already stores cus_X and B has metadata customer cus_Y, B is written cus_Y", () => {
+  const plan = planStripeCustomerBackfill({
+    ...BASE,
+    organizations: [{ id: ORG, adminEmails: [] }, { id: ORG_2, adminEmails: [] }],
+    subscriptions: [{ organization_id: ORG, stripe_customer_id: "cus_X" }],
+    existingOrgRefs: [{ organization_id: ORG, stripe_customer_id: "cus_X", livemode: false }],
+    stripeCustomers: [
+      { id: "cus_X", metadata: { organization_id: ORG_2 } },
+      { id: "cus_Y", metadata: { organization_id: ORG_2 } },
+    ],
+  }, true);
+  assertEquals(orgWrites(plan), [[ORG_2, "cus_Y"]]);
+  assertEquals(skippedFor(plan, ORG_2), undefined);
+});
+
+Deno.test("customers_claimed_elsewhere: reason, orgs_skipped_claimed counter and printed line", () => {
+  const plan = planStripeCustomerBackfill({
+    ...BASE,
+    organizations: [{ id: ORG, adminEmails: [] }, { id: ORG_2, adminEmails: [] }],
+    existingOrgRefs: [{ organization_id: ORG, stripe_customer_id: "cus_m", livemode: false }],
+    stripeCustomers: [{ id: "cus_m", metadata: { organization_id: ORG_2 } }],
+  }, true);
+  assertEquals(skippedFor(plan, ORG_2), {
+    organization_id: ORG_2,
+    reason: "customers_claimed_elsewhere",
+    stripe_customer_ids: ["cus_m"],
+  });
+  assertEquals(plan.counts.orgs_skipped_claimed, 1);
+  assertEquals(plan.counts.orgs_skipped_ambiguous, 0);
+  assertEquals(plan.counts.orgs_skipped_metadata_conflict, 0);
+  const lines = formatBackfillPlan(plan).split("\n");
+  assertEquals(lines.includes("orgs_skipped_claimed=1"), true);
+  assertEquals(
+    lines.includes(`org_skipped organization_id=${ORG_2} reason=customers_claimed_elsewhere stripe_customer_ids=cus_m`),
+    true,
+  );
+});
+
 Deno.test("invariant: every org with a metadata, email or subscription candidate is written, stored or skipped", () => {
-  const O = (n: number) => `${n}${n}${n}${n}${n}${n}${n}${n}-0000-4000-8000-000000000000`;
-  const orgs = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ id: O(n), adminEmails: [`o${n}@example.test`] }));
+  const O = (n: number) => `${n.toString(16).repeat(8)}-0000-4000-8000-000000000000`;
+  const orgs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => ({ id: O(n), adminEmails: [`o${n}@example.test`] }));
   const snapshot: BackfillSnapshot = {
     ...BASE,
     organizations: orgs,
@@ -432,6 +505,7 @@ Deno.test("invariant: every org with a metadata, email or subscription candidate
       { organization_id: O(3), stripe_customer_id: "cus_s3b" },
       { organization_id: O(5), stripe_customer_id: "cus_sh" }, // 5 and 6 share
       { organization_id: O(6), stripe_customer_id: "cus_sh" },
+      { organization_id: O(10), stripe_customer_id: "cus_s10" }, // 10's customer names 11, which has its own email customer
     ],
     existingOrgRefs: [
       { organization_id: O(1), stripe_customer_id: "cus_stored1", livemode: false },
@@ -445,6 +519,9 @@ Deno.test("invariant: every org with a metadata, email or subscription candidate
       { id: "cus_sh" },
       { id: "cus_m8", metadata: { organization_id: O(8) } },
       { id: "cus_e9", email: "o9@example.test" },
+      { id: "cus_u9", email: "o9@example.test", metadata: { user_id: "user-9" } }, // a user's customer is no org candidate
+      { id: "cus_s10", metadata: { organization_id: O(11) } },
+      { id: "cus_e11", email: "O11@Example.test" }, // P1b shape, mixed-case email
     ],
   };
   const plan = planStripeCustomerBackfill(snapshot, true);
@@ -456,10 +533,39 @@ Deno.test("invariant: every org with a metadata, email or subscription candidate
   }
   assertEquals(written.has(O(9)), true);
   assertEquals(written.has(O(3)), true);
+  assertEquals(written.has(O(11)), true);
+  const reserved = new Set([
+    ...snapshot.existingOrgRefs.map((row) => row.stripe_customer_id),
+    ...snapshot.subscriptions.map((row) => row.stripe_customer_id),
+  ]);
+  const sharedIds = new Set(
+    snapshot.subscriptions.filter((row, i) =>
+      snapshot.subscriptions.some((other, j) => i !== j && other.stripe_customer_id === row.stripe_customer_id)
+    ).map((row) => row.stripe_customer_id),
+  );
   for (const org of orgs) {
+    const email = new Set(org.adminEmails.map((e) => e.toLowerCase()));
+    const own = snapshot.stripeCustomers.filter((c) =>
+      !reserved.has(c.id) && (
+        c.metadata?.organization_id === org.id ||
+        (!!c.email && email.has(c.email.toLowerCase()) && !c.metadata?.user_id && !c.metadata?.organization_id)
+      )
+    );
+    const ownSubscription = snapshot.subscriptions
+      .filter((row) =>
+        row.organization_id === org.id && !sharedIds.has(row.stripe_customer_id) &&
+        !snapshot.existingOrgRefs.some((ref) => ref.stripe_customer_id === row.stripe_customer_id)
+      )
+      .map((row) => snapshot.stripeCustomers.find((c) => c.id === row.stripe_customer_id))
+      .filter((c) => c && (!c.metadata?.organization_id || c.metadata.organization_id === org.id));
+    const hasUnclaimedCandidate = own.length + ownSubscription.length === 1;
+    if (hasUnclaimedCandidate && !stored.has(org.id)) {
+      assertEquals(written.has(org.id), true, `org ${org.id} has an unclaimed candidate and must be written`);
+    }
     const hasCandidate = snapshot.subscriptions.some((row) => row.organization_id === org.id) ||
       snapshot.stripeCustomers.some((c) =>
-        c.metadata?.organization_id === org.id || (c.email && org.adminEmails.includes(c.email))
+        c.metadata?.organization_id === org.id ||
+        (c.email && email.has(c.email.toLowerCase()) && !c.metadata?.user_id)
       );
     if (hasCandidate) {
       assertEquals(stored.has(org.id) || written.has(org.id) || skipped.has(org.id), true, `org ${org.id} vanished`);

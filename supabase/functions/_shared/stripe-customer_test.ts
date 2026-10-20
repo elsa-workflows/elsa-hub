@@ -3,8 +3,8 @@ import {
   customerFailureResponse,
   getOrCreateStripeCustomer,
   getStoredStripeCustomerId,
-  isLiveStripeKey,
   StripeCustomerError,
+  stripeKeyMode,
   type StripeCustomerFilter,
   type StripeCustomerStore,
 } from "./stripe-customer.ts";
@@ -381,10 +381,9 @@ Deno.test("getStoredStripeCustomerId reads the stored ref and never creates", as
 });
 
 Deno.test("live and restricted live keys are live mode", () => {
-  assertEquals(isLiveStripeKey("sk_live_example"), true);
-  assertEquals(isLiveStripeKey("rk_live_example"), true);
-  assertEquals(isLiveStripeKey("sk_test_example"), false);
-  assertEquals(isLiveStripeKey(undefined), false);
+  assertEquals(stripeKeyMode("sk_live_example"), "live");
+  assertEquals(stripeKeyMode("rk_live_example"), "live");
+  assertEquals(stripeKeyMode("sk_test_example"), "test");
 });
 
 Deno.test("a stored customer gets the buyer's email, name, address and metadata on every call", async () => {
