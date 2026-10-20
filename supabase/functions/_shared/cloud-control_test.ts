@@ -102,3 +102,96 @@ Deno.test("createControlFetch forwards mutation headers and maps instance_limit_
   });
   assertFalse(JSON.stringify(result).includes("provider-secret"));
 });
+
+const BFF_CREDENTIAL = "bff-credential-0123456789abcdefghijklmnopqrstuv";
+
+function bffEnv(credential: string | undefined) {
+  return {
+    get(key: string) {
+      if (key === "ELSA_CONTROL_API_BASE_URL") return "https://control.example.test";
+      if (key === "ELSA_CONTROL_BFF_CREDENTIAL") return credential;
+      return undefined;
+    },
+  };
+}
+
+async function sentHeaders(
+  credential: string | undefined,
+  callHeaders?: Record<string, string>,
+): Promise<Headers> {
+  let seen = new Headers();
+  const fetchImpl: typeof fetch = (_input, init) => {
+    seen = new Headers(init?.headers);
+    return Promise.resolve(
+      new Response(JSON.stringify({ contractVersion: 1, capabilities: [] }), { status: 200 }),
+    );
+  };
+  await createControlFetch(bffEnv(credential), fetchImpl)(
+    { method: "POST", path: "/api/cloud/bootstrap", headers: callHeaders, body: {} },
+    "hub-session",
+  );
+  return seen;
+}
+
+Deno.test("createControlFetch sends the BFF credential from the function secret", async () => {
+  const headers = await sentHeaders(BFF_CREDENTIAL, { "Idempotency-Key": "abc" });
+  assertEquals(headers.get("X-Elsa-Bff-Credential"), BFF_CREDENTIAL);
+  assertEquals(headers.get("Idempotency-Key"), "abc");
+  assertEquals(headers.get("Authorization"), "Bearer hub-session");
+});
+
+Deno.test("createControlFetch never lets a caller-supplied BFF credential through", async () => {
+  for (const name of ["X-Elsa-Bff-Credential", "x-elsa-bff-credential", "X-ELSA-BFF-CREDENTIAL", "x-Elsa-bff-Credential"]) {
+    const overridden = await sentHeaders(BFF_CREDENTIAL, { [name]: "client-value" });
+    assertEquals(overridden.get("X-Elsa-Bff-Credential"), BFF_CREDENTIAL, name);
+
+    const unset = await sentHeaders(undefined, { [name]: "client-value" });
+    assertFalse(unset.has("X-Elsa-Bff-Credential"), name);
+  }
+});
+
+Deno.test("createControlFetch sends no BFF credential when the function secret is unset or empty", async () => {
+  for (const credential of [undefined, "", "   "]) {
+    const headers = await sentHeaders(credential);
+    assertFalse(headers.has("X-Elsa-Bff-Credential"), JSON.stringify(credential));
+  }
+});
+
+Deno.test("createControlFetch never logs or returns the BFF credential", async () => {
+  const captured: string[] = [];
+  const methods = ["log", "info", "warn", "error", "debug", "trace"] as const;
+  const originals = methods.map((method) => console[method]);
+  for (const method of methods) {
+    console[method] = (...args: unknown[]) => {
+      captured.push(args.map((arg) => arg instanceof Error ? `${arg.message} ${arg.stack}` : String(arg)).join(" "));
+    };
+  }
+  const results: unknown[] = [];
+  try {
+    const env = bffEnv(BFF_CREDENTIAL);
+    const responders: (() => Promise<Response>)[] = [
+      () => Promise.reject(new Error("ECONNRESET")),
+      () => Promise.resolve(new Response(JSON.stringify({ title: "boom" }), { status: 500 })),
+      () => Promise.resolve(new Response("<html>gateway timeout</html>", { status: 200 })),
+      () => Promise.resolve(new Response(JSON.stringify({ code: "bad" }), { status: 400 })),
+      () => Promise.resolve(new Response(null, { status: 401 })),
+      () => Promise.resolve(new Response(null, { status: 403 })),
+      () => Promise.resolve(new Response(JSON.stringify({ ok: 1 }), { status: 200, headers: { ETag: '"1"' } })),
+    ];
+    for (const respond of responders) {
+      results.push(
+        await createControlFetch(env, respond)(
+          { method: "GET", path: "/api/me/workspaces", headers: { "x-elsa-bff-credential": "client-value" } },
+          "hub-session",
+        ),
+      );
+    }
+  } finally {
+    methods.forEach((method, index) => {
+      console[method] = originals[index];
+    });
+  }
+  const output = captured.join("\n") + JSON.stringify(results);
+  assertFalse(output.includes(BFF_CREDENTIAL));
+  assertFalse(output.includes("client-value"));
+});

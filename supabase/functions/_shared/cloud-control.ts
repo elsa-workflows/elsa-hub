@@ -59,12 +59,7 @@ export function createControlFetch(
     try {
       const res = await fetchImpl(`${baseUrl}${call.path}`, {
         method: call.method,
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          ...(call.body !== undefined ? { "Content-Type": "application/json" } : {}),
-          ...call.headers,
-        },
+        headers: controlHeaders(call, accessToken, env),
         body: call.body !== undefined ? JSON.stringify(call.body) : undefined,
         signal: ctrl.signal,
       });
@@ -110,6 +105,29 @@ export function createControlFetch(
       clearTimeout(timeout);
     }
   };
+}
+
+const BFF_CREDENTIAL_HEADER = "X-Elsa-Bff-Credential";
+
+// The BFF credential only selects Control's rate-limit partition for Hub calls.
+// It comes from the operator-set function secret, never from a caller, and its
+// value must never be logged or returned.
+function controlHeaders(
+  call: ControlCall,
+  accessToken: string,
+  env: { get: (key: string) => string | undefined },
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    ...(call.body !== undefined ? { "Content-Type": "application/json" } : {}),
+  };
+  for (const [name, value] of Object.entries(call.headers ?? {})) {
+    if (name.toLowerCase() !== BFF_CREDENTIAL_HEADER.toLowerCase()) headers[name] = value;
+  }
+  const credential = (env.get("ELSA_CONTROL_BFF_CREDENTIAL") ?? "").trim();
+  if (credential) headers[BFF_CREDENTIAL_HEADER] = credential;
+  return headers;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
