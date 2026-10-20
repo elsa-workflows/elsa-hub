@@ -402,7 +402,7 @@ export default function Training() {
                     </p>
                     <p className="text-2xl font-bold mb-2">€{TRAINING_LAUNCH_PRICE_EUR}</p>
                     <p className="text-sm text-muted-foreground">
-                      Launch price incl. VAT until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} · Elsa 3.9.0
+                      Launch price incl. VAT until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT · Elsa 3.9.0
                     </p>
                   </div>
                   <div>
@@ -424,7 +424,7 @@ export default function Training() {
                     </p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-8">Solo prices include VAT. Team packs and private workshops are excl. VAT.</p>
+                <p className="text-sm text-muted-foreground mb-8">Solo prices include VAT. Team packs and private workshops exclude VAT.</p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <BuySoloBundleButton />
                   <Button variant="outline" onClick={() => openQuote()}>
