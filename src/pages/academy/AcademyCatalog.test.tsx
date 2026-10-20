@@ -192,12 +192,14 @@ describe("Academy catalog", () => {
     expect(screen.getByText("catalogue down")).toBeInTheDocument();
   });
 
-  it("replaces the Buy button with an ownership note and a My courses link for an owner", () => {
+  it("replaces the Buy button with an ownership note when the visitor has access to every published course", () => {
+    const second = { ...course, id: "course-2", slug: "advanced", title: "Advanced" };
     useAuth.mockReturnValue({ user: { id: "user-1" } });
     useAcademyCatalog.mockReturnValue({
       ...loadedCatalog(),
-      myCourses: [course],
-      accessByCourseId: { [course.id]: true },
+      courses: [course, second],
+      myCourses: [course, second],
+      accessByCourseId: { [course.id]: true, [second.id]: true },
     });
 
     renderCatalog();
@@ -209,6 +211,37 @@ describe("Academy catalog", () => {
       "href",
       "#my-courses",
     );
+  });
+
+  it("keeps the Buy button when the visitor has access to only some published courses", () => {
+    const second = { ...course, id: "course-2", slug: "advanced", title: "Advanced" };
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    useAcademyCatalog.mockReturnValue({
+      ...loadedCatalog(),
+      courses: [course, second],
+      myCourses: [course],
+      accessByCourseId: { [course.id]: true, [second.id]: false },
+    });
+
+    renderCatalog();
+
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["is loading", { isLoading: true }],
+    ["failed to load", { isError: true, error: new Error("access check failed") }],
+  ])("shows neither Buy, sign-in nor the ownership note while ownership %s", (_label, state) => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    useAcademyCatalog.mockReturnValue({ ...loadedCatalog(), ...state });
+
+    renderCatalog();
+
+    expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
   });
 
   it("keeps the Buy button for a signed-in user who owns nothing", () => {

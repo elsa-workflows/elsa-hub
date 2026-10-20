@@ -25,8 +25,12 @@ import {
 type AcademySoloCtaProps = {
   id?: string;
   locked?: boolean;
-  /** The visitor already owns the Solo Bundle: show a note instead of a buy action. */
-  owned?: boolean;
+  /**
+   * "owned": the visitor has access to every published bundle course, so show a note instead
+   * of a buy action. "unknown": ownership is still loading or failed to load, so show neither
+   * a buy action nor the note. Default "none".
+   */
+  ownership?: "owned" | "unknown" | "none";
   onBuyCourse?: typeof handleBuyCourse;
 };
 
@@ -43,7 +47,7 @@ export function AcademyPaymentSuccessNote() {
 export function AcademySoloCta({
   id,
   locked = false,
-  owned = false,
+  ownership = "none",
   onBuyCourse = handleBuyCourse,
 }: AcademySoloCtaProps) {
   const { user } = useAuth();
@@ -72,7 +76,7 @@ export function AcademySoloCta({
           </ul>
         )}
 
-        {owned ? (
+        {ownership === "unknown" ? null : ownership === "owned" ? (
           <p className="text-sm">
             {ACADEMY_SOLO_OWNED_NOTE}{" "}
             <a href="#my-courses" className="text-primary hover:underline">

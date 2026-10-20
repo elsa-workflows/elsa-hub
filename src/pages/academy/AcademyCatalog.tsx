@@ -24,6 +24,15 @@ export default function AcademyCatalog() {
   const { hash } = useLocation();
   const { courses, myCourses, accessByCourseId, isLoading, isError, error } = useAcademyCatalog();
 
+  // has_academy_access also grants via a single-course entitlement, a team seat or an admin, so
+  // only access to every published course counts as owning the bundle.
+  const ownership: "owned" | "unknown" | "none" =
+    isLoading || isError
+      ? "unknown"
+      : courses.length > 0 && courses.every((course) => accessByCourseId[course.id])
+        ? "owned"
+        : "none";
+
   useLayoutEffect(() => {
     scrollAcademySoloBundleIntoView(hash);
   }, [hash, isLoading, isError, courses.length]);
@@ -96,7 +105,7 @@ export default function AcademyCatalog() {
 
           <AcademySoloCta
             id={ACADEMY_SOLO_BUNDLE_ID}
-            owned={myCourses.length > 0}
+            ownership={ownership}
             onBuyCourse={handleBuyCourse}
           />
         </div>

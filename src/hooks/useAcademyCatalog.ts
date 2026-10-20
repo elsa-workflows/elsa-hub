@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { listPublishedCourses, mapCourseAccess, type Course } from "@/lib/academy";
 
 export function useAcademyCatalog() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const coursesQuery = useQuery({
     queryKey: ["academy-courses"],
@@ -27,7 +27,9 @@ export function useAcademyCatalog() {
     courses,
     myCourses,
     accessByCourseId,
-    isLoading: coursesQuery.isLoading || (Boolean(user) && courses.length > 0 && accessQuery.isLoading),
+    isLoading:
+      authLoading ||
+      coursesQuery.isLoading || (Boolean(user) && courses.length > 0 && accessQuery.isLoading),
     isError: coursesQuery.isError || accessQuery.isError,
     error: coursesQuery.error ?? accessQuery.error,
   } satisfies {
