@@ -1,0 +1,98 @@
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+
+const { handleBuyCourse, useAuth } = vi.hoisted(() => ({
+  handleBuyCourse: vi.fn(),
+  useAuth: vi.fn(() => ({ user: null })),
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => useAuth(),
+}));
+
+vi.mock("@/lib/academy", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
+  return {
+    ...actual,
+    handleBuyCourse,
+  };
+});
+
+import { AcademySoloCta } from "./AcademySoloCta";
+import {
+  ACADEMY_GUMROAD_CLAIM_LINE,
+  ACADEMY_PAYMENT_SUCCESS_LINE,
+  ACADEMY_SOLO_BUY_LABEL,
+  ACADEMY_SOLO_HEADING,
+  ACADEMY_SOLO_INCLUDED,
+  ACADEMY_SOLO_LOCKED_HEADING,
+  ACADEMY_SOLO_SIGN_IN_LABEL,
+  ACADEMY_SOLO_SIGNED_OUT_NOTE,
+  academySoloBundleBody,
+} from "@/lib/academyCopy";
+
+function renderCta(path = "/academy", locked = false) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AcademySoloCta locked={locked} onBuyCourse={handleBuyCourse} />
+    </MemoryRouter>,
+  );
+}
+
+describe("AcademySoloCta", () => {
+  beforeEach(() => {
+    handleBuyCourse.mockClear();
+    useAuth.mockReturnValue({ user: null });
+  });
+
+  it("renders catalog copy, included list, and signed-out buy path", () => {
+    useAuth.mockReturnValue({ user: null });
+    renderCta("/academy");
+
+    expect(screen.getByRole("heading", { name: ACADEMY_SOLO_HEADING })).toBeInTheDocument();
+    expect(screen.getByText(academySoloBundleBody())).toBeInTheDocument();
+    for (const item of ACADEMY_SOLO_INCLUDED) {
+      expect(screen.getByText(item)).toBeInTheDocument();
+    }
+    expect(screen.getByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).toHaveAttribute(
+      "href",
+      "/login?redirect=%2Facademy",
+    );
+    expect(screen.getByText(ACADEMY_SOLO_SIGNED_OUT_NOTE)).toBeInTheDocument();
+    expect(screen.getByText(/Buying for a team\? Team packs are on the/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Training page" })).toHaveAttribute(
+      "href",
+      "/elsa-plus/training",
+    );
+    expect(screen.queryByText(ACADEMY_GUMROAD_CLAIM_LINE)).not.toBeInTheDocument();
+  });
+
+  it("starts checkout for a signed-in visitor", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    renderCta("/academy");
+
+    fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
+    expect(handleBuyCourse).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(ACADEMY_SOLO_SIGNED_OUT_NOTE)).not.toBeInTheDocument();
+  });
+
+  it("uses the locked heading and hides the included list", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    renderCta("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core", true);
+
+    expect(screen.getByRole("heading", { name: ACADEMY_SOLO_LOCKED_HEADING })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_INCLUDED[0])).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_GUMROAD_CLAIM_LINE)).not.toBeInTheDocument();
+  });
+
+  it("shows the payment success line and hides the buy CTA", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    renderCta("/academy?payment=success");
+
+    expect(screen.getByTestId("academy-payment-success")).toHaveTextContent(ACADEMY_PAYMENT_SUCCESS_LINE);
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+  });
+});
