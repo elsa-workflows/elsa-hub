@@ -21,13 +21,13 @@ import {
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer, TrainingInterestDialog } from "@/components/enterprise";
 import {
-  ACADEMY_GUMROAD_CLAIM_LIVE,
   FUNDAMENTALS_CORE_GUMROAD_URL,
   type TrainingInterestIntent,
   type TrainingQuoteVariant,
 } from "@/lib/trainingInterest";
+import { ACADEMY_GUMROAD_CLAIM_LINE, ACADEMY_GUMROAD_CLAIM_LIVE } from "@/lib/academyCopy";
+import { ACADEMY_PATH } from "@/lib/academy";
 import {
-  ACADEMY_PATH,
   ACADEMY_SOLO_BUNDLE_PATH,
   TRAINING_DESCRIPTION,
   TRAINING_H1,
@@ -103,8 +103,6 @@ const privatePackages = ["€3,200", "€5,200", "€7,200"];
 
 const SOLO_CHECKOUT_MICROCOPY =
   "Checkout is in Elsa Hub. Sign in or create a free account to buy.";
-const GUMROAD_CLAIM_MICROCOPY =
-  "Bought on Gumroad? Sign in to Elsa Hub with the same verified email and your access is waiting.";
 
 function BuyCta({
   href,
@@ -151,7 +149,7 @@ function SoloCheckoutMicrocopy({
     <>
       <p className={className}>{SOLO_CHECKOUT_MICROCOPY}</p>
       {ACADEMY_GUMROAD_CLAIM_LIVE && showClaim ? (
-        <p className={className}>{GUMROAD_CLAIM_MICROCOPY}</p>
+        <p className={className}>{ACADEMY_GUMROAD_CLAIM_LINE}</p>
       ) : null}
     </>
   );

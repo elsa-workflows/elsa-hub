@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH, ACADEMY_SOLO_BUNDLE_ID } from "./academyPaths";
 
-export const ACADEMY_PATH = "/academy";
+export { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH, ACADEMY_SOLO_BUNDLE_ID };
 export const ACADEMY_KITS_BUCKET = "academy-kits";
 export const ACADEMY_KIT_SIGNED_URL_TTL_SECONDS = 600;
 
@@ -116,8 +117,6 @@ export function isMissingAcademyRelation(error: { code?: string; message?: strin
 }
 
 export const ACADEMY_SOLO_PRODUCT_CODE = "solo_bundle";
-export const ACADEMY_SOLO_BUNDLE_ID = "solo-bundle";
-export const ACADEMY_SOLO_BUNDLE_HASH = `#${ACADEMY_SOLO_BUNDLE_ID}`;
 
 /** Team packs are sold from the Training page. */
 export const ACADEMY_TEAM_LICENCES_URL = "/elsa-plus/training";

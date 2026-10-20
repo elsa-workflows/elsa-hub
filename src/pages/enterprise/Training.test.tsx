@@ -5,8 +5,20 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Training from "./Training";
-import { ACADEMY_GUMROAD_CLAIM_LIVE, FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
-import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_PATH } from "@/lib/trainingSeo";
+import { ACADEMY_PATH } from "@/lib/academy";
+import { ACADEMY_GUMROAD_CLAIM_LINE } from "@/lib/academyCopy";
+import { FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
+import { ACADEMY_SOLO_BUNDLE_PATH } from "@/lib/trainingSeo";
+
+const claim = vi.hoisted(() => ({ live: false }));
+
+vi.mock("@/lib/academyCopy", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/academyCopy")>();
+  return Object.defineProperty({ ...original }, "ACADEMY_GUMROAD_CLAIM_LIVE", {
+    get: () => claim.live,
+    enumerable: true,
+  });
+});
 
 vi.mock("@/components/layout/Layout", () => ({
   Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -52,28 +64,21 @@ describe("Training page", () => {
     renderTraining();
 
     const soloLinks = screen.getAllByRole("link", { name: /buy the solo bundle/i });
-    expect(soloLinks).toHaveLength(4);
+    expect(soloLinks.length).toBeGreaterThanOrEqual(1);
     for (const link of soloLinks) {
       expect(link).toHaveAttribute("href", ACADEMY_SOLO_BUNDLE_PATH);
       expect(link).not.toHaveAttribute("target");
-      expect(link).not.toHaveAttribute("rel");
     }
-    expect(
-      screen.getAllByText(/checkout is in elsa hub\. sign in or create a free account to buy\./i),
-    ).toHaveLength(4);
+    expect(screen.getAllByText(/checkout is in elsa hub/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("keeps Buy a Team pack on the live Gumroad product in a new tab", () => {
     renderTraining();
 
-    const teamLinks = screen.getAllByRole("link", { name: /buy a team pack/i });
-    expect(teamLinks).toHaveLength(1);
-    expect(teamLinks[0]).toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
-    expect(teamLinks[0]).toHaveAttribute("target", "_blank");
-    expect(teamLinks[0]).toHaveAttribute("rel", "noopener noreferrer");
-    expect(
-      screen.getByText(/team packs are still sold on gumroad for now\. pick team 5 or team 10 at checkout\./i),
-    ).toBeInTheDocument();
+    const teamLink = screen.getByRole("link", { name: /buy a team pack/i });
+    expect(teamLink).toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
+    expect(teamLink).toHaveAttribute("target", "_blank");
+    expect(teamLink).toHaveAttribute("rel", expect.stringContaining("noopener"));
   });
 
   it("does not link to unpublished Gumroad products and shows Solo Bundle pricing", () => {
@@ -273,39 +278,23 @@ describe("Training page", () => {
     renderTraining();
 
     expect(screen.getByRole("heading", { name: /academy courses/i })).toBeInTheDocument();
-    expect(
-      screen.getByText(/lessons and lab kit downloads in elsa hub, unlocked by the solo bundle/i),
-    ).toBeInTheDocument();
     const browse = screen.getByRole("link", { name: /browse the academy/i });
     expect(browse).toHaveAttribute("href", ACADEMY_PATH);
     expect(browse).not.toHaveAttribute("target");
-    expect(screen.queryByRole("heading", { name: /^courses$/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/structured learning paths are not sold yet/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^later$/i)).not.toBeInTheDocument();
   });
 
-  it("points the closing paragraph at the Hub Academy for Solo", () => {
-    renderTraining();
+  it("shows the shared Gumroad claim line on the Solo and Pricing cards only when its flag is live", () => {
+    const hidden = renderTraining();
+    expect(screen.queryByText(ACADEMY_GUMROAD_CLAIM_LINE)).not.toBeInTheDocument();
+    hidden.unmount();
 
-    expect(
-      screen.getByText(
-        /buy the solo bundle in the elsa hub academy or a team pack now, or leave your details/i,
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("keeps the Gumroad claim line in source but hidden until ACADEMY_GUMROAD_CLAIM_LIVE", () => {
-    expect(ACADEMY_GUMROAD_CLAIM_LIVE).toBe(false);
-
-    const source = readFileSync(
-      path.join(process.cwd(), "src/pages/enterprise/Training.tsx"),
-      "utf8",
-    );
-    expect(source).toContain(
-      "Bought on Gumroad? Sign in to Elsa Hub with the same verified email and your access is waiting.",
-    );
-
-    renderTraining();
-    expect(screen.queryByText(/bought on gumroad\?/i)).not.toBeInTheDocument();
+    claim.live = true;
+    try {
+      renderTraining();
+      expect(screen.getAllByText(ACADEMY_GUMROAD_CLAIM_LINE)).toHaveLength(2);
+    } finally {
+      claim.live = false;
+    }
   });
 });

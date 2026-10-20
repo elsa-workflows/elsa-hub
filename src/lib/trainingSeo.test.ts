@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { ACADEMY_PATH } from "./academyPaths";
 import { SITE_URL } from "./site";
 import {
-  ACADEMY_PATH,
   TRAINING_CANONICAL_URL,
   TRAINING_INTRO,
   TRAINING_LAUNCH_PRICE_EUR,

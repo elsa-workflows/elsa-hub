@@ -1,8 +1,8 @@
 import { SITE_URL } from "./site";
+import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH } from "./academyPaths";
 
 export const TRAINING_PATH = "/elsa-plus/training";
-export const ACADEMY_PATH = "/academy";
-export const ACADEMY_SOLO_BUNDLE_PATH = `${ACADEMY_PATH}#solo-bundle`;
+export const ACADEMY_SOLO_BUNDLE_PATH = `${ACADEMY_PATH}${ACADEMY_SOLO_BUNDLE_HASH}`;
 export const TRAINING_TITLE = "Elsa Workflows Training | Hands-on Elsa 3 Course for .NET";
 export const TRAINING_DESCRIPTION =
   "Learn Elsa Workflows 3 hands-on: self-paced course and lab kit for hosting, Studio, HTTP workflows and approvals. Solo Bundle, team packs, workshops.";

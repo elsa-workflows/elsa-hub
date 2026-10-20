@@ -1,10 +1,6 @@
 export const FUNDAMENTALS_CORE_GUMROAD_URL =
   "https://9868397950180.gumroad.com/l/pkvdly";
 
-// Flip to true after Gumroad-to-Hub migration grants have run. Until then the
-// "Bought on Gumroad?" claim line on the Training Solo and Pricing cards stays hidden.
-export const ACADEMY_GUMROAD_CLAIM_LIVE = false;
-
 export type TrainingInterestIntent = "notify" | "quote" | "provider";
 export type TrainingQuoteVariant = "workshop" | "seat_quote";
 
