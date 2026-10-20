@@ -17,16 +17,12 @@ describe("cloud-bff contract via @/lib/cloud", () => {
     expect("STUB_ENGINES" in barrel).toBe(false);
   });
 
-  it("exports the six read actions from #53", () => {
+  it("exports the #53 read actions plus the #48 lifecycle actions", () => {
     expect(CLOUD_BFF_FUNCTION).toBe("cloud-bff");
-    expect([...CLOUD_BFF_ACTIONS]).toEqual([
-      "compatibility",
-      "bootstrap",
-      "listWorkspaces",
-      "selectWorkspace",
-      "listEngines",
-      "engineOverview",
-    ]);
+    expect(CLOUD_BFF_ACTIONS).toContain("listEngines");
+    expect(CLOUD_BFF_ACTIONS).toContain("createEngine");
+    expect(CLOUD_BFF_ACTIONS).toContain("deleteEngine");
+    expect(CLOUD_BFF_ACTIONS).toHaveLength(17);
   });
 
   it("uses the sanitized updating envelope from #53", () => {

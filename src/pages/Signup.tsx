@@ -1,6 +1,6 @@
 import { Seo } from "@/components/Seo";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,6 +21,7 @@ import { PasswordlessAuth } from "@/components/auth/PasswordlessAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { describeAuthError } from "@/lib/authErrors";
+import { sanitizeAuthRedirect } from "@/lib/authRedirect";
 
 const signupSchema = z
   .object({
@@ -39,7 +40,10 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const redirectTo = sanitizeAuthRedirect(searchParams.get("redirect")) ?? "/dashboard";
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -79,7 +83,7 @@ export default function Signup() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <PasswordlessAuth redirectTo="/dashboard" />
+            <PasswordlessAuth redirectTo={redirectTo} />
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -150,7 +154,10 @@ export default function Signup() {
 
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/login" className="text-primary hover:underline">
+              <Link
+                to={redirectTo === "/dashboard" ? "/login" : `/login?redirect=${encodeURIComponent(redirectTo)}`}
+                className="text-primary hover:underline"
+              >
                 Sign in
               </Link>
             </p>

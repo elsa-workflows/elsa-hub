@@ -3,10 +3,14 @@ import {
   CLOUD_PUBLIC_HOME,
   DASHBOARD_CLOUD_PATH,
   cloudConsoleBasePath,
+  CLOUD_SIGN_IN_HREF,
+  CLOUD_WAITLIST_HREF,
   cloudLoginRedirect,
+  cloudSignupRedirect,
   dashboardCloudEnginePath,
   dashboardCloudHomePath,
   getLegacyCloudRedirectTarget,
+  dashboardCloudRouteDecision,
   orgCloudMembershipDecision,
 } from "./cloudPaths";
 
@@ -38,6 +42,14 @@ describe("cloud dashboard paths", () => {
       "/login?redirect=%2Fcloud%2Fengines%2Feng-1",
     );
   });
+
+  it("sends public Cloud CTAs through Hub signup and login back to /dashboard/cloud", () => {
+    expect(cloudSignupRedirect(DASHBOARD_CLOUD_PATH)).toBe(
+      "/signup?redirect=%2Fdashboard%2Fcloud",
+    );
+    expect(CLOUD_WAITLIST_HREF).toBe("/signup?redirect=%2Fdashboard%2Fcloud");
+    expect(CLOUD_SIGN_IN_HREF).toBe("/login?redirect=%2Fdashboard%2Fcloud");
+  });
 });
 
 describe("org Cloud membership", () => {
@@ -60,6 +72,55 @@ describe("org Cloud membership", () => {
 
   it("does not redirect the no-org Cloud route", () => {
     expect(orgCloudMembershipDecision(undefined, [], false)).toEqual({ kind: "stay" });
+  });
+
+  it("sends /dashboard/cloud visitors who have a Hub org to that org Cloud route", () => {
+    expect(dashboardCloudRouteDecision("/dashboard/cloud", [{ slug: "acme" }], false)).toEqual({
+      kind: "redirect",
+      to: "/dashboard/org/acme/cloud",
+    });
+    expect(
+      dashboardCloudRouteDecision("/dashboard/cloud/engines/eng-1", [{ slug: "acme" }], false),
+    ).toEqual({
+      kind: "redirect",
+      to: "/dashboard/org/acme/cloud/engines/eng-1",
+    });
+  });
+
+  it("keeps /dashboard/cloud when the user has no Hub org", () => {
+    expect(dashboardCloudRouteDecision("/dashboard/cloud", [], false)).toEqual({ kind: "stay" });
+  });
+
+  it("asks the user to pick when several orgs exist and none is last-used", () => {
+    expect(
+      dashboardCloudRouteDecision(
+        "/dashboard/cloud",
+        [{ slug: "acme" }, { slug: "other-co" }],
+        false,
+      ),
+    ).toEqual({ kind: "pickOrg" });
+    expect(
+      dashboardCloudRouteDecision(
+        "/dashboard/cloud/engines/eng-1",
+        [{ slug: "acme" }, { slug: "other-co" }],
+        false,
+        "gone",
+      ),
+    ).toEqual({ kind: "pickOrg" });
+  });
+
+  it("sends /dashboard/cloud to the last-used org when it is still a membership", () => {
+    expect(
+      dashboardCloudRouteDecision(
+        "/dashboard/cloud",
+        [{ slug: "acme" }, { slug: "other-co" }],
+        false,
+        "other-co",
+      ),
+    ).toEqual({
+      kind: "redirect",
+      to: "/dashboard/org/other-co/cloud",
+    });
   });
 });
 
@@ -105,7 +166,7 @@ describe("legacy /cloud redirects", () => {
     ).toBe("/dashboard/cloud/engines/eng-1?cancel=1#billing");
   });
 
-  it("sends anonymous /cloud visitors to the public home, including query and hash", () => {
+  it("sends anonymous /cloud visitors to the dashboard Cloud route", () => {
     expect(
       getLegacyCloudRedirectTarget(
         {
@@ -115,10 +176,10 @@ describe("legacy /cloud redirects", () => {
         },
         { signedIn: false },
       ),
-    ).toBe("/elsa-plus/cloud-services?payment=success#engines");
+    ).toBe("/dashboard/cloud?payment=success#engines");
   });
 
-  it("returns anonymous engine visitors to the same /cloud URL after login", () => {
+  it("sends anonymous engine visitors to the dashboard Cloud engine route", () => {
     expect(
       getLegacyCloudRedirectTarget(
         {
@@ -128,9 +189,30 @@ describe("legacy /cloud redirects", () => {
         },
         { signedIn: false },
       ),
-    ).toBe(
-      "/login?redirect=%2Fcloud%2Fengines%2Feng-1%3Fsession%3Dcheckout%23status",
-    );
+    ).toBe("/dashboard/cloud/engines/eng-1?session=checkout#status");
+  });
+
+  it("redirects /elsa-plus/cloud to the dashboard Cloud route", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/elsa-plus/cloud/engines/eng-1",
+          search: "",
+          hash: "",
+        },
+        { signedIn: true, orgSlug: "acme" },
+      ),
+    ).toBe("/dashboard/org/acme/cloud/engines/eng-1");
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/elsa-plus/cloud",
+          search: "",
+          hash: "",
+        },
+        { signedIn: false },
+      ),
+    ).toBe("/dashboard/cloud");
   });
 
   it("does not rewrite /cloud-services as an old Cloud console URL", () => {
@@ -144,5 +226,18 @@ describe("legacy /cloud redirects", () => {
         { signedIn: true, orgSlug: "acme" },
       ),
     ).toBe("/cloud-services?ref=nav#waitlist");
+  });
+
+  it("does not rewrite /elsa-plus/cloud-services as a console URL", () => {
+    expect(
+      getLegacyCloudRedirectTarget(
+        {
+          pathname: "/elsa-plus/cloud-services",
+          search: "?ref=nav",
+          hash: "",
+        },
+        { signedIn: true, orgSlug: "acme" },
+      ),
+    ).toBe("/elsa-plus/cloud-services?ref=nav");
   });
 });

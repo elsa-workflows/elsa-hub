@@ -30,7 +30,7 @@ export function cloudEngineOverviewView(
     if (result.code === "not_found") return { kind: "missing" };
     return { kind: "error", message: result.error };
   }
-  if ("engine" in result) {
+  if ("engine" in result && "health" in result.engine) {
     return { kind: "ready", engine: result.engine };
   }
   return { kind: "error", message: "Unexpected cloud-bff response." };
@@ -71,7 +71,17 @@ export function useCloudEngineOverview(engineId: string | undefined) {
     queryKey: ["cloud", "engines", workspaceId, engineId],
     queryFn: () => fetchCloudEngineOverview(workspaceId!, engineId!),
     enabled: Boolean(workspaceId && engineId),
-    staleTime: 30_000,
+    staleTime: 15_000,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data || !data.ok || !("engine" in data)) return false;
+      const status = data.engine.status;
+      if (status === "Provisioning" || status === "Updating" || status === "Deleting") {
+        return 5_000;
+      }
+      return false;
+    },
+    refetchIntervalInBackground: false,
     retry: false,
   });
 
@@ -80,6 +90,7 @@ export function useCloudEngineOverview(engineId: string | undefined) {
 
   return {
     ...query,
+    workspaceId,
     view: resolveCloudEngineOverviewView(workspace.view, query.data, waitingForEngine || !engineId),
     workspaces: workspace.workspaces,
     selectWorkspace: workspace.selectWorkspace,

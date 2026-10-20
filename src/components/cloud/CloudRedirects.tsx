@@ -1,11 +1,19 @@
-import { Navigate, useLocation, useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { CloudOrgPicker } from "@/components/cloud/CloudOrgPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import {
+  DASHBOARD_CLOUD_PATH,
+  dashboardCloudRouteDecision,
   getLegacyCloudRedirectTarget,
-  orgCloudMembershipDecision,
   type OrgCloudMembershipDecision,
 } from "@/lib/cloudPaths";
+import {
+  preferredCloudOrgSlug,
+  readStoredOrganization,
+  rememberSelectedOrganization,
+} from "@/lib/selectedOrganization";
 
 function CloudRedirectPending() {
   return (
@@ -16,15 +24,40 @@ function CloudRedirectPending() {
 }
 
 export function useOrgCloudMembership(): OrgCloudMembershipDecision {
-  const { slug } = useParams<{ slug?: string }>();
+  const { pathname } = useLocation();
   const { organizations, loading } = useOrganizations();
-  return orgCloudMembershipDecision(slug, organizations, loading);
+  return dashboardCloudRouteDecision(
+    pathname,
+    organizations,
+    loading,
+    readStoredOrganization()?.slug,
+  );
 }
 
 export function OrgCloudMembershipGate({ children }: { children: React.ReactNode }) {
+  const { pathname, search, hash } = useLocation();
+  const { organizations } = useOrganizations();
   const decision = useOrgCloudMembership();
+
+  useEffect(() => {
+    const orgMatch = pathname.match(/^\/dashboard\/org\/([^/]+)/);
+    if (!orgMatch) return;
+    const org = organizations.find((item) => item.slug === orgMatch[1]);
+    if (org) {
+      rememberSelectedOrganization({ id: org.id, name: org.name, slug: org.slug });
+    }
+  }, [pathname, organizations]);
+
   if (decision.kind === "pending") return <CloudRedirectPending />;
-  if (decision.kind === "redirect") return <Navigate to={decision.to} replace />;
+  if (decision.kind === "redirect") return <Navigate to={`${decision.to}${search}${hash}`} replace />;
+  if (decision.kind === "pickOrg") {
+    return (
+      <CloudOrgPicker
+        organizations={organizations}
+        suffix={`${pathname.slice(DASHBOARD_CLOUD_PATH.length)}${search}${hash}`}
+      />
+    );
+  }
   return children;
 }
 
@@ -40,7 +73,7 @@ export function LegacyCloudRedirect() {
     <Navigate
       to={getLegacyCloudRedirectTarget(location, {
         signedIn: Boolean(user),
-        orgSlug: organizations[0]?.slug,
+        orgSlug: preferredCloudOrgSlug(organizations, readStoredOrganization()?.slug) ?? null,
       })}
       replace
     />

@@ -25,6 +25,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  CLOUD_SIGN_IN_HREF,
+  CLOUD_WAITLIST_HREF,
+  DASHBOARD_CLOUD_PATH,
+} from "@/lib/cloudPaths";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 const includedFeatures = [
@@ -362,14 +367,10 @@ export default function CloudServices() {
                 className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary"
                 asChild
               >
-                <a
-                  href="https://elsacloud.app/request-trial"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <Link to={CLOUD_WAITLIST_HREF}>
                   Join the waitlist
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </Button>
               <Button variant="outline" size="lg" className="gap-2" asChild>
                 <a
@@ -383,23 +384,12 @@ export default function CloudServices() {
               </Button>
             </div>
             <p className="mt-6">
-              {user ? (
-                <Link
-                  to="/dashboard"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Already have access? Sign in
-                </Link>
-              ) : (
-                <a
-                  href="https://elsacloud.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Already have access? Sign in
-                </a>
-              )}
+              <Link
+                to={user ? DASHBOARD_CLOUD_PATH : CLOUD_SIGN_IN_HREF}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Already have access? Sign in
+              </Link>
             </p>
           </div>
         </div>

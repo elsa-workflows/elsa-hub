@@ -4,6 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   cloudClient,
+  CLOUD_ORG_LINK_CONFLICT,
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
   type CloudBffRequest,
@@ -186,5 +187,29 @@ describe("useCloudWorkspace", () => {
       "bootstrap",
       "listWorkspaces",
     ]);
+  });
+
+  it("sends the Hub org on bootstrap and shows a link conflict as an error", async () => {
+    const hubOrganizationId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const invoke = mockInvoke((body) => {
+      if (body.action === "bootstrap") {
+        return { ok: false, code: "conflict", error: CLOUD_ORG_LINK_CONFLICT };
+      }
+      return { ok: false, code: "unknown_action", error: "unexpected" };
+    });
+    const { result } = renderHook(() => useCloudWorkspace(), { wrapper });
+
+    result.current.setupCloud(hubOrganizationId);
+
+    await waitFor(() => expect(result.current.view.kind).toBe("error"));
+    expect(result.current.view).toEqual({
+      kind: "error",
+      message: CLOUD_ORG_LINK_CONFLICT,
+    });
+    expect(hasCloudSetupMarker("user-1")).toBe(false);
+    expect(invoke).toHaveBeenCalledWith({
+      action: "bootstrap",
+      hubOrganizationId,
+    });
   });
 });

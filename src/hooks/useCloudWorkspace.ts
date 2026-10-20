@@ -14,6 +14,7 @@ import {
   setCloudSetupMarker,
 } from "@/lib/cloudClient/setupMarker";
 import { selectPreferredCloudWorkspace } from "@/lib/cloudClient/workspace";
+import { CLOUD_ORGANIZATION_LINK_QUERY_KEY } from "./useCloudOrganizationLink";
 
 export const CLOUD_WORKSPACE_QUERY_KEY = ["cloud", "workspaces"] as const;
 export const CLOUD_WORKSPACE_STALE_TIME = 5 * 60_000;
@@ -119,7 +120,12 @@ export function useCloudWorkspace() {
   }, [query.data, userId]);
 
   const bootstrap = useMutation({
-    mutationFn: () => cloudClient.invoke({ action: "bootstrap" }),
+    mutationFn: (hubOrganizationId?: string) =>
+      cloudClient.invoke(
+        hubOrganizationId
+          ? { action: "bootstrap", hubOrganizationId }
+          : { action: "bootstrap" },
+      ),
     onSuccess: (result) => {
       if (!result.ok) {
         if (userId) {
@@ -132,6 +138,7 @@ export function useCloudWorkspace() {
         setSetupReady(true);
       }
       void queryClient.invalidateQueries({ queryKey: CLOUD_WORKSPACE_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: CLOUD_ORGANIZATION_LINK_QUERY_KEY });
     },
   });
 
@@ -166,7 +173,7 @@ export function useCloudWorkspace() {
       setSelectedId(workspaceId);
       if (userId) writeSelectedCloudWorkspaceId(userId, workspaceId);
     },
-    setupCloud: () => bootstrap.mutate(),
+    setupCloud: (hubOrganizationId?: string) => bootstrap.mutate(hubOrganizationId),
     setupPending: bootstrap.isPending,
     refetch: async () => {
       bootstrap.reset();

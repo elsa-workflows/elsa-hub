@@ -1,3 +1,11 @@
+import {
+  ACADEMY_STATEMENT_DESCRIPTOR_SUFFIX,
+  ACADEMY_STRIPE_SUBMIT_MESSAGE,
+  ACADEMY_STRIPE_TOS_ACCEPTANCE,
+  ACADEMY_TERMS_VERSION,
+  academyInvoiceFooter,
+  isAcademyTosConsentEnabled,
+} from "../_shared/academyLegal.ts";
 import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
 import { academyProductSpec, isTeamAcademyProduct } from "./product.ts";
 import {
@@ -73,6 +81,7 @@ export type AcademyCheckoutDeps = {
   userClient: AcademyCheckoutUserClient;
   serviceClient: AcademyCheckoutServiceClient;
   stripe: AcademyStripeLike;
+  env?: { get: (key: string) => string | undefined };
 };
 
 function jsonResponse(status: number, body: Record<string, unknown>): Response {
@@ -164,9 +173,20 @@ export async function runAcademyCheckout(params: {
     course_id: course.id,
     user_id: userId,
     seats: String(spec.seats),
+    terms_version: ACADEMY_TERMS_VERSION,
   };
   if (teamProduct && organizationId) {
     metadata.organization_id = organizationId;
+  }
+
+  const tosConsentEnabled = isAcademyTosConsentEnabled(deps.env ?? Deno.env);
+  const customText: Record<string, { message: string }> = {
+    submit: { message: ACADEMY_STRIPE_SUBMIT_MESSAGE },
+  };
+  if (tosConsentEnabled) {
+    customText.terms_of_service_acceptance = {
+      message: ACADEMY_STRIPE_TOS_ACCEPTANCE,
+    };
   }
 
   const customFields = invoiceCustomFields(billingProfile, organizationName);
@@ -175,18 +195,32 @@ export async function runAcademyCheckout(params: {
     line_items: [{ price: course.stripe_price_id, quantity: 1 }],
     metadata,
     automatic_tax: { enabled: true },
-    tax_id_collection: { enabled: true },
+    tax_id_collection: { enabled: teamProduct },
+    adaptive_pricing: { enabled: false },
+    custom_text: customText,
+    payment_intent_data: {
+      statement_descriptor_suffix: ACADEMY_STATEMENT_DESCRIPTOR_SUFFIX,
+    },
     invoice_creation: {
       enabled: true,
       invoice_data: {
         description: course.title,
         metadata,
+        footer: academyInvoiceFooter(tosConsentEnabled),
         ...(customFields.length > 0 && { custom_fields: customFields }),
       },
     },
     success_url: `${origin}/academy/${course.slug}?payment=success`,
     cancel_url: `${origin}/academy/${course.slug}`,
   };
+
+  if (tosConsentEnabled) {
+    sessionConfig.consent_collection = { terms_of_service: "required" };
+  }
+
+  if (teamProduct) {
+    sessionConfig.billing_address_collection = "required";
+  }
 
   if (stripeCustomerId) {
     sessionConfig.customer = stripeCustomerId;
