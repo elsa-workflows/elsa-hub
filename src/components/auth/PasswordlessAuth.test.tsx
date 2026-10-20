@@ -79,6 +79,62 @@ describe("PasswordlessAuth magic-link cooldown", () => {
     expect(signInWithMagicLink).toHaveBeenCalledTimes(2);
   });
 
+  describe("rate-limited resend from the sent screen", () => {
+    const rateLimited = {
+      error: {
+        name: "AuthApiError",
+        status: 429,
+        code: "over_email_send_rate_limit",
+        message: "For security purposes, you can only request this after 30 seconds.",
+      } as Error,
+    };
+
+    const sendThenAdvanceToResend = async () => {
+      render(<PasswordlessAuth />);
+      fireEvent.change(screen.getByLabelText(/email for magic link/i), {
+        target: { value: "qa@example.com" },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /email me a sign-in link/i }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(MAGIC_LINK_RESEND_COOLDOWN_MS);
+      });
+    };
+
+    it("shows the rate-limit message and a countdown under the resend buttons", async () => {
+      await sendThenAdvanceToResend();
+      signInWithMagicLink.mockResolvedValueOnce(rateLimited);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /resend link/i }));
+      });
+
+      expect(screen.getByText(/check your inbox/i)).toBeInTheDocument();
+      expect(screen.getByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).toBeVisible();
+      expect(screen.getByRole("button", { name: "Wait 30s to resend" })).toBeDisabled();
+    });
+
+    it("clears the message on the next successful resend", async () => {
+      await sendThenAdvanceToResend();
+      signInWithMagicLink.mockResolvedValueOnce(rateLimited);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /resend link/i }));
+      });
+      expect(screen.getByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).toBeVisible();
+
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /resend link/i }));
+      });
+
+      expect(screen.queryByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /wait 60s to resend/i })).toBeDisabled();
+    });
+  });
+
   it("starts a 60s resend countdown when the per-address cooldown has no retry time", async () => {
     signInWithMagicLink.mockResolvedValueOnce({
       error: {

@@ -49,7 +49,7 @@ export const SAME_BROWSER_AUTH_MESSAGE =
 export const OTP_EXPIRED_AUTH_MESSAGE = "This link has expired, request a new one.";
 
 export const EMAIL_SEND_RATE_LIMIT_MESSAGE =
-  "We just sent you an email. Wait a minute before requesting another one.";
+  "We just sent you an email. Wait a moment before requesting another one.";
 
 export const EMAIL_HOURLY_RATE_LIMIT_MESSAGE =
   "The hourly email send limit has been reached. Try again later.";
