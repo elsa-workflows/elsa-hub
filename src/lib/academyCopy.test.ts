@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ELSA_VERSION } from "@/data/elsaVersion";
 import {
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
@@ -10,13 +11,13 @@ import {
 describe("academySoloBundleBody", () => {
   it("uses the launch price and says prices include VAT", () => {
     expect(academySoloBundleBody(true)).toBe(
-      "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €29 incl. VAT at launch until 31 Oct, then €39 incl. VAT.",
+      `Every self-paced course in the Academy, with the Elsa ${ELSA_VERSION} lab kit to download and unzip. €29 incl. VAT at launch until 31 Oct, then €39 incl. VAT.`,
     );
   });
 
   it("drops the launch sentence after the launch window", () => {
     expect(academySoloBundleBody(false)).toBe(
-      "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €39 incl. VAT.",
+      `Every self-paced course in the Academy, with the Elsa ${ELSA_VERSION} lab kit to download and unzip. €39 incl. VAT.`,
     );
   });
 
@@ -27,9 +28,12 @@ describe("academySoloBundleBody", () => {
 });
 
 describe("isAcademySoloLaunchPriceActive", () => {
-  it("switches on the day after TRAINING_PRICE_VALID_UNTIL (UTC)", () => {
-    expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:59:59Z"))).toBe(true);
-    expect(isAcademySoloLaunchPriceActive(new Date("2026-11-01T00:00:00Z"))).toBe(false);
+  it("ends at midnight Amsterdam time after 31 Oct, not at midnight UTC", () => {
+    // 31 Oct 23:59 CET is 22:59 UTC; 1 Nov 00:00 CET is 31 Oct 23:00 UTC.
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:59:00+01:00"))).toBe(true);
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-11-01T00:00:00+01:00"))).toBe(false);
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:30:00Z"))).toBe(false);
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T22:30:00Z"))).toBe(true);
   });
 });
 

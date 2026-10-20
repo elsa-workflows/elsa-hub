@@ -1,18 +1,25 @@
 import { ELSA_VERSION } from "@/data/elsaVersion";
 import {
-  TRAINING_LAUNCH_PRICE_EUR,
-  TRAINING_LAUNCH_UNTIL_LABEL,
-  TRAINING_POST_LAUNCH_PRICE_EUR,
-  TRAINING_PRICE_VALID_UNTIL,
-} from "./trainingSeo";
+  ACADEMY_SOLO_LAUNCH_PRICE_EUR,
+  ACADEMY_SOLO_LAUNCH_UNTIL_LABEL,
+  ACADEMY_SOLO_LAUNCH_VALID_UNTIL,
+  ACADEMY_SOLO_REGULAR_PRICE_EUR,
+} from "./academyLegal";
+
+const AMSTERDAM_DAY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Amsterdam",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 /**
- * Launch price runs through the last UTC day of TRAINING_PRICE_VALID_UNTIL, the
- * same date the Training page and the Academy terms use, so there is no flag to
- * flip on 1 Nov.
+ * The launch price runs through the last calendar day in Amsterdam
+ * (ACADEMY_SOLO_LAUNCH_VALID_UNTIL, 31 Oct 2026), so it ends at 00:00 CET on
+ * 1 Nov, the same moment the Stripe price on the course rows must switch.
  */
 export function isAcademySoloLaunchPriceActive(now: Date = new Date()): boolean {
-  return now.toISOString().slice(0, 10) <= TRAINING_PRICE_VALID_UNTIL;
+  return AMSTERDAM_DAY.format(now) <= ACADEMY_SOLO_LAUNCH_VALID_UNTIL;
 }
 
 /**
@@ -29,6 +36,9 @@ export const ACADEMY_SOLO_INCLUDED = [
   "Fundamentals Complete: Labs D-H",
   "Advanced Patterns: AP0-AP2 with the Approval Lite lab",
 ] as const;
+
+export const ACADEMY_SOLO_OWNED_NOTE = "You own the Solo Bundle.";
+export const ACADEMY_SOLO_OWNED_LINK = "My courses";
 
 export const ACADEMY_SOLO_BUY_LABEL = "Buy the Solo Bundle";
 export const ACADEMY_SOLO_SIGN_IN_LABEL = "Sign in to buy";
@@ -51,9 +61,9 @@ export function academySoloBundleBody(
   launchActive: boolean = isAcademySoloLaunchPriceActive(),
 ): string {
   if (launchActive) {
-    return `${SOLO_BODY_LEAD} €${TRAINING_LAUNCH_PRICE_EUR} incl. VAT at launch until ${TRAINING_LAUNCH_UNTIL_LABEL}, then €${TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT.`;
+    return `${SOLO_BODY_LEAD} €${ACADEMY_SOLO_LAUNCH_PRICE_EUR} incl. VAT at launch until ${ACADEMY_SOLO_LAUNCH_UNTIL_LABEL}, then €${ACADEMY_SOLO_REGULAR_PRICE_EUR} incl. VAT.`;
   }
-  return `${SOLO_BODY_LEAD} €${TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT.`;
+  return `${SOLO_BODY_LEAD} €${ACADEMY_SOLO_REGULAR_PRICE_EUR} incl. VAT.`;
 }
 
 export function isAcademyPaymentSuccess(search: string): boolean {
