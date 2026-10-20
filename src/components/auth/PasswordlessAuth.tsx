@@ -216,11 +216,8 @@ export function PasswordlessAuth({ redirectTo }: PasswordlessAuthProps) {
                 Use a different email
               </Button>
             </div>
-            {magicError && (
-              <p role="alert" className="text-destructive">
-                {magicError}
-              </p>
-            )}
+            {/* The surrounding Alert is already a live region; a nested role="alert" would announce the error twice. */}
+            {magicError && <p className="text-destructive">{magicError}</p>}
           </AlertDescription>
         </Alert>
       ) : (
