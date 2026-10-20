@@ -241,7 +241,6 @@ describe("manifest validation", () => {
   });
 
   it("validates the committed Academy product mapping", async () => {
-    const { readFileSync } = await import("node:fs");
     const raw = JSON.parse(readFileSync("academy/product-mapping.json", "utf8"));
     const result = validateProductMapping(raw);
     expect(result.ok).toBe(true);
@@ -253,7 +252,6 @@ describe("manifest validation", () => {
   });
 
   it("accepts the committed lesson-plan.json", async () => {
-    const { readFileSync } = await import("node:fs");
     const raw = JSON.parse(readFileSync("academy/lesson-plan.json", "utf8"));
     const result = validateManifest(raw);
     expect(result.ok).toBe(true);
@@ -302,8 +300,46 @@ describe("flags and stripe guards", () => {
     expect(() => parseArgs(["--apply", "--dry-run"])).toThrow(/only one of --apply and --dry-run/);
   });
 
+  it("requires a real value after every value flag", () => {
+    expect(() => parseArgs(["--price-switch", "--product"])).toThrow(/--product requires a value/);
+    expect(() => parseArgs(["--price-switch", "--stripe-price-id", "--apply"])).toThrow(
+      /--stripe-price-id requires a value/,
+    );
+    expect(() => parseArgs(["--manifest"])).toThrow(/--manifest requires a value/);
+    expect(() => parseArgs(["--price-switch", "--price-cents"])).toThrow(/--price-cents requires a value/);
+  });
+
+  it("accepts --flag=value for every value flag", () => {
+    expect(
+      parseArgs([
+        "--manifest=m.json",
+        "--source-root=/src",
+        "--source-commit=abc",
+        "--product-mapping=map.json",
+        "--assets-dir=/a",
+        "--assets-dir=/b",
+        "--price-switch",
+        "--stripe-price-id=price_x",
+        "--product=team_5",
+        "--price-cents=39900",
+      ]),
+    ).toMatchObject({
+      manifest: "m.json",
+      sourceRoot: "/src",
+      sourceCommit: "abc",
+      productMapping: "map.json",
+      assetsDir: ["/a", "/b"],
+      stripePriceId: "price_x",
+      product: "team_5",
+      priceCents: 39900,
+    });
+    expect(parseArgs(["--manifest=a=b"]).manifest).toBe("a=b");
+    expect(() => parseArgs(["--product="])).toThrow(/--product requires a value/);
+    expect(() => parseArgs(["--price-switch", "--price-cents=1.5"])).toThrow(/positive integer/);
+    expect(() => parseArgs(["--apply=yes"])).toThrow(/Unknown argument/);
+  });
+
   it("does not pass --apply from the npm scripts", async () => {
-    const { readFileSync } = await import("node:fs");
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
     expect(pkg.scripts["academy:import"]).toBe("tsx scripts/academy-import.ts");
     expect(pkg.scripts["academy:import"]).not.toMatch(/--apply/);
@@ -340,7 +376,6 @@ describe("flags and stripe guards", () => {
   });
 
   it("keeps the price_ guard in academy-price-switch.sql", async () => {
-    const { readFileSync } = await import("node:fs");
     const sql = readFileSync("scripts/academy-price-switch.sql", "utf8");
     expect(sql).toMatch(/\^price_\[A-Za-z0-9_\]\+\$/);
     expect(sql).toMatch(/RAISE EXCEPTION/);
@@ -350,10 +385,27 @@ describe("flags and stripe guards", () => {
     expect(sql).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.academy_courses WHERE product_code = code\)/);
   });
 
+  it("keeps the SQL defaults equal to the product mapping", () => {
+    const sql = readFileSync("scripts/academy-price-switch.sql", "utf8");
+    const raw = JSON.parse(readFileSync("academy/product-mapping.json", "utf8")) as {
+      catalogSku: string;
+      postLaunchPriceCents: number;
+    };
+    expect(sql).toMatch(/^\s*\\set product_code (\S+)$/m);
+    expect(sql).toMatch(/^\s*\\set price_cents (\d+)$/m);
+    expect(sql.match(/^\s*\\set product_code (\S+)$/m)![1]).toBe(raw.catalogSku);
+    expect(Number(sql.match(/^\s*\\set price_cents (\d+)$/m)![1])).toBe(raw.postLaunchPriceCents);
+  });
+
+  it("refuses a missing stripe_price_id readably", () => {
+    const sql = readFileSync("scripts/academy-price-switch.sql", "utf8");
+    expect(sql).toMatch(/\\if :\{\?stripe_price_id\}/);
+    expect(sql).toMatch(/stripe_price_id is required/);
+  });
+
   it("never interpolates a psql variable inside a dollar-quoted block", async () => {
     // psql does not substitute :'var' inside $tag$ ... $tag$, so the server sees
     // the literal text and the whole script fails with a syntax error.
-    const { readFileSync } = await import("node:fs");
     const sql = readFileSync("scripts/academy-price-switch.sql", "utf8");
     const quoted = [...sql.matchAll(/(\$[A-Za-z_]*\$)([\s\S]*?)\1/g)].map((match) => match[2]);
     expect(quoted.length).toBeGreaterThan(0);
@@ -936,6 +988,33 @@ describe("prices: existing rows never change, new rows inherit", () => {
       refused((rows) => soloRows(rows).forEach((row) => (row.price_cents = 0)), /price_cents 0/));
     it("when the currency is empty", () =>
       refused((rows) => soloRows(rows).forEach((row) => (row.currency = "")), /currency ""/));
+  });
+
+  describe.each([
+    ["--compare-live", false],
+    ["--apply", true],
+  ])("refuses to relabel an existing row to another product_code under %s", (_mode, requireStripePriceIds) => {
+    it("names the slug, the old code and the new code, and writes nothing", async () => {
+      const rows = liveAfterSwitch();
+      Object.assign(rows.courses.find((row) => row.slug === "demo-core")!, {
+        product_code: "legacy_core",
+        price_cents: 1900,
+        stripe_price_id: "price_legacy",
+      });
+      const p = planImport({
+        manifest: twoCourseManifest(),
+        mapping,
+        sourceRoot: twoCourseRoot(),
+        existing: catalogSnapshotFromDbRows(rows),
+        env: SOLO_ENV,
+        requireStripePriceIds,
+      });
+      const refusal = p.errors.find((error) => error.startsWith("demo-core:"));
+      expect(refusal).toMatch(/legacy_core/);
+      expect(refusal).toMatch(/solo_bundle/);
+      expect(refusal).toMatch(/--price-switch/);
+      expect(formatDryRun(p, { compareLive: true })).toContain("demo-core: ");
+    });
   });
 
   it("never writes a price field on an existing row, however the run is configured", async () => {

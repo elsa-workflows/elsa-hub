@@ -20,6 +20,17 @@
 
 \set ON_ERROR_STOP on
 
+-- stripe_price_id has no default. Refuse readably, and exit non-zero like the
+-- guard below, before psql reaches :'stripe_price_id' and fails on bare syntax.
+\if :{?stripe_price_id}
+\else
+  DO $missing$
+  BEGIN
+    RAISE EXCEPTION 'stripe_price_id is required: pass -v stripe_price_id=price_...';
+  END
+  $missing$;
+\endif
+
 -- Defaults are the Solo switch only. An explicit product_code without a
 -- price_cents leaves price_cents empty, which the guard below refuses.
 \if :{?price_cents}

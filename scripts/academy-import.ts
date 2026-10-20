@@ -27,6 +27,15 @@ function loadJson(file: string): unknown {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
+// Loads and validates the product mapping; on failure prints the errors and returns null.
+function loadMapping(mappingPath: string): ProductMapping | null {
+  const result = validateProductMapping(loadJson(mappingPath));
+  if (result.ok && result.mapping) return result.mapping as ProductMapping;
+  console.error("Product mapping validation failed:");
+  for (const error of result.errors) console.error(`  ${error}`);
+  return null;
+}
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -135,13 +144,10 @@ async function main(): Promise<number> {
       console.error("--price-switch requires --stripe-price-id");
       return 1;
     }
-    const mappingPath = path.join(ROOT, "academy/product-mapping.json");
-    const mappingResult = validateProductMapping(loadJson(mappingPath));
-    if (!mappingResult.ok || !mappingResult.mapping) {
-      throw new Error(mappingResult.errors.join("\n"));
-    }
+    const switchMapping = loadMapping(path.join(ROOT, "academy/product-mapping.json"));
+    if (!switchMapping) return 1;
     await runPriceSwitch({
-      mapping: mappingResult.mapping,
+      mapping: switchMapping,
       stripePriceId: args.stripePriceId,
       productCode: args.product,
       priceCents: args.priceCents,
@@ -169,12 +175,8 @@ async function main(): Promise<number> {
     for (const error of manifestResult.errors) console.error(`  ${error}`);
     return 1;
   }
-  const mappingResult = validateProductMapping(loadJson(mappingPath));
-  if (!mappingResult.ok || !mappingResult.mapping) {
-    console.error("Product mapping validation failed:");
-    for (const error of mappingResult.errors) console.error(`  ${error}`);
-    return 1;
-  }
+  const mapping = loadMapping(mappingPath);
+  if (!mapping) return 1;
 
   let existing = undefined;
   let supabase: SupabaseClient | null = null;
@@ -186,7 +188,7 @@ async function main(): Promise<number> {
 
   const plan = planImport({
     manifest: manifestResult.manifest as AcademyManifest,
-    mapping: mappingResult.mapping as ProductMapping,
+    mapping,
     sourceRoot,
     assetsDirs,
     existing,
@@ -203,7 +205,7 @@ async function main(): Promise<number> {
     console.error("Internal error: --apply did not read the live catalog.");
     return 1;
   }
-  await applyPlanWithStore(supabaseStore(supabase), plan, mappingResult.mapping, { publish: args.publish });
+  await applyPlanWithStore(supabaseStore(supabase), plan, mapping, { publish: args.publish });
   console.log(
     planHasChanges(plan) || args.publish
       ? args.publish

@@ -921,7 +921,16 @@ function coursePrices(
 ): CoursePrices {
   const { mapping, existing, errors } = ctx;
   const row = existing.courses[slug];
-  if (row) return keptPrices(row);
+  if (row) {
+    // Relabelling a row to another product while it keeps its old price would leave one
+    // product with mixed prices, so the plan is refused instead.
+    if (row.product_code !== productCode) {
+      errors.push(
+        `${slug}: existing row has product_code ${JSON.stringify(row.product_code ?? null)} but the catalog SKU is ${JSON.stringify(productCode)}; change the product code by hand, or align prices with --price-switch first`,
+      );
+    }
+    return keptPrices(row);
+  }
 
   const siblings = Object.values(existing.courses).filter((candidate) => candidate.product_code === productCode);
   if (siblings.length === 0) {
@@ -1716,6 +1725,17 @@ export type ParsedArgs = {
   help: boolean;
 };
 
+const VALUE_FLAGS = new Set([
+  "--manifest",
+  "--source-root",
+  "--source-commit",
+  "--product-mapping",
+  "--assets-dir",
+  "--stripe-price-id",
+  "--product",
+  "--price-cents",
+]);
+
 export function parseArgs(argv: string[]): ParsedArgs {
   const out: ParsedArgs = {
     apply: false,
@@ -1735,11 +1755,21 @@ export function parseArgs(argv: string[]): ParsedArgs {
   };
   let sawDryRun = false;
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
+    const raw = argv[i];
+    // --flag=value splits at the first "=" and then takes the same path as "--flag value".
+    const eq = raw.startsWith("--") ? raw.indexOf("=") : -1;
+    const arg = eq > 0 ? raw.slice(0, eq) : raw;
+    const inline = eq > 0 ? raw.slice(eq + 1) : null;
     const next = () => {
-      i += 1;
-      return argv[i];
+      let value: string | undefined = inline ?? undefined;
+      if (inline === null) {
+        i += 1;
+        value = argv[i];
+      }
+      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
+      return value;
     };
+    if (inline !== null && !VALUE_FLAGS.has(arg)) throw new Error(`Unknown argument: ${raw}`);
     if (arg === "--dry-run") sawDryRun = true;
     else if (arg === "--apply") out.apply = true;
     else if (arg === "--publish") out.publish = true;
@@ -1753,15 +1783,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
     else if (arg === "--stripe-price-id") out.stripePriceId = next();
     else if (arg === "--product") out.product = next();
     else if (arg === "--price-cents") {
-      const raw = next();
-      if (!/^[0-9]+$/.test(raw ?? "")) throw new Error(`--price-cents must be a positive integer (got ${JSON.stringify(raw)})`);
-      out.priceCents = Number(raw);
+      const value = next();
+      if (!/^[0-9]+$/.test(value)) throw new Error(`--price-cents must be a positive integer (got ${JSON.stringify(value)})`);
+      out.priceCents = Number(value);
     }
     else if (arg === "--help" || arg === "-h") out.help = true;
-    else if (arg.startsWith("--manifest=")) out.manifest = arg.slice("--manifest=".length);
-    else if (arg.startsWith("--source-root=")) out.sourceRoot = arg.slice("--source-root=".length);
-    else if (arg.startsWith("--source-commit=")) out.sourceCommit = arg.slice("--source-commit=".length);
-    else throw new Error(`Unknown argument: ${arg}`);
+    else throw new Error(`Unknown argument: ${raw}`);
   }
   if (out.apply && sawDryRun) {
     throw new Error("pass only one of --apply and --dry-run");
