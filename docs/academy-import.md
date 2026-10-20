@@ -11,7 +11,8 @@ Code: `scripts/academy-import.ts` and `scripts/academy-import-lib.ts`. Config: `
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are read only under `--apply` or `--compare-live` (a read-only look at the catalog). A plain dry-run never reads them.
 - The importer never deletes rows or objects.
 - Catalog courses stay unpublished unless you pass `--publish` with `--apply`. Publish is the last step, after courses, lessons and assets succeed. Team sku-rows (`team-5`, `team-10`) are never published by it.
-- Existing rows keep their `price_cents`, `currency` and `stripe_price_id`. A rerun after the 1 Nov price switch therefore cannot revert Solo to the launch price. New rows get the launch price from `academy/product-mapping.json`. Pass `--set-prices` to overwrite the price fields on existing rows.
+- Existing rows keep their `price_cents`, `currency` and `stripe_price_id`. A rerun after the 1 Nov price switch therefore cannot revert Solo to the launch price. A new row inherits the prices of existing rows with the same `product_code` (so a Solo course added after the switch comes in at the switched price); if those rows disagree the import is refused. Only when no such row exists does a new row get the launch price from `academy/product-mapping.json`.
+- `--set-prices` overwrites price fields on existing rows and reads the live catalog, so it needs `--apply` or `--compare-live`. `--set-prices=team_5,team_10` moves only rows of those product codes. Bare `--set-prices` moves every existing row except a `solo_bundle` row already at the post-launch price (3900); to move Solo on purpose, name it: `--set-prices=solo_bundle`.
 
 ## Dry-run
 
@@ -51,12 +52,12 @@ npm run academy:import -- \
   --assets-dir /path/to/zips \
   --apply
 # add --publish only when the catalog should go live after this run succeeds
-# add --set-prices only to deliberately overwrite prices on existing rows
+# add --set-prices=<codes> (with --apply) only to deliberately overwrite prices on existing rows
 ```
 
-A `STRIPE_PRICE_ID_*` variable is needed only for a row that is being written with prices: new rows, or any row under `--set-prices`. Each must match `^price_[A-Za-z0-9_]+$`.
+A `STRIPE_PRICE_ID_*` variable is needed only for a row that is being written with prices: new rows with no sibling row to inherit from, or any row named by `--set-prices`. Each must match `^price_[A-Za-z0-9_]+$`.
 
-Uploads take their content type from the file extension (`zip`, `pdf`, `txt`, `md`, `json`, `png`, `jpg`; anything else is `application/octet-stream`).
+Uploads take their content type from the file extension (`zip`, `pdf`, `txt`, `md`, `json`, `png`, `jpg`, `jpeg`; anything else is `application/octet-stream`).
 
 ## 1 Nov Solo Bundle price switch
 

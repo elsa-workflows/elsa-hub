@@ -191,7 +191,7 @@ async function main(): Promise<number> {
     sourceCommit: args.sourceCommit,
     publish: args.publish,
     setPrices: args.setPrices,
-    requireStripePriceIds: args.apply || args.setPrices,
+    requireStripePriceIds: args.apply || args.setPrices !== false,
   });
   console.log(formatDryRun(plan, { apply: args.apply, publish: args.publish, compareLive: args.compareLive }));
   if (plan.errors.length) return 1;

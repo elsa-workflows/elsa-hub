@@ -1,7 +1,7 @@
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   STALE_COMPLETE_ZIP_PREFIX,
   SUPERSEDED_COMPLETE_ZIP_PREFIX,
@@ -65,8 +65,16 @@ const mapping: ProductMapping = {
   ],
 };
 
+const tmpDirs: string[] = [];
+
+afterEach(() => {
+  for (const dir of tmpDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+
 function tmpDir(): string {
-  return mkdtempSync(path.join(os.tmpdir(), "academy-import-"));
+  const dir = mkdtempSync(path.join(os.tmpdir(), "academy-import-"));
+  tmpDirs.push(dir);
+  return dir;
 }
 
 function writeTree(root: string, files: Record<string, string | Buffer>): void {
@@ -283,6 +291,11 @@ describe("flags and stripe guards", () => {
     expect(parseArgs([]).setPrices).toBe(false);
     expect(parseArgs([]).compareLive).toBe(false);
     expect(parseArgs(["--set-prices", "--compare-live"])).toMatchObject({ setPrices: true, compareLive: true, apply: false });
+    expect(parseArgs(["--set-prices=team_5, team_10", "--apply"]).setPrices).toEqual(["team_5", "team_10"]);
+    expect(() => parseArgs(["--set-prices"])).toThrow(/needs the live catalog/);
+    expect(() => parseArgs(["--set-prices=team_5"])).toThrow(/needs the live catalog/);
+    expect(() => parseArgs(["--set-prices=", "--apply"])).toThrow(/comma list of product codes/);
+    expect(() => parseArgs(["--set-prices=Team 5", "--apply"])).toThrow(/comma list of product codes/);
     expect(() => parseArgs(["--publish"])).toThrow(/--publish requires --apply/);
     expect(() => parseArgs(["--apply", "--dry-run"])).toThrow(/only one of --apply and --dry-run/);
   });
@@ -855,7 +868,7 @@ describe("prices on existing rows", () => {
     });
   });
 
-  it("overwrites prices only with --set-prices and shows old -> new", async () => {
+  it("moves Solo only when --set-prices names solo_bundle, and shows old -> new", async () => {
     const root = simpleRoot();
     const existing = switchedCatalog(root);
     const plan = planImport({
@@ -864,7 +877,7 @@ describe("prices on existing rows", () => {
       sourceRoot: root,
       existing,
       env: SOLO_ENV,
-      setPrices: true,
+      setPrices: ["solo_bundle"],
       requireStripePriceIds: true,
     });
     expect(plan.errors).toEqual([]);
@@ -890,10 +903,140 @@ describe("prices on existing rows", () => {
       sourceRoot: root,
       existing: switchedCatalog(root),
       env: {},
-      setPrices: true,
+      setPrices: ["solo_bundle"],
       requireStripePriceIds: true,
     });
     expect(plan.errors.some((error) => /STRIPE_PRICE_ID_SOLO_BUNDLE is required/.test(error))).toBe(true);
+  });
+});
+
+// Two catalog courses: demo-core exists, demo-extra is new.
+function twoCourseManifest(): AcademyManifest {
+  const manifest = boxManifest();
+  manifest.courses.push({
+    slug: "demo-extra",
+    title: "Demo Extra",
+    summary: "A course added after the Solo switch.",
+    sort_order: 1,
+    lessons: [{ slug: "intro", title: "Intro", source_md: "modules/extra.md", sort_order: 0, is_preview: true }],
+    assets: [],
+    extra_assets: [],
+  });
+  return manifest;
+}
+
+function twoCourseRoot(): string {
+  const root = simpleRoot();
+  writeTree(root, { "modules/extra.md": "Extra intro.\n" });
+  return root;
+}
+
+// The live catalog after the 1 Nov switch: demo-core on Solo 3900 / price_nov1 and
+// a Team 5 row at a live price that differs from the mapping.
+function liveAfterSwitch(root: string) {
+  const first = planImport({ manifest: boxManifest(), mapping, sourceRoot: root, env: SOLO_ENV });
+  const rows = dbShapedCatalogFromPlan(first);
+  for (const course of rows.courses) {
+    if (course.product_code === "solo_bundle") Object.assign(course, { price_cents: 3900, stripe_price_id: "price_nov1" });
+    if (course.product_code === "team_5") Object.assign(course, { price_cents: 30000, stripe_price_id: "price_live_team5" });
+  }
+  return rows;
+}
+
+describe("prices across product codes", () => {
+  const plan = (rows: ReturnType<typeof liveAfterSwitch>, extra: Record<string, unknown> = {}) =>
+    planImport({
+      manifest: twoCourseManifest(),
+      mapping,
+      sourceRoot: twoCourseRoot(),
+      existing: catalogSnapshotFromDbRows(rows),
+      env: SOLO_ENV,
+      requireStripePriceIds: true,
+      ...extra,
+    });
+  const op = (p: ReturnType<typeof planImport>, slug: string) => p.courses.find((c) => c.key === slug)!;
+
+  it("gives a Solo course added after the switch the live Solo price, not the launch price", async () => {
+    const p = plan(liveAfterSwitch(simpleRoot()), { env: {} });
+    expect(p.errors).toEqual([]);
+    expect(op(p, "demo-extra").kind).toBe("insert");
+    expect(op(p, "demo-extra").desired).toMatchObject({
+      price_cents: 3900,
+      stripe_price_id: "price_nov1",
+      currency: "eur",
+      inherited_prices: true,
+    });
+    expect(op(p, "demo-core").kind).toBe("unchanged");
+    expect(formatDryRun(p, { compareLive: true })).toContain("inherited from existing solo_bundle rows");
+    const store = memoryStore();
+    await applyPlanWithStore(store, p, mapping, { publish: false });
+    expect(store.courseRows.find((row) => row.slug === "demo-extra")).toMatchObject({
+      price_cents: 3900,
+      stripe_price_id: "price_nov1",
+    });
+  });
+
+  it("refuses to add a Solo course when the existing Solo rows disagree", () => {
+    const rows = liveAfterSwitch(simpleRoot());
+    rows.courses.push({
+      ...(rows.courses.find((c) => c.product_code === "solo_bundle") as object),
+      id: "other",
+      slug: "legacy",
+      price_cents: 2900,
+    });
+    const p = plan(rows);
+    expect(p.errors.some((error) => /existing solo_bundle rows disagree on price_cents/.test(error))).toBe(true);
+  });
+
+  it("refuses a bare --set-prices that would move Solo off the post-launch price", () => {
+    const p = plan(liveAfterSwitch(simpleRoot()), { setPrices: true });
+    expect(p.errors.some((error) => /refusing bare --set-prices: solo_bundle is already at the post-launch price/.test(error))).toBe(true);
+    expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 3900, write_prices: false });
+  });
+
+  it("moves only team_5 with --set-prices=team_5", () => {
+    const p = plan(liveAfterSwitch(simpleRoot()), { setPrices: ["team_5"] });
+    expect(p.errors).toEqual([]);
+    expect(op(p, "team-5").kind).toBe("update");
+    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 34900, stripe_price_id: "price_test_team_5" });
+    expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 3900, stripe_price_id: "price_nov1", write_prices: false });
+    const text = formatDryRun(p, { compareLive: true });
+    expect(text).toContain("price_cents 30000 -> 34900");
+    expect(text).toContain("stripe_price_id price_live_team5 -> price_test_team_5");
+    expect(text).toContain("prices kept at 3900 eur / price_nov1");
+  });
+
+  it("moves Solo with --set-prices=solo_bundle and shows old -> new", () => {
+    const p = plan(liveAfterSwitch(simpleRoot()), { setPrices: ["solo_bundle"] });
+    expect(p.errors).toEqual([]);
+    expect(op(p, "demo-core").desired).toMatchObject({ price_cents: 2900, stripe_price_id: "price_test_solo_bundle" });
+    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 30000, write_prices: false });
+    const text = formatDryRun(p, { compareLive: true });
+    expect(text).toContain("price_cents 3900 -> 2900");
+    expect(text).toContain("stripe_price_id price_nov1 -> price_test_solo_bundle");
+  });
+
+  it("lets a bare --set-prices move other rows when Solo is not at the post-launch price", () => {
+    const rows = liveAfterSwitch(simpleRoot());
+    for (const course of rows.courses) {
+      if (course.product_code === "solo_bundle") Object.assign(course, { price_cents: 2900, stripe_price_id: "price_old" });
+    }
+    const p = plan(rows, { setPrices: true });
+    expect(p.errors).toEqual([]);
+    expect(op(p, "demo-core").desired).toMatchObject({ stripe_price_id: "price_test_solo_bundle", write_prices: true });
+    expect(op(p, "team-5").desired).toMatchObject({ price_cents: 34900 });
+  });
+
+  it("needs the live catalog and a known product code for --set-prices", () => {
+    const noLive = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV, setPrices: true });
+    expect(noLive.errors.some((error) => /needs the live catalog/.test(error))).toBe(true);
+    const unknown = plan(liveAfterSwitch(simpleRoot()), { setPrices: ["team_7"] });
+    expect(unknown.errors.some((error) => /unknown product code team_7/.test(error))).toBe(true);
+  });
+
+  it("uses the mapping when no row of the product code exists yet", () => {
+    const p = planImport({ manifest: twoCourseManifest(), mapping, sourceRoot: twoCourseRoot(), env: SOLO_ENV });
+    expect(op(p, "demo-extra").desired).toMatchObject({ price_cents: 2900, inherited_prices: false });
   });
 });
 
