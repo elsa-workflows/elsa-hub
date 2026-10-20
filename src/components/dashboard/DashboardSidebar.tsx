@@ -45,6 +45,7 @@ import {
 import { ContextSwitcher } from "./ContextSwitcher";
 import { useDashboardContext } from "@/contexts/DashboardContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { PROFILE_SETTINGS_PATH } from "@/lib/authRedirect";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { shouldShowOrgCloudNav, useOwnedHubProducts } from "@/hooks/useOwnedHubProducts";
 import { dashboardCloudHomePath } from "@/lib/cloudPaths";
@@ -265,10 +266,10 @@ export function DashboardSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={location.pathname === "/dashboard/settings"}
+              isActive={location.pathname === PROFILE_SETTINGS_PATH}
               tooltip="Profile"
             >
-              <Link to="/dashboard/settings">
+              <Link to={PROFILE_SETTINGS_PATH}>
                 <User className="h-4 w-4" />
                 <span>Profile</span>
               </Link>

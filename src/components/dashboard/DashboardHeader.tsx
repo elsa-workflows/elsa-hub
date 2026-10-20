@@ -14,6 +14,7 @@ import { NotificationBell } from "@/components/notifications";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { DASHBOARD_AVATAR_MENU_LINKS } from "@/lib/authRedirect";
 import elsaLogo from "@/assets/elsa-logo.png";
 
 export function DashboardHeader() {
@@ -61,7 +62,7 @@ export function DashboardHeader() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
               <Avatar className="h-8 w-8">
                 <AvatarImage
                   src={profile?.avatar_url ?? undefined}
@@ -80,9 +81,9 @@ export function DashboardHeader() {
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to="/dashboard/settings" className="cursor-pointer">
+              <Link to={DASHBOARD_AVATAR_MENU_LINKS[0].to} className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
-                Profile Settings
+                {DASHBOARD_AVATAR_MENU_LINKS[0].name}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />

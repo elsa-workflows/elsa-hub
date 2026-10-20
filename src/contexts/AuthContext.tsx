@@ -62,21 +62,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (event === "SIGNED_OUT" && previousUserId) {
             clearCloudSetupMarker(previousUserId);
           }
-
-          // Force refresh session to ensure the Supabase client has the latest token
-          if (event === "SIGNED_IN" && session) {
-            supabase.auth.refreshSession();
-          }
         }
 
-        // Handle OAuth redirect - check for stored redirect URL
+        // Handle OAuth redirect - check for stored redirect URL.
+        // /auth/confirm consumes the stored redirect before verifyOtp, so this
+        // finds nothing there and the page keeps its signed-in banner.
+        // This callback makes no supabase.auth calls (supabase-js guidance is not
+        // to await supabase calls inside onAuthStateChange). setTimeout(0) only
+        // defers window.location until after React renders.
         if (event === "SIGNED_IN" && session && !hasHandledRedirect.current) {
           const stored = sessionStorage.getItem(AUTH_REDIRECT_STORAGE_KEY);
           if (stored) {
             hasHandledRedirect.current = true;
             sessionStorage.removeItem(AUTH_REDIRECT_STORAGE_KEY);
             const redirectUrl = sanitizeAuthRedirect(stored) ?? "/";
-            // Use setTimeout to ensure this happens after React renders
             setTimeout(() => {
               window.location.href = redirectUrl;
             }, 0);
@@ -132,6 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = () => signInWithOAuth("google");
 
   const signInWithMagicLink = async (email: string) => {
+    // Single signInWithOtp, no extra awaits. The cause of the POST /otp stall
+    // seen in prod is unknown; see docs/auth-identity-linking.md.
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {

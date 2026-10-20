@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
+const refreshSession = vi.fn(async () => ({ error: null }));
 const signOut = vi.fn(async (_args?: unknown): Promise<{ error: Error | null }> => ({ error: null }));
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 
@@ -24,7 +25,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       signInWithOAuth: (args: unknown) => signInWithOAuth(args),
       signInWithOtp: (args: unknown) => signInWithOtp(args),
       signOut: (args?: unknown) => signOut(args),
-      refreshSession: async () => ({ error: null }),
+      refreshSession: () => refreshSession(),
     },
   },
 }));
@@ -46,6 +47,7 @@ describe("AuthContext passwordless methods", () => {
     signInWithOAuth.mockClear();
     signInWithOtp.mockClear();
     signUp.mockClear();
+    refreshSession.mockClear();
     signOut.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
@@ -121,6 +123,15 @@ describe("AuthContext passwordless methods", () => {
       configurable: true,
       value: original,
     });
+  });
+
+  it("does not call refreshSession from onAuthStateChange", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(refreshSession).not.toHaveBeenCalled();
   });
 
   it("clears the cloud setup marker for the signed-out Hub user", async () => {

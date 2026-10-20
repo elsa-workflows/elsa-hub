@@ -17,6 +17,7 @@ import {
   elsaRuntimeImagePath,
   getLegacyElsaRuntimeRedirectTarget,
 } from "@/lib/elsaRuntime";
+import { PROFILE_ROUTE_TABLE } from "@/lib/authRedirect";
 import { LEGACY_TERMS_PATH } from "@/lib/legalRedirects";
 
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
@@ -219,7 +220,19 @@ const App = () => (
               {/* Dashboard Routes */}
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<DashboardHome />} />
-                <Route path="settings" element={<ProfileSettings />} />
+                {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "dashboard").map((route) => (
+                  <Route
+                    key={route.path}
+                    path={route.childPath}
+                    element={
+                      route.kind === "redirect" ? (
+                        <Navigate to={route.to} replace />
+                      ) : (
+                        <ProfileSettings />
+                      )
+                    }
+                  />
+                ))}
                 <Route path="settings/notifications" element={<NotificationSettings />} />
                 <Route path="cloud" element={<CloudHome />} />
                 <Route path="cloud/engines/:engineId" element={<CloudEngineOverview />} />
@@ -262,6 +275,17 @@ const App = () => (
               </Route>
 
               {/* Backward Compatibility Redirects */}
+              {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "root").map((route) => (
+                <Route
+                  key={route.path}
+                  path={route.path}
+                  element={
+                    route.kind === "redirect" ? (
+                      <Navigate to={route.to} replace />
+                    ) : null
+                  }
+                />
+              ))}
               <Route path="/account" element={<Navigate to="/dashboard" replace />} />
               <Route path="/org/:slug" element={<OrgRedirect />} />
               

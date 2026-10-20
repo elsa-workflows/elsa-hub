@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { OTP_EXPIRED_AUTH_MESSAGE } from "@/lib/authErrors";
+import { AUTH_RATE_LIMIT_MESSAGE, EMAIL_SEND_RATE_LIMIT_MESSAGE, OTP_EXPIRED_AUTH_MESSAGE } from "@/lib/authErrors";
 import { AUTH_REDIRECT_STORAGE_KEY } from "@/lib/authRedirect";
 
 const navigate = vi.fn();
@@ -249,6 +249,18 @@ describe("AuthConfirm", () => {
       vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS);
     });
     expect(navigate).toHaveBeenCalledWith("/dashboard/org/acme");
+  });
+
+  it("does not use the email-send wording for a verifyOtp 429", async () => {
+    verifyOtp.mockResolvedValueOnce({
+      data: { session: null },
+      error: { status: 429, code: "over_request_rate_limit", message: "Too many requests" },
+    });
+    renderConfirm("?token_hash=abc&type=email");
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+    expect(await screen.findByText(AUTH_RATE_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).not.toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("strips token_hash and type from the URL on mount", () => {
