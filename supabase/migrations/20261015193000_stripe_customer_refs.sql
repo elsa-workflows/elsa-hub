@@ -68,4 +68,4 @@ CREATE POLICY "Users can read their own stripe customer refs"
 ON public.user_stripe_customers
 FOR SELECT
 TO authenticated
-USING (user_id = auth.uid());
+USING ((SELECT auth.uid()) = user_id);
