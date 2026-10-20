@@ -1,10 +1,24 @@
-/** Set to false on 1 Nov 2026 to drop the launch-price sentence. */
-export const ACADEMY_SOLO_LAUNCH_PRICE_ACTIVE = true;
+import { ELSA_VERSION } from "@/data/elsaVersion";
+import {
+  TRAINING_LAUNCH_PRICE_EUR,
+  TRAINING_LAUNCH_UNTIL_LABEL,
+  TRAINING_POST_LAUNCH_PRICE_EUR,
+  TRAINING_PRICE_VALID_UNTIL,
+} from "./trainingSeo";
 
-export const ACADEMY_SOLO_LAUNCH_PRICE_EUR = 29;
-export const ACADEMY_SOLO_POST_LAUNCH_PRICE_EUR = 39;
-export const ACADEMY_SOLO_LAUNCH_UNTIL_LABEL = "31 Oct";
+/**
+ * Launch price runs through the last UTC day of TRAINING_PRICE_VALID_UNTIL, the
+ * same date the Training page and the Academy terms use, so there is no flag to
+ * flip on 1 Nov.
+ */
+export function isAcademySoloLaunchPriceActive(now: Date = new Date()): boolean {
+  return now.toISOString().slice(0, 10) <= TRAINING_PRICE_VALID_UNTIL;
+}
 
+/**
+ * Single flag for the Gumroad buyer line. Issue #66 (claim flow) imports this
+ * and ACADEMY_GUMROAD_CLAIM_LINE and flips the flag there; do not add a second one.
+ */
 export const ACADEMY_GUMROAD_CLAIM_LIVE = false;
 
 export const ACADEMY_SOLO_HEADING = "Solo Bundle";
@@ -31,16 +45,15 @@ export const ACADEMY_TEAM_LINE = `${ACADEMY_TEAM_LINE_BEFORE}${ACADEMY_TEAM_LINE
 export const ACADEMY_PAYMENT_SUCCESS_LINE =
   "You're in. Start with the first lesson, or download the lab kit and unzip it.";
 
-const SOLO_BODY_LEAD =
-  "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip.";
+const SOLO_BODY_LEAD = `Every self-paced course in the Academy, with the Elsa ${ELSA_VERSION} lab kit to download and unzip.`;
 
 export function academySoloBundleBody(
-  launchActive: boolean = ACADEMY_SOLO_LAUNCH_PRICE_ACTIVE,
+  launchActive: boolean = isAcademySoloLaunchPriceActive(),
 ): string {
   if (launchActive) {
-    return `${SOLO_BODY_LEAD} €${ACADEMY_SOLO_LAUNCH_PRICE_EUR} until ${ACADEMY_SOLO_LAUNCH_UNTIL_LABEL}, then €${ACADEMY_SOLO_POST_LAUNCH_PRICE_EUR}. EUR excl. VAT.`;
+    return `${SOLO_BODY_LEAD} €${TRAINING_LAUNCH_PRICE_EUR} incl. VAT at launch until ${TRAINING_LAUNCH_UNTIL_LABEL}, then €${TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT.`;
   }
-  return `${SOLO_BODY_LEAD} €${ACADEMY_SOLO_POST_LAUNCH_PRICE_EUR}. EUR excl. VAT.`;
+  return `${SOLO_BODY_LEAD} €${TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT.`;
 }
 
 export function isAcademyPaymentSuccess(search: string): boolean {

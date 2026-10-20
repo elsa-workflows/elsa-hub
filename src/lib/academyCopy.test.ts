@@ -1,35 +1,42 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
-  ACADEMY_SOLO_LAUNCH_PRICE_ACTIVE,
-  ACADEMY_SOLO_LAUNCH_PRICE_EUR,
-  ACADEMY_SOLO_LAUNCH_UNTIL_LABEL,
-  ACADEMY_SOLO_POST_LAUNCH_PRICE_EUR,
   academySoloBundleBody,
   isAcademyPaymentSuccess,
+  isAcademySoloLaunchPriceActive,
 } from "./academyCopy";
 
 describe("academySoloBundleBody", () => {
-  it("uses the launch price until 31 Oct", () => {
-    expect(ACADEMY_SOLO_LAUNCH_PRICE_ACTIVE).toBe(true);
-    expect(academySoloBundleBody()).toBe(
-      "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €29 until 31 Oct, then €39. EUR excl. VAT.",
+  it("uses the launch price and says prices include VAT", () => {
+    expect(academySoloBundleBody(true)).toBe(
+      "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €29 incl. VAT at launch until 31 Oct, then €39 incl. VAT.",
     );
-    expect(ACADEMY_SOLO_LAUNCH_PRICE_EUR).toBe(29);
-    expect(ACADEMY_SOLO_POST_LAUNCH_PRICE_EUR).toBe(39);
-    expect(ACADEMY_SOLO_LAUNCH_UNTIL_LABEL).toBe("31 Oct");
   });
 
-  it("drops the launch sentence when the 1 Nov switch is flipped", () => {
+  it("drops the launch sentence after the launch window", () => {
     expect(academySoloBundleBody(false)).toBe(
-      "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €39. EUR excl. VAT.",
+      "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €39 incl. VAT.",
     );
+  });
+
+  it("never says excl. VAT for Solo", () => {
+    expect(academySoloBundleBody(true)).not.toMatch(/excl/i);
+    expect(academySoloBundleBody(false)).not.toMatch(/excl/i);
+  });
+});
+
+describe("isAcademySoloLaunchPriceActive", () => {
+  it("switches on the day after TRAINING_PRICE_VALID_UNTIL (UTC)", () => {
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-10-31T23:59:59Z"))).toBe(true);
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-11-01T00:00:00Z"))).toBe(false);
   });
 });
 
 describe("academy copy flags", () => {
   it("keeps the Gumroad claim line off until grants are live", () => {
     expect(ACADEMY_GUMROAD_CLAIM_LIVE).toBe(false);
+    expect(ACADEMY_GUMROAD_CLAIM_LINE).toContain("Gumroad");
   });
 
   it("detects ?payment=success", () => {
