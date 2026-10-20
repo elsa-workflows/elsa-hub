@@ -59,6 +59,7 @@ const groups: NavGroup[] = [
       { label: "Elsa Cloud", to: DASHBOARD_CLOUD_PATH, badge: "Early access" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
+      { label: "Academy", to: "/academy" },
     ],
   },
 ];

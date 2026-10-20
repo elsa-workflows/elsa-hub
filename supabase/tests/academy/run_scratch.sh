@@ -27,6 +27,9 @@ echo "=== apply 20261015180100_academy_kits_storage.sql ==="
 echo "=== apply 20261015190000_academy_schema_r2.sql ==="
 "${PSQL[@]}" -f "$ROOT/supabase/migrations/20261015190000_academy_schema_r2.sql"
 
+echo "=== apply 20261020210000_academy_course_outline.sql ==="
+"${PSQL[@]}" -f "$ROOT/supabase/migrations/20261020210000_academy_course_outline.sql"
+
 echo "=== apply rls.sql ==="
 "${PSQL[@]}" -f "$ROOT/supabase/tests/academy/rls.sql"
 

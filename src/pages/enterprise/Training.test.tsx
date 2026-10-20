@@ -5,7 +5,20 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Training from "./Training";
+import { ACADEMY_PATH } from "@/lib/academy";
+import { ACADEMY_GUMROAD_CLAIM_LINE } from "@/lib/academyCopy";
 import { FUNDAMENTALS_CORE_GUMROAD_URL } from "@/lib/trainingInterest";
+import { ACADEMY_SOLO_BUNDLE_PATH } from "@/lib/trainingSeo";
+
+const claim = vi.hoisted(() => ({ live: false }));
+
+vi.mock("@/lib/academyCopy", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/lib/academyCopy")>();
+  return Object.defineProperty({ ...original }, "ACADEMY_GUMROAD_CLAIM_LIVE", {
+    get: () => claim.live,
+    enumerable: true,
+  });
+});
 
 vi.mock("@/components/layout/Layout", () => ({
   Layout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -47,16 +60,25 @@ function renderTraining() {
 }
 
 describe("Training page", () => {
-  it("sends every Buy the Solo Bundle and Buy a Team pack CTA to the live Gumroad product", () => {
+  it("sends every Buy the Solo Bundle CTA to the Academy Solo Bundle panel in the same tab", () => {
     renderTraining();
 
-    const buyLinks = screen.getAllByRole("link", { name: /buy the solo bundle|buy a team pack/i });
-    expect(buyLinks.length).toBeGreaterThanOrEqual(4);
-    for (const link of buyLinks) {
-      expect(link).toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    const soloLinks = screen.getAllByRole("link", { name: /buy the solo bundle/i });
+    expect(soloLinks.length).toBeGreaterThanOrEqual(1);
+    for (const link of soloLinks) {
+      expect(link).toHaveAttribute("href", ACADEMY_SOLO_BUNDLE_PATH);
+      expect(link).not.toHaveAttribute("target");
     }
+    expect(screen.getAllByText(/checkout is in elsa hub/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("keeps Buy a Team pack on the live Gumroad product in a new tab", () => {
+    renderTraining();
+
+    const teamLink = screen.getByRole("link", { name: /buy a team pack/i });
+    expect(teamLink).toHaveAttribute("href", FUNDAMENTALS_CORE_GUMROAD_URL);
+    expect(teamLink).toHaveAttribute("target", "_blank");
+    expect(teamLink).toHaveAttribute("rel", expect.stringContaining("noopener"));
   });
 
   it("does not link to unpublished Gumroad products and shows Solo Bundle pricing", () => {
@@ -255,5 +277,29 @@ describe("Training page", () => {
       screen.queryByText(/self-paced → private workshop → certifications/i),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/certification/i)).not.toBeInTheDocument();
+  });
+
+  it("lists Academy courses as available and links to the Hub catalogue", () => {
+    renderTraining();
+
+    expect(screen.getByRole("heading", { name: /academy courses/i })).toBeInTheDocument();
+    const browse = screen.getByRole("link", { name: /browse the academy/i });
+    expect(browse).toHaveAttribute("href", ACADEMY_PATH);
+    expect(browse).not.toHaveAttribute("target");
+    expect(screen.queryByText(/structured learning paths are not sold yet/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the shared Gumroad claim line on the Solo and Pricing cards only when its flag is live", () => {
+    const hidden = renderTraining();
+    expect(screen.queryByText(ACADEMY_GUMROAD_CLAIM_LINE)).not.toBeInTheDocument();
+    hidden.unmount();
+
+    claim.live = true;
+    try {
+      renderTraining();
+      expect(screen.getAllByText(ACADEMY_GUMROAD_CLAIM_LINE)).toHaveLength(2);
+    } finally {
+      claim.live = false;
+    }
   });
 });

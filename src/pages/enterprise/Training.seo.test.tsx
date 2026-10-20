@@ -4,6 +4,8 @@ import { render, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
 import Training from "./Training";
+import { ACADEMY_PATH } from "@/lib/academy";
+import { SITE_URL } from "@/lib/site";
 import {
   TRAINING_DESCRIPTION,
   TRAINING_H1,
@@ -89,12 +91,19 @@ describe("Training page SEO", () => {
     expect(course).toBeTruthy();
     expect(course?.name).toBe(TRAINING_H1);
     expect(JSON.stringify(course)).not.toMatch(/courseWorkload/);
-    const offers = course?.offers as { price?: string; priceValidUntil?: string; validFrom?: string }[];
+    const offers = course?.offers as {
+      price?: string;
+      priceValidUntil?: string;
+      validFrom?: string;
+      url?: string;
+    }[];
     expect(offers).toHaveLength(2);
     expect(offers[0].price).toBe("29");
     expect(offers[0].priceValidUntil).toBe("2026-10-31");
+    expect(offers[0].url).toBe(`${SITE_URL}${ACADEMY_PATH}`);
     expect(offers[1].price).toBe("39");
     expect(offers[1].validFrom).toBe("2026-11-01");
+    expect(offers[1].url).toBe(`${SITE_URL}${ACADEMY_PATH}`);
     expect(course?.inLanguage).toBe("en");
 
     const headings = document.querySelectorAll("h1");

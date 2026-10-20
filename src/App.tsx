@@ -17,6 +17,7 @@ import {
   elsaRuntimeImagePath,
   getLegacyElsaRuntimeRedirectTarget,
 } from "@/lib/elsaRuntime";
+import { PROFILE_ROUTE_TABLE } from "@/lib/authRedirect";
 import { LEGACY_TERMS_PATH } from "@/lib/legalRedirects";
 
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
@@ -65,6 +66,9 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
+const AcademyCatalog = lazy(() => import("./pages/academy/AcademyCatalog"));
+const AcademyCourse = lazy(() => import("./pages/academy/AcademyCourse"));
+const AcademyLesson = lazy(() => import("./pages/academy/AcademyLesson"));
 
 // Dashboard
 const DashboardLayout = lazy(() =>
@@ -192,6 +196,9 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/academy" element={<AcademyCatalog />} />
+              <Route path="/academy/:courseSlug" element={<AcademyCourse />} />
+              <Route path="/academy/:courseSlug/:lessonSlug" element={<AcademyLesson />} />
               {/* The .html variant is a prerendered download/import target for
                   crawlers and Medium. If a real browser lands on it, send the
                   user to the clean SPA route so React Router doesn't 404. */}
@@ -213,7 +220,19 @@ const App = () => (
               {/* Dashboard Routes */}
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<DashboardHome />} />
-                <Route path="settings" element={<ProfileSettings />} />
+                {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "dashboard").map((route) => (
+                  <Route
+                    key={route.path}
+                    path={route.childPath}
+                    element={
+                      route.kind === "redirect" ? (
+                        <Navigate to={route.to} replace />
+                      ) : (
+                        <ProfileSettings />
+                      )
+                    }
+                  />
+                ))}
                 <Route path="settings/notifications" element={<NotificationSettings />} />
                 <Route path="cloud" element={<CloudHome />} />
                 <Route path="cloud/engines/:engineId" element={<CloudEngineOverview />} />
@@ -256,6 +275,17 @@ const App = () => (
               </Route>
 
               {/* Backward Compatibility Redirects */}
+              {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "root").map((route) => (
+                <Route
+                  key={route.path}
+                  path={route.path}
+                  element={
+                    route.kind === "redirect" ? (
+                      <Navigate to={route.to} replace />
+                    ) : null
+                  }
+                />
+              ))}
               <Route path="/account" element={<Navigate to="/dashboard" replace />} />
               <Route path="/org/:slug" element={<OrgRedirect />} />
               

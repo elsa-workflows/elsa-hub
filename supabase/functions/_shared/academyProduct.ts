@@ -5,8 +5,10 @@ export type AcademyProductSpec = {
   subjectType: AcademySubjectType;
 };
 
+export const SOLO_PRODUCT_CODE = "solo_bundle";
+
 const ACADEMY_PRODUCTS: Record<string, AcademyProductSpec> = {
-  solo_bundle: { seats: 1, subjectType: "user" },
+  [SOLO_PRODUCT_CODE]: { seats: 1, subjectType: "user" },
   team_5: { seats: 5, subjectType: "org" },
   team_10: { seats: 10, subjectType: "org" },
 };

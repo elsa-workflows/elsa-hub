@@ -29,6 +29,7 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+import { EMAIL_SEND_RATE_LIMIT_MESSAGE } from "@/lib/authErrors";
 import Login from "./Login";
 
 function renderLogin(search = "") {
@@ -98,6 +99,7 @@ describe("Login", () => {
     fireEvent.click(screen.getByRole("button", { name: /email me a sign-in link/i }));
 
     expect(await screen.findByText(/could not send link/i)).toBeInTheDocument();
-    expect(screen.getByText(/wait a minute/i)).toBeInTheDocument();
+    expect(screen.getByText(EMAIL_SEND_RATE_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /wait \d+s to resend/i })).toBeDisabled();
   });
 });
