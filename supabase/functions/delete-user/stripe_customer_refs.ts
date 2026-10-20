@@ -5,6 +5,7 @@
 // If a column name or key changes, update only this file.
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { stripeKeyMode } from "../_shared/stripe-customer.ts";
 
 const LIVEMODE_COLUMN = "livemode";
 const USER_REF_TABLE = "user_stripe_customers";
@@ -49,20 +50,10 @@ function tableForKind(kind: StripeCustomerRefKind): {
   return { table: ORG_REF_TABLE, ownerColumn: ORG_ID_COLUMN };
 }
 
-const SECRET_KEY_LIVE_PREFIXES = ["sk_live_", "rk_live_"];
-const SECRET_KEY_TEST_PREFIXES = ["sk_test_", "rk_test_"];
-
 // Standard (sk_) and restricted (rk_) secret keys both carry their mode.
+// Throws on an unknown prefix (see stripeKeyMode).
 export function livemodeFromStripeSecretKey(secretKey: string): boolean {
-  if (SECRET_KEY_LIVE_PREFIXES.some((prefix) => secretKey.startsWith(prefix))) {
-    return true;
-  }
-  if (SECRET_KEY_TEST_PREFIXES.some((prefix) => secretKey.startsWith(prefix))) {
-    return false;
-  }
-  throw new Error(
-    "STRIPE_SECRET_KEY must start with sk_live_, sk_test_, rk_live_ or rk_test_",
-  );
+  return stripeKeyMode(secretKey) === "live";
 }
 
 export function createSupabaseStripeRefStore(

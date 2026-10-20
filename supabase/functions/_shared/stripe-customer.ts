@@ -1,11 +1,11 @@
 /**
  * Hub Stripe customer identity.
  *
- * Public helper (stable signature; other functions such as academy-checkout import this):
+ * Public helper (other functions such as academy-checkout import this):
  *
  *   getOrCreateStripeCustomer(
  *     owner: { userId: string } | { orgId: string },
- *     deps?: GetOrCreateStripeCustomerDeps,
+ *     deps: GetOrCreateStripeCustomerDeps, // { stripe, supabase, env? }
  *   ): Promise<string>
  *
  * Returns the stored Stripe customer id for that owner and livemode. When none
@@ -35,7 +35,7 @@
  * isLiveStripeKey. A missing key is an error, never silently test mode.
  *
  * deps.stripe and deps.supabase are always injected. This module has no
- * imports so scripts (tsx) can import isLiveStripeKey.
+ * imports so scripts (tsx) can import isLiveStripeKey and stripeKeyMode.
  *
  * This module does not list Stripe customers by email.
  */
@@ -157,9 +157,23 @@ function ownerValue(owner: StripeCustomerOwner): string {
   return isOrgOwner(owner) ? owner.orgId : owner.userId;
 }
 
-/** Live secret (sk_live_) and restricted (rk_live_) keys are live mode; everything else is test. */
+const LIVE_KEY_PREFIXES = ["sk_live_", "rk_live_"];
+const TEST_KEY_PREFIXES = ["sk_test_", "rk_test_"];
+
+/**
+ * The mode a Stripe secret (sk_) or restricted (rk_) key carries. Throws on any
+ * other prefix, so callers that must not guess (backfill guard, delete-user)
+ * refuse an unrecognised key.
+ */
+export function stripeKeyMode(key: string): "live" | "test" {
+  if (LIVE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) return "live";
+  if (TEST_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) return "test";
+  throw new Error("STRIPE_SECRET_KEY must start with sk_live_, sk_test_, rk_live_ or rk_test_");
+}
+
+/** Lenient form of stripeKeyMode: live only for a live prefix; anything else, or no key, is not live. */
 export function isLiveStripeKey(key: string | undefined): boolean {
-  return (key ?? "").startsWith("sk_live_") || (key ?? "").startsWith("rk_live_");
+  return LIVE_KEY_PREFIXES.some((prefix) => (key ?? "").startsWith(prefix));
 }
 
 function idempotencyKey(owner: StripeCustomerOwner, livemode: boolean): string {

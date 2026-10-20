@@ -9,7 +9,7 @@ import {
   loadStripeCustomers,
   planStripeCustomerBackfill,
 } from "./backfill-stripe-customers.ts";
-import { isLiveStripeKey } from "../supabase/functions/_shared/stripe-customer.ts";
+import { isLiveStripeKey, stripeKeyMode } from "../supabase/functions/_shared/stripe-customer.ts";
 
 const fixture = loadBackfillFixture();
 
@@ -305,4 +305,55 @@ Deno.test("several metadata customers are tied-broken by admin email, else the o
   assertEquals(tied.counts.orgs_skipped_shared, 1);
   const printed = formatBackfillPlan(tied);
   assertEquals(printed.includes("cus_a") && printed.includes("cus_b"), true);
+});
+
+Deno.test("a subscription customer is reserved for its org even when its metadata names another org", () => {
+  const ORG_B = ORG_2;
+  const plan = planOrgs(
+    [{ id: ORG, adminEmails: ["x@example.test"] }, { id: ORG_B, adminEmails: ["x@example.test"] }],
+    [{ organization_id: ORG, stripe_customer_id: "cus_1" }],
+    [{ id: "cus_1", email: "x@example.test", metadata: { organization_id: ORG_B } }],
+  );
+  assertEquals(plan.orgWrites.length, 0);
+  assertEquals(plan.skippedOrgs, [{
+    organization_id: ORG,
+    reason: "metadata_conflicts_subscription",
+    stripe_customer_ids: ["cus_1"],
+  }]);
+  assertEquals(plan.counts.orgs_skipped_metadata_conflict, 1);
+  const printed = formatBackfillPlan(plan);
+  assertEquals(printed.includes("orgs_skipped_metadata_conflict=1"), true);
+  assertEquals(printed.includes(`org_skipped organization_id=${ORG} reason=metadata_conflicts_subscription`), true);
+});
+
+Deno.test("a subscription customer is not given to another org by email, nor to a user", () => {
+  const snapshot = {
+    livemode: false,
+    organizations: [{ id: ORG, adminEmails: [] }, { id: ORG_2, adminEmails: ["x@example.test"] }],
+    users: [{ id: "u1", email: "x@example.test" }],
+    subscriptions: [{ organization_id: ORG, stripe_customer_id: "cus_1" }],
+    existingOrgRefs: [],
+    existingUserRefs: [],
+    stripeCustomers: [{ id: "cus_1", email: "x@example.test" }],
+  };
+  const plan = planStripeCustomerBackfill(snapshot, true);
+  assertEquals(plan.orgWrites.map((row) => [row.organization_id, row.stripe_customer_id]), [[ORG, "cus_1"]]);
+  assertEquals(plan.userWrites.length, 0);
+});
+
+Deno.test("--apply without --live requires an explicit test key and refuses unknown prefixes", () => {
+  assertThrows(() => assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "whsec_x" }));
+  assertThrows(() => assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "pk_test_x" }));
+  assertThrows(() => assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "" }));
+  assertThrows(() => assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "rk_live_x" }));
+  assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "sk_test_x" });
+  assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "rk_test_x" });
+  assertApplyAllowed({ apply: true, live: true, stripeSecretKey: "rk_live_x" });
+  assertApplyAllowed({ apply: false, live: false, stripeSecretKey: "whsec_x" });
+});
+
+Deno.test("stripeKeyMode throws on an unknown prefix", () => {
+  assertEquals(stripeKeyMode("sk_live_x"), "live");
+  assertEquals(stripeKeyMode("rk_test_x"), "test");
+  assertThrows(() => stripeKeyMode("whsec_x"));
 });

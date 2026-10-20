@@ -11,8 +11,13 @@
  *   npx tsx scripts/backfill-stripe-customers.ts --apply
  *
  * --fixture is for tests only and cannot be combined with --apply.
- * --apply reads live Hub rows and Stripe, and refuses a live STRIPE_SECRET_KEY
- * (sk_live_ or rk_live_) unless --live is set.
+ * --apply reads live Hub rows and Stripe. Without --live it requires an explicit
+ * test key (sk_test_ or rk_test_); a live or unrecognised key is refused.
+ *
+ * Every customer id on a subscription row is reserved for the org(s) on that
+ * row and is never matched to another org or a user by metadata or email. An
+ * org whose subscription customer names another org in its metadata is skipped
+ * with metadata_conflicts_subscription.
  *
  * Orgs that share a subscription customer, or whose customers cannot be told
  * apart, are skipped and listed as org_skipped lines for a human to resolve.
@@ -21,7 +26,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isLiveStripeKey } from "../supabase/functions/_shared/stripe-customer.ts";
+import { isLiveStripeKey, stripeKeyMode } from "../supabase/functions/_shared/stripe-customer.ts";
 
 export type BackfillStripeCustomer = {
   id: string;
@@ -51,6 +56,7 @@ export type BackfillCounts = {
   orgs_matched: number;
   orgs_would_write: number;
   orgs_skipped_shared: number;
+  orgs_skipped_metadata_conflict: number;
   users_scanned: number;
   users_already_stored: number;
   users_matched: number;
@@ -75,7 +81,7 @@ export type BackfillUserWrite = {
 /** An org left alone for a human to resolve; the Stripe customer ids are what to look at. */
 export type BackfillSkippedOrg = {
   organization_id: string;
-  reason: "shared_subscription_customer" | "ambiguous_customers";
+  reason: "shared_subscription_customer" | "ambiguous_customers" | "metadata_conflicts_subscription";
   stripe_customer_ids: string[];
 };
 
@@ -99,7 +105,15 @@ export function assertApplyAllowed(options: {
   if (!options.apply) return;
   if (options.live) return;
   const key = options.stripeSecretKey ?? "";
-  if (!key || isLiveStripeKey(key)) {
+  // Without --live only an explicit test key passes; a missing, live or
+  // unrecognised key is refused.
+  let mode: "live" | "test" | null = null;
+  try {
+    mode = key ? stripeKeyMode(key) : null;
+  } catch {
+    mode = null;
+  }
+  if (mode !== "test") {
     throw new Error(
       "--apply refused: STRIPE_SECRET_KEY must be a test key (sk_test_ or rk_test_) or pass --live",
     );
@@ -133,6 +147,11 @@ function sharedSubscriptionCustomers(snapshot: BackfillSnapshot): Map<string, st
   );
 }
 
+/** Every customer id on a subscription row is reserved for the org(s) on that row. */
+function subscriptionCustomerIds(snapshot: BackfillSnapshot): Set<string> {
+  return new Set(snapshot.subscriptions.map((row) => row.stripe_customer_id));
+}
+
 function claimedIds(plan: BackfillPlan, snapshot: BackfillSnapshot, shared: Map<string, string[]>): Set<string> {
   return new Set([
     ...shared.keys(),
@@ -149,6 +168,11 @@ function claimedIds(plan: BackfillPlan, snapshot: BackfillSnapshot, shared: Map<
 
 type OrgMatch = { id: string; email?: string } | { skip: BackfillSkippedOrg["reason"]; ids: string[] } | null;
 
+/** Claims plus every subscription customer: only the subscription path may hand those out. */
+function withReservedSubscriptionCustomers(claimed: Set<string>, snapshot: BackfillSnapshot): Set<string> {
+  return new Set([...claimed, ...subscriptionCustomerIds(snapshot)]);
+}
+
 function matchOrgCustomer(
   orgId: string,
   emails: string[],
@@ -158,17 +182,29 @@ function matchOrgCustomer(
   // A subscription's customer id counts only when Stripe returns it in this
   // mode, it is not deleted, and its metadata does not name another org: a
   // test key never sees live ids, a deleted customer must not be stored, and
-  // the server-written organization_id outranks a subscription row.
-  const fromSubscription = snapshot.subscriptions
+  // the server-written organization_id outranks a subscription row. When the
+  // only usable-looking customer names another org, the org is skipped for a
+  // human instead of falling through to metadata or email matching.
+  const subscriptionCustomers = snapshot.subscriptions
     .filter((row) => row.organization_id === orgId && !claimed.has(row.stripe_customer_id))
     .map((row) => snapshot.stripeCustomers.find((customer) => customer.id === row.stripe_customer_id))
-    .find((customer) =>
-      customer && !customer.deleted &&
-      (!customer.metadata?.organization_id || customer.metadata.organization_id === orgId)
-    );
+    .filter((customer) => customer && !customer.deleted);
+  const fromSubscription = subscriptionCustomers.find((customer) =>
+    !customer!.metadata?.organization_id || customer!.metadata.organization_id === orgId
+  );
   if (fromSubscription) {
     return { id: fromSubscription.id, email: fromSubscription.email };
   }
+  if (subscriptionCustomers.length > 0) {
+    return {
+      skip: "metadata_conflicts_subscription",
+      ids: subscriptionCustomers.map((customer) => customer!.id),
+    };
+  }
+
+  // Every subscription customer is reserved for the org(s) on its row, so the
+  // matching below never hands one to another org.
+  claimed = withReservedSubscriptionCustomers(claimed, snapshot);
 
   // The server writes metadata.organization_id, so it is trusted even when the
   // buyer's email is no longer an admin's. Email only breaks ties.
@@ -214,6 +250,7 @@ function matchUserCustomer(
   snapshot: BackfillSnapshot,
   claimed: Set<string>,
 ): { id: string; email?: string } | { skipShared: true } | null {
+  claimed = withReservedSubscriptionCustomers(claimed, snapshot);
   const metadataMatches = snapshot.stripeCustomers.filter((customer) => {
     if (claimed.has(customer.id)) return false;
     if (customer.metadata?.organization_id) return false;
@@ -254,6 +291,7 @@ export function planStripeCustomerBackfill(
       orgs_matched: 0,
       orgs_would_write: 0,
       orgs_skipped_shared: 0,
+      orgs_skipped_metadata_conflict: 0,
       users_scanned: 0,
       users_already_stored: 0,
       users_matched: 0,
@@ -301,7 +339,11 @@ export function planStripeCustomerBackfill(
     const match = matchOrgCustomer(org.id, org.adminEmails, snapshot, claimedIds(plan, snapshot, shared));
     if (!match) continue;
     if ("skip" in match) {
-      plan.counts.orgs_skipped_shared += 1;
+      if (match.skip === "metadata_conflicts_subscription") {
+        plan.counts.orgs_skipped_metadata_conflict += 1;
+      } else {
+        plan.counts.orgs_skipped_shared += 1;
+      }
       plan.skippedOrgs.push({
         organization_id: org.id,
         reason: match.skip,
@@ -356,6 +398,7 @@ export function formatBackfillCounts(counts: BackfillCounts): string {
     `orgs_matched=${counts.orgs_matched}`,
     `orgs_would_write=${counts.orgs_would_write}`,
     `orgs_skipped_shared=${counts.orgs_skipped_shared}`,
+    `orgs_skipped_metadata_conflict=${counts.orgs_skipped_metadata_conflict}`,
     `users_scanned=${counts.users_scanned}`,
     `users_already_stored=${counts.users_already_stored}`,
     `users_matched=${counts.users_matched}`,
