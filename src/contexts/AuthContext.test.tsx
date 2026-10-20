@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
+const signOut = vi.fn(async (_args?: unknown): Promise<{ error: Error | null }> => ({ error: null }));
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -22,7 +23,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       signUp: (args: unknown) => signUp(args),
       signInWithOAuth: (args: unknown) => signInWithOAuth(args),
       signInWithOtp: (args: unknown) => signInWithOtp(args),
-      signOut: async () => ({ error: null }),
+      signOut: (args?: unknown) => signOut(args),
       refreshSession: async () => ({ error: null }),
     },
   },
@@ -45,6 +46,7 @@ describe("AuthContext passwordless methods", () => {
     signInWithOAuth.mockClear();
     signInWithOtp.mockClear();
     signUp.mockClear();
+    signOut.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
     localStorage.clear();
@@ -67,7 +69,7 @@ describe("AuthContext passwordless methods", () => {
     });
   });
 
-  it("sends magic-link and email sign-up confirmations to /auth/callback", async () => {
+  it("sends magic-link and email sign-up confirmations to /auth/confirm", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -77,7 +79,7 @@ describe("AuthContext passwordless methods", () => {
     expect(signInWithOtp).toHaveBeenCalledWith({
       email: "qa@example.com",
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
         shouldCreateUser: true,
       },
     });
@@ -85,7 +87,7 @@ describe("AuthContext passwordless methods", () => {
       email: "qa@example.com",
       password: "password123",
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
       },
     });
   });
@@ -132,5 +134,44 @@ describe("AuthContext passwordless methods", () => {
 
     await result.current.signOut();
     expect(hasCloudSetupMarker("u1")).toBe(false);
+  });
+
+  it("forwards the sign-out scope and returns the sign-out error", async () => {
+    const failure = new Error("network down");
+    signOut.mockResolvedValueOnce({ error: failure });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await expect(result.current.signOut({ scope: "local" })).resolves.toEqual({ error: failure });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  describe("cloud setup marker on sign-out", () => {
+    async function signedInHook() {
+      setCloudSetupMarker("u1");
+      const rendered = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+      authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+      await waitFor(() => expect(rendered.result.current.user?.id).toBe("u1"));
+      return rendered.result;
+    }
+
+    it("keeps the marker when sign-out fails", async () => {
+      const result = await signedInHook();
+      signOut.mockResolvedValueOnce({ error: new Error("network down") });
+      await result.current.signOut({ scope: "local" });
+      expect(hasCloudSetupMarker("u1")).toBe(true);
+    });
+
+    it("clears the marker after a successful local sign-out", async () => {
+      const result = await signedInHook();
+      await result.current.signOut({ scope: "local" });
+      expect(hasCloudSetupMarker("u1")).toBe(false);
+    });
+
+    it("keeps the marker for scope others, where this session stays signed in", async () => {
+      const result = await signedInHook();
+      await result.current.signOut({ scope: "others" });
+      expect(hasCloudSetupMarker("u1")).toBe(true);
+    });
   });
 });

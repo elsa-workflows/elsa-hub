@@ -1,0 +1,59 @@
+{
+  "comment": "Single place for Academy SKU coverage, launch prices, and academy_courses.product_codes. R2 is final: product_codes is a text[] allow-list. product_code is the primary catalog SKU and must appear in product_codes.",
+  "catalogSku": "solo_bundle",
+  "currency": "eur",
+  "launchPriceCents": 2900,
+  "postLaunchPriceCents": 3900,
+  "courseOwnCodes": {
+    "fundamentals-core": null,
+    "fundamentals-complete": null,
+    "advanced-patterns": null
+  },
+  "r2": {
+    "courseProductCodesColumn": "product_codes",
+    "writeArrayColumn": true,
+    "note": "Importer writes product_codes per catalog course as: catalogSku (solo_bundle), plus courseOwnCodes[slug] when set, plus every products[].product_code whose covers list includes that course (team_5 and team_10 today). Flip a course's own code here when a per-course SKU exists."
+  },
+  "products": [
+    {
+      "product_code": "solo_bundle",
+      "title": "Solo Bundle",
+      "summary": "Every self-paced Academy course on Elsa 3.9.0, one seat.",
+      "price_cents": 2900,
+      "currency": "eur",
+      "seats": 1,
+      "covers": ["fundamentals-core", "fundamentals-complete", "advanced-patterns"],
+      "stripe_price_id": "price_test_solo_bundle",
+      "stripe_price_id_env": "STRIPE_PRICE_ID_SOLO_BUNDLE",
+      "sku_row": false
+    },
+    {
+      "product_code": "team_5",
+      "title": "Team 5",
+      "slug": "team-5",
+      "summary": "Same self-paced Academy content as the Solo Bundle, with 5 seats.",
+      "price_cents": 34900,
+      "currency": "eur",
+      "seats": 5,
+      "covers": ["fundamentals-core", "fundamentals-complete", "advanced-patterns"],
+      "stripe_price_id": "price_test_team_5",
+      "stripe_price_id_env": "STRIPE_PRICE_ID_TEAM_5",
+      "sku_row": true,
+      "is_published": false
+    },
+    {
+      "product_code": "team_10",
+      "title": "Team 10",
+      "slug": "team-10",
+      "summary": "Same self-paced Academy content as the Solo Bundle, with 10 seats.",
+      "price_cents": 59900,
+      "currency": "eur",
+      "seats": 10,
+      "covers": ["fundamentals-core", "fundamentals-complete", "advanced-patterns"],
+      "stripe_price_id": "price_test_team_10",
+      "stripe_price_id_env": "STRIPE_PRICE_ID_TEAM_10",
+      "sku_row": true,
+      "is_published": false
+    }
+  ]
+}
