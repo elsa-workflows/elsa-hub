@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.190.0/testing/asserts.ts";
-import { loadAcademyCourse, MAX_PUBLISHED_SOLO_COURSES, type AcademyCourseRow } from "./course.ts";
+import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
 
 const PUBLISHED: AcademyCourseRow = {
   id: "00000000-0000-4000-8000-000000002001",
@@ -34,31 +34,45 @@ const TEAM5: AcademyCourseRow = {
   is_published: false,
 };
 
-function createCourseClient(rows: AcademyCourseRow[]) {
+type RowPredicate = (row: Record<string, unknown>) => boolean;
+
+// Mirrors PostgREST semantics: neq never matches NULL, is(null) only matches NULL.
+function createCourseClient(rows: AcademyCourseRow[], options: { failOn?: "is" | "neq" } = {}) {
   return {
     from: (table: string) => {
       assertEquals(table, "academy_courses");
-      const filters: Array<[string, unknown]> = [];
+      const predicates: RowPredicate[] = [];
+      const ops = new Set<string>();
+      const match = () =>
+        rows.filter((row) => predicates.every((test) => test(row as Record<string, unknown>)));
       const api = {
         select: () => api,
         eq: (column: string, value: unknown) => {
-          filters.push([column, value]);
+          predicates.push((row) => row[column] === value);
           return api;
         },
-        limit: async (n: number) => ({
-          data: rows.filter((row) =>
-            filters.every(([column, value]) => (row as Record<string, unknown>)[column] === value)
-          ).slice(0, n),
-          error: null,
-        }),
+        is: (column: string, value: null) => {
+          ops.add("is");
+          predicates.push((row) => (row[column] ?? null) === value);
+          return api;
+        },
+        neq: (column: string, value: string) => {
+          ops.add("neq");
+          predicates.push((row) => row[column] != null && row[column] !== value);
+          return api;
+        },
+        limit: async (n: number) => {
+          if (options.failOn && ops.has(options.failOn)) {
+            return { data: null, error: { message: "secret db detail", code: "XX000" } };
+          }
+          return { data: match().slice(0, n), error: null };
+        },
         maybeSingle: async () => {
-          const match = rows.filter((row) =>
-            filters.every(([column, value]) => (row as Record<string, unknown>)[column] === value)
-          );
-          if (match.length > 1) {
+          const found = match();
+          if (found.length > 1) {
             return { data: null, error: { code: "PGRST116", message: "multiple rows" } };
           }
-          return { data: match[0] ?? null, error: null };
+          return { data: found[0] ?? null, error: null };
         },
       };
       return api;
@@ -149,82 +163,110 @@ Deno.test("Team SKU row for team_10 at the team-5 slug fails closed", async () =
   assertEquals(loaded.error?.status, 409);
 });
 
-Deno.test("published Solo courses that share one stripe_price_id use that price", async () => {
-  const other: AcademyCourseRow = {
-    ...PUBLISHED,
-    id: "00000000-0000-4000-8000-000000002002",
-    slug: "other-published",
-    title: "Other Published",
-  };
-  const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED, other, DRAFT_CATALOG]), {
-    courseSlug: "other-published",
-  });
-  assertEquals(loaded.course?.id, other.id);
-  assertEquals(loaded.course?.stripe_price_id, "price_solo_test");
-});
+const DRIFT_MESSAGE = "Published Solo courses have conflicting Stripe prices";
 
-Deno.test("published Solo courses with differing stripe_price_id fail closed", async () => {
-  const other: AcademyCourseRow = {
-    ...PUBLISHED,
-    id: "00000000-0000-4000-8000-000000002002",
-    slug: "other-published",
-    title: "Other Published",
-    stripe_price_id: "price_other_solo",
-  };
-  const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED, other]), {
-    courseSlug: "published-course",
-  });
-  assertEquals(loaded.error?.status, 409);
-  assertEquals(loaded.course, undefined);
-});
+const OTHER_PUBLISHED: AcademyCourseRow = {
+  ...PUBLISHED,
+  id: "00000000-0000-4000-8000-000000002002",
+  slug: "other-published",
+  title: "Other Published",
+};
 
-Deno.test("a published Solo course with a null price next to a priced course fails closed", async () => {
-  const other: AcademyCourseRow = {
-    ...PUBLISHED,
-    id: "00000000-0000-4000-8000-000000002002",
-    slug: "other-published",
-    stripe_price_id: null,
-  };
-  const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED, other]), {
-    courseId: PUBLISHED.id,
-  });
-  assertEquals(loaded.error?.status, 409);
-});
-
-Deno.test("a published catalog row that is not solo_bundle is not sold as Solo", async () => {
-  const loaded = await loadAcademyCourse(
-    createCourseClient([
-      {
-        ...PUBLISHED,
-        product_code: "team_5",
-      },
-    ]),
-    { courseSlug: "published-course" },
-  );
-  assertEquals(loaded.error?.status, 409);
-});
-
-function publishedSoloCourses(count: number): AcademyCourseRow[] {
-  return Array.from({ length: count }, (_, i) => ({
-    ...PUBLISHED,
+Deno.test("published Solo courses that share one stripe_price_id sell, even with many rows", async () => {
+  const bulk = Array.from({ length: 500 }, (_, i) => ({
+    ...OTHER_PUBLISHED,
     id: `00000000-0000-4000-8000-${String(100000 + i).padStart(12, "0")}`,
     slug: `bulk-${i}`,
   }));
-}
-
-Deno.test("published Solo courses at the verification cap with one price still sell", async () => {
   const loaded = await loadAcademyCourse(
-    createCourseClient(publishedSoloCourses(MAX_PUBLISHED_SOLO_COURSES)),
-    { courseSlug: "bulk-0" },
+    createCourseClient([PUBLISHED, ...bulk, DRAFT_CATALOG]),
+    { courseSlug: "bulk-499" },
   );
-  assertEquals(loaded.course?.slug, "bulk-0");
+  assertEquals(loaded.error, undefined);
+  assertEquals(loaded.course?.slug, "bulk-499");
+  assertEquals(loaded.course?.stripe_price_id, "price_solo_test");
 });
 
-Deno.test("published Solo courses beyond the verification cap fail closed instead of checking a partial page", async () => {
-  const rows = publishedSoloCourses(MAX_PUBLISHED_SOLO_COURSES + 1);
-  // The conflicting price sits past the first MAX rows, outside a capped page.
-  rows[MAX_PUBLISHED_SOLO_COURSES].stripe_price_id = "price_other_solo";
-  const loaded = await loadAcademyCourse(createCourseClient(rows), { courseSlug: "bulk-0" });
+Deno.test("one other published Solo course with a different price fails closed", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([PUBLISHED, { ...OTHER_PUBLISHED, stripe_price_id: "price_other_solo" }]),
+    { courseSlug: "published-course" },
+  );
   assertEquals(loaded.error?.status, 409);
+  assertEquals(loaded.error?.body.error, DRIFT_MESSAGE);
   assertEquals(loaded.course, undefined);
+});
+
+Deno.test("a conflicting price far down a large catalog still fails closed", async () => {
+  const bulk = Array.from({ length: 500 }, (_, i) => ({
+    ...OTHER_PUBLISHED,
+    id: `00000000-0000-4000-8000-${String(100000 + i).padStart(12, "0")}`,
+    slug: `bulk-${i}`,
+  }));
+  bulk[499].stripe_price_id = "price_other_solo";
+  const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED, ...bulk]), {
+    courseSlug: "published-course",
+  });
+  assertEquals(loaded.error?.status, 409);
+  assertEquals(loaded.error?.body.error, DRIFT_MESSAGE);
+});
+
+Deno.test("one other published Solo course with a null price fails closed", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([PUBLISHED, { ...OTHER_PUBLISHED, stripe_price_id: null }]),
+    { courseId: PUBLISHED.id },
+  );
+  assertEquals(loaded.error?.status, 409);
+  assertEquals(loaded.error?.body.error, DRIFT_MESSAGE);
+  assertEquals(loaded.course, undefined);
+});
+
+Deno.test("unpublished Solo rows with a different or null price do not block a sale", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([
+      PUBLISHED,
+      { ...DRAFT_CATALOG, stripe_price_id: "price_draft" },
+      { ...DRAFT_CATALOG, id: "00000000-0000-4000-8000-000000002098", stripe_price_id: null },
+    ]),
+    { courseSlug: "published-course" },
+  );
+  assertEquals(loaded.course?.id, PUBLISHED.id);
+});
+
+Deno.test("a selected course without a price is left to the handler", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([{ ...PUBLISHED, stripe_price_id: null }]),
+    { courseSlug: "published-course" },
+  );
+  assertEquals(loaded.error, undefined);
+  assertEquals(loaded.course?.stripe_price_id, null);
+});
+
+for (const failOn of ["is", "neq"] as const) {
+  Deno.test(`a failing drift query (${failOn}) is a generic 500 and logs the detail`, async () => {
+    const logged: unknown[][] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => void logged.push(args);
+    try {
+      const loaded = await loadAcademyCourse(createCourseClient([PUBLISHED], { failOn }), {
+        courseSlug: "published-course",
+      });
+      assertEquals(loaded.error?.status, 500);
+      assertEquals(loaded.error?.body.error, "Course lookup failed");
+      assertEquals(loaded.course, undefined);
+    } finally {
+      console.error = original;
+    }
+    assertEquals(logged.length > 0, true);
+    assertEquals(JSON.stringify(logged).includes("secret db detail"), true);
+  });
+}
+
+Deno.test("a published catalog row that is not solo_bundle is not sold as Solo", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient([{ ...PUBLISHED, product_code: "team_5" }]),
+    { courseSlug: "published-course" },
+  );
+  assertEquals(loaded.error?.status, 409);
+  assertEquals(loaded.error?.body.error, "Published course is not a Solo SKU");
 });

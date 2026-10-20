@@ -115,6 +115,7 @@ function createServiceClient(options: {
   org?: { name: string; slug: string } | null;
   billingProfile?: typeof BILLING_PROFILE | null;
   user?: { id: string; email?: string | null } | null;
+  failDriftQuery?: boolean;
 } = {}) {
   const courses = options.courses ?? [SOLO_COURSE, TEAM5_COURSE, TEAM10_COURSE];
   const tableReads: string[] = [];
@@ -130,14 +131,32 @@ function createServiceClient(options: {
     from: (table: string) => {
       tableReads.push(table);
       const filters: Array<[string, unknown]> = [];
+      // Mirrors PostgREST: is(null) matches only NULL, neq never matches NULL.
+      const predicates: Array<(row: Record<string, unknown>) => boolean> = [];
+      let driftQuery = false;
       const api = {
         select: (_columns: string) => api,
         eq: (column: string, value: unknown) => {
           filters.push([column, value]);
           return api;
         },
+        is: (column: string, value: null) => {
+          driftQuery = true;
+          predicates.push((row) => (row[column] ?? null) === value);
+          return api;
+        },
+        neq: (column: string, value: string) => {
+          driftQuery = true;
+          predicates.push((row) => row[column] != null && row[column] !== value);
+          return api;
+        },
         order: () => api,
-        limit: async (_n: number) => ({ data: match(), error: null }),
+        limit: async (n: number) => {
+          if (driftQuery && options.failDriftQuery) {
+            return { data: null, error: { message: "secret db detail" } };
+          }
+          return { data: match().slice(0, n), error: null };
+        },
         maybeSingle: async () => {
           const rows = match();
           if (rows.length > 1) {
@@ -156,7 +175,8 @@ function createServiceClient(options: {
       function match(): unknown[] {
         if (table === "academy_courses") {
           return courses.filter((row) =>
-            filters.every(([column, value]) => (row as Record<string, unknown>)[column] === value)
+            filters.every(([column, value]) => (row as Record<string, unknown>)[column] === value) &&
+            predicates.every((test) => test(row as Record<string, unknown>))
           );
         }
         if (table === "organizations") {
@@ -558,6 +578,54 @@ Deno.test("Solo checkout fails closed when published solo_bundle prices differ",
   const { status, body } = await parseJson(res);
   assertEquals(status, 409);
   assertEquals(body.error, "Published Solo courses have conflicting Stripe prices");
+  assertEquals(stripe.sessions.length, 0);
+});
+
+Deno.test("Solo checkout fails closed when another published solo_bundle row has no price", async () => {
+  const stripe = createStripeMock();
+  const res = await runAcademyCheckout({
+    user: USER,
+    body: { courseId: SOLO_COURSE.id },
+    origin: "https://hub.example",
+    deps: {
+      userClient: createUserClient(false),
+      serviceClient: createServiceClient({
+        courses: [
+          SOLO_COURSE,
+          { ...SOLO_COURSE, id: "00000000-0000-4000-8000-000000002002", slug: "no-price", stripe_price_id: null },
+        ],
+      }),
+      stripe: stripe.stripe,
+    },
+  });
+  const { status, body } = await parseJson(res);
+  assertEquals(status, 409);
+  assertEquals(body.error, "Published Solo courses have conflicting Stripe prices");
+  assertEquals(stripe.sessions.length, 0);
+});
+
+Deno.test("Solo checkout returns a generic 500 when the price drift lookup fails", async () => {
+  const stripe = createStripeMock();
+  const original = console.error;
+  console.error = () => {};
+  let res: Response;
+  try {
+    res = await runAcademyCheckout({
+      user: USER,
+      body: { courseId: SOLO_COURSE.id },
+      origin: "https://hub.example",
+      deps: {
+        userClient: createUserClient(false),
+        serviceClient: createServiceClient({ failDriftQuery: true }),
+        stripe: stripe.stripe,
+      },
+    });
+  } finally {
+    console.error = original;
+  }
+  const { status, body } = await parseJson(res);
+  assertEquals(status, 500);
+  assertEquals(body.error, "Course lookup failed");
   assertEquals(stripe.sessions.length, 0);
 });
 
