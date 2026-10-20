@@ -31,8 +31,9 @@
  * never creates a customer.
  *
  * livemode is derived from STRIPE_SECRET_KEY, read through the injected
- * deps.env (default Deno.env): sk_live_ and rk_live_ are live, see
- * isLiveStripeKey. A missing key is an error, never silently test mode.
+ * deps.env (default Deno.env): sk_live_ and rk_live_ are live, sk_test_ and
+ * rk_test_ are test (see stripeKeyMode). A missing or unrecognised key is an
+ * error, never silently test mode.
  *
  * deps.stripe and deps.supabase are always injected. This module has no
  * imports so scripts (tsx) can import isLiveStripeKey and stripeKeyMode.
@@ -189,7 +190,11 @@ function isUniqueViolation(error: StripeCustomerQueryError): boolean {
 function isLiveMode(env: EnvReader | undefined): boolean {
   const key = (env ?? Deno.env).get("STRIPE_SECRET_KEY");
   if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
-  return isLiveStripeKey(key);
+  try {
+    return stripeKeyMode(key) === "live";
+  } catch (error) {
+    return fail("Unrecognised STRIPE_SECRET_KEY prefix", (error as Error).message);
+  }
 }
 
 async function readStoredCustomerId(

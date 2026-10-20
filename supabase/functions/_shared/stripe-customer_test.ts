@@ -517,3 +517,10 @@ Deno.test("Stripe errors from the helper keep their code but not their message",
 Deno.test("customerFailureResponse ignores errors that are not the helper's", () => {
   assertEquals(customerFailureResponse(new Error("boom"), {}), null);
 });
+
+Deno.test("an unrecognised key prefix is a generic StripeCustomerError, never test mode", async () => {
+  const deps = { stripe: createMockStripe(), supabase: createMockStore(), env: envFor("whsec_example") };
+  await assertRejects(() => getOrCreateStripeCustomer({ orgId: "org-1" }, deps), StripeCustomerError);
+  await assertRejects(() => getStoredStripeCustomerId({ orgId: "org-1" }, deps), StripeCustomerError);
+  assertEquals(deps.stripe.created.length, 0);
+});

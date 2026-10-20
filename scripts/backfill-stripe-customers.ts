@@ -17,7 +17,10 @@
  * Every customer id on a subscription row is reserved for the org(s) on that
  * row and is never matched to another org or a user by metadata or email. An
  * org whose subscription customer names another org in its metadata is skipped
- * with metadata_conflicts_subscription.
+ * with metadata_conflicts_subscription, and so is an org that such a customer
+ * (on another org's row) names. An org that a customer still names but whose
+ * customer another owner holds is skipped with customers_claimed_elsewhere, so
+ * no org with a candidate customer ends with neither a write nor a skip line.
  *
  * Orgs that share a subscription customer, or whose customers cannot be told
  * apart, are skipped and listed as org_skipped lines for a human to resolve.
@@ -26,7 +29,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isLiveStripeKey, stripeKeyMode } from "../supabase/functions/_shared/stripe-customer.ts";
+import { stripeKeyMode } from "../supabase/functions/_shared/stripe-customer.ts";
 
 export type BackfillStripeCustomer = {
   id: string;
@@ -56,6 +59,8 @@ export type BackfillCounts = {
   orgs_matched: number;
   orgs_would_write: number;
   orgs_skipped_shared: number;
+  orgs_skipped_ambiguous: number;
+  orgs_skipped_claimed: number;
   orgs_skipped_metadata_conflict: number;
   users_scanned: number;
   users_already_stored: number;
@@ -81,7 +86,11 @@ export type BackfillUserWrite = {
 /** An org left alone for a human to resolve; the Stripe customer ids are what to look at. */
 export type BackfillSkippedOrg = {
   organization_id: string;
-  reason: "shared_subscription_customer" | "ambiguous_customers" | "metadata_conflicts_subscription";
+  reason:
+    | "shared_subscription_customer"
+    | "ambiguous_customers"
+    | "metadata_conflicts_subscription"
+    | "customers_claimed_elsewhere";
   stripe_customer_ids: string[];
 };
 
@@ -118,6 +127,11 @@ export function assertApplyAllowed(options: {
       "--apply refused: STRIPE_SECRET_KEY must be a test key (sk_test_ or rk_test_) or pass --live",
     );
   }
+}
+
+/** The mode of the key the run uses; strict, so an unrecognised or missing key throws instead of meaning test mode. */
+export function backfillLivemode(key: string | undefined): boolean {
+  return stripeKeyMode(key ?? "") === "live";
 }
 
 export function assertFixtureNotUsedForApply(apply: boolean, usedFixture: boolean): void {
@@ -202,6 +216,21 @@ function matchOrgCustomer(
     };
   }
 
+  // A customer on another org's subscription row that names this org stays
+  // reserved for that row, so it must not make this org vanish: report it.
+  const namedBySubscriptionOfOtherOrg = snapshot.stripeCustomers.filter((customer) =>
+    !customer.deleted && customer.metadata?.organization_id === orgId &&
+    snapshot.subscriptions.some((row) =>
+      row.stripe_customer_id === customer.id && row.organization_id !== orgId
+    )
+  );
+  if (namedBySubscriptionOfOtherOrg.length > 0) {
+    return {
+      skip: "metadata_conflicts_subscription",
+      ids: namedBySubscriptionOfOtherOrg.map((customer) => customer.id),
+    };
+  }
+
   // Every subscription customer is reserved for the org(s) on its row, so the
   // matching below never hands one to another org.
   claimed = withReservedSubscriptionCustomers(claimed, snapshot);
@@ -240,6 +269,22 @@ function matchOrgCustomer(
   }
   if (emailMatches.length > 1) {
     return { skip: "ambiguous_customers", ids: emailMatches.map((customer) => customer.id) };
+  }
+
+  // Nothing is left for this org. If a customer still names it (its own
+  // subscription, its metadata, its admin email) and was only unavailable
+  // because another owner holds it, report the org instead of dropping it.
+  const ownSubscriptionIds = new Set(
+    snapshot.subscriptions.filter((row) => row.organization_id === orgId).map((row) => row.stripe_customer_id),
+  );
+  const heldElsewhere = snapshot.stripeCustomers.filter((customer) => {
+    if (customer.deleted) return false;
+    if (ownSubscriptionIds.has(customer.id) || customer.metadata?.organization_id === orgId) return true;
+    return !!customer.email && emailSet.has(customer.email.toLowerCase()) && !customer.metadata?.user_id &&
+      !customer.metadata?.organization_id;
+  });
+  if (heldElsewhere.length > 0) {
+    return { skip: "customers_claimed_elsewhere", ids: heldElsewhere.map((customer) => customer.id) };
   }
   return null;
 }
@@ -291,6 +336,8 @@ export function planStripeCustomerBackfill(
       orgs_matched: 0,
       orgs_would_write: 0,
       orgs_skipped_shared: 0,
+      orgs_skipped_ambiguous: 0,
+      orgs_skipped_claimed: 0,
       orgs_skipped_metadata_conflict: 0,
       users_scanned: 0,
       users_already_stored: 0,
@@ -341,8 +388,10 @@ export function planStripeCustomerBackfill(
     if ("skip" in match) {
       if (match.skip === "metadata_conflicts_subscription") {
         plan.counts.orgs_skipped_metadata_conflict += 1;
+      } else if (match.skip === "customers_claimed_elsewhere") {
+        plan.counts.orgs_skipped_claimed += 1;
       } else {
-        plan.counts.orgs_skipped_shared += 1;
+        plan.counts.orgs_skipped_ambiguous += 1;
       }
       plan.skippedOrgs.push({
         organization_id: org.id,
@@ -398,6 +447,8 @@ export function formatBackfillCounts(counts: BackfillCounts): string {
     `orgs_matched=${counts.orgs_matched}`,
     `orgs_would_write=${counts.orgs_would_write}`,
     `orgs_skipped_shared=${counts.orgs_skipped_shared}`,
+    `orgs_skipped_ambiguous=${counts.orgs_skipped_ambiguous}`,
+    `orgs_skipped_claimed=${counts.orgs_skipped_claimed}`,
     `orgs_skipped_metadata_conflict=${counts.orgs_skipped_metadata_conflict}`,
     `users_scanned=${counts.users_scanned}`,
     `users_already_stored=${counts.users_already_stored}`,
@@ -711,10 +762,9 @@ async function main() {
   });
   assertFixtureNotUsedForApply(flags.apply, flags.usedFixture);
 
-  const livemode = isLiveStripeKey(process.env.STRIPE_SECRET_KEY);
   const snapshot = flags.usedFixture
     ? loadBackfillFixture(flags.fixture)
-    : await loadRealSnapshot(livemode);
+    : await loadRealSnapshot(backfillLivemode(process.env.STRIPE_SECRET_KEY));
   const plan = planStripeCustomerBackfill(snapshot, !flags.apply);
   console.log(formatBackfillPlan(plan));
 
