@@ -8,8 +8,6 @@ export const ACADEMY_KIT_SIGNED_URL_TTL_SECONDS = 600;
 export const ACADEMY_COURSE_COLUMNS =
   "id, slug, title, summary, sort_order, is_published, price_cents, currency, stripe_price_id, product_code";
 
-export const ACADEMY_LESSON_LIST_COLUMNS = "id, course_id, slug, title, sort_order, is_preview";
-
 export const ACADEMY_ASSET_COLUMNS = "id, course_id, lesson_id, label, storage_path";
 
 export type Course = {
@@ -100,17 +98,6 @@ export function lessonPath(courseSlug: string, lessonSlug: string): string {
   return `${ACADEMY_PATH}/${courseSlug}/${lessonSlug}`;
 }
 
-export function formatAcademyPrice(cents: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency.toUpperCase(),
-    }).format(cents / 100);
-  } catch {
-    return `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`;
-  }
-}
-
 export function canReadLessonBody(
   lesson: Pick<LessonSummary, "is_preview">,
   hasAccess: boolean,
@@ -132,7 +119,7 @@ export const ACADEMY_SOLO_PRODUCT_CODE = "solo_bundle";
 export const ACADEMY_SOLO_BUNDLE_ID = "solo-bundle";
 export const ACADEMY_SOLO_BUNDLE_HASH = `#${ACADEMY_SOLO_BUNDLE_ID}`;
 
-/** Placeholder. Issue #42 will point this at the Gumroad Team URL. */
+/** Team packs are sold from the Training page. */
 export const ACADEMY_TEAM_LICENCES_URL = "/elsa-plus/training";
 
 export function scrollAcademySoloBundleIntoView(

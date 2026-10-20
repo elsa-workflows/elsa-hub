@@ -9,7 +9,7 @@ export function academyCourseTitle(course: Pick<Course, "title">): string {
 }
 
 export function academyCourseDescription(course: Pick<Course, "title" | "summary">): string {
-  return course.summary?.trim() || `Lesson list and pricing for ${course.title}.`;
+  return course.summary?.trim() || `Lesson list for ${course.title}.`;
 }
 
 export function academyLessonTitle(
