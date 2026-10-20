@@ -11,8 +11,9 @@ Code: `scripts/academy-import.ts` and `scripts/academy-import-lib.ts`. Config: `
 - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are read only under `--apply` or `--compare-live` (a read-only look at the catalog). A plain dry-run never reads them.
 - The importer never deletes rows or objects.
 - Catalog courses stay unpublished unless you pass `--publish` with `--apply`. Publish is the last step, after courses, lessons and assets succeed. Team sku-rows (`team-5`, `team-10`) are never published by it.
-- Existing rows keep their `price_cents`, `currency` and `stripe_price_id`. A rerun after the 1 Nov price switch therefore cannot revert Solo to the launch price. A new row inherits the prices of existing rows with the same `product_code` (so a Solo course added after the switch comes in at the switched price); if those rows disagree, or their Stripe price id is missing or not `price_...` under `--apply`, the import is refused. Only when no such row exists does a new row get the launch price from `academy/product-mapping.json`.
-- `--set-prices` overwrites price fields on existing rows and reads the live catalog, so it needs `--apply` or `--compare-live`. `--set-prices=team_5,team_10` moves only rows of those product codes to the mapping. Bare `--set-prices` moves every existing row, but it refuses the whole run if any `solo_bundle` row differs from the mapping (price, currency or Stripe id), so it is safe to run only when Solo is already at the mapping. Moving Solo always needs it named: `--set-prices=solo_bundle,team_5,team_10`. A new row of a product code that `--set-prices` moves gets the mapping prices, like its siblings.
+- Existing rows never change price through the importer (`price_cents`, `currency` and `stripe_price_id` are never written to a row that exists). New rows inherit their product's live price. To change a product's price everywhere, use `--price-switch`.
+- A new row copies its prices from the rows of the live catalog (all of them, not only the manifest's) that share its `product_code`. It is refused if those rows disagree or hold a price that could not be sold (Stripe id missing or not `price_...`, `price_cents` not above zero, currency not three lowercase letters). These checks run whenever the live catalog was read, under `--apply` and `--compare-live` alike. Only when no row of that product exists anywhere does a new row take the launch price from `academy/product-mapping.json` and the env Stripe id.
+- `--apply` always reads the live catalog first, because inheriting needs it.
 
 ## Dry-run
 
@@ -24,7 +25,7 @@ npm run academy:import -- \
   --assets-dir /path/to/zips
 ```
 
-A plain dry-run does not read the database, so the prices it shows are for new rows; existing rows keep theirs unless named in `--set-prices`. Add `--compare-live` (with the Supabase env vars set) to compare against the live catalog. The plan then shows old -> new for price fields and warns about lessons and assets that are in the database for a planned course but not in the plan.
+A plain dry-run does not read the database, so the prices it shows are the mapping's launch prices for new rows; a real run would inherit the live price instead. Add `--compare-live` (with the Supabase env vars set) to read the live catalog: the plan then shows what each new row would inherit, flags prices that cannot be inherited, and warns about lessons and assets that are in the database for a planned course but not in the plan.
 
 `--source-root` is required and is never read from the JSON. It may be:
 
@@ -52,21 +53,29 @@ npm run academy:import -- \
   --assets-dir /path/to/zips \
   --apply
 # add --publish only when the catalog should go live after this run succeeds
-# add --set-prices=<codes> (with --apply) only to deliberately overwrite prices on existing rows
 ```
 
-A `STRIPE_PRICE_ID_*` variable is needed only for a row that is being written with prices: new rows with no sibling row to inherit from, any row named by `--set-prices`, and, under bare `--set-prices`, every existing row (it writes the mapping prices to each, so the variables for all product codes are needed). Each must match `^price_[A-Za-z0-9_]+$`.
+Under `--apply`, a `STRIPE_PRICE_ID_*` variable is needed only for a new row whose product has no row in the catalog yet (the first import). It must match `^price_[A-Za-z0-9_]+$`. Reruns and added courses of an existing product need none.
 
 Uploads take their content type from the file extension (`zip`, `pdf`, `txt`, `md`, `json`, `png`, `jpg`, `jpeg`; anything else is `application/octet-stream`).
 
-## 1 Nov Solo Bundle price switch
+## Price switch (the 1 Nov Solo move, or any product)
 
-Moves every `solo_bundle` row to 3900 cents and a new Stripe price id (`^price_[A-Za-z0-9_]+$`; surrounding whitespace is trimmed). Dry-run by default.
+The only way the tooling changes a product's price. It moves every `academy_courses` row with a given `product_code`, including rows no manifest lists, to a new `price_cents` and Stripe price id (`^price_[A-Za-z0-9_]+$`; surrounding whitespace is trimmed), in one statement. Dry-run by default, idempotent, and a product code that matches no row is refused.
 
 ```sh
-npm run academy:price-switch -- --stripe-price-id price_...           # dry-run
-npm run academy:price-switch -- --stripe-price-id price_... --apply   # writes
-# or: psql "$DATABASE_URL" -v stripe_price_id=price_... -f scripts/academy-price-switch.sql
+# 1 Nov: solo_bundle at the mapping's post-launch price (3900)
+npm run academy:price-switch -- --stripe-price-id price_...            # dry-run
+npm run academy:price-switch -- --stripe-price-id price_... --apply    # writes
+# any other product names its price
+npm run academy:price-switch -- --product team_5 --price-cents 39900 --stripe-price-id price_... --apply
 ```
 
-The SQL script sets `ON_ERROR_STOP` itself, so a refused id exits non-zero. It is idempotent: a second run updates zero rows. Because existing rows keep their prices on a normal import, run the switch once and later imports leave it in place.
+The SQL equivalent takes the same inputs (defaults `solo_bundle` and 3900 when neither is given):
+
+```sh
+psql "$DATABASE_URL" -v stripe_price_id=price_... -f scripts/academy-price-switch.sql
+psql "$DATABASE_URL" -v product_code=team_5 -v price_cents=39900 -v stripe_price_id=price_... -f scripts/academy-price-switch.sql
+```
+
+The script sets `ON_ERROR_STOP` itself, so a refused value exits non-zero. It guards the product code, the price and the id. Because existing rows never change price through the importer, run the switch once and later imports leave it in place.
