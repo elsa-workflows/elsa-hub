@@ -13,6 +13,7 @@ import {
   LineChart,
   Lock,
   MessageSquare,
+  Users,
   Network,
   Puzzle,
   ScrollText,
@@ -41,7 +42,7 @@ const featureCards = [
     icon: Code2,
     title: "Build Workflows Your Way",
     description:
-      "Author workflows in C#, design them visually in Elsa Studio, or store them as JSON. Keep critical automation in source control while teams collaborate in the designer.",
+      "Author workflows in C#, design them visually in Elsa Studio, store them as JSON, or import BPMN 2.0 XML. Keep critical automation in source control while teams collaborate in the designer.",
   },
   {
     icon: Timer,
@@ -53,13 +54,13 @@ const featureCards = [
     icon: Workflow,
     title: "Visual Workflow Studio",
     description:
-      "A modular Blazor-based designer and management UI with diagnostics views, authentication modules, and localization. Composable for custom platform experiences.",
+      "A modular Blazor-based designer and management UI with diagnostics views, authentication modules, and localization. Studio 3.9 imports .bpmn files, shows a read-only BPMN canvas, and binds unbound tasks to Elsa activities.",
   },
   {
     icon: Puzzle,
     title: "Integration-Ready Automation",
     description:
-      "Built-in activities for HTTP, scheduling, SQL, messaging, files, and email — plus an extension ecosystem for Slack, GitHub, Service Bus, Kafka, and AI agents.",
+      "Built-in activities for HTTP, scheduling, SQL, messaging, files, and email — plus an extension ecosystem for Slack, GitHub, Service Bus, Kafka, MQTT, LDAP, and AI agents.",
   },
   {
     icon: Settings2,
@@ -91,9 +92,10 @@ const integrationCategories = [
   { icon: Globe, label: "HTTP & APIs", items: "Endpoints, webhooks, OpenAPI, file responses" },
   { icon: Timer, label: "Scheduling", items: "Cron, delay, Quartz, Hangfire" },
   { icon: Database, label: "Databases", items: "SQL Server, PostgreSQL, MySQL, SQLite, Mongo" },
-  { icon: Network, label: "Messaging", items: "Azure Service Bus, Kafka, MassTransit" },
+  { icon: Network, label: "Messaging", items: "Azure Service Bus, Kafka, MassTransit, MQTT" },
   { icon: Github, label: "DevOps", items: "GitHub issues, PRs, releases, GraphQL" },
   { icon: MessageSquare, label: "Communication", items: "Slack, email, Telnyx telephony" },
+  { icon: Users, label: "Directory", items: "LDAP (Elsa.Ldap), including Active Directory" },
   { icon: FileJson, label: "Files & Storage", items: "Blob storage, CSV, ZIP, local files" },
   { icon: Sparkles, label: "AI Agents", items: "OpenAI, Azure OpenAI, multi-agent workflows" },
 ];
@@ -160,7 +162,7 @@ export default function Features() {
       name: "Elsa Workflows — Features",
       url: `${SITE_URL}/features`,
       description:
-        "Embeddable .NET workflow engine: durable runtime, visual Studio, integrations, observability, multi-tenancy, and production operations.",
+        "Embeddable .NET workflow and BPMN engine: durable runtime, Elsa.Bpmn execution, BPMN 2.0 interchange, visual Studio, User Tasks, and production operations.",
     },
   ];
 
@@ -168,8 +170,8 @@ export default function Features() {
     <Layout>
       <Seo
         path="/features"
-        title="Features — Elsa Workflows engine for .NET"
-        description="Embeddable .NET workflow engine and visual Studio: durable event-driven runtime, integrations, observability, multi-tenancy, and production operations."
+        title="Features — the workflow and BPMN engine for .NET"
+        description="Embeddable .NET workflow and BPMN engine: durable runtime, Elsa.Bpmn execution, BPMN 2.0 interchange, visual Studio, User Tasks, and production operations."
         jsonLd={jsonLd}
       />
 
@@ -183,13 +185,16 @@ export default function Features() {
                 Platform overview
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-6">
-                Workflow automation for{" "}
+                Workflow and BPMN automation for{" "}
                 <span className="text-primary">.NET teams</span>
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mb-8">
-                Elsa is an open-source workflow engine and visual workflow platform for
-                building long-running, event-driven, and integration-heavy processes inside
-                your own .NET applications.
+                Elsa is an open-source workflow and BPMN engine for building long-running,
+                event-driven, and integration-heavy processes inside your own .NET
+                applications. Elsa 3.9 ships{" "}
+                <code className="font-mono text-sm">Elsa.Bpmn</code> and{" "}
+                <code className="font-mono text-sm">Elsa.Bpmn.Interchange</code> so a host
+                can execute BPMN 2.0 processes and round-trip <code className="font-mono text-sm">.bpmn</code> XML.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button size="lg" className="gap-2" asChild>
@@ -232,6 +237,109 @@ export default function Features() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* BPMN */}
+      <section className="py-20 md:py-28 border-b border-border">
+        <div className="container">
+          <div className="max-w-3xl mb-10">
+            <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground mb-6">
+              <span className="h-px w-8 bg-primary" />
+              BPMN in Elsa 3.9
+            </span>
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+              Execute BPMN 2.0 on the same .NET runtime
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              These packages first published at 3.9.0. Register them on the host when you
+              need BPMN execution or interchange — they are not pulled in by the{" "}
+              <code className="font-mono text-sm">Elsa</code> metapackage.
+            </p>
+          </div>
+          <ul className="rounded-xl border border-border bg-card divide-y divide-border">
+            <li className="p-6 md:p-7">
+              <h3 className="text-base font-semibold mb-1">Elsa.Bpmn</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Executes a BPMN process as a <code className="font-mono text-xs">BpmnProcess</code> activity.
+                Use <code className="font-mono text-xs">UseBpmn()</code> when you construct that activity in code.
+              </p>
+            </li>
+            <li className="p-6 md:p-7">
+              <h3 className="text-base font-semibold mb-1">Elsa.Bpmn.Interchange</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Reads and writes <code className="font-mono text-xs">.bpmn</code> XML. Analyze, import, and
+                export through <code className="font-mono text-xs">UseBpmnInterchange()</code> and the
+                <code className="font-mono text-xs"> bpmn/analyze</code>,{" "}
+                <code className="font-mono text-xs">bpmn/import</code>, and{" "}
+                <code className="font-mono text-xs">bpmn/definitions/{"{id}"}/export</code> APIs.
+              </p>
+            </li>
+            <li className="p-6 md:p-7">
+              <h3 className="text-base font-semibold mb-1">What the binder maps today</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Timer wait events to <code className="font-mono text-xs">Delay</code>, message and signal
+                catch events to <code className="font-mono text-xs">Event</code>, message throw events to{" "}
+                <code className="font-mono text-xs">PublishEvent</code>, call activities to{" "}
+                <code className="font-mono text-xs">DispatchWorkflow</code>, embedded or event
+                subprocesses to a nested <code className="font-mono text-xs">BpmnProcess</code>, and
+                service, send, user, or script tasks to an Elsa activity declared with{" "}
+                <code className="font-mono text-xs">elsa:activityBinding</code>. Constructs with no
+                runtime mapping are refused or reported during import.
+              </p>
+            </li>
+            <li className="p-6 md:p-7">
+              <h3 className="text-base font-semibold mb-1">Studio 3.9</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Import a <code className="font-mono text-xs">.bpmn</code> file from the workflow list.
+                The BPMN canvas is read-only: it displays the imported process and forwards selection.
+                Bind unbound tasks to Elsa activities from the Performed by panel. Export returns the
+                retained BPMN source from the last successful import or BPMN document edit — it does
+                not rebuild XML from an Elsa-native graph.
+              </p>
+            </li>
+            <li className="p-6 md:p-7">
+              <h3 className="text-base font-semibold mb-1">User Tasks in Core</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                <code className="font-mono text-xs">Elsa.UserTasks</code> ships in{" "}
+                <a
+                  href="https://github.com/elsa-workflows/elsa-core/releases/tag/3.9.0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  Core 3.9.0
+                </a>
+                . A <code className="font-mono text-xs">UserTask</code> activity materializes a task,
+                suspends the workflow, and resumes when a permitted action is submitted. Studio 3.9
+                adds a Workflows → User Tasks queue. This is a Core and Studio feature; Extensions
+                3.9.0 has no User Tasks module.
+              </p>
+            </li>
+          </ul>
+          <p className="text-sm text-muted-foreground mt-6 leading-relaxed">
+            <strong className="text-foreground">Preview / roadmap.</strong> BPMN import and export on
+            the React Flow Studio canvas (the 3.11 React Studio preview) is not available yet — Studio
+            shows that BPMN is not yet on that canvas. Elsa 4 continues BPMN work in{" "}
+            <a
+              href="https://github.com/elsa-workflows/elsa-foundation"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground underline underline-offset-4 hover:text-primary"
+            >
+              elsa-foundation
+            </a>
+            ; that line is preview, not a stable release.{" "}
+            <a
+              href="https://docs.elsaworkflows.io/guides/bpmn-authoring-and-interchange"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-foreground underline underline-offset-4 hover:text-primary"
+            >
+              BPMN authoring and interchange
+            </a>
+            .
+          </p>
         </div>
       </section>
 
@@ -362,8 +470,28 @@ export default function Features() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-                Additional ecosystem integrations (Teams, GitLab, OPC UA, MQTT Sparkplug,
-                and others) are on the extensions roadmap.
+                Available in the 3.9.0 train:{" "}
+                <code className="font-mono">Elsa.Mqtt</code> and{" "}
+                <code className="font-mono">Elsa.Ldap</code> in{" "}
+                <a
+                  href="https://github.com/elsa-workflows/elsa-extensions/releases/tag/3.9.0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  Extensions 3.9.0
+                </a>
+                , and User Tasks in{" "}
+                <a
+                  href="https://github.com/elsa-workflows/elsa-core/releases/tag/3.9.0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  Core 3.9.0
+                </a>
+                . Teams, GitLab, OPC UA, MQTT Sparkplug, and others remain on the extensions
+                roadmap.
               </p>
             </div>
           </div>

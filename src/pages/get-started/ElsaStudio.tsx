@@ -28,9 +28,9 @@ const packages = [
   .map(pkg)
   .join("\n");
 
-// Externally verified by Codex on 2026-09-05: this exact source restores and
-// builds against the Elsa Studio 3.8.0 packages listed above with 0 warnings
-// and 0 errors.
+// Verified 2026-10-15: this exact source restores and builds against the
+// Elsa Studio 3.9.0 packages listed above. The .NET 10 SDK no longer ships
+// blazorwasm-empty; the walkthrough uses `dotnet new blazorwasm`.
 const programCs = `using Elsa.Studio.Authentication.Abstractions.Models;
 using Elsa.Studio.Authentication.ElsaIdentity.BlazorWasm.Extensions;
 using Elsa.Studio.Authentication.ElsaIdentity.HttpMessageHandlers;
@@ -148,10 +148,8 @@ const csprojGlobalization = `<PropertyGroup>
   <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
 </PropertyGroup>`;
 
-const filesToRemove = `rm -rf Pages
-rm -rf Layout
-rm App.razor
-rm MainLayout.razor`;
+const filesToRemove = `rm -rf Pages Layout
+rm -f App.razor MainLayout.razor`;
 
 
 
@@ -260,10 +258,10 @@ export default function ElsaStudio() {
             <StepItem
               number={1}
               title="Create a Blazor WebAssembly Project"
-              description="Create a new Blazor WebAssembly application."
+              description="Create a new Blazor WebAssembly application. The .NET 10 SDK ships blazorwasm, not the older blazorwasm-empty template."
             >
               <CodeBlock
-                code={`dotnet new blazorwasm-empty -n "ElsaStudioBlazorWasm"
+                code={`dotnet new blazorwasm -n "ElsaStudioBlazorWasm"
 cd ElsaStudioBlazorWasm`}
                 language="bash"
                 title="Terminal"
@@ -413,12 +411,12 @@ cd ElsaStudioBlazorWasm`}
 
               <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  The studio will open in your browser. Login with the default credentials:
+                  Sign in with the administrator you configured on the Elsa Server. A server
+                  generated from the Elsa.Templates Development settings still uses{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">admin</code> /{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">password</code>.
+                  Elsa {ELSA_VERSION} ships no built-in credentials of its own.
                 </p>
-                <ul className="text-sm text-muted-foreground list-disc list-inside">
-                  <li>Username: <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">admin</code></li>
-                  <li>Password: <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">password</code></li>
-                </ul>
               </div>
             </StepItem>
 

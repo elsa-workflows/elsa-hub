@@ -8,6 +8,7 @@ import {
   getAuthConfirmUrl,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
+import { clearCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 
 export type OAuthSignInProvider = "github" | "google";
 
@@ -58,6 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Clear stale organization context from localStorage
           localStorage.removeItem("selected_organization");
+          if (event === "SIGNED_OUT" && previousUserId) {
+            clearCloudSetupMarker(previousUserId);
+          }
 
           // Force refresh session to ensure the Supabase client has the latest token
           if (event === "SIGNED_IN" && session) {
@@ -139,6 +143,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    const id = user?.id ?? currentUserIdRef.current;
+    if (id) clearCloudSetupMarker(id);
     await supabase.auth.signOut();
   };
 

@@ -28,9 +28,9 @@ const packages = [
   .map(pkg)
   .join("\n");
 
-// Externally verified by Codex on 2026-09-05: this exact source restores and
-// builds against the Elsa 3.8.0 packages listed above with 0 warnings and
-// 0 errors, and the host starts in Production with configured identity secrets.
+// Verified 2026-10-15: this exact source restores and builds against the
+// Elsa 3.9.0 packages listed above with 0 warnings and 0 errors, and the
+// host accepts a configured administrator sign-in.
 const programCs = `using Elsa.Extensions;
 using Elsa.Http.Options;
 using Elsa.Persistence.EFCore.Extensions;
@@ -44,7 +44,7 @@ var configuration = builder.Configuration;
 
 builder.Services.AddElsa(elsa =>
 {
-    // Identity. Elsa 3.8.0 rejects a missing signing key, a key shorter than
+    // Identity. Elsa 3.9.0 rejects a missing signing key, a key shorter than
     // 32 ASCII characters, and known public defaults outside Development/Demo.
     // Bootstrap the first admin with UseDefaultAdmin and supply the values from
     // configuration or a secret manager - never hard-code them.
@@ -82,8 +82,7 @@ builder.Services.AddElsa(elsa =>
     elsa.UseHttp(http => http.ConfigureHttpOptions = options => configuration.GetSection("Http").Bind(options));
 
     // Expression languages. C# executes host code: it requires
-    // Scripting:CSharp:AllowHostCodeExecution plus the
-    // exec:csharp-expressions permission, and is not a sandbox.
+    // Scripting:CSharp:AllowHostCodeExecution, and is not a sandbox.
     elsa.UseCSharp(csharp => csharp.CSharpOptions += options => configuration.GetSection("Scripting:CSharp").Bind(options));
     elsa.UseJavaScript();
     elsa.UseLiquid();
@@ -227,7 +226,9 @@ cd ElsaServer`}
                   32 printable ASCII characters with no surrounding whitespace; known public defaults
                   are accepted only when the environment is{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Development</code> or{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Demo</code>. In
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">Demo</code>. If
+                  you omit <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">AccessTokenLifetime</code>,
+                  Elsa {ELSA_VERSION} defaults to 15 minutes (was 1 hour). In
                   production, supply these through environment variables or a secret manager and
                   rotate them after the first sign-in.
                 </p>
@@ -236,20 +237,21 @@ cd ElsaServer`}
               <CodeBlock code={appSettings} language="json" title="appsettings.json" />
               <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2 text-sm text-muted-foreground">
                 <p>
-                  Localhost requests no longer receive security-root bootstrap permissions.
-                  A development host that relies on that must opt in explicitly with{" "}
+                  The localhost SecurityRoot grant was removed in Elsa {ELSA_VERSION}. Localhost
+                  requests get no special access, and{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
-                    elsa.UseDefaultAuthentication(auth =&gt; auth.EnableLocalHostPermissionGrantForSecurityRoot())
+                    EnableLocalHostPermissionGrantForSecurityRoot()
                   </code>{" "}
-                  — the default admin bootstrap above is the recommended alternative.
+                  no longer exists. Use the default admin bootstrap above.
                 </p>
 
                 <p>
                   C# and Python expressions execute host code. They require{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">AllowHostCodeExecution</code>{" "}
-                  plus the <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">exec:csharp-expressions</code>{" "}
+                  and are not sandboxed — enable them only for trusted authors. The{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">exec:csharp-expressions</code>{" "}
                   / <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">exec:python-expressions</code>{" "}
-                  permission, and are not sandboxed — enable them only for trusted authors.
+                  permissions were removed.
                 </p>
               </div>
             </StepItem>

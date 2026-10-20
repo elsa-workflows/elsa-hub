@@ -13,7 +13,7 @@ export default function OrgWorkspaces() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Workspaces</h1>
+        <h1 className="text-2xl font-bold">Engagements</h1>
         <p className="text-muted-foreground mt-1">
           Shared spaces with each of your service providers. Files, transcripts, and decisions live here — visible to both sides.
         </p>

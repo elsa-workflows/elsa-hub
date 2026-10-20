@@ -4,8 +4,6 @@ import {
   Server,
   Shield,
   RefreshCw,
-  Database,
-  Users,
   CheckCircle2,
   XCircle,
   ArrowRight,
@@ -15,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,44 +25,37 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  CLOUD_SIGN_IN_HREF,
+  CLOUD_WAITLIST_HREF,
+  DASHBOARD_CLOUD_PATH,
+} from "@/lib/cloudPaths";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 const includedFeatures = [
   {
-    title: "Fully managed Elsa Workflows runtime",
+    title: "Hosted Elsa Workflows runtime",
     description:
-      "The complete Elsa engine deployed and configured for production use.",
+      "The Elsa engine, deployed and configured for you.",
     icon: Server,
   },
   {
-    title: "Secure cloud deployment",
+    title: "Cloud deployment",
     description:
-      "Infrastructure provisioned with security best practices and network isolation.",
+      "Infrastructure provisioned for running Elsa Workflows.",
     icon: Shield,
   },
   {
-    title: "Monitoring and operational support",
+    title: "Support by email",
     description:
-      "System health monitoring, alerting, and basic operational assistance.",
+      "Email hello@valence.works during business hours.",
     icon: Cloud,
   },
   {
-    title: "Managed updates and maintenance",
+    title: "Updates",
     description:
-      "Regular updates to Elsa and underlying infrastructure with minimal disruption.",
+      "Updates to Elsa and the infrastructure it runs on.",
     icon: RefreshCw,
-  },
-  {
-    title: "Backup and recovery",
-    description:
-      "Automated backups and documented recovery procedures for your workflow data.",
-    icon: Database,
-  },
-  {
-    title: "Environment isolation",
-    description:
-      "Dedicated resources ensuring your workflows run independently of other customers.",
-    icon: Users,
   },
 ];
 
@@ -89,7 +81,7 @@ const idealFor = [
   {
     title: "Enterprise requirements",
     description:
-      "Organizations that need a professionally operated, supported deployment with clear accountability.",
+      "Organizations that want a deployment run by the team behind Elsa.",
   },
   {
     title: "Rapid deployment needs",
@@ -141,9 +133,11 @@ const relatedOfferings = [
 ];
 
 export default function CloudServices() {
+  const { user } = useAuth();
+
   return (
     <Layout>
-      <Seo path="/elsa-plus/cloud-services" title="Managed cloud hosting for Elsa — Elsa+" description="Managed Elsa hosting providers: hand off operations, upgrades, and scaling so your team can focus on building workflows." />
+      <Seo path="/elsa-plus/cloud-services" title="Elsa Cloud — Elsa+" description="Elsa Workflows, hosted and run for you by Valence Works. Build workflows; we handle the servers, databases and updates." />
       {/* Breadcrumb */}
       <section className="pt-8 pb-4">
         <div className="container">
@@ -156,7 +150,7 @@ export default function CloudServices() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>Cloud & Managed Services</BreadcrumbPage>
+                <BreadcrumbPage>Elsa Cloud</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
@@ -168,15 +162,14 @@ export default function CloudServices() {
         <div className="container">
           <div className="max-w-3xl">
             <Badge variant="secondary" className="mb-4">
-              Coming Soon
+              Early access
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Managed Cloud Hosting
+              Elsa Cloud
             </h1>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Elsa Workflows deployed, operated, and maintained as a managed
-              service. Focus on building workflows while infrastructure
-              management is handled for you.
+              Elsa Workflows, hosted and run for you by Valence Works. Build
+              workflows; we handle the servers, databases and updates.
             </p>
           </div>
         </div>
@@ -187,25 +180,24 @@ export default function CloudServices() {
         <div className="container">
           <div className="max-w-3xl">
             <h2 className="text-2xl md:text-3xl font-bold mb-6">
-              What Managed Hosting Means
+              What Elsa Cloud Means
             </h2>
             <div className="prose prose-lg text-muted-foreground space-y-4">
               <p>
-                Managed cloud hosting for Elsa Workflows means the complete
-                runtime environment is deployed, configured, operated, updated,
-                and monitored by a qualified service provider. You interact with Elsa through
+                Elsa Cloud for Elsa Workflows means the complete
+                runtime environment is deployed, configured, operated, and
+                updated. You interact with Elsa through
                 its APIs and designer while infrastructure concerns are
                 abstracted away.
               </p>
               <p>
-                This approach prioritizes operational simplicity and
-                reliability. Rather than provisioning servers, configuring
+                Rather than provisioning servers, configuring
                 databases, managing container orchestration, and handling
                 updates, your team can focus entirely on workflow design and
                 business logic.
               </p>
               <p>
-                Managed hosting is an alternative to self-hosting for teams that
+                Elsa Cloud is an alternative to self-hosting for teams that
                 prefer not to operate their own Elsa infrastructure—whether due
                 to resource constraints, operational preferences, or a desire
                 for reduced maintenance burden.
@@ -255,7 +247,7 @@ export default function CloudServices() {
             </h2>
             <p className="text-muted-foreground mb-6">
               To set clear expectations, the following are outside the scope of
-              managed hosting:
+              Elsa Cloud:
             </p>
             <ul className="space-y-3">
               {notIncluded.map((item) => (
@@ -328,7 +320,7 @@ export default function CloudServices() {
               Part of the Elsa Ecosystem
             </h2>
             <p className="text-muted-foreground">
-              Managed cloud hosting is one option within the broader Elsa
+              Elsa Cloud is one option within the broader Elsa
               ecosystem. Depending on your requirements, other approaches may be
               more suitable.
             </p>
@@ -366,7 +358,7 @@ export default function CloudServices() {
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">Next Steps</h2>
             <p className="text-muted-foreground mb-8">
-              Managed hosting is not live yet.
+              Elsa Cloud is in early access.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -375,14 +367,10 @@ export default function CloudServices() {
                 className="gap-2 rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary"
                 asChild
               >
-                <a
-                  href="https://elsacloud.app/request-trial"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <Link to={CLOUD_WAITLIST_HREF}>
                   Join the waitlist
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </Button>
               <Button variant="outline" size="lg" className="gap-2" asChild>
                 <a
@@ -395,6 +383,14 @@ export default function CloudServices() {
                 </a>
               </Button>
             </div>
+            <p className="mt-6">
+              <Link
+                to={user ? DASHBOARD_CLOUD_PATH : CLOUD_SIGN_IN_HREF}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Already have access? Sign in
+              </Link>
+            </p>
           </div>
         </div>
       </section>
