@@ -1,16 +1,41 @@
-import { dispatchCloudAction, parseCloudBffRequest } from "../_shared/cloud-actions.ts";
+import {
+  dispatchCloudAction,
+  parseCloudBffRequest,
+  type PersistValidatedBootstrapLink,
+} from "../_shared/cloud-actions.ts";
 import { createControlFetch, type ControlFetch } from "../_shared/cloud-control.ts";
 import {
   createHubUserResolver,
   type ResolveHubUser,
 } from "../_shared/cloud-hub-auth.ts";
 import { jsonResponse, preflightResponse } from "../_shared/cloud-http.ts";
+import type { OrgAdminClient } from "../_shared/cloud-organization-link.ts";
 import { updatingBody } from "../_shared/cloud-types.ts";
 
 export type CloudBffDeps = {
   resolveHubUser?: ResolveHubUser;
   controlFetch?: ControlFetch;
+  persistLinkFromValidatedBootstrap?: PersistValidatedBootstrapLink;
+  userClient?: OrgAdminClient;
+  serviceClient?: unknown;
 };
+
+async function createLinkClients(
+  accessToken: string,
+): Promise<{ userClient: OrgAdminClient; serviceClient: unknown } | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) return null;
+
+  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.57.2");
+  return {
+    userClient: createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    }),
+    serviceClient: createClient(supabaseUrl, serviceRoleKey),
+  };
+}
 
 export async function handleCloudBff(
   req: Request,
@@ -55,9 +80,25 @@ export async function handleCloudBff(
   }
 
   try {
+    let userClient = deps.userClient;
+    let serviceClient = deps.serviceClient;
+    if (
+      parsed.request.action === "bootstrap" &&
+      parsed.request.hubOrganizationId &&
+      (!userClient || !serviceClient)
+    ) {
+      const clients = await createLinkClients(user.accessToken);
+      if (!clients) return jsonResponse(503, updatingBody());
+      userClient = clients.userClient;
+      serviceClient = clients.serviceClient;
+    }
+
     return await dispatchCloudAction({
       accessToken: user.accessToken,
       controlFetch: deps.controlFetch ?? createControlFetch(),
+      persistLink: deps.persistLinkFromValidatedBootstrap,
+      userClient,
+      serviceClient,
     }, parsed.request);
   } catch {
     return jsonResponse(503, updatingBody());

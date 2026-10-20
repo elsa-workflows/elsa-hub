@@ -284,9 +284,9 @@ export default function Roadmap() {
                       ({ELSA_RELEASE_DATE}), so they can trail what actually shipped.
                     </>
                   )}{" "}
-                  In {ELSA_VERSION}, structured logging, console logging and OpenTelemetry are
-                  available as opt-in Core modules, and Elsa Studio {ELSA_VERSION} adds a diagnostics
-                  workspace.
+                  In {ELSA_VERSION}, permissions use a <code className="font-mono">resource:verb</code>{" "}
+                  model, the dashboard is permission-gated for every signed-in user, and Core adds
+                  User Tasks and BPMN modules.
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
                   The broader goals in that track — incident timelines, dropped-event counters, and
