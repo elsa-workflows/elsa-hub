@@ -50,6 +50,36 @@ EXCEPTION
 END;
 $$;
 
+-- True when the statement raises a check constraint violation.
+CREATE OR REPLACE FUNCTION pg_temp.throws_check(p_sql text)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  EXECUTE p_sql;
+  RETURN false;
+EXCEPTION
+  WHEN check_violation THEN
+    RETURN true;
+END;
+$$;
+
+-- True when the statement runs without raising. Any error (for example a
+-- foreign key violation) returns false, so a broken cascade is a failed
+-- assertion and not an aborted run.
+CREATE OR REPLACE FUNCTION pg_temp.runs(p_sql text)
+RETURNS boolean
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  EXECUTE p_sql;
+  RETURN true;
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN false;
+END;
+$$;
+
 -- True when the statement is refused with insufficient_privilege (42501: no
 -- table privilege, or a row-level security policy refusing the new row), or
 -- when an UPDATE or DELETE is filtered down to zero rows. Any other error
@@ -75,6 +105,8 @@ GRANT EXECUTE ON FUNCTION pg_temp.ok(boolean, text, text) TO anon, authenticated
 GRANT EXECUTE ON FUNCTION pg_temp.set_jwt(uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION pg_temp.throws_unique(text) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION pg_temp.write_denied(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION pg_temp.throws_check(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION pg_temp.runs(text) TO anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- Seed. Every fixture user has a distinct email (auth.users.email is unique
@@ -177,8 +209,37 @@ SELECT pg_temp.ok(
     OR has_table_privilege('authenticated', 'public.user_stripe_customers', 'INSERT')
     OR has_table_privilege('authenticated', 'public.user_stripe_customers', 'UPDATE')
     OR has_table_privilege('authenticated', 'public.user_stripe_customers', 'DELETE')
+    OR has_table_privilege('authenticated', 'public.org_stripe_customers', 'TRUNCATE')
+    OR has_table_privilege('authenticated', 'public.user_stripe_customers', 'TRUNCATE')
   ),
-  'authenticated has no write privilege on either table'
+  'authenticated has no write or truncate privilege on either table'
+);
+
+-- TRUNCATE bypasses RLS, and REFERENCES or TRIGGER would be easy to grant by
+-- accident, so pin the full ACL: authenticated holds SELECT only, and anon and
+-- PUBLIC hold nothing, on both tables.
+SELECT pg_temp.ok(
+  (
+    SELECT bool_and(
+      CASE
+        WHEN a.grantee = 'authenticated'::regrole THEN a.privilege_type = 'SELECT'
+        WHEN a.grantee IN (0, 'anon'::regrole) THEN false
+        ELSE true
+      END
+    )
+    FROM pg_class c
+    CROSS JOIN LATERAL aclexplode(c.relacl) a
+    WHERE c.oid IN ('public.org_stripe_customers'::regclass, 'public.user_stripe_customers'::regclass)
+  )
+  AND (
+    SELECT count(*) = 2
+    FROM pg_class c
+    CROSS JOIN LATERAL aclexplode(c.relacl) a
+    WHERE c.oid IN ('public.org_stripe_customers'::regclass, 'public.user_stripe_customers'::regclass)
+      AND a.grantee = 'authenticated'::regrole
+      AND a.privilege_type = 'SELECT'
+  ),
+  'authenticated holds only SELECT, and anon and PUBLIC hold nothing, on both tables'
 );
 
 -- ---------------------------------------------------------------------------
@@ -330,6 +391,110 @@ SELECT pg_temp.ok(
     WHERE user_id = '00000000-0000-4000-8000-00000000000d'
   ),
   'same user can store test and live customers'
+);
+
+-- ---------------------------------------------------------------------------
+-- Format check: only customer ids ("cus_...") are stored
+-- ---------------------------------------------------------------------------
+
+SET LOCAL ROLE service_role;
+
+SELECT pg_temp.ok(
+  pg_temp.throws_check($sql$
+    INSERT INTO public.org_stripe_customers (organization_id, livemode, stripe_customer_id)
+    VALUES ('00000000-0000-4000-8000-000000001003', false, 'sub_x')
+  $sql$),
+  'org table rejects a stripe id that is not a customer id'
+);
+
+SELECT pg_temp.ok(
+  pg_temp.throws_check($sql$
+    INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
+    VALUES ('00000000-0000-4000-8000-00000000000b', false, 'sub_x')
+  $sql$),
+  'user table rejects a stripe id that is not a customer id'
+);
+
+-- ---------------------------------------------------------------------------
+-- updated_at trigger. The statement sets an old updated_at itself, so the
+-- value only moves forward if the BEFORE UPDATE trigger overrides it.
+-- ---------------------------------------------------------------------------
+
+UPDATE public.org_stripe_customers
+SET stripe_customer_id = 'cus_test_org_b_touched', updated_at = '2000-01-01T00:00:00Z'
+WHERE organization_id = '00000000-0000-4000-8000-000000001002' AND livemode = false;
+
+SELECT pg_temp.ok(
+  (
+    SELECT updated_at > '2000-01-01T00:00:00Z' FROM public.org_stripe_customers
+    WHERE organization_id = '00000000-0000-4000-8000-000000001002' AND livemode = false
+  ),
+  'org update moves updated_at forward'
+);
+
+UPDATE public.user_stripe_customers
+SET stripe_customer_id = 'cus_test_admin_a_personal_touched', updated_at = '2000-01-01T00:00:00Z'
+WHERE user_id = '00000000-0000-4000-8000-00000000000a' AND livemode = false;
+
+SELECT pg_temp.ok(
+  (
+    SELECT updated_at > '2000-01-01T00:00:00Z' FROM public.user_stripe_customers
+    WHERE user_id = '00000000-0000-4000-8000-00000000000a' AND livemode = false
+  ),
+  'user update moves updated_at forward'
+);
+
+RESET ROLE;
+
+-- ---------------------------------------------------------------------------
+-- Cascade: deleting the owner removes its refs. Uses its own org and user so
+-- the earlier fixtures stay intact.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO auth.users (id, email)
+VALUES ('00000000-0000-4000-8000-00000000000e', 'cascade-user@example.test');
+
+INSERT INTO public.organizations (id, name, slug)
+VALUES ('00000000-0000-4000-8000-000000001004', 'Org D', 'org-d-stripe-customer-refs');
+
+SET LOCAL ROLE service_role;
+
+INSERT INTO public.org_stripe_customers (organization_id, livemode, stripe_customer_id) VALUES
+  ('00000000-0000-4000-8000-000000001004', false, 'cus_test_org_d'),
+  ('00000000-0000-4000-8000-000000001004', true, 'cus_live_org_d');
+
+INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id) VALUES
+  ('00000000-0000-4000-8000-00000000000e', false, 'cus_test_cascade_user'),
+  ('00000000-0000-4000-8000-00000000000e', true, 'cus_live_cascade_user');
+
+RESET ROLE;
+
+-- The delete runs in its own statement: the refs check below must see its effect.
+SELECT pg_temp.runs($sql$
+  DELETE FROM public.organizations WHERE id = '00000000-0000-4000-8000-000000001004'
+$sql$) AS deleted \gset
+
+SELECT pg_temp.ok(
+  :'deleted'::boolean
+  AND NOT EXISTS (
+    SELECT 1 FROM public.org_stripe_customers
+    WHERE organization_id = '00000000-0000-4000-8000-000000001004'
+  ),
+  'deleting an org removes its customer refs'
+);
+
+-- The delete runs in its own statement: the refs check below must see its effect.
+SELECT pg_temp.runs($sql$
+  DELETE FROM auth.users WHERE id = '00000000-0000-4000-8000-00000000000e'
+$sql$) AS deleted \gset
+
+SELECT pg_temp.ok(
+  :'deleted'::boolean
+  AND NOT EXISTS (
+    SELECT 1 FROM public.user_stripe_customers
+    WHERE user_id = '00000000-0000-4000-8000-00000000000e'
+  ),
+  'deleting a user removes their customer refs'
 );
 
 -- ---------------------------------------------------------------------------
