@@ -1,14 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import {
+  assertNoStripeRefsWithoutKey,
   cleanupStripeCustomersForUserDelete,
-  type ServiceClient,
   StripeCustomerDeleteError,
+  StripeNotConfiguredError,
 } from "./cleanup.ts";
 import {
   createSupabaseStripeRefStore,
   livemodeFromStripeSecretKey,
-  type StripeRefClient,
 } from "./stripe_customer_refs.ts";
 
 const corsHeaders = {
@@ -98,40 +98,45 @@ Deno.serve(async (req) => {
     const stripeWarnings: string[] = [];
 
     // Stripe cleanup uses stored refs only. Never look up customers by email.
-    if (stripeSecretKey) {
-      const stripe = new Stripe(stripeSecretKey, {
-        apiVersion: "2024-06-20",
-        httpClient: Stripe.createFetchHttpClient(),
-      });
-      const livemode = livemodeFromStripeSecretKey(stripeSecretKey);
-      // The supabase-js builders satisfy the narrow structural types the
-      // cleanup uses; their generics are not assignable to them directly.
-      const refs = createSupabaseStripeRefStore(
-        serviceClient as unknown as StripeRefClient,
-      );
+    const refs = createSupabaseStripeRefStore(serviceClient);
 
-      try {
+    try {
+      if (stripeSecretKey) {
+        const stripe = new Stripe(stripeSecretKey, {
+          apiVersion: "2024-06-20",
+          httpClient: Stripe.createFetchHttpClient(),
+        });
         const { warnings } = await cleanupStripeCustomersForUserDelete({
-          serviceClient: serviceClient as unknown as ServiceClient,
+          serviceClient,
           stripe,
           refs,
           userId,
-          livemode,
+          livemode: livemodeFromStripeSecretKey(stripeSecretKey),
         });
         stripeWarnings.push(...warnings);
-      } catch (stripeErr) {
-        if (stripeErr instanceof StripeCustomerDeleteError) {
-          console.error("Stripe customer delete failed:", stripeErr);
-          return new Response(
-            JSON.stringify({ error: stripeErr.message }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        throw stripeErr;
+      } else {
+        await assertNoStripeRefsWithoutKey({ serviceClient, refs, userId });
+        stripeWarnings.push("Stripe not configured - skipped Stripe cleanup");
       }
-    } else {
-      stripeWarnings.push("Stripe not configured - skipped Stripe cleanup");
+    } catch (stripeErr) {
+      if (
+        stripeErr instanceof StripeCustomerDeleteError ||
+        stripeErr instanceof StripeNotConfiguredError
+      ) {
+        console.error("Stripe cleanup refused the delete:", stripeErr);
+        return new Response(
+          JSON.stringify({ error: stripeErr.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw stripeErr;
     }
+
+    // Time-of-check gap: the Stripe cleanup above and this RPC are not one
+    // transaction. A ref added in between (an owner added to a sole-owned org,
+    // or a checkout writing a new ref) is dropped by the cascade without its
+    // Stripe customer being deleted. The window is small and an admin retry
+    // cannot find the ref afterwards, so the customer would need manual cleanup.
 
     // Call the database RPC to delete all user data
     // Use userClient so auth.uid() is available for is_platform_admin() check in the RPC

@@ -1,4 +1,8 @@
-import type { StripeCustomerRefStore } from "./stripe_customer_refs.ts";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type {
+  StripeCustomerRefKind,
+  StripeCustomerRefStore,
+} from "./stripe_customer_refs.ts";
 
 export type StripeCleanupClient = {
   customers: {
@@ -20,22 +24,6 @@ export type SubscriptionRow = {
   stripe_subscription_id: string;
 };
 
-export type ServiceQueryResult<T> = {
-  data: T | null;
-  error: { message: string } | null;
-};
-
-export type ServiceQuery<T> = PromiseLike<ServiceQueryResult<T>> & {
-  select: (columns: string) => ServiceQuery<T>;
-  eq: (column: string, value: string) => ServiceQuery<T>;
-  neq: (column: string, value: string) => ServiceQuery<T>;
-  in: (column: string, values: string[]) => ServiceQuery<T>;
-};
-
-export type ServiceClient = {
-  from: (table: string) => ServiceQuery<unknown>;
-};
-
 function stripeErrorDetail(cause: unknown): string {
   if (cause instanceof Error && cause.message) return cause.message;
   if (cause && typeof cause === "object" && "message" in cause) {
@@ -55,16 +43,74 @@ export class StripeCustomerDeleteError extends Error {
   }
 }
 
+// Stripe answers 404 resource_missing both for a customer that is gone and for
+// one that exists in the other mode ("a similar object exists in live mode").
+// The second is a wrong-mode key, not a stale ref, so it must not count as gone.
+const WRONG_MODE_PATTERN = /exists in (live|test) mode/i;
+
+// Thrown instead of running the delete when refs exist but no Stripe key can
+// reach their customers.
+export class StripeNotConfiguredError extends Error {
+  constructor(customerIds: string[]) {
+    super(
+      `STRIPE_SECRET_KEY is not configured and Stripe customers are still stored (${
+        customerIds.join(", ")
+      }); configure the key and retry so they can be deleted first`,
+    );
+    this.name = "StripeNotConfiguredError";
+  }
+}
+
 export function isStripeResourceMissing(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
-  const stripeError = error as { code?: string; statusCode?: number; status?: number };
+  const stripeError = error as {
+    code?: string;
+    statusCode?: number;
+    status?: number;
+    message?: unknown;
+  };
+  if (
+    typeof stripeError.message === "string" &&
+    WRONG_MODE_PATTERN.test(stripeError.message)
+  ) {
+    return false;
+  }
   return stripeError.code === "resource_missing" ||
     stripeError.statusCode === 404 ||
     stripeError.status === 404;
 }
 
+export type StripeRef = {
+  kind: StripeCustomerRefKind;
+  ownerId: string;
+  livemode: boolean;
+  customerId: string;
+};
+
+// Reads (never deletes) the refs the user and the given organizations hold in
+// the given modes.
+export async function listStripeRefs(
+  refs: StripeCustomerRefStore,
+  userId: string,
+  organizationIds: string[],
+  livemodes: boolean[],
+): Promise<StripeRef[]> {
+  const owners = [
+    { kind: "user" as const, ownerId: userId },
+    ...organizationIds.map((ownerId) => ({ kind: "organization" as const, ownerId })),
+  ];
+  const found: StripeRef[] = [];
+  for (const { kind, ownerId } of owners) {
+    for (const livemode of livemodes) {
+      const customerId = await refs.getCustomerId(kind, ownerId, livemode);
+      if (customerId) found.push({ kind, ownerId, livemode, customerId });
+    }
+  }
+  return found;
+}
+
 export async function listSoleOwnerOrganizationIds(
-  serviceClient: ServiceClient,
+  serviceClient: SupabaseClient,
   userId: string,
 ): Promise<string[]> {
   const owned = await serviceClient
@@ -98,27 +144,30 @@ export async function listSoleOwnerOrganizationIds(
   return orgIds.filter((id) => !orgsWithOtherOwners.has(id));
 }
 
+type RefOutcome = { customerId: string; outcome: "kept" | "deleted" };
+
 // Deletes the customer stored for (kind, ownerId, livemode) and then clears the
-// ref. Returns a warning when the customer was kept. Safe to run again after
-// any failure: the ref is only cleared once the customer is gone from Stripe.
+// ref. Safe to run again after any failure: the ref is only cleared once the
+// customer is gone from Stripe.
 async function deleteCustomerByStoredRef(
   stripe: StripeCleanupClient,
   refs: StripeCustomerRefStore,
-  kind: "user" | "organization",
+  kind: StripeCustomerRefKind,
   ownerId: string,
   livemode: boolean,
-): Promise<string | undefined> {
+): Promise<RefOutcome | undefined> {
   const customerId = await refs.getCustomerId(kind, ownerId, livemode);
   if (!customerId) return undefined;
 
   // Another owner still points at this customer: drop only this ref.
   if (await refs.isReferencedElsewhere(customerId, kind, ownerId, livemode)) {
     await refs.clearRef(kind, ownerId, livemode, customerId);
-    return `Stripe customer ${customerId} kept: still referenced by another user or organization`;
+    return { customerId, outcome: "kept" };
   }
 
   try {
     await stripe.customers.del(customerId);
+    console.log(`Deleted Stripe customer ${customerId}`);
   } catch (error) {
     // Already deleted in Stripe: the ref is stale, so clear it.
     if (!isStripeResourceMissing(error)) {
@@ -127,11 +176,11 @@ async function deleteCustomerByStoredRef(
   }
 
   await refs.clearRef(kind, ownerId, livemode, customerId);
-  return undefined;
+  return { customerId, outcome: "deleted" };
 }
 
 export async function cleanupStripeCustomersForUserDelete(options: {
-  serviceClient: ServiceClient;
+  serviceClient: SupabaseClient;
   stripe: StripeCleanupClient;
   refs: StripeCustomerRefStore;
   userId: string;
@@ -140,6 +189,17 @@ export async function cleanupStripeCustomersForUserDelete(options: {
   const { serviceClient, stripe, refs, userId, livemode } = options;
   const warnings: string[] = [];
   const soleOwnerOrgIds = await listSoleOwnerOrganizationIds(serviceClient, userId);
+
+  // The key only reaches its own mode. Refs in the other mode are left alone,
+  // but the cascade drops them, so name the customers that stay behind.
+  for (const ref of await listStripeRefs(refs, userId, soleOwnerOrgIds, [!livemode])) {
+    warnings.push(
+      `Stripe customer ${ref.customerId} (${ref.livemode ? "live" : "test"} mode) ` +
+        "is not cleaned up: the configured key is for the other mode, and the database " +
+        "cascade drops its ref",
+    );
+  }
+  const outcomes: RefOutcome[] = [];
 
   if (soleOwnerOrgIds.length > 0) {
     const subs = await serviceClient
@@ -158,6 +218,7 @@ export async function cleanupStripeCustomersForUserDelete(options: {
           invoice_now: true,
           prorate: true,
         });
+        console.log(`Canceled Stripe subscription ${sub.stripe_subscription_id}`);
       } catch (stripeErr) {
         console.error(
           `Failed to cancel subscription ${sub.stripe_subscription_id}:`,
@@ -168,18 +229,54 @@ export async function cleanupStripeCustomersForUserDelete(options: {
     }
 
     for (const orgId of soleOwnerOrgIds) {
-      const kept = await deleteCustomerByStoredRef(
+      const outcome = await deleteCustomerByStoredRef(
         stripe,
         refs,
         "organization",
         orgId,
         livemode,
       );
-      if (kept) warnings.push(kept);
+      if (outcome) outcomes.push(outcome);
     }
   }
 
-  const kept = await deleteCustomerByStoredRef(stripe, refs, "user", userId, livemode);
-  if (kept) warnings.push(kept);
+  const userOutcome = await deleteCustomerByStoredRef(stripe, refs, "user", userId, livemode);
+  if (userOutcome) outcomes.push(userOutcome);
+
+  // A customer shared by a deleted org and the user is kept on the org step but
+  // deleted on the user step, so only warn for customers that ended up kept.
+  const deletedIds = new Set(
+    outcomes.filter((o) => o.outcome === "deleted").map((o) => o.customerId),
+  );
+  const keptIds = new Set(
+    outcomes.filter((o) => o.outcome === "kept" && !deletedIds.has(o.customerId))
+      .map((o) => o.customerId),
+  );
+  for (const customerId of keptIds) {
+    const warning =
+      `Stripe customer ${customerId} kept: still referenced by another user or organization`;
+    console.log(warning);
+    warnings.push(warning);
+  }
   return { warnings };
+}
+
+// Without a Stripe key nothing can be cleaned up. The cascade would drop refs
+// whose customers stay in Stripe unreachable, so refuse when any ref (either
+// mode) exists for the user or a sole-owned organization.
+export async function assertNoStripeRefsWithoutKey(options: {
+  serviceClient: SupabaseClient;
+  refs: StripeCustomerRefStore;
+  userId: string;
+}): Promise<void> {
+  const { serviceClient, refs, userId } = options;
+  const existing = await listStripeRefs(
+    refs,
+    userId,
+    await listSoleOwnerOrganizationIds(serviceClient, userId),
+    [true, false],
+  );
+  if (existing.length > 0) {
+    throw new StripeNotConfiguredError(existing.map((ref) => ref.customerId));
+  }
 }
