@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { FUNDAMENTALS_CORE_GUMROAD_URL } from "./trainingInterest";
+import { ACADEMY_PATH } from "./academyPaths";
+import { SITE_URL } from "./site";
 import {
   TRAINING_CANONICAL_URL,
   TRAINING_INTRO,
@@ -43,13 +44,13 @@ describe("training Course JSON-LD", () => {
     expect(offers[0].priceCurrency).toBe(TRAINING_OFFER_CURRENCY);
     expect(offers[0].priceValidUntil).toBe(TRAINING_PRICE_VALID_UNTIL);
     expect(offers[0].priceValidUntil).toBe("2026-10-31");
-    expect(offers[0].url).toBe(FUNDAMENTALS_CORE_GUMROAD_URL);
+    expect(offers[0].url).toBe(`${SITE_URL}${ACADEMY_PATH}`);
     expect(offers[1]["@type"]).toBe("Offer");
     expect(offers[1].price).toBe(String(TRAINING_POST_LAUNCH_PRICE_EUR));
     expect(offers[1].price).toBe("39");
     expect(offers[1].validFrom).toBe(TRAINING_REGULAR_PRICE_VALID_FROM);
     expect(offers[1].validFrom).toBe("2026-11-01");
-    expect(offers[1].url).toBe(FUNDAMENTALS_CORE_GUMROAD_URL);
+    expect(offers[1].url).toBe(`${SITE_URL}${ACADEMY_PATH}`);
     expect(TRAINING_LAUNCH_UNTIL_LABEL).toBe("31 Oct");
     expect(TRAINING_POST_LAUNCH_PRICE_EUR).toBe(39);
 
