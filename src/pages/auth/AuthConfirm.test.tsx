@@ -7,7 +7,7 @@ import { AUTH_REDIRECT_STORAGE_KEY } from "@/lib/authRedirect";
 
 const navigate = vi.fn();
 const verifyOtp = vi.fn();
-const signOut = vi.fn(async () => ({ error: null }));
+const signOut = vi.fn<(options?: { scope?: string }) => Promise<{ error: Error | null }>>();
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -25,9 +25,12 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       verifyOtp: (args: unknown) => verifyOtp(args),
-      signOut: () => signOut(),
     },
   },
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ signOut }),
 }));
 
 import AuthConfirm, { AUTH_CONFIRM_SIGNED_IN_MS } from "./AuthConfirm";
@@ -42,11 +45,14 @@ function renderConfirm(search: string) {
 
 const sessionUser = { id: "u1", email: "qa@example.com" };
 
+const originalLocation = window.location;
+
 describe("AuthConfirm", () => {
   beforeEach(() => {
     navigate.mockClear();
     verifyOtp.mockReset();
-    signOut.mockClear();
+    signOut.mockReset();
+    signOut.mockResolvedValue({ error: null });
     sessionStorage.clear();
     verifyOtp.mockResolvedValue({
       data: { user: sessionUser, session: { user: sessionUser } },
@@ -57,6 +63,8 @@ describe("AuthConfirm", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
+    Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
   });
 
   async function clickSignInAndAdvance(name: RegExp = /^sign in$/i) {
@@ -71,6 +79,63 @@ describe("AuthConfirm", () => {
       vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS);
     });
   }
+
+  async function signInAndWaitForPanel(email = "qa@example.com") {
+    renderConfirm("?token_hash=abc&type=email&redirect=/courses");
+    fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+    await waitFor(() =>
+      expect(screen.getByText(new RegExp(`signed in as ${email}`, "i"))).toBeInTheDocument(),
+    );
+  }
+
+  it("Sign out ends only this session, cancels the pending navigation and goes to /login", async () => {
+    await signInAndWaitForPanel();
+    fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/login"));
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    await act(async () => {
+      vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS * 2);
+    });
+    expect(navigate).not.toHaveBeenCalledWith("/courses");
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the pending navigation before sign-out resolves", async () => {
+    let release: (value: { error: Error | null }) => void = () => {};
+    signOut.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    await signInAndWaitForPanel();
+    fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
+    await act(async () => {
+      vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS * 2);
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    await act(async () => {
+      release({ error: null });
+    });
+    expect(navigate).toHaveBeenCalledWith("/login");
+  });
+
+  it("shows an error and stays on the page when sign-out fails", async () => {
+    signOut.mockResolvedValueOnce({ error: new Error("network down") });
+    await signInAndWaitForPanel();
+    fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
+    expect(await screen.findByText(/could not sign you out/i)).toBeInTheDocument();
+    await act(async () => {
+      vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS * 2);
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /^sign out$/i })).toBeInTheDocument();
+  });
+
+  it("falls back to 'your account' when verifyOtp returns no email", async () => {
+    verifyOtp.mockResolvedValueOnce({ data: { user: null, session: null }, error: null });
+    await signInAndWaitForPanel("your account");
+    expect(screen.getByText(/signed in as your account\. not you\? sign out/i)).toBeInTheDocument();
+  });
 
   it("does not call verifyOtp on render", () => {
     renderConfirm("?token_hash=abc&type=email");
@@ -162,11 +227,10 @@ describe("AuthConfirm", () => {
 
   it("strips token_hash and type from the URL on mount", () => {
     const replaceState = vi.spyOn(window.history, "replaceState");
-    const original = window.location;
     Object.defineProperty(window, "location", {
       configurable: true,
       value: {
-        ...original,
+        ...originalLocation,
         href: "http://localhost:3000/auth/confirm?token_hash=secret&type=email&redirect=/dashboard",
         pathname: "/auth/confirm",
         search: "?token_hash=secret&type=email&redirect=/dashboard",
@@ -186,11 +250,5 @@ describe("AuthConfirm", () => {
     expect(stripped.searchParams.get("type")).toBeNull();
     expect(stripped.searchParams.get("redirect")).toBe("/dashboard");
     expect(screen.getByRole("button", { name: /^sign in$/i })).toBeInTheDocument();
-
-    replaceState.mockRestore();
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: original,
-    });
   });
 });

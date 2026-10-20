@@ -12,6 +12,8 @@ import { clearCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 
 export type OAuthSignInProvider = "github" | "google";
 
+type SignOutScope = "global" | "local" | "others";
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -23,7 +25,7 @@ interface AuthContextType {
   signInWithGitHub: () => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
+  signOut: (options?: { scope?: SignOutScope }) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -142,10 +144,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signOut = async () => {
+  const signOut = async (options?: { scope?: SignOutScope }) => {
     const id = user?.id ?? currentUserIdRef.current;
     if (id) clearCloudSetupMarker(id);
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut(options);
+    return { error };
   };
 
   return (

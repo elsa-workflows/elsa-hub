@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
+const signOut = vi.fn(async (_args?: unknown): Promise<{ error: Error | null }> => ({ error: null }));
 const authStateListeners: Array<(event: string, session: unknown) => void> = [];
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -22,7 +23,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       signUp: (args: unknown) => signUp(args),
       signInWithOAuth: (args: unknown) => signInWithOAuth(args),
       signInWithOtp: (args: unknown) => signInWithOtp(args),
-      signOut: async () => ({ error: null }),
+      signOut: (args?: unknown) => signOut(args),
       refreshSession: async () => ({ error: null }),
     },
   },
@@ -45,6 +46,7 @@ describe("AuthContext passwordless methods", () => {
     signInWithOAuth.mockClear();
     signInWithOtp.mockClear();
     signUp.mockClear();
+    signOut.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
     localStorage.clear();
@@ -132,5 +134,14 @@ describe("AuthContext passwordless methods", () => {
 
     await result.current.signOut();
     expect(hasCloudSetupMarker("u1")).toBe(false);
+  });
+
+  it("forwards the sign-out scope and returns the sign-out error", async () => {
+    const failure = new Error("network down");
+    signOut.mockResolvedValueOnce({ error: failure });
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await expect(result.current.signOut({ scope: "local" })).resolves.toEqual({ error: failure });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 });

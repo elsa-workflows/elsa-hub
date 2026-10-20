@@ -5,6 +5,7 @@ import { Loader2, Mail, MailCheck } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { describeAuthError } from "@/lib/authErrors";
 import {
@@ -40,6 +41,7 @@ function stripTokenFromUrl() {
 export default function AuthConfirm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [tokenHash] = useState(() => searchParams.get("token_hash") ?? "");
   const [otpType] = useState(() => parseOtpType(searchParams.get("type")));
   const [redirectParam] = useState(() => searchParams.get("redirect"));
@@ -104,9 +106,17 @@ export default function AuthConfirm() {
   };
 
   const onSignOut = async () => {
-    await supabase.auth.signOut();
-    setSignedInEmail(null);
+    // Drop the destination first: that cancels the pending navigation timer, so the
+    // user cannot be sent on to the destination while sign-out is in flight.
     setDestination(null);
+    // Local scope: "Not you?" must end only this browser's session, not every
+    // session of the account's real owner.
+    const { error } = await signOut({ scope: "local" });
+    if (error) {
+      setErrorMessage("Could not sign you out. Try again.");
+      return;
+    }
+    setSignedInEmail(null);
     navigate("/login");
   };
 

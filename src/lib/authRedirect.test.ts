@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   AUTH_CALLBACK_PATH,
-  AUTH_REDIRECT_STORAGE_KEY,
   AUTH_CONFIRM_PATH,
+  AUTH_REDIRECT_STORAGE_KEY,
   consumeAuthRedirect,
   getAuthCallbackUrl,
   getAuthConfirmUrl,
