@@ -23,6 +23,7 @@ export type BackfillStripeCustomer = {
   id: string;
   email?: string;
   livemode?: boolean;
+  deleted?: boolean;
   metadata?: Record<string, string>;
 };
 
@@ -78,6 +79,11 @@ const DEFAULT_FIXTURE = resolve(
   "fixtures/stripe-customer-backfill.json",
 );
 
+/** Mirrors isLiveStripeKey in supabase/functions/_shared/stripe-customer.ts (sk_live_ and rk_live_). */
+export function isLiveStripeKey(key: string | undefined): boolean {
+  return (key ?? "").startsWith("sk_live_") || (key ?? "").startsWith("rk_live_");
+}
+
 export function assertApplyAllowed(options: {
   apply: boolean;
   live: boolean;
@@ -124,12 +130,15 @@ function matchOrgCustomer(
   snapshot: BackfillSnapshot,
   claimed: Set<string>,
 ): { id: string; email?: string } | { skipShared: true } | null {
-  const fromSubscription = snapshot.subscriptions.find(
-    (row) => row.organization_id === orgId && !claimed.has(row.stripe_customer_id),
-  );
+  // A subscription's customer id counts only when Stripe returns it in this
+  // mode and it is not deleted: a test key never sees live ids, and a deleted
+  // customer must not be stored as the org's customer.
+  const fromSubscription = snapshot.subscriptions
+    .filter((row) => row.organization_id === orgId && !claimed.has(row.stripe_customer_id))
+    .map((row) => snapshot.stripeCustomers.find((customer) => customer.id === row.stripe_customer_id))
+    .find((customer) => customer && !customer.deleted);
   if (fromSubscription) {
-    const listed = snapshot.stripeCustomers.find((customer) => customer.id === fromSubscription.stripe_customer_id);
-    return { id: fromSubscription.stripe_customer_id, email: listed?.email };
+    return { id: fromSubscription.id, email: fromSubscription.email };
   }
 
   const emailSet = new Set(emails.map((email) => email.toLowerCase()));
@@ -331,37 +340,41 @@ export function loadBackfillFixture(path = DEFAULT_FIXTURE): BackfillSnapshot {
   };
 }
 
-type QueryClient = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq?: (column: string, value: string | boolean) => PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>;
-      then?: unknown;
-    } & PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>;
-  };
+type QueryResult = PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>;
+
+type QueryBuilder = QueryResult & {
+  eq: (column: string, value: string | boolean) => QueryBuilder;
+  order: (column: string) => QueryBuilder;
+  range: (from: number, to: number) => QueryBuilder;
 };
 
+type QueryClient = {
+  from: (table: string) => { select: (columns: string) => QueryBuilder };
+};
+
+const PAGE_SIZE = 1000;
+
+/**
+ * Reads every row of a table. PostgREST caps a response (1000 rows by
+ * default), so this pages with a stable order. A missing table or column is an
+ * error, never an empty result: an empty read would silently skip customers.
+ */
 async function selectRows<T>(
   client: QueryClient,
   table: string,
   columns: string,
+  orderBy: string,
   eq?: { column: string; value: string | boolean },
 ): Promise<T[]> {
-  try {
-    const query = client.from(table).select(columns);
-    const result = eq && query.eq
-      ? await query.eq(eq.column, eq.value)
-      : await query;
-    if (result.error) {
-      if (result.error.code === "42P01" || /does not exist|schema cache/i.test(result.error.message)) {
-        return [];
-      }
-      throw new Error(`${table}: ${result.error.message}`);
-    }
-    return (result.data as T[]) ?? [];
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (/does not exist|schema cache/i.test(message)) return [];
-    throw error;
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    let query = client.from(table).select(columns);
+    if (eq) query = query.eq(eq.column, eq.value);
+    const { data, error } = await query.order(orderBy).range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    const page = (data as T[] | null) ?? [];
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) return rows;
   }
 }
 
@@ -373,52 +386,63 @@ export async function loadHubSnapshot(
     client,
     "orders",
     "organization_id, created_by",
+    "id",
     { column: "status", value: "paid" },
   );
   const billingProfiles = await selectRows<{ organization_id: string }>(
     client,
     "org_billing_profiles",
     "organization_id",
+    "organization_id",
   );
   const subscriptions = await selectRows<{ organization_id: string; stripe_customer_id: string }>(
     client,
     "subscriptions",
     "organization_id, stripe_customer_id",
+    "id",
   );
   const members = await selectRows<{ organization_id: string; user_id: string; role: string }>(
     client,
     "organization_members",
     "organization_id, user_id, role",
+    "id",
   );
   const profiles = await selectRows<{ user_id: string; email: string | null }>(
     client,
     "profiles",
     "user_id, email",
+    "user_id",
   );
   const trainingLeads = await selectRows<{ user_id: string | null }>(
     client,
     "training_leads",
     "user_id",
+    "id",
   );
-  const academyUsers = [
-    ...await selectRows<{ user_id: string }>(client, "academy_enrollments", "user_id"),
-    ...await selectRows<{ user_id: string }>(client, "academy_purchases", "user_id"),
-    ...await selectRows<{ user_id: string }>(client, "course_enrollments", "user_id"),
-  ];
+  const academyUsers = (await selectRows<{ user_id: string | null }>(
+    client,
+    "academy_entitlements",
+    "user_id",
+    "id",
+    { column: "subject_type", value: "user" },
+  )).filter((row): row is { user_id: string } => Boolean(row.user_id));
   const existingOrgRefs = await selectRows<{ organization_id: string; stripe_customer_id: string; livemode: boolean }>(
     client,
     "org_stripe_customers",
     "organization_id, stripe_customer_id, livemode",
+    "organization_id",
   );
   const existingUserRefs = await selectRows<{ user_id: string; stripe_customer_id: string; livemode: boolean }>(
     client,
     "user_stripe_customers",
     "user_id, stripe_customer_id, livemode",
+    "user_id",
   );
 
   const orgIds = new Set<string>([
     ...paidOrders.map((row) => row.organization_id),
     ...billingProfiles.map((row) => row.organization_id),
+    ...subscriptions.map((row) => row.organization_id),
   ]);
 
   const emailByUser = new Map(
@@ -456,24 +480,83 @@ export async function loadHubSnapshot(
   };
 }
 
-export async function loadStripeCustomersByEmail(
-  listByEmail: (email: string) => Promise<BackfillStripeCustomer[]>,
+export type StripeCustomerSource = {
+  /** Every customer with exactly this email (Stripe's email filter is case-sensitive), across all pages. */
+  listByEmail: (email: string) => Promise<BackfillStripeCustomer[]>;
+  /** null when Stripe has no such customer in this mode. */
+  retrieve: (id: string) => Promise<BackfillStripeCustomer | null>;
+};
+
+export async function loadStripeCustomers(
+  source: StripeCustomerSource,
   emails: string[],
+  customerIds: string[],
   livemode: boolean,
 ): Promise<BackfillStripeCustomer[]> {
-  const unique = [...new Set(emails.map((email) => email.toLowerCase()))];
+  const queries = [...new Set(emails.flatMap((email) => [email, email.toLowerCase()]))];
   const found: BackfillStripeCustomer[] = [];
   const seen = new Set<string>();
-  for (const email of unique) {
-    const listed = await listByEmail(email);
-    for (const customer of listed) {
-      if (seen.has(customer.id)) continue;
-      if (customer.livemode !== undefined && customer.livemode !== livemode) continue;
-      seen.add(customer.id);
-      found.push(customer);
-    }
+  const add = (customer: BackfillStripeCustomer) => {
+    if (seen.has(customer.id)) return;
+    if (customer.livemode !== undefined && customer.livemode !== livemode) return;
+    seen.add(customer.id);
+    found.push(customer);
+  };
+  for (const email of queries) {
+    for (const customer of await source.listByEmail(email)) add(customer);
+  }
+  for (const id of new Set(customerIds)) {
+    if (seen.has(id)) continue;
+    const customer = await source.retrieve(id);
+    if (customer) add(customer);
   }
   return found;
+}
+
+type StripeApiCustomer = {
+  id: string;
+  email?: string | null;
+  livemode?: boolean;
+  deleted?: boolean;
+  metadata?: Record<string, string>;
+};
+
+function toBackfillCustomer(customer: StripeApiCustomer): BackfillStripeCustomer {
+  return {
+    id: customer.id,
+    email: customer.email ?? undefined,
+    livemode: customer.livemode,
+    deleted: customer.deleted,
+    metadata: customer.metadata ?? {},
+  };
+}
+
+function stripeApiSource(stripeKey: string): StripeCustomerSource {
+  const get = (url: URL) => fetch(url, { headers: { Authorization: `Bearer ${stripeKey}` } });
+  return {
+    async listByEmail(email) {
+      const customers: BackfillStripeCustomer[] = [];
+      let startingAfter: string | undefined;
+      for (;;) {
+        const url = new URL("https://api.stripe.com/v1/customers");
+        url.searchParams.set("email", email);
+        url.searchParams.set("limit", "100");
+        if (startingAfter) url.searchParams.set("starting_after", startingAfter);
+        const response = await get(url);
+        if (!response.ok) throw new Error(`Stripe customer list failed: ${response.status}`);
+        const page = await response.json() as { data: StripeApiCustomer[]; has_more?: boolean };
+        customers.push(...page.data.map(toBackfillCustomer));
+        if (!page.has_more || page.data.length === 0) return customers;
+        startingAfter = page.data[page.data.length - 1].id;
+      }
+    },
+    async retrieve(id) {
+      const response = await get(new URL(`https://api.stripe.com/v1/customers/${encodeURIComponent(id)}`));
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`Stripe customer retrieve failed: ${response.status}`);
+      return toBackfillCustomer(await response.json() as StripeApiCustomer);
+    },
+  };
 }
 
 function parseArgs(argv: string[]) {
@@ -504,33 +587,10 @@ async function loadRealSnapshot(livemode: boolean): Promise<BackfillSnapshot> {
     ...hub.organizations.flatMap((org) => org.adminEmails),
     ...hub.users.map((user) => user.email),
   ];
-  const stripeCustomers = await loadStripeCustomersByEmail(
-    async (email) => {
-      const url = new URL("https://api.stripe.com/v1/customers");
-      url.searchParams.set("email", email);
-      url.searchParams.set("limit", "100");
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${stripeKey}` },
-      });
-      if (!response.ok) {
-        throw new Error(`Stripe customer list failed: ${response.status}`);
-      }
-      const listed = await response.json() as {
-        data: Array<{
-          id: string;
-          email?: string | null;
-          livemode?: boolean;
-          metadata?: Record<string, string>;
-        }>;
-      };
-      return listed.data.map((customer) => ({
-        id: customer.id,
-        email: customer.email ?? undefined,
-        livemode: customer.livemode,
-        metadata: customer.metadata ?? {},
-      }));
-    },
+  const stripeCustomers = await loadStripeCustomers(
+    stripeApiSource(stripeKey),
     emails,
+    hub.subscriptions.map((row) => row.stripe_customer_id),
     livemode,
   );
   return { ...hub, stripeCustomers };
@@ -545,7 +605,7 @@ async function main() {
   });
   assertFixtureNotUsedForApply(flags.apply, flags.usedFixture);
 
-  const livemode = (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_live_");
+  const livemode = isLiveStripeKey(process.env.STRIPE_SECRET_KEY);
   const snapshot = flags.usedFixture
     ? loadBackfillFixture(flags.fixture)
     : await loadRealSnapshot(livemode);
@@ -565,15 +625,15 @@ async function main() {
   const { createClient } = await import("@supabase/supabase-js");
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  let conflicts = 0;
   for (const row of plan.orgWrites) {
     const { error } = await supabase.from("org_stripe_customers").insert({
       organization_id: row.organization_id,
       livemode: row.livemode,
       stripe_customer_id: row.stripe_customer_id,
     });
-    if (error && error.code !== "23505") {
-      throw new Error(`org write failed: ${error.message}`);
-    }
+    if (error?.code === "23505") conflicts += 1;
+    else if (error) throw new Error(`org write failed: ${error.message}`);
   }
   for (const row of plan.userWrites) {
     const { error } = await supabase.from("user_stripe_customers").insert({
@@ -581,10 +641,11 @@ async function main() {
       livemode: row.livemode,
       stripe_customer_id: row.stripe_customer_id,
     });
-    if (error && error.code !== "23505") {
-      throw new Error(`user write failed: ${error.message}`);
-    }
+    if (error?.code === "23505") conflicts += 1;
+    else if (error) throw new Error(`user write failed: ${error.message}`);
   }
+  // A conflict means a checkout stored a ref first (or the customer is already claimed); both are left as they are.
+  console.log(`writes_skipped_existing=${conflicts}`);
 }
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
