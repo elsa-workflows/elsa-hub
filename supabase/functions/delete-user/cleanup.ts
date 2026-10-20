@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import type {
   StripeCustomerRefKind,
   StripeCustomerRefStore,
@@ -16,11 +16,11 @@ export type StripeCleanupClient = {
   };
 };
 
-export type MembershipRow = {
+type MembershipRow = {
   organization_id: string;
 };
 
-export type SubscriptionRow = {
+type SubscriptionRow = {
   stripe_subscription_id: string;
 };
 
@@ -61,7 +61,7 @@ export class StripeNotConfiguredError extends Error {
   }
 }
 
-export function isStripeResourceMissing(error: unknown): boolean {
+function isStripeResourceMissing(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const stripeError = error as {
     code?: string;
@@ -80,7 +80,7 @@ export function isStripeResourceMissing(error: unknown): boolean {
     stripeError.status === 404;
 }
 
-export type StripeRef = {
+type StripeRef = {
   kind: StripeCustomerRefKind;
   ownerId: string;
   livemode: boolean;
@@ -89,7 +89,7 @@ export type StripeRef = {
 
 // Reads (never deletes) the refs the user and the given organizations hold in
 // the given modes.
-export async function listStripeRefs(
+async function listStripeRefs(
   refs: StripeCustomerRefStore,
   userId: string,
   organizationIds: string[],
@@ -192,9 +192,24 @@ export async function cleanupStripeCustomersForUserDelete(options: {
 
   // The key only reaches its own mode. Refs in the other mode are left alone,
   // but the cascade drops them, so name the customers that stay behind.
+  // A customer is named once, and only when no ref outside the user and the
+  // sole-owned orgs holds it: that holder keeps the customer alive, so nothing
+  // is lost. The ref tables are unique per table, so at most one user ref and
+  // one org ref share a customer: two refs in our set means no outside holder.
+  const heldByCustomer = new Map<string, StripeRef[]>();
   for (const ref of await listStripeRefs(refs, userId, soleOwnerOrgIds, [!livemode])) {
+    heldByCustomer.set(ref.customerId, [...(heldByCustomer.get(ref.customerId) ?? []), ref]);
+  }
+  for (const [customerId, held] of heldByCustomer) {
+    const [ref] = held;
+    if (
+      held.length === 1 &&
+      await refs.isReferencedElsewhere(customerId, ref.kind, ref.ownerId, ref.livemode)
+    ) {
+      continue;
+    }
     warnings.push(
-      `Stripe customer ${ref.customerId} (${ref.livemode ? "live" : "test"} mode) ` +
+      `Stripe customer ${customerId} (${ref.livemode ? "live" : "test"} mode) ` +
         "is not cleaned up: the configured key is for the other mode, and the database " +
         "cascade drops its ref",
     );

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import {
   assertNoStripeRefsWithoutKey,
@@ -81,6 +81,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Fetch user email
     const { data: profile, error: profileError } = await serviceClient
       .from("profiles")
       .select("email")

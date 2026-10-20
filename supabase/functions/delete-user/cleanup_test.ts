@@ -1,5 +1,6 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import {
+  assert,
   assertEquals,
   assertRejects,
   assertThrows,
@@ -33,15 +34,49 @@ type Tables = {
   org_stripe_customers: Row[];
 };
 
+// Per-table unique columns, as in the migration's UNIQUE (stripe_customer_id).
+const UNIQUE_COLUMNS: Record<string, string> = {
+  user_stripe_customers: "stripe_customer_id",
+  org_stripe_customers: "stripe_customer_id",
+};
+
+function assertSeedIsUnique(tables: Tables) {
+  for (const [table, column] of Object.entries(UNIQUE_COLUMNS)) {
+    const values = (tables as Record<string, Row[]>)[table].map((row) => row[column]);
+    if (new Set(values).size !== values.length) {
+      throw new Error(`seed violates UNIQUE (${column}) on ${table}`);
+    }
+  }
+}
+
+function postgrestError(status: number, code: string, message: string) {
+  return Response.json({ code, message, details: null, hint: null }, { status });
+}
+
 // A real supabase-js client whose HTTP layer is an in-memory PostgREST: the
 // production query code runs unchanged and needs no cast to a narrow type.
-function createMemoryClient(tables: Tables) {
-  const rows = (table: string) => (tables as Record<string, Row[]>)[table] ?? [];
+// Reads project the `select=` columns, unknown tables answer PGRST205, and
+// `failOn` injects a 500 for matching requests.
+function createMemoryClient(
+  tables: Tables,
+  options?: { failOn?: (table: string, method: string) => string | undefined },
+) {
+  assertSeedIsUnique(tables);
+  const rows = (table: string) => (tables as Record<string, Row[]>)[table];
 
   const fakeFetch = (input: Request | URL | string, init?: RequestInit) => {
     const request = new Request(input, init);
     const url = new URL(request.url);
     const table = url.pathname.split("/").pop()!;
+    if (!(table in tables)) {
+      return Promise.resolve(
+        postgrestError(404, "PGRST205", `Could not find the table 'public.${table}'`),
+      );
+    }
+    const injected = options?.failOn?.(table, request.method);
+    if (injected) {
+      return Promise.resolve(postgrestError(500, "XX000", injected));
+    }
     const predicates: Array<(row: Row) => boolean> = [];
     for (const [column, filter] of url.searchParams) {
       if (column === "select") continue;
@@ -68,7 +103,12 @@ function createMemoryClient(tables: Tables) {
       );
       return Promise.resolve(new Response(null, { status: 204 }));
     }
-    return Promise.resolve(Response.json(matched));
+    const select = url.searchParams.get("select");
+    const columns = select && select !== "*" ? select.split(",") : undefined;
+    const projected = columns
+      ? matched.map((row) => Object.fromEntries(columns.map((c) => [c, row[c]])))
+      : matched;
+    return Promise.resolve(Response.json(projected));
   };
 
   return Object.assign(
@@ -79,9 +119,11 @@ function createMemoryClient(tables: Tables) {
 
 function createStripeMock(options?: {
   onDelete?: (customerId: string) => Promise<void> | void;
+  onCancel?: (subscriptionId: string) => Promise<void> | void;
 }) {
   const deleted: string[] = [];
   const canceled: string[] = [];
+  const cancelOptions: unknown[] = [];
   const stripe = {
     customers: {
       del: async (customerId: string) => {
@@ -93,13 +135,17 @@ function createStripeMock(options?: {
       },
     },
     subscriptions: {
-      cancel: async (subscriptionId: string) => {
+      cancel: async (subscriptionId: string, opts?: unknown) => {
+        if (options?.onCancel) {
+          await options.onCancel(subscriptionId);
+        }
         canceled.push(subscriptionId);
+        cancelOptions.push(opts);
         return { id: subscriptionId, status: "canceled" };
       },
     },
   };
-  return { stripe, deleted, canceled };
+  return { stripe, deleted, canceled, cancelOptions };
 }
 
 function emptyTables(): Tables {
@@ -135,7 +181,7 @@ Deno.test("user ref present: deletes stored customer and clears that livemode ro
 
   // The live ref is left alone but named: the cascade will drop it.
   assertEquals(warnings.length, 1);
-  assertEquals(warnings[0].includes(LIVE_CUSTOMER), true);
+  assert(warnings[0].includes(LIVE_CUSTOMER), `warning names ${LIVE_CUSTOMER}: ${warnings[0]}`);
   assertEquals(deleted, [TEST_CUSTOMER]);
   assertEquals(client.tables.user_stripe_customers, [
     { user_id: USER_ID, stripe_customer_id: LIVE_CUSTOMER, livemode: true },
@@ -290,9 +336,9 @@ Deno.test("Stripe error: keeps the ref and surfaces the error", async () => {
     { user_id: USER_ID, stripe_customer_id: TEST_CUSTOMER, livemode: false },
   ]);
   assertEquals(err.customerId, TEST_CUSTOMER);
-  assertEquals(
+  assert(
     err.message.includes("Stripe customer delete failed for cus_test_user_ref"),
-    true,
+    `unexpected message: ${err.message}`,
   );
 });
 
@@ -534,8 +580,8 @@ Deno.test("other-mode refs of the user and a sole-owned org are named, never del
 
   assertEquals(deleted, []);
   assertEquals(warnings.length, 2);
-  assertEquals(warnings.some((w) => w.includes("cus_live_org")), true);
-  assertEquals(warnings.some((w) => w.includes(LIVE_CUSTOMER)), true);
+  assert(warnings.some((w) => w.includes("cus_live_org")), "names the org customer");
+  assert(warnings.some((w) => w.includes(LIVE_CUSTOMER)), "names the user customer");
   assertEquals(client.tables.org_stripe_customers.length, 1);
   assertEquals(client.tables.user_stripe_customers.length, 1);
 });
@@ -575,7 +621,7 @@ Deno.test("no Stripe key and a ref in either mode: refuses with the customer ids
         }),
       StripeNotConfiguredError,
     );
-    assertEquals(err.message.includes(TEST_CUSTOMER), true);
+    assert(err.message.includes(TEST_CUSTOMER), `message names ${TEST_CUSTOMER}: ${err.message}`);
   }
 });
 
@@ -658,4 +704,144 @@ Deno.test("a customer shared by a deleted org and the user does not warn as kept
   const { warnings } = await runCleanup(client, stripe);
 
   assertEquals(warnings, []);
+});
+
+Deno.test("a read error on org_stripe_customers rejects the cleanup before any Stripe call", async () => {
+  const client = createMemoryClient({
+    ...emptyTables(),
+    organization_members: [
+      { organization_id: ORG_ID, user_id: USER_ID, role: "owner" },
+    ],
+    subscriptions: [
+      { organization_id: ORG_ID, stripe_subscription_id: "sub_active", status: "active" },
+    ],
+    org_stripe_customers: [
+      { organization_id: ORG_ID, stripe_customer_id: ORG_CUSTOMER, livemode: false },
+    ],
+    user_stripe_customers: [
+      { user_id: USER_ID, stripe_customer_id: TEST_CUSTOMER, livemode: false },
+    ],
+  }, {
+    failOn: (table) => table === "org_stripe_customers" ? "connection reset" : undefined,
+  });
+  const { stripe, deleted, canceled } = createStripeMock();
+
+  const err = await assertRejects(() => runCleanup(client, stripe), Error);
+
+  assert(err.message.includes("connection reset"), `unexpected message: ${err.message}`);
+  assertEquals(deleted, []);
+  assertEquals(canceled, []);
+  assertEquals(client.tables.user_stripe_customers.length, 1);
+});
+
+Deno.test("a missing ref table surfaces as a PGRST205 error, not as no refs", async () => {
+  const client = createMemoryClient(emptyTables());
+  const { stripe } = createStripeMock();
+  delete (client.tables as Partial<Tables>).user_stripe_customers;
+
+  const err = await assertRejects(() => runCleanup(client, stripe), Error);
+
+  assert(err.message.includes("user_stripe_customers"), `unexpected message: ${err.message}`);
+});
+
+Deno.test("only active subscriptions of sole-owned orgs are canceled, with invoice and proration", async () => {
+  const client = createMemoryClient({
+    ...emptyTables(),
+    organization_members: [
+      { organization_id: ORG_ID, user_id: USER_ID, role: "owner" },
+    ],
+    subscriptions: [
+      { organization_id: ORG_ID, stripe_subscription_id: "sub_active", status: "active" },
+      { organization_id: ORG_ID, stripe_subscription_id: "sub_old", status: "canceled" },
+    ],
+  });
+  const { stripe, canceled, cancelOptions } = createStripeMock();
+
+  const { warnings } = await runCleanup(client, stripe);
+
+  assertEquals(canceled, ["sub_active"]);
+  assertEquals(cancelOptions, [{ invoice_now: true, prorate: true }]);
+  assertEquals(warnings, []);
+});
+
+Deno.test("a subscription cancel failure warns and does not stop the cleanup", async () => {
+  const client = createMemoryClient({
+    ...emptyTables(),
+    organization_members: [
+      { organization_id: ORG_ID, user_id: USER_ID, role: "owner" },
+    ],
+    subscriptions: [
+      { organization_id: ORG_ID, stripe_subscription_id: "sub_bad", status: "active" },
+      { organization_id: ORG_ID, stripe_subscription_id: "sub_good", status: "active" },
+    ],
+    user_stripe_customers: [
+      { user_id: USER_ID, stripe_customer_id: TEST_CUSTOMER, livemode: false },
+    ],
+  });
+  const { stripe, canceled, deleted } = createStripeMock({
+    onCancel: (id) => {
+      if (id === "sub_bad") throw new Error("boom");
+    },
+  });
+
+  const { warnings } = await runCleanup(client, stripe);
+
+  assertEquals(warnings, ["Failed to cancel subscription: sub_bad"]);
+  assertEquals(canceled, ["sub_good"]);
+  assertEquals(deleted, [TEST_CUSTOMER]);
+});
+
+Deno.test("an other-mode customer shared by the user and a sole-owned org is named once", async () => {
+  const client = createMemoryClient({
+    ...emptyTables(),
+    organization_members: [
+      { organization_id: ORG_ID, user_id: USER_ID, role: "owner" },
+    ],
+    org_stripe_customers: [
+      { organization_id: ORG_ID, stripe_customer_id: LIVE_CUSTOMER, livemode: true },
+    ],
+    user_stripe_customers: [
+      { user_id: USER_ID, stripe_customer_id: LIVE_CUSTOMER, livemode: true },
+    ],
+  });
+  const { stripe, deleted } = createStripeMock();
+
+  const { warnings } = await runCleanup(client, stripe);
+
+  assertEquals(deleted, []);
+  assertEquals(warnings.length, 1);
+  assert(warnings[0].includes(LIVE_CUSTOMER), `unexpected warning: ${warnings[0]}`);
+});
+
+Deno.test("an other-mode customer also held by a ref outside the deleted owners is not named", async () => {
+  const client = createMemoryClient({
+    ...emptyTables(),
+    organization_members: [
+      { organization_id: ORG_ID, user_id: OTHER_USER_ID, role: "owner" },
+    ],
+    org_stripe_customers: [
+      { organization_id: ORG_ID, stripe_customer_id: LIVE_CUSTOMER, livemode: true },
+    ],
+    user_stripe_customers: [
+      { user_id: USER_ID, stripe_customer_id: LIVE_CUSTOMER, livemode: true },
+    ],
+  });
+  const { stripe, deleted } = createStripeMock();
+
+  const { warnings } = await runCleanup(client, stripe);
+
+  assertEquals(deleted, []);
+  assertEquals(warnings, []);
+});
+
+Deno.test("the memory client rejects a seed that violates per-table customer uniqueness", () => {
+  assertThrows(() =>
+    createMemoryClient({
+      ...emptyTables(),
+      user_stripe_customers: [
+        { user_id: USER_ID, stripe_customer_id: TEST_CUSTOMER, livemode: false },
+        { user_id: OTHER_USER_ID, stripe_customer_id: TEST_CUSTOMER, livemode: false },
+      ],
+    })
+  );
 });

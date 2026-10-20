@@ -4,7 +4,7 @@
 //   user_stripe_customers primary key (user_id, livemode), unique stripe_customer_id
 // If a column name or key changes, update only this file.
 
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const LIVEMODE_COLUMN = "livemode";
 const USER_REF_TABLE = "user_stripe_customers";
@@ -83,7 +83,7 @@ export function createSupabaseStripeRefStore(
       }
 
       const row = Array.isArray(data) ? data[0] : data;
-      return row?.stripe_customer_id ?? null;
+      return row?.[CUSTOMER_ID_COLUMN] ?? null;
     },
 
     async isReferencedElsewhere(customerId, kind, ownerId, livemode) {
