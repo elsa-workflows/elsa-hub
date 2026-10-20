@@ -84,3 +84,6 @@ verify_jwt = false
 
 [functions.academy-checkout]
 verify_jwt = false
+
+[functions.cloud-bff]
+verify_jwt = false
