@@ -106,14 +106,17 @@ export default function AuthConfirm() {
   };
 
   const onSignOut = async () => {
+    setBusy(true);
+    setErrorMessage(null);
     // Drop the destination first: that cancels the pending navigation timer, so the
     // user cannot be sent on to the destination while sign-out is in flight.
     setDestination(null);
     // Local scope: "Not you?" must end only this browser's session, not every
     // session of the account's real owner.
     const { error } = await signOut({ scope: "local" });
+    setBusy(false);
     if (error) {
-      setErrorMessage("Could not sign you out. Try again.");
+      setErrorMessage(describeAuthError(error));
       return;
     }
     setSignedInEmail(null);
@@ -148,7 +151,7 @@ export default function AuthConfirm() {
               <p className="text-sm text-destructive">{errorMessage}</p>
             ) : null}
             {signedInEmail ? (
-              <Button className="w-full" variant="outline" onClick={() => void onSignOut()}>
+              <Button className="w-full" variant="outline" onClick={() => void onSignOut()} disabled={busy}>
                 Sign out
               </Button>
             ) : tokenHash ? (

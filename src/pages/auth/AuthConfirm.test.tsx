@@ -123,12 +123,38 @@ describe("AuthConfirm", () => {
     signOut.mockResolvedValueOnce({ error: new Error("network down") });
     await signInAndWaitForPanel();
     fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
-    expect(await screen.findByText(/could not sign you out/i)).toBeInTheDocument();
+    expect(await screen.findByText(/something went wrong while signing in/i)).toBeInTheDocument();
     await act(async () => {
       vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS * 2);
     });
     expect(navigate).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /^sign out$/i })).toBeInTheDocument();
+  });
+
+  it("ignores a second Sign out click while sign-out is in flight, and clears the error on retry", async () => {
+    signOut.mockResolvedValueOnce({ error: new Error("network down") });
+    await signInAndWaitForPanel();
+    fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
+    expect(await screen.findByText(/something went wrong while signing in/i)).toBeInTheDocument();
+
+    let release: (value: { error: Error | null }) => void = () => {};
+    signOut.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    const button = screen.getByRole("button", { name: /^sign out$/i });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(signOut).toHaveBeenCalledTimes(2);
+    expect(button).toBeDisabled();
+    expect(screen.queryByText(/something went wrong while signing in/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      release({ error: null });
+    });
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith("/login");
   });
 
   it("falls back to 'your account' when verifyOtp returns no email", async () => {

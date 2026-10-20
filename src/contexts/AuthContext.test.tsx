@@ -144,4 +144,34 @@ describe("AuthContext passwordless methods", () => {
     await expect(result.current.signOut({ scope: "local" })).resolves.toEqual({ error: failure });
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
   });
+
+  describe("cloud setup marker on sign-out", () => {
+    async function signedInHook() {
+      setCloudSetupMarker("u1");
+      const rendered = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+      authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+      await waitFor(() => expect(rendered.result.current.user?.id).toBe("u1"));
+      return rendered.result;
+    }
+
+    it("keeps the marker when sign-out fails", async () => {
+      const result = await signedInHook();
+      signOut.mockResolvedValueOnce({ error: new Error("network down") });
+      await result.current.signOut({ scope: "local" });
+      expect(hasCloudSetupMarker("u1")).toBe(true);
+    });
+
+    it("clears the marker after a successful local sign-out", async () => {
+      const result = await signedInHook();
+      await result.current.signOut({ scope: "local" });
+      expect(hasCloudSetupMarker("u1")).toBe(false);
+    });
+
+    it("keeps the marker for scope others, where this session stays signed in", async () => {
+      const result = await signedInHook();
+      await result.current.signOut({ scope: "others" });
+      expect(hasCloudSetupMarker("u1")).toBe(true);
+    });
+  });
 });

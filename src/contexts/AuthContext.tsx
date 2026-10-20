@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
+import type { SignOutScope } from "@supabase/supabase-js";
 import { User, Session } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +12,6 @@ import {
 import { clearCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 
 export type OAuthSignInProvider = "github" | "google";
-
-type SignOutScope = "global" | "local" | "others";
 
 interface AuthContextType {
   user: User | null;
@@ -146,8 +145,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async (options?: { scope?: SignOutScope }) => {
     const id = user?.id ?? currentUserIdRef.current;
-    if (id) clearCloudSetupMarker(id);
     const { error } = await supabase.auth.signOut(options);
+    // Only forget the cloud setup once this session is really gone. "others" leaves
+    // this session signed in, and a failed sign-out leaves the user signed in too.
+    if (id && !error && options?.scope !== "others") clearCloudSetupMarker(id);
     return { error };
   };
 
