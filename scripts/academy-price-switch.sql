@@ -5,14 +5,16 @@
 -- id updates zero rows.
 --
 -- Usage (pass the new Stripe price id, no quotes):
---   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
---     -v stripe_price_id=price_... \
+--   psql "$DATABASE_URL" -v stripe_price_id=price_... \
 --     -f scripts/academy-price-switch.sql
+-- A refused id exits non-zero (the script sets ON_ERROR_STOP itself).
 --
 -- Do not run against production from this repo's CI. Apply by hand after
 -- the 1 Nov routine, with Elsa Control Lead told first.
 -- Equivalent Node entry:
 --   npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_... --apply
+
+\set ON_ERROR_STOP on
 
 BEGIN;
 

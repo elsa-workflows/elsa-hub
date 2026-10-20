@@ -4,7 +4,6 @@
   "currency": "eur",
   "launchPriceCents": 2900,
   "postLaunchPriceCents": 3900,
-  "publishCatalogCourses": false,
   "courseOwnCodes": {
     "fundamentals-core": null,
     "fundamentals-complete": null,

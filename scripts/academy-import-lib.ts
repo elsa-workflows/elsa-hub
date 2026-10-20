@@ -165,7 +165,6 @@ export type ProductMapping = {
   currency: string;
   launchPriceCents: number;
   postLaunchPriceCents: number;
-  publishCatalogCourses: boolean;
   courseOwnCodes?: Record<string, string | null>;
   r2: {
     courseProductCodesColumn: string;
@@ -192,6 +191,9 @@ export type PlannedCourse = {
   product_code: string;
   product_codes: string[];
   sku_row: boolean;
+  // false for a row that already exists: its price fields are kept as they are
+  // unless the run passes --set-prices.
+  write_prices: boolean;
 };
 
 export type PlannedLesson = {
@@ -452,6 +454,45 @@ function pushErr(errors: string[], ok: boolean, message: string): void {
   if (!ok) errors.push(message);
 }
 
+export function validateCourseLessons(
+  slug: string,
+  lessons: unknown[],
+): { errors: string[]; slugs: Set<string> } {
+  const errors: string[] = [];
+  const lessonSlugs = new Set<string>();
+  let preview = 0;
+  const orders: number[] = [];
+  for (const [li, rawLesson] of lessons.entries()) {
+    if (!isRecord(rawLesson)) {
+      errors.push(`${slug}.lessons[${li}] must be an object`);
+      continue;
+    }
+    const lslug = asString(rawLesson.slug);
+    pushErr(errors, !!lslug && lslug.length <= SLUG_MAX, `${slug}.lessons[${li}].slug is required (1-${SLUG_MAX} chars)`);
+    if (lslug) {
+      if (lessonSlugs.has(lslug)) errors.push(`${slug}: duplicate lesson slug ${lslug}`);
+      lessonSlugs.add(lslug);
+    }
+    if (rawLesson.is_preview === true) preview += 1;
+    if (typeof rawLesson.sort_order === "number") orders.push(rawLesson.sort_order);
+    if (rawLesson.estimated_minutes != null) {
+      pushErr(
+        errors,
+        typeof rawLesson.estimated_minutes === "number" && rawLesson.estimated_minutes > 0,
+        `${slug}/${lslug}: estimated_minutes must be > 0 when set`,
+      );
+    }
+  }
+  if (preview === 0) errors.push(`${slug}: at least one lesson must have is_preview true (AC2)`);
+  if (orders.length === lessons.length) {
+    const expected = lessons.map((_, i) => i);
+    if (orders.join(",") !== expected.join(",")) {
+      errors.push(`${slug}: sort_order must be 0..n-1 in lesson order`);
+    }
+  }
+  return { errors, slugs: lessonSlugs };
+}
+
 export function validateManifest(data: unknown): {
   ok: boolean;
   errors: string[];
@@ -506,37 +547,9 @@ export function validateManifest(data: unknown): {
       errors.push(`${slug ?? ci}: lessons must be a non-empty array`);
       continue;
     }
-    const lessonSlugs = new Set<string>();
-    let preview = 0;
-    const orders: number[] = [];
-    for (const [li, rawLesson] of rawCourse.lessons.entries()) {
-      if (!isRecord(rawLesson)) {
-        errors.push(`${slug}.lessons[${li}] must be an object`);
-        continue;
-      }
-      const lslug = asString(rawLesson.slug);
-      pushErr(errors, !!lslug && lslug.length <= SLUG_MAX, `${slug}.lessons[${li}].slug is required`);
-      if (lslug) {
-        if (lessonSlugs.has(lslug)) errors.push(`${slug}: duplicate lesson slug ${lslug}`);
-        lessonSlugs.add(lslug);
-      }
-      if (rawLesson.is_preview === true) preview += 1;
-      if (typeof rawLesson.sort_order === "number") orders.push(rawLesson.sort_order);
-      if (rawLesson.estimated_minutes != null) {
-        pushErr(
-          errors,
-          typeof rawLesson.estimated_minutes === "number" && rawLesson.estimated_minutes > 0,
-          `${slug}/${lslug}: estimated_minutes must be > 0 when set`,
-        );
-      }
-    }
-    if (preview === 0) errors.push(`${slug}: at least one lesson must have is_preview true (AC2)`);
-    if (orders.length === rawCourse.lessons.length) {
-      const expected = rawCourse.lessons.map((_, i) => i);
-      if (orders.join(",") !== expected.join(",")) {
-        errors.push(`${slug}: sort_order must be 0..n-1 in lesson order`);
-      }
-    }
+    const lessonCheck = validateCourseLessons(slug ?? String(ci), rawCourse.lessons);
+    errors.push(...lessonCheck.errors);
+    const lessonSlugs = lessonCheck.slugs;
     const allAssets = [
       ...(Array.isArray(rawCourse.assets) ? rawCourse.assets : []),
       ...(Array.isArray(rawCourse.extra_assets) ? rawCourse.extra_assets : []),
@@ -861,8 +874,38 @@ export type PlanOptions = {
   env?: NodeJS.Dict<string>;
   sourceCommit?: string | null;
   publish?: boolean;
+  setPrices?: boolean;
   requireStripePriceIds?: boolean;
 };
+
+type CoursePrices = Pick<PlannedCourse, "price_cents" | "currency" | "stripe_price_id" | "write_prices">;
+
+// New rows get the mapping's launch price. An existing row keeps whatever the
+// database holds (for example the 1 Nov Solo price) unless --set-prices is passed,
+// so a content refresh can never revert a price switch.
+function coursePrices(
+  product: ProductDef | undefined,
+  mapping: ProductMapping,
+  existingCourse: Record<string, unknown> | undefined,
+  setPrices: boolean,
+  env: NodeJS.Dict<string>,
+  stripeOpts: { required: boolean; errors: string[] },
+): CoursePrices {
+  if (existingCourse && !setPrices) {
+    return {
+      price_cents: Number(existingCourse.price_cents),
+      currency: String(existingCourse.currency),
+      stripe_price_id: asString(existingCourse.stripe_price_id),
+      write_prices: false,
+    };
+  }
+  return {
+    price_cents: product?.price_cents ?? mapping.launchPriceCents,
+    currency: (product?.currency ?? mapping.currency).toLowerCase(),
+    stripe_price_id: product ? resolveStripePriceId(product, env, stripeOpts) : null,
+    write_prices: true,
+  };
+}
 
 export function planImport(options: PlanOptions): ImportPlan {
   const sourceRoot = path.resolve(options.sourceRoot);
@@ -881,7 +924,8 @@ export function planImport(options: PlanOptions): ImportPlan {
   const catalog = options.mapping.products.find((p) => p.product_code === options.mapping.catalogSku);
   if (!catalog) errors.push(`product mapping is missing catalog SKU ${options.mapping.catalogSku}`);
   const stripeOpts = { required: options.requireStripePriceIds === true, errors };
-  const publishCatalog = options.publish === true || options.mapping.publishCatalogCourses === true;
+  const publishCatalog = options.publish === true;
+  const setPrices = options.setPrices === true;
 
   const sharedKitPath = kit ? kitStoragePath(kit) : null;
   const kitOwner = kit?.owner_course ?? options.manifest.courses[0]?.slug;
@@ -903,20 +947,18 @@ export function planImport(options: PlanOptions): ImportPlan {
     if (gitCourse) warnings.push(...courseJsonOverrides(manifestCourse, gitCourse));
 
     const codes = productCodesForCourse(options.mapping, course.slug);
+    const existingCourse = existing.courses[course.slug];
     const desiredCourse: PlannedCourse = {
       slug: course.slug,
       title: course.title,
       summary: course.summary ?? null,
       sort_order: course.sort_order ?? index,
-      is_published: publishCatalog,
-      stripe_price_id: catalog ? resolveStripePriceId(catalog, env, stripeOpts) : null,
-      price_cents: catalog?.price_cents ?? options.mapping.launchPriceCents,
-      currency: (catalog?.currency ?? options.mapping.currency).toLowerCase(),
+      is_published: false,
+      ...coursePrices(catalog, options.mapping, existingCourse, setPrices, env, stripeOpts),
       product_code: options.mapping.catalogSku,
       product_codes: codes,
       sku_row: false,
     };
-    const existingCourse = existing.courses[course.slug];
     courseOps.push({
       kind: classifyCourse(desiredCourse, existingCourse),
       key: course.slug,
@@ -929,10 +971,13 @@ export function planImport(options: PlanOptions): ImportPlan {
       copyHits.push(...scanCopyRules(desiredCourse.summary, `${course.slug}.summary`, false));
     }
 
-    const lessonSlugs = new Set(course.lessons.map((lesson) => lesson.slug));
-    if (!course.lessons.some((lesson) => lesson.is_preview)) {
-      errors.push(`${course.slug}: no is_preview lesson (AC2)`);
+    // course.json lessons replace the manifest's, so they get the same checks.
+    const lessonCheck = validateCourseLessons(course.slug, course.lessons);
+    if (lessonCheck.errors.length) {
+      errors.push(...lessonCheck.errors);
+      continue;
     }
+    const lessonSlugs = lessonCheck.slugs;
 
     for (const [li, lesson] of course.lessons.entries()) {
       const sortOrder = lesson.sort_order ?? li;
@@ -1151,9 +1196,7 @@ export function planImport(options: PlanOptions): ImportPlan {
         summary: product.summary ?? null,
         sort_order: 1000 + courseOps.length,
         is_published: product.is_published === true,
-        stripe_price_id: resolveStripePriceId(product, env, stripeOpts),
-        price_cents: product.price_cents,
-        currency: product.currency.toLowerCase(),
+        ...coursePrices(product, options.mapping, existing.courses[slug], setPrices, env, stripeOpts),
         product_code: product.product_code,
         product_codes: [product.product_code],
         sku_row: true,
@@ -1167,6 +1210,8 @@ export function planImport(options: PlanOptions): ImportPlan {
       });
     }
   }
+
+  if (options.existing) warnings.push(...uncoveredRowWarnings(existing, courseOps, lessonOps, assetOps));
 
   if (copyHits.length) {
     for (const hit of copyHits) {
@@ -1187,14 +1232,57 @@ export function planImport(options: PlanOptions): ImportPlan {
   };
 }
 
+// Rows the database holds for a planned course that the plan no longer covers.
+// The importer never deletes, so these are reported for a human to decide on.
+function uncoveredRowWarnings(
+  existing: CatalogSnapshot,
+  courseOps: PlannedOp<PlannedCourse>[],
+  lessonOps: PlannedOp<PlannedLesson>[],
+  assetOps: PlannedOp<PlannedAsset>[],
+): string[] {
+  const out: string[] = [];
+  const slugs = new Set(courseOps.filter((op) => !op.desired.sku_row).map((op) => op.desired.slug));
+  const lessonKeys = new Set(lessonOps.map((op) => op.key));
+  const assetPaths = new Set(assetOps.map((op) => op.desired.storage_path));
+  for (const [key, row] of Object.entries(existing.lessons)) {
+    const courseSlug = asString(row.course_slug);
+    if (courseSlug && slugs.has(courseSlug) && !lessonKeys.has(key)) {
+      out.push(`${key}: lesson is in the database but not in the plan (left in place; the importer never deletes)`);
+    }
+  }
+  for (const [storagePath, row] of Object.entries(existing.assets)) {
+    const courseSlug = asString(row.course_slug);
+    if (courseSlug && slugs.has(courseSlug) && !assetPaths.has(storagePath)) {
+      out.push(`${courseSlug}: asset ${storagePath} is in the database but not in the plan (left in place; the importer never deletes)`);
+    }
+  }
+  return out;
+}
+
 export function planHasChanges(plan: ImportPlan): boolean {
   const ops = [...plan.courses, ...plan.lessons, ...plan.assets];
   return ops.some((op) => op.kind === "insert" || op.kind === "update");
 }
 
-export function formatDryRun(plan: ImportPlan, flags?: { apply?: boolean; publish?: boolean }): string {
+function describePrices(op: PlannedOp<PlannedCourse>): string {
+  const course = op.desired;
+  const now = `${course.price_cents} ${course.currency} / ${course.stripe_price_id ?? "no price id"}`;
+  const existing = op.existing;
+  if (!existing) return now;
+  if (!course.write_prices) return `prices kept at ${now} (pass --set-prices to change)`;
+  const fields = ["price_cents", "currency", "stripe_price_id"] as const;
+  const moves = fields
+    .filter((field) => !sameValue(existing[field], course[field]))
+    .map((field) => `${field} ${String(existing[field] ?? "null")} -> ${String(course[field] ?? "null")}`);
+  return moves.length ? `--set-prices: ${moves.join(", ")}` : `prices unchanged at ${now}`;
+}
+
+export function formatDryRun(
+  plan: ImportPlan,
+  flags?: { apply?: boolean; publish?: boolean; compareLive?: boolean },
+): string {
   const apply = flags?.apply === true;
-  const publish = flags?.publish === true || plan.publish;
+  const publish = flags?.publish === true;
   const lines: string[] = [
     apply ? "Academy import plan (--apply)" : "Academy import plan (dry-run; default, no writes)",
     `Source layout: ${plan.layout.kind}`,
@@ -1203,6 +1291,9 @@ export function formatDryRun(plan: ImportPlan, flags?: { apply?: boolean; publis
     apply
       ? "Writes: enabled (--apply). Service role is read only in this mode."
       : "Writes: none. Pass --apply to write. The npm script does not pass --apply.",
+    apply || flags?.compareLive
+      ? "Catalog: read from the database, so price changes below show old -> new."
+      : "Catalog: not read (pass --compare-live for old -> new prices and rows the plan does not cover).",
     publish
       ? "Publish: yes, as the last step after courses, lessons and assets succeed (--publish requires --apply)."
       : "Publish: no. Pass --publish with --apply to set is_published after content and assets succeed.",
@@ -1222,7 +1313,7 @@ export function formatDryRun(plan: ImportPlan, flags?: { apply?: boolean; publis
   };
   section("Courses", plan.courses, (op) => {
     const course = op.desired as PlannedCourse;
-    return `${course.slug}  ${course.title}  product_code=${course.product_code}  product_codes=[${course.product_codes.join(",")}]  ${course.price_cents} ${course.currency}${course.sku_row ? "  [sku-row]" : ""}`;
+    return `${course.slug}  ${course.title}  product_code=${course.product_code}  product_codes=[${course.product_codes.join(",")}]  ${describePrices(op)}${course.sku_row ? "  [sku-row]" : ""}`;
   });
   section("Lessons", plan.lessons, (op) => {
     const lesson = op.desired as PlannedLesson;
@@ -1381,15 +1472,32 @@ export function courseUpsertRow(course: PlannedCourse, mapping: ProductMapping):
     title: course.title,
     summary: course.summary,
     sort_order: course.sort_order,
-    stripe_price_id: course.stripe_price_id,
-    price_cents: course.price_cents,
-    currency: course.currency,
     product_code: course.product_code,
   };
+  if (course.write_prices) {
+    row.stripe_price_id = course.stripe_price_id;
+    row.price_cents = course.price_cents;
+    row.currency = course.currency;
+  }
   if (mapping.r2.writeArrayColumn) {
     row[mapping.r2.courseProductCodesColumn] = course.product_codes;
   }
   return row;
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".zip": "application/zip",
+  ".pdf": "application/pdf",
+  ".txt": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+};
+
+export function contentTypeFor(storagePath: string): string {
+  return CONTENT_TYPES[path.extname(storagePath).toLowerCase()] ?? "application/octet-stream";
 }
 
 export type AcademyWriteStore = {
@@ -1448,7 +1556,7 @@ export async function applyPlanWithStore(
     if (!asset.local_path) throw new Error(`asset ${asset.storage_path}: missing local file`);
     const bytes = readFileSync(asset.local_path);
     verifyChecksum(bytes, asset.sha256, asset.size_bytes, asset.storage_path);
-    await store.uploadAsset(asset.storage_path, bytes, "application/zip");
+    await store.uploadAsset(asset.storage_path, bytes, contentTypeFor(asset.storage_path));
     uploaded.push(asset.storage_path);
 
     const courseId = courseIds.get(asset.course_slug);
@@ -1476,9 +1584,60 @@ export async function applyPlanWithStore(
   return { uploaded, published };
 }
 
+export type PriceSwitchRow = {
+  slug: string;
+  price_cents: number | null;
+  stripe_price_id: string | null;
+};
+
+export type PriceSwitchStore = {
+  listByProductCode(productCode: string): Promise<PriceSwitchRow[]>;
+  setPrices(productCode: string, priceCents: number, stripePriceId: string): Promise<void>;
+};
+
+// The 1 Nov Solo switch. Dry-run by default; the store is only opened (and the
+// service role only read) under --apply. Only rows whose product_code is the
+// catalog SKU are touched, and the id written is the validated, trimmed one.
+export async function runPriceSwitch(options: {
+  mapping: ProductMapping;
+  stripePriceId: string;
+  apply: boolean;
+  openStore: () => PriceSwitchStore;
+  log?: (line: string) => void;
+}): Promise<{ stripePriceId: string; updated: number }> {
+  const log = options.log ?? console.log;
+  const { mapping } = options;
+  const stripePriceId = assertStripePriceId(options.stripePriceId);
+  log(
+    `Solo Bundle 1 Nov switch: ${mapping.catalogSku} -> ${mapping.postLaunchPriceCents} ${mapping.currency} / ${stripePriceId}`,
+  );
+  if (!options.apply) {
+    log("Dry-run: no writes. Pass --apply to update academy_courses.");
+    return { stripePriceId, updated: 0 };
+  }
+  const store = options.openStore();
+  const rows = await store.listByProductCode(mapping.catalogSku);
+  const changing = rows.filter(
+    (row) => row.price_cents !== mapping.postLaunchPriceCents || row.stripe_price_id !== stripePriceId,
+  );
+  log(`${changing.length} of ${rows.length} ${mapping.catalogSku} row(s) would move.`);
+  for (const row of changing) {
+    log(`  ${row.slug}: ${row.price_cents} / ${row.stripe_price_id} -> ${mapping.postLaunchPriceCents} / ${stripePriceId}`);
+  }
+  if (changing.length === 0) {
+    log("Already at target: no writes.");
+    return { stripePriceId, updated: 0 };
+  }
+  await store.setPrices(mapping.catalogSku, mapping.postLaunchPriceCents, stripePriceId);
+  log("Updated.");
+  return { stripePriceId, updated: changing.length };
+}
+
 export type ParsedArgs = {
   apply: boolean;
   publish: boolean;
+  setPrices: boolean;
+  compareLive: boolean;
   dryRun: boolean;
   manifest: string | null;
   sourceRoot: string | null;
@@ -1494,6 +1653,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const out: ParsedArgs = {
     apply: false,
     publish: false,
+    setPrices: false,
+    compareLive: false,
     dryRun: true,
     manifest: null,
     sourceRoot: null,
@@ -1514,6 +1675,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     if (arg === "--dry-run") sawDryRun = true;
     else if (arg === "--apply") out.apply = true;
     else if (arg === "--publish") out.publish = true;
+    else if (arg === "--set-prices") out.setPrices = true;
+    else if (arg === "--compare-live") out.compareLive = true;
     else if (arg === "--manifest") out.manifest = next();
     else if (arg === "--source-root") out.sourceRoot = next();
     else if (arg === "--source-commit") out.sourceCommit = next();
@@ -1545,7 +1708,7 @@ export const HELP = `Academy import (elsa-hub#40)
     --source-commit <git sha> \\
     [--assets-dir /path/to/zips] \\
     [--product-mapping academy/product-mapping.json] \\
-    [--apply] [--publish]
+    [--apply] [--publish] [--set-prices] [--compare-live]
 
   npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_... [--apply]
 
@@ -1554,11 +1717,17 @@ Dry-run is the default. Every database or storage write needs --apply
 is_published on catalog courses only after content and assets succeed.
 npm run academy:import does not pass --apply.
 
+Existing rows keep their price_cents, currency and stripe_price_id, so a rerun
+after the 1 Nov price switch cannot revert Solo. New rows get the mapping's
+launch price. --set-prices overwrites the price fields on existing rows.
+--compare-live reads the catalog (read-only) so a dry-run shows old -> new
+prices and database rows the plan does not cover. Nothing is ever deleted.
+
 --source-root may be a box checkout (lesson source_md paths) or a
 valence-works/elsa-plus-training content/courses tree (course.json + NN-<slug>.md).
 Lesson and asset paths must stay inside --source-root or --assets-dir.
 Absolute paths and .. are refused.
 
 SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are read from the environment
-only with --apply, and are never written to the repo.
+only with --apply or --compare-live, and are never written to the repo.
 `;

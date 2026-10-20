@@ -7,18 +7,19 @@ import {
   ACADEMY_KITS_BUCKET,
   HELP,
   applyPlanWithStore,
-  assertStripePriceId,
   catalogSnapshotFromDbRows,
   formatDryRun,
   parseArgs,
   planHasChanges,
   planImport,
+  runPriceSwitch,
   validateManifest,
   validateProductMapping,
   type AcademyManifest,
   type AcademyWriteStore,
+  type PriceSwitchStore,
   type ProductMapping,
-} from "./academy-import-lib.ts";
+} from "./academy-import-lib";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -103,48 +104,24 @@ async function fetchSnapshot(supabase: SupabaseClient) {
   });
 }
 
-async function priceSwitch(apply: boolean, stripePriceId: string): Promise<void> {
-  const mappingPath = path.join(ROOT, "academy/product-mapping.json");
-  const mappingResult = validateProductMapping(loadJson(mappingPath));
-  if (!mappingResult.ok || !mappingResult.mapping) {
-    throw new Error(mappingResult.errors.join("\n"));
-  }
-  const mapping = mappingResult.mapping;
-  console.log(
-    `Solo Bundle 1 Nov switch: ${mapping.catalogSku} -> ${mapping.postLaunchPriceCents} ${mapping.currency} / ${stripePriceId}`,
-  );
-  if (!apply) {
-    console.log("Dry-run: no writes. Pass --apply to update academy_courses.");
-    return;
-  }
-  const { url, key } = readServiceRole();
-  const supabase = createClient(url, key);
-  const { data, error } = await supabase
-    .from("academy_courses")
-    .select("id, slug, product_code, price_cents, stripe_price_id")
-    .eq("product_code", mapping.catalogSku);
-  if (error) throw new Error(error.message);
-  const rows = data ?? [];
-  const changing = rows.filter(
-    (row) => row.price_cents !== mapping.postLaunchPriceCents || row.stripe_price_id !== stripePriceId,
-  );
-  console.log(`${changing.length} of ${rows.length} ${mapping.catalogSku} row(s) would move.`);
-  for (const row of changing) {
-    console.log(`  ${row.slug}: ${row.price_cents} / ${row.stripe_price_id} -> ${mapping.postLaunchPriceCents} / ${stripePriceId}`);
-  }
-  if (changing.length === 0) {
-    console.log("Already at target: no writes.");
-    return;
-  }
-  const { error: updateError } = await supabase
-    .from("academy_courses")
-    .update({
-      price_cents: mapping.postLaunchPriceCents,
-      stripe_price_id: stripePriceId,
-    })
-    .eq("product_code", mapping.catalogSku);
-  if (updateError) throw new Error(updateError.message);
-  console.log("Updated.");
+function supabasePriceSwitchStore(supabase: SupabaseClient): PriceSwitchStore {
+  return {
+    async listByProductCode(productCode) {
+      const { data, error } = await supabase
+        .from("academy_courses")
+        .select("slug, price_cents, stripe_price_id")
+        .eq("product_code", productCode);
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+    async setPrices(productCode, priceCents, stripePriceId) {
+      const { error } = await supabase
+        .from("academy_courses")
+        .update({ price_cents: priceCents, stripe_price_id: stripePriceId })
+        .eq("product_code", productCode);
+      if (error) throw new Error(error.message);
+    },
+  };
 }
 
 async function main(): Promise<number> {
@@ -158,13 +135,20 @@ async function main(): Promise<number> {
       console.error("--price-switch requires --stripe-price-id");
       return 1;
     }
-    try {
-      assertStripePriceId(args.stripePriceId);
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : error);
-      return 1;
+    const mappingPath = path.join(ROOT, "academy/product-mapping.json");
+    const mappingResult = validateProductMapping(loadJson(mappingPath));
+    if (!mappingResult.ok || !mappingResult.mapping) {
+      throw new Error(mappingResult.errors.join("\n"));
     }
-    await priceSwitch(args.apply, args.stripePriceId);
+    await runPriceSwitch({
+      mapping: mappingResult.mapping,
+      stripePriceId: args.stripePriceId,
+      apply: args.apply,
+      openStore: () => {
+        const { url, key } = readServiceRole();
+        return supabasePriceSwitchStore(createClient(url, key));
+      },
+    });
     return 0;
   }
   if (!args.manifest || !args.sourceRoot) {
@@ -192,7 +176,7 @@ async function main(): Promise<number> {
 
   let existing = undefined;
   let supabase: SupabaseClient | null = null;
-  if (args.apply) {
+  if (args.apply || args.compareLive) {
     const { url, key } = readServiceRole();
     supabase = createClient(url, key);
     existing = await fetchSnapshot(supabase);
@@ -206,9 +190,10 @@ async function main(): Promise<number> {
     existing,
     sourceCommit: args.sourceCommit,
     publish: args.publish,
-    requireStripePriceIds: args.apply,
+    setPrices: args.setPrices,
+    requireStripePriceIds: args.apply || args.setPrices,
   });
-  console.log(formatDryRun(plan, { apply: args.apply, publish: args.publish }));
+  console.log(formatDryRun(plan, { apply: args.apply, publish: args.publish, compareLive: args.compareLive }));
   if (plan.errors.length) return 1;
   if (!args.apply) return 0;
 

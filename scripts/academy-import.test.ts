@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,12 +11,14 @@ import {
   assetsNeedingUpload,
   assertStripePriceId,
   catalogSnapshotFromDbRows,
+  contentTypeFor,
   catalogSlugsToPublish,
   courseUpsertRow,
   dbShapedCatalogFromPlan,
   digestBytes,
   formatDryRun,
   parseArgs,
+  runPriceSwitch,
   planImport,
   productCodesForCourse,
   stripLeadingH1,
@@ -25,6 +27,7 @@ import {
   verifyChecksum,
   type AcademyManifest,
   type AcademyWriteStore,
+  type PriceSwitchStore,
   type ProductMapping,
 } from "./academy-import-lib";
 
@@ -33,7 +36,6 @@ const mapping: ProductMapping = {
   currency: "eur",
   launchPriceCents: 2900,
   postLaunchPriceCents: 3900,
-  publishCatalogCourses: false,
   courseOwnCodes: { "demo-core": null },
   r2: { courseProductCodesColumn: "product_codes", writeArrayColumn: true },
   products: [
@@ -138,15 +140,22 @@ function boxManifest(overrides: Record<string, unknown> = {}): AcademyManifest {
 function memoryStore(seed?: { courses?: { id: string; slug: string }[] }): AcademyWriteStore & {
   calls: string[];
   uploads: string[];
+  contentTypes: Record<string, string>;
+  courseRows: Record<string, unknown>[];
 } {
   const calls: string[] = [];
   const uploads: string[] = [];
+  const contentTypes: Record<string, string> = {};
+  const courseRows: Record<string, unknown>[] = [];
   const courses = [...(seed?.courses ?? [])];
   return {
     calls,
     uploads,
+    contentTypes,
+    courseRows,
     async upsertCourse(row) {
       calls.push(`course:${String(row.slug)}`);
+      courseRows.push(row);
       expect(row).not.toHaveProperty("is_published");
       const existing = courses.find((c) => c.slug === row.slug);
       if (existing) return existing;
@@ -166,8 +175,9 @@ function memoryStore(seed?: { courses?: { id: string; slug: string }[] }): Acade
       calls.push("listLessons");
       return [];
     },
-    async uploadAsset(storagePath) {
+    async uploadAsset(storagePath, _bytes, contentType) {
       calls.push(`upload:${storagePath}`);
+      contentTypes[storagePath] = contentType;
       uploads.push(storagePath);
     },
     async upsertAsset(row) {
@@ -227,7 +237,7 @@ describe("manifest validation", () => {
     const raw = JSON.parse(readFileSync("academy/product-mapping.json", "utf8"));
     const result = validateProductMapping(raw);
     expect(result.ok).toBe(true);
-    expect(result.mapping?.publishCatalogCourses).toBe(false);
+    expect(result.mapping).not.toHaveProperty("publishCatalogCourses");
     const codes = productCodesForCourse(result.mapping!, "fundamentals-complete");
     expect(codes[0]).toBe("solo_bundle");
     expect(codes).toContain("team_5");
@@ -270,6 +280,9 @@ describe("flags and stripe guards", () => {
     expect(parseArgs(["--apply"]).apply).toBe(true);
     expect(parseArgs(["--apply"]).dryRun).toBe(false);
     expect(parseArgs(["--apply", "--publish"]).publish).toBe(true);
+    expect(parseArgs([]).setPrices).toBe(false);
+    expect(parseArgs([]).compareLive).toBe(false);
+    expect(parseArgs(["--set-prices", "--compare-live"])).toMatchObject({ setPrices: true, compareLive: true, apply: false });
     expect(() => parseArgs(["--publish"])).toThrow(/--publish requires --apply/);
     expect(() => parseArgs(["--apply", "--dry-run"])).toThrow(/only one of --apply and --dry-run/);
   });
@@ -771,5 +784,313 @@ describe("course.json versus the manifest", () => {
     const git = planImport({ manifest, mapping, sourceRoot: gitRoot, assetsDirs: [path.join(gitRoot, "zips")] });
     expect(box.assets.map((op) => op.desired.storage_path)).toEqual(["courses/elsa-3.9.0/core.zip"]);
     expect(git.assets.map((op) => op.desired.storage_path)).toEqual(["courses/elsa-3.9.0/core.zip"]);
+  });
+});
+
+const SOLO_ENV = {
+  STRIPE_PRICE_ID_SOLO_BUNDLE: "price_test_solo_bundle",
+  STRIPE_PRICE_ID_TEAM_5: "price_test_team_5",
+};
+
+function simpleRoot(): string {
+  const root = tmpDir();
+  writeTree(root, {
+    "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+    "modules/paid.md": paidBody,
+  });
+  return root;
+}
+
+// The catalog as the database holds it after the 1 Nov switch.
+function switchedCatalog(root: string) {
+  const first = planImport({ manifest: boxManifest(), mapping, sourceRoot: root, env: SOLO_ENV });
+  const rows = dbShapedCatalogFromPlan(first);
+  for (const course of rows.courses) {
+    if (course.product_code === "solo_bundle") {
+      course.price_cents = 3900;
+      course.stripe_price_id = "price_nov1";
+    }
+  }
+  return catalogSnapshotFromDbRows(rows);
+}
+
+describe("prices on existing rows", () => {
+  it("leaves a switched Solo price alone on a plain --apply rerun", async () => {
+    const root = simpleRoot();
+    const existing = switchedCatalog(root);
+    // No STRIPE_PRICE_ID_* in the env: nothing is being written, so none is needed.
+    const plan = planImport({
+      manifest: boxManifest(),
+      mapping,
+      sourceRoot: root,
+      existing,
+      env: {},
+      requireStripePriceIds: true,
+    });
+    expect(plan.errors).toEqual([]);
+    const solo = plan.courses.find((op) => op.key === "demo-core")!;
+    expect(solo.kind).toBe("unchanged");
+    expect(solo.desired).toMatchObject({ price_cents: 3900, stripe_price_id: "price_nov1", write_prices: false });
+    expect(courseUpsertRow(solo.desired, mapping)).not.toHaveProperty("price_cents");
+    expect(courseUpsertRow(solo.desired, mapping)).not.toHaveProperty("stripe_price_id");
+    expect(formatDryRun(plan, { apply: true })).toContain("prices kept at 3900 eur / price_nov1");
+
+    const store = memoryStore();
+    await applyPlanWithStore(store, plan, mapping, { publish: false });
+    for (const row of store.courseRows) {
+      expect(row).not.toHaveProperty("price_cents");
+      expect(row).not.toHaveProperty("stripe_price_id");
+      expect(row).not.toHaveProperty("currency");
+    }
+  });
+
+  it("gives a new row the mapping's launch price", () => {
+    const plan = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV });
+    const solo = plan.courses.find((op) => op.key === "demo-core")!;
+    expect(solo.kind).toBe("insert");
+    expect(courseUpsertRow(solo.desired, mapping)).toMatchObject({
+      price_cents: 2900,
+      stripe_price_id: "price_test_solo_bundle",
+      currency: "eur",
+    });
+  });
+
+  it("overwrites prices only with --set-prices and shows old -> new", async () => {
+    const root = simpleRoot();
+    const existing = switchedCatalog(root);
+    const plan = planImport({
+      manifest: boxManifest(),
+      mapping,
+      sourceRoot: root,
+      existing,
+      env: SOLO_ENV,
+      setPrices: true,
+      requireStripePriceIds: true,
+    });
+    expect(plan.errors).toEqual([]);
+    const solo = plan.courses.find((op) => op.key === "demo-core")!;
+    expect(solo.kind).toBe("update");
+    const text = formatDryRun(plan, { compareLive: true });
+    expect(text).toContain("price_cents 3900 -> 2900");
+    expect(text).toContain("stripe_price_id price_nov1 -> price_test_solo_bundle");
+
+    const store = memoryStore();
+    await applyPlanWithStore(store, plan, mapping, { publish: false });
+    expect(store.courseRows.find((row) => row.slug === "demo-core")).toMatchObject({
+      price_cents: 2900,
+      stripe_price_id: "price_test_solo_bundle",
+    });
+  });
+
+  it("requires the Stripe env under --set-prices", () => {
+    const root = simpleRoot();
+    const plan = planImport({
+      manifest: boxManifest(),
+      mapping,
+      sourceRoot: root,
+      existing: switchedCatalog(root),
+      env: {},
+      setPrices: true,
+      requireStripePriceIds: true,
+    });
+    expect(plan.errors.some((error) => /STRIPE_PRICE_ID_SOLO_BUNDLE is required/.test(error))).toBe(true);
+  });
+});
+
+describe("price switch", () => {
+  function fakeStore(rows: { slug: string; price_cents: number | null; stripe_price_id: string | null }[]) {
+    const writes: { code: string; cents: number; id: string }[] = [];
+    let opened = 0;
+    const store: PriceSwitchStore = {
+      async listByProductCode() {
+        return rows;
+      },
+      async setPrices(code, cents, id) {
+        writes.push({ code, cents, id });
+      },
+    };
+    return { writes, opened: () => opened, openStore: () => ((opened += 1), store) };
+  }
+  const solo = [
+    { slug: "a", price_cents: 2900, stripe_price_id: "price_test_solo_bundle" },
+    { slug: "b", price_cents: 2900, stripe_price_id: "price_test_solo_bundle" },
+  ];
+
+  it("is a dry-run by default: no store is opened and nothing is written", async () => {
+    const fake = fakeStore(solo);
+    const lines: string[] = [];
+    const result = await runPriceSwitch({
+      mapping,
+      stripePriceId: "price_nov1",
+      apply: false,
+      openStore: fake.openStore,
+      log: (line) => lines.push(line),
+    });
+    expect(result.updated).toBe(0);
+    expect(fake.opened()).toBe(0);
+    expect(fake.writes).toEqual([]);
+    expect(lines.join("\n")).toContain("Dry-run: no writes");
+  });
+
+  it("with --apply updates only the catalog SKU, with the trimmed validated id", async () => {
+    const fake = fakeStore(solo);
+    const result = await runPriceSwitch({
+      mapping,
+      stripePriceId: "  price_nov1  ",
+      apply: true,
+      openStore: fake.openStore,
+      log: () => undefined,
+    });
+    expect(result).toEqual({ stripePriceId: "price_nov1", updated: 2 });
+    expect(fake.writes).toEqual([{ code: "solo_bundle", cents: 3900, id: "price_nov1" }]);
+  });
+
+  it("writes nothing when the rows are already at the target", async () => {
+    const fake = fakeStore(solo.map((row) => ({ ...row, price_cents: 3900, stripe_price_id: "price_nov1" })));
+    const result = await runPriceSwitch({
+      mapping,
+      stripePriceId: "price_nov1",
+      apply: true,
+      openStore: fake.openStore,
+      log: () => undefined,
+    });
+    expect(result.updated).toBe(0);
+    expect(fake.writes).toEqual([]);
+  });
+
+  it("refuses a malformed id before opening the store", async () => {
+    const fake = fakeStore(solo);
+    await expect(
+      runPriceSwitch({ mapping, stripePriceId: "prod_1", apply: true, openStore: fake.openStore, log: () => undefined }),
+    ).rejects.toThrow(/must match/);
+    expect(fake.opened()).toBe(0);
+  });
+});
+
+describe("course.json lessons are validated", () => {
+  const withLessons = (lessons: unknown[]) => {
+    const root = tmpDir();
+    writeTree(root, {
+      "content/courses/demo-core/course.json": JSON.stringify({ slug: "demo-core", title: "Demo Core", lessons }),
+      "content/courses/demo-core/00-a.md": welcomeBody,
+      "content/courses/demo-core/01-b.md": paidBody,
+    });
+    return planImport({ manifest: boxManifest(), mapping, sourceRoot: root });
+  };
+
+  it("refuses duplicate slugs, over-long slugs and a broken sort_order", () => {
+    const plan = withLessons([
+      { slug: "a", title: "A", sort_order: 0, is_preview: true, body_md_file: "00-a.md" },
+      { slug: "a", title: "A again", sort_order: 5, body_md_file: "01-b.md" },
+      { slug: "x".repeat(121), title: "Long", sort_order: 2 },
+    ]);
+    expect(plan.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("duplicate lesson slug a"),
+        expect.stringContaining("lessons[2].slug is required"),
+        expect.stringContaining("sort_order must be 0..n-1"),
+      ]),
+    );
+    expect(plan.lessons).toEqual([]);
+  });
+
+  it("still requires a preview lesson", () => {
+    const plan = withLessons([{ slug: "a", title: "A", sort_order: 0, body_md_file: "00-a.md" }]);
+    expect(plan.errors.some((error) => /is_preview true/.test(error))).toBe(true);
+  });
+
+  it("accepts a well-formed course.json", () => {
+    const plan = withLessons([
+      { slug: "a", title: "A", sort_order: 0, is_preview: true, body_md_file: "00-a.md" },
+      { slug: "paid", title: "B", sort_order: 1, body_md_file: "01-b.md" },
+    ]);
+    expect(plan.errors).toEqual([]);
+    expect(plan.lessons).toHaveLength(2);
+  });
+});
+
+describe("upload content types", () => {
+  it("derives the type from the extension", () => {
+    expect(contentTypeFor("kits/x/kit.zip")).toBe("application/zip");
+    expect(contentTypeFor("extras/guide.PDF")).toBe("application/pdf");
+    expect(contentTypeFor("extras/notes.txt")).toBe("text/plain; charset=utf-8");
+    expect(contentTypeFor("extras/notes.md")).toBe("text/markdown; charset=utf-8");
+    expect(contentTypeFor("extras/blob")).toBe("application/octet-stream");
+    expect(contentTypeFor("extras/blob.xyz")).toBe("application/octet-stream");
+  });
+
+  it("uploads a text extra asset as text/plain, not application/zip", async () => {
+    const fixtures = path.resolve("scripts/fixtures/academy");
+    const handout = readFileSync(path.join(fixtures, "extra-handout.txt"));
+    const digest = digestBytes(handout);
+    const manifest = boxManifest();
+    manifest.courses[0].extra_assets = [
+      {
+        label: "Handout",
+        file: "extra-handout.txt",
+        sha256: digest.sha256,
+        size_bytes: digest.sizeBytes,
+        storage_path: "extras/demo-core/extra-handout.txt",
+      },
+    ];
+    const plan = planImport({ manifest, mapping, sourceRoot: simpleRoot(), assetsDirs: [fixtures], env: SOLO_ENV });
+    expect(plan.errors).toEqual([]);
+    const store = memoryStore();
+    await applyPlanWithStore(store, plan, mapping, { publish: false });
+    expect(store.contentTypes).toEqual({ "extras/demo-core/extra-handout.txt": "text/plain; charset=utf-8" });
+  });
+});
+
+describe("rows the plan does not cover", () => {
+  it("warns about database lessons and assets missing from the plan and never deletes", async () => {
+    const root = simpleRoot();
+    const rows = dbShapedCatalogFromPlan(
+      planImport({ manifest: boxManifest(), mapping, sourceRoot: root, env: SOLO_ENV }),
+    );
+    const courseId = String(rows.courses.find((course) => course.slug === "demo-core")!.id);
+    rows.lessons.push({ id: "l-old", course_id: courseId, slug: "retired", title: "Retired", sort_order: 9, body_md: "x" });
+    rows.assets.push({
+      id: "a-old",
+      course_id: courseId,
+      lesson_id: null,
+      label: "Old kit",
+      storage_path: "kits/old/kit.zip",
+      sha256: "0".repeat(64),
+      size_bytes: 1,
+    });
+    const plan = planImport({
+      manifest: boxManifest(),
+      mapping,
+      sourceRoot: root,
+      existing: catalogSnapshotFromDbRows(rows),
+      env: SOLO_ENV,
+    });
+    expect(plan.errors).toEqual([]);
+    expect(plan.warnings).toEqual([
+      expect.stringContaining("demo-core/retired: lesson is in the database but not in the plan"),
+      expect.stringContaining("demo-core: asset kits/old/kit.zip is in the database but not in the plan"),
+    ]);
+    expect(formatDryRun(plan, { compareLive: true })).toContain("never deletes");
+    const store = memoryStore();
+    await applyPlanWithStore(store, plan, mapping, { publish: false });
+    expect(store.calls.some((call) => /delete|retired/.test(call))).toBe(false);
+  });
+
+  it("stays quiet without a database read or when everything is covered", () => {
+    const root = simpleRoot();
+    expect(planImport({ manifest: boxManifest(), mapping, sourceRoot: root }).warnings).toEqual([]);
+    expect(
+      planImport({ manifest: boxManifest(), mapping, sourceRoot: root, existing: switchedCatalog(root) }).warnings,
+    ).toEqual([]);
+  });
+});
+
+describe("publish reporting", () => {
+  it("says Publish: no unless --publish is passed, and plans no publish", () => {
+    const plan = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV });
+    expect(plan.publish).toBe(false);
+    expect(formatDryRun(plan, { apply: true })).toContain("Publish: no.");
+    const publishing = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV, publish: true });
+    expect(formatDryRun(publishing, { apply: true, publish: true })).toContain("Publish: yes");
   });
 });
