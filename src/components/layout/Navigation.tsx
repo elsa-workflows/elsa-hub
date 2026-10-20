@@ -14,10 +14,13 @@ import { NotificationBell } from "@/components/notifications";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import elsaLogo from "@/assets/elsa-logo.png";
 import { cn } from "@/lib/utils";
+import { DASHBOARD_CLOUD_PATH } from "@/lib/cloudPaths";
 import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 type NavItem = { label: string; to?: string; href?: string; badge?: string; external?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
+
+const leaves: NavItem[] = [];
 
 const groups: NavGroup[] = [
   {
@@ -53,7 +56,7 @@ const groups: NavGroup[] = [
       { label: "Overview", to: "/elsa-plus" },
       { label: ELSA_RUNTIME_DISPLAY_NAME, to: ELSA_RUNTIME_PATH, badge: "Early Preview" },
       { label: "Runtime Builder", to: "/elsa-plus/runtime-builder", badge: "Preview" },
-      { label: "Managed Cloud Hosting", to: "/elsa-plus/cloud-services", badge: "Waitlist" },
+      { label: "Elsa Cloud", to: DASHBOARD_CLOUD_PATH, badge: "Early access" },
       { label: "Expert Services", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
     ],
@@ -62,6 +65,34 @@ const groups: NavGroup[] = [
 
 function isGroupActive(group: NavGroup, pathname: string) {
   return group.items.some((it) => it.to && (it.to === "/" ? pathname === "/" : pathname.startsWith(it.to)));
+}
+
+function isLeafActive(item: NavItem, pathname: string) {
+  return !!item.to && (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to));
+}
+
+function LeafLink({
+  item,
+  pathname,
+  className,
+  onClick,
+}: {
+  item: NavItem;
+  pathname: string;
+  className: string;
+  onClick?: () => void;
+}) {
+  const active = isLeafActive(item, pathname);
+  return (
+    <Link
+      to={item.to!}
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={className}
+    >
+      {item.label}
+    </Link>
+  );
 }
 
 function GroupTrigger({ group, pathname }: { group: NavGroup; pathname: string }) {
@@ -145,7 +176,7 @@ export function Navigation() {
           : "bg-background border-b border-transparent",
       )}
     >
-      <div className="container flex h-16 items-center justify-between gap-4">
+      <div className="container flex h-16 min-w-0 items-center justify-between gap-4 overflow-x-hidden">
         <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity whitespace-nowrap">
           <img src={elsaLogo} alt="Elsa Workflows" className="h-8 w-8" />
           <span className="text-lg font-semibold tracking-tight whitespace-nowrap">
@@ -153,9 +184,22 @@ export function Navigation() {
           </span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden lg:flex min-w-0 items-center gap-1">
           {groups.map((g) => (
             <GroupTrigger key={g.label} group={g} pathname={pathname} />
+          ))}
+          {leaves.map((item) => (
+            <LeafLink
+              key={item.label}
+              item={item}
+              pathname={pathname}
+              className={cn(
+                "inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
+                isLeafActive(item, pathname)
+                  ? "text-brand bg-primary/5"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted",
+              )}
+            />
           ))}
         </nav>
 
@@ -263,6 +307,21 @@ export function Navigation() {
                 </div>
 
               ))}
+
+              <div className="flex flex-col gap-1">
+                {leaves.map((item) => (
+                  <LeafLink
+                    key={item.label}
+                    item={item}
+                    pathname={pathname}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "px-3 py-2 text-base rounded-lg hover:bg-muted transition-colors",
+                      isLeafActive(item, pathname) && "text-brand bg-primary/5",
+                    )}
+                  />
+                ))}
+              </div>
 
               <hr />
 

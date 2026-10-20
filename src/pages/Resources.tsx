@@ -18,7 +18,7 @@ import { ScrollReveal } from "@/components/ScrollReveal";
 import { Seo } from "@/components/Seo";
 import { SITE_URL } from "@/lib/site";
 import { LearningPaths } from "@/components/resources";
-import { ELSA_VERSION } from "@/data/elsaVersion";
+import { ELSA_NUGET_VERSION_URL } from "@/data/elsaVersion";
 
 const primaryResources = [
   {
@@ -66,7 +66,7 @@ const additionalResources = [
     icon: Package,
     title: "NuGet Packages",
     description: "All official Elsa packages",
-    href: `https://www.nuget.org/packages/Elsa/${ELSA_VERSION}`,
+    href: ELSA_NUGET_VERSION_URL,
   },
   {
     icon: FileCode,
