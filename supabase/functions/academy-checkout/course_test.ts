@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.190.0/testing/asserts.ts";
-import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
+import { loadAcademyCourse, MAX_PUBLISHED_SOLO_COURSES, type AcademyCourseRow } from "./course.ts";
 
 const PUBLISHED: AcademyCourseRow = {
   id: "00000000-0000-4000-8000-000000002001",
@@ -45,10 +45,10 @@ function createCourseClient(rows: AcademyCourseRow[]) {
           filters.push([column, value]);
           return api;
         },
-        limit: async (_n: number) => ({
+        limit: async (n: number) => ({
           data: rows.filter((row) =>
             filters.every(([column, value]) => (row as Record<string, unknown>)[column] === value)
-          ),
+          ).slice(0, n),
           error: null,
         }),
         maybeSingle: async () => {
@@ -202,4 +202,29 @@ Deno.test("a published catalog row that is not solo_bundle is not sold as Solo",
     { courseSlug: "published-course" },
   );
   assertEquals(loaded.error?.status, 409);
+});
+
+function publishedSoloCourses(count: number): AcademyCourseRow[] {
+  return Array.from({ length: count }, (_, i) => ({
+    ...PUBLISHED,
+    id: `00000000-0000-4000-8000-${String(100000 + i).padStart(12, "0")}`,
+    slug: `bulk-${i}`,
+  }));
+}
+
+Deno.test("published Solo courses at the verification cap with one price still sell", async () => {
+  const loaded = await loadAcademyCourse(
+    createCourseClient(publishedSoloCourses(MAX_PUBLISHED_SOLO_COURSES)),
+    { courseSlug: "bulk-0" },
+  );
+  assertEquals(loaded.course?.slug, "bulk-0");
+});
+
+Deno.test("published Solo courses beyond the verification cap fail closed instead of checking a partial page", async () => {
+  const rows = publishedSoloCourses(MAX_PUBLISHED_SOLO_COURSES + 1);
+  // The conflicting price sits past the first MAX rows, outside a capped page.
+  rows[MAX_PUBLISHED_SOLO_COURSES].stripe_price_id = "price_other_solo";
+  const loaded = await loadAcademyCourse(createCourseClient(rows), { courseSlug: "bulk-0" });
+  assertEquals(loaded.error?.status, 409);
+  assertEquals(loaded.course, undefined);
 });

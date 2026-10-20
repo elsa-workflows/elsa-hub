@@ -31,6 +31,12 @@ export type AcademyCourseFilter = {
   maybeSingle: () => Promise<{ data: unknown; error: { message?: string; code?: string } | null }>;
 };
 
+// Hard cap on published solo_bundle rows the shared-price check can verify in
+// one query. The query asks for one row more than the cap; seeing that extra
+// row means a price outside the page could go unchecked, so checkout fails
+// closed instead of selling on a partial view.
+export const MAX_PUBLISHED_SOLO_COURSES = 200;
+
 const COURSE_COLUMNS = "id, slug, title, product_code, stripe_price_id, price_cents, currency, is_published";
 
 export type LoadAcademyCourseResult = {
@@ -149,12 +155,20 @@ async function assertSharedSoloBundlePrice(
     .select("stripe_price_id")
     .eq("product_code", "solo_bundle")
     .eq("is_published", true)
-    .limit(200);
+    .limit(MAX_PUBLISHED_SOLO_COURSES + 1);
   if (listed.error) {
     return { error: { status: 500, body: { error: listed.error.message || "Course lookup failed" } } };
   }
 
   const rows = Array.isArray(listed.data) ? listed.data : listed.data ? [listed.data] : [];
+  if (rows.length > MAX_PUBLISHED_SOLO_COURSES) {
+    return {
+      error: {
+        status: 409,
+        body: { error: "Too many published Solo courses to verify a shared Stripe price" },
+      },
+    };
+  }
   const prices = new Set(
     rows.map((row) => (row as { stripe_price_id?: string | null }).stripe_price_id ?? ""),
   );
