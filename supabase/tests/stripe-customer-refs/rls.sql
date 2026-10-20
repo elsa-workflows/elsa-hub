@@ -80,15 +80,32 @@ RETURNS void
 LANGUAGE plpgsql
 AS $$
 DECLARE
+  before_count bigint;
+  deleted bigint;
   remaining bigint;
 BEGIN
+  -- A cascade test over an owner with no refs would pass whatever the schema
+  -- does, so insist on something to cascade and on a delete that took effect.
+  EXECUTE format('SELECT count(*) FROM public.%I WHERE %I = %L', p_refs_table, p_owner_column, p_owner_id)
+  INTO before_count;
+  IF before_count = 0 THEN
+    PERFORM pg_temp.ok(false, p_name, 'no refs to cascade');
+    RETURN;
+  END IF;
+
   BEGIN
     EXECUTE p_delete_sql;
+    GET DIAGNOSTICS deleted = ROW_COUNT;
   EXCEPTION
     WHEN OTHERS THEN
       PERFORM pg_temp.ok(false, p_name, SQLERRM);
       RETURN;
   END;
+
+  IF deleted = 0 THEN
+    PERFORM pg_temp.ok(false, p_name, 'the delete removed no rows');
+    RETURN;
+  END IF;
 
   EXECUTE format('SELECT count(*) FROM public.%I WHERE %I = %L', p_refs_table, p_owner_column, p_owner_id)
   INTO remaining;
@@ -264,15 +281,14 @@ SELECT pg_temp.ok(
 
 -- Column-level grants live in pg_attribute.attacl, not pg_class.relacl, so the
 -- check above cannot see them (for example REFERENCES (stripe_customer_id) or
--- SELECT (stripe_customer_id) on a single column).
+-- SELECT (stripe_customer_id) on a single column). System columns such as ctid
+-- are included: attnum is not filtered.
 SELECT pg_temp.ok(
   NOT EXISTS (
     SELECT 1
     FROM pg_attribute att
     CROSS JOIN LATERAL aclexplode(att.attacl) a
     WHERE att.attrelid IN ('public.org_stripe_customers'::regclass, 'public.user_stripe_customers'::regclass)
-      AND att.attnum > 0
-      AND NOT att.attisdropped
       AND (a.grantee = 0 OR a.grantee IN ('anon'::regrole, 'authenticated'::regrole))
   ),
   'no column-level grant to authenticated, anon or PUBLIC on either table'
