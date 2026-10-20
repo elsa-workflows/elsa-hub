@@ -4,12 +4,12 @@ import {
   assertApplyAllowed,
   assertFixtureNotUsedForApply,
   formatBackfillPlan,
-  isLiveStripeKey,
   loadBackfillFixture,
   loadHubSnapshot,
   loadStripeCustomers,
   planStripeCustomerBackfill,
 } from "./backfill-stripe-customers.ts";
+import { isLiveStripeKey } from "../supabase/functions/_shared/stripe-customer.ts";
 
 const fixture = loadBackfillFixture();
 
@@ -64,9 +64,12 @@ Deno.test("--apply refuses without a test key or --live", () => {
   assertThrows(
     () => assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "rk_live_example" }),
     Error,
-    "sk_test_",
+    "test key",
   );
   assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "sk_test_example" });
+  assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "rk_test_example" });
+  assertThrows(() => assertApplyAllowed({ apply: true, live: false, stripeSecretKey: "" }), Error, "test key");
+  assertApplyAllowed({ apply: true, live: true, stripeSecretKey: "sk_live_example" });
   assertApplyAllowed({ apply: false, live: false, stripeSecretKey: "" });
 });
 
@@ -105,6 +108,7 @@ type Row = Record<string, unknown>;
 // Mimics a PostgREST client that caps each response at `cap` rows.
 function fakeHub(tables: Record<string, Row[]>, cap = 1000) {
   const reads: string[] = [];
+  const orders: Record<string, string[]> = {};
   const client = {
     from(table: string) {
       return {
@@ -116,7 +120,8 @@ function fakeHub(tables: Record<string, Row[]>, cap = 1000) {
               rows = rows?.filter((row) => row[column] === value);
               return builder;
             },
-            order(_column: string) {
+            order(column: string) {
+              (orders[table] ??= []).push(column);
               return builder;
             },
             range(from: number, to: number) {
@@ -136,7 +141,7 @@ function fakeHub(tables: Record<string, Row[]>, cap = 1000) {
       };
     },
   };
-  return { client, reads };
+  return { client, reads, orders };
 }
 
 const emptyHub = (): Record<string, Row[]> => ({
@@ -162,6 +167,13 @@ Deno.test("loadHubSnapshot pages past the PostgREST row cap", async () => {
 
   assertEquals(snapshot.users.map((user) => user.id), ["u2400"]);
   assertEquals(snapshot.users[0].email, "u2400@example.test");
+});
+
+Deno.test("loadHubSnapshot pages the ref tables by owner column, then livemode", async () => {
+  const { client, orders } = fakeHub(emptyHub());
+  await loadHubSnapshot(client as never, false);
+  assertEquals(orders.org_stripe_customers, ["organization_id", "livemode"]);
+  assertEquals(orders.user_stripe_customers, ["user_id", "livemode"]);
 });
 
 Deno.test("loadHubSnapshot reads org admins, owners and subscriptions and fails on a missing table", async () => {
@@ -212,4 +224,85 @@ Deno.test("loadStripeCustomers keeps only this mode, fetches subscription custom
 Deno.test("restricted live keys count as live", () => {
   assertEquals(isLiveStripeKey("rk_live_example"), true);
   assertEquals(isLiveStripeKey("sk_test_example"), false);
+});
+
+const ORG_2 = "22222222-2222-4222-8222-222222222222";
+const ORG_3 = "33333333-3333-4333-8333-333333333333";
+
+function planOrgs(
+  organizations: Array<{ id: string; adminEmails: string[] }>,
+  subscriptions: Array<{ organization_id: string; stripe_customer_id: string }>,
+  stripeCustomers: BackfillStripeCustomer[],
+) {
+  return planStripeCustomerBackfill({
+    livemode: false,
+    organizations,
+    users: [],
+    subscriptions,
+    existingOrgRefs: [],
+    existingUserRefs: [],
+    stripeCustomers,
+  }, true);
+}
+
+Deno.test("orgs that share a subscription customer are all skipped and the customer id is reported", () => {
+  const plan = planOrgs(
+    [{ id: ORG, adminEmails: [] }, { id: ORG_2, adminEmails: [] }, { id: ORG_3, adminEmails: [] }],
+    [
+      { organization_id: ORG, stripe_customer_id: "cus_shared" },
+      { organization_id: ORG_2, stripe_customer_id: "cus_shared" },
+      { organization_id: ORG_3, stripe_customer_id: "cus_own" },
+    ],
+    [{ id: "cus_shared" }, { id: "cus_own" }],
+  );
+  assertEquals(plan.orgWrites.map((row) => row.organization_id), [ORG_3]);
+  assertEquals(plan.counts.orgs_skipped_shared, 2);
+  const printed = formatBackfillPlan(plan);
+  assertEquals(printed.includes("cus_shared"), true);
+  assertEquals(printed.includes(ORG) && printed.includes(ORG_2), true);
+});
+
+Deno.test("a shared subscription customer is not handed to any org by metadata either", () => {
+  const plan = planOrgs(
+    [{ id: ORG, adminEmails: [] }, { id: ORG_2, adminEmails: [] }, { id: ORG_3, adminEmails: [] }],
+    [
+      { organization_id: ORG, stripe_customer_id: "cus_shared" },
+      { organization_id: ORG_2, stripe_customer_id: "cus_shared" },
+    ],
+    [{ id: "cus_shared", metadata: { organization_id: ORG_3 } }],
+  );
+  assertEquals(plan.orgWrites.length, 0);
+});
+
+Deno.test("a subscription customer whose metadata names another org is refused", () => {
+  const plan = planOrgs(
+    [{ id: ORG, adminEmails: [] }],
+    [{ organization_id: ORG, stripe_customer_id: "cus_sub" }],
+    [{ id: "cus_sub", metadata: { organization_id: ORG_2 } }],
+  );
+  assertEquals(plan.orgWrites.length, 0);
+});
+
+Deno.test("metadata naming the org is trusted when its email is no longer an admin's", () => {
+  const plan = planOrgs(
+    [{ id: ORG, adminEmails: ["current@example.test"] }],
+    [],
+    [{ id: "cus_old", email: "former@example.test", metadata: { organization_id: ORG } }],
+  );
+  assertEquals(plan.orgWrites.map((row) => row.stripe_customer_id), ["cus_old"]);
+});
+
+Deno.test("several metadata customers are tied-broken by admin email, else the org is skipped and reported", () => {
+  const customers: BackfillStripeCustomer[] = [
+    { id: "cus_a", email: "former@example.test", metadata: { organization_id: ORG } },
+    { id: "cus_b", email: "current@example.test", metadata: { organization_id: ORG } },
+  ];
+  const broken = planOrgs([{ id: ORG, adminEmails: ["current@example.test"] }], [], customers);
+  assertEquals(broken.orgWrites.map((row) => row.stripe_customer_id), ["cus_b"]);
+
+  const tied = planOrgs([{ id: ORG, adminEmails: ["nobody@example.test"] }], [], customers);
+  assertEquals(tied.orgWrites.length, 0);
+  assertEquals(tied.counts.orgs_skipped_shared, 1);
+  const printed = formatBackfillPlan(tied);
+  assertEquals(printed.includes("cus_a") && printed.includes("cus_b"), true);
 });

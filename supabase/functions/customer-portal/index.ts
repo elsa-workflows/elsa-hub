@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getStoredStripeCustomerId } from "../_shared/stripe-customer.ts";
+import {
+  customerFailureResponse,
+  getStoredStripeCustomerId,
+  type StripeCustomerStore,
+} from "../_shared/stripe-customer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,14 +47,6 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const userEmail = user.email;
-
-    if (!userEmail) {
-      return new Response(
-        JSON.stringify({ error: "User email not found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Parse request body
     const { organizationId } = await req.json();
@@ -79,7 +75,8 @@ serve(async (req) => {
 
     const customerId = await getStoredStripeCustomerId(
       { orgId: organizationId },
-      { supabase: serviceClient, stripeSecretKey: Deno.env.get("STRIPE_SECRET_KEY") },
+      // supabase-js's generics are too deep to infer against the structural store type.
+      { supabase: serviceClient as unknown as StripeCustomerStore },
     );
     if (!customerId) {
       return new Response(
@@ -101,6 +98,8 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Customer portal error:", error);
+    const customerFailure = customerFailureResponse(error, corsHeaders);
+    if (customerFailure) return customerFailure;
     const message = error instanceof Error ? error.message : "Internal server error";
     return new Response(
       JSON.stringify({ error: message }),

@@ -11,13 +11,17 @@
  *   npx tsx scripts/backfill-stripe-customers.ts --apply
  *
  * --fixture is for tests only and cannot be combined with --apply.
- * --apply reads live Hub rows and Stripe, and refuses unless STRIPE_SECRET_KEY
- * starts with sk_test_ or --live is set.
+ * --apply reads live Hub rows and Stripe, and refuses a live STRIPE_SECRET_KEY
+ * (sk_live_ or rk_live_) unless --live is set.
+ *
+ * Orgs that share a subscription customer, or whose customers cannot be told
+ * apart, are skipped and listed as org_skipped lines for a human to resolve.
  */
 
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isLiveStripeKey } from "../supabase/functions/_shared/stripe-customer.ts";
 
 export type BackfillStripeCustomer = {
   id: string;
@@ -68,8 +72,16 @@ export type BackfillUserWrite = {
   email_masked: string;
 };
 
+/** An org left alone for a human to resolve; the Stripe customer ids are what to look at. */
+export type BackfillSkippedOrg = {
+  organization_id: string;
+  reason: "shared_subscription_customer" | "ambiguous_customers";
+  stripe_customer_ids: string[];
+};
+
 export type BackfillPlan = {
   counts: BackfillCounts;
+  skippedOrgs: BackfillSkippedOrg[];
   orgWrites: BackfillOrgWrite[];
   userWrites: BackfillUserWrite[];
 };
@@ -79,11 +91,6 @@ const DEFAULT_FIXTURE = resolve(
   "fixtures/stripe-customer-backfill.json",
 );
 
-/** Mirrors isLiveStripeKey in supabase/functions/_shared/stripe-customer.ts (sk_live_ and rk_live_). */
-export function isLiveStripeKey(key: string | undefined): boolean {
-  return (key ?? "").startsWith("sk_live_") || (key ?? "").startsWith("rk_live_");
-}
-
 export function assertApplyAllowed(options: {
   apply: boolean;
   live: boolean;
@@ -92,9 +99,9 @@ export function assertApplyAllowed(options: {
   if (!options.apply) return;
   if (options.live) return;
   const key = options.stripeSecretKey ?? "";
-  if (!key.startsWith("sk_test_")) {
+  if (!key || isLiveStripeKey(key)) {
     throw new Error(
-      "--apply refused: STRIPE_SECRET_KEY must start with sk_test_ or pass --live",
+      "--apply refused: STRIPE_SECRET_KEY must be a test key (sk_test_ or rk_test_) or pass --live",
     );
   }
 }
@@ -111,8 +118,24 @@ export function maskEmail(email: string): string {
   return `${local.slice(0, 1)}***@${domain}`;
 }
 
-function claimedIds(plan: BackfillPlan, snapshot: BackfillSnapshot): Set<string> {
+/** Subscription customer ids that more than one org uses, with the orgs involved. */
+function sharedSubscriptionCustomers(snapshot: BackfillSnapshot): Map<string, string[]> {
+  const orgsByCustomer = new Map<string, Set<string>>();
+  for (const row of snapshot.subscriptions) {
+    const orgs = orgsByCustomer.get(row.stripe_customer_id) ?? new Set<string>();
+    orgs.add(row.organization_id);
+    orgsByCustomer.set(row.stripe_customer_id, orgs);
+  }
+  return new Map(
+    [...orgsByCustomer]
+      .filter(([, orgs]) => orgs.size > 1)
+      .map(([customerId, orgs]) => [customerId, [...orgs]]),
+  );
+}
+
+function claimedIds(plan: BackfillPlan, snapshot: BackfillSnapshot, shared: Map<string, string[]>): Set<string> {
   return new Set([
+    ...shared.keys(),
     ...snapshot.existingOrgRefs
       .filter((row) => row.livemode === snapshot.livemode)
       .map((row) => row.stripe_customer_id),
@@ -124,32 +147,46 @@ function claimedIds(plan: BackfillPlan, snapshot: BackfillSnapshot): Set<string>
   ]);
 }
 
+type OrgMatch = { id: string; email?: string } | { skip: BackfillSkippedOrg["reason"]; ids: string[] } | null;
+
 function matchOrgCustomer(
   orgId: string,
   emails: string[],
   snapshot: BackfillSnapshot,
   claimed: Set<string>,
-): { id: string; email?: string } | { skipShared: true } | null {
+): OrgMatch {
   // A subscription's customer id counts only when Stripe returns it in this
-  // mode and it is not deleted: a test key never sees live ids, and a deleted
-  // customer must not be stored as the org's customer.
+  // mode, it is not deleted, and its metadata does not name another org: a
+  // test key never sees live ids, a deleted customer must not be stored, and
+  // the server-written organization_id outranks a subscription row.
   const fromSubscription = snapshot.subscriptions
     .filter((row) => row.organization_id === orgId && !claimed.has(row.stripe_customer_id))
     .map((row) => snapshot.stripeCustomers.find((customer) => customer.id === row.stripe_customer_id))
-    .find((customer) => customer && !customer.deleted);
+    .find((customer) =>
+      customer && !customer.deleted &&
+      (!customer.metadata?.organization_id || customer.metadata.organization_id === orgId)
+    );
   if (fromSubscription) {
     return { id: fromSubscription.id, email: fromSubscription.email };
   }
 
+  // The server writes metadata.organization_id, so it is trusted even when the
+  // buyer's email is no longer an admin's. Email only breaks ties.
   const emailSet = new Set(emails.map((email) => email.toLowerCase()));
-  const metadataMatches = snapshot.stripeCustomers.filter((customer) => {
-    if (claimed.has(customer.id)) return false;
-    if (customer.metadata?.organization_id !== orgId) return false;
-    if (customer.email && !emailSet.has(customer.email.toLowerCase())) return false;
-    return true;
-  });
+  const metadataMatches = snapshot.stripeCustomers.filter((customer) =>
+    !claimed.has(customer.id) && customer.metadata?.organization_id === orgId
+  );
   if (metadataMatches.length === 1) {
     return { id: metadataMatches[0].id, email: metadataMatches[0].email };
+  }
+  if (metadataMatches.length > 1) {
+    const byAdminEmail = metadataMatches.filter((customer) =>
+      customer.email && emailSet.has(customer.email.toLowerCase())
+    );
+    if (byAdminEmail.length === 1) {
+      return { id: byAdminEmail[0].id, email: byAdminEmail[0].email };
+    }
+    return { skip: "ambiguous_customers", ids: metadataMatches.map((customer) => customer.id) };
   }
 
   const emailMatches = snapshot.stripeCustomers.filter((customer) => {
@@ -166,7 +203,7 @@ function matchOrgCustomer(
     return { id: emailMatches[0].id, email: emailMatches[0].email };
   }
   if (emailMatches.length > 1) {
-    return { skipShared: true };
+    return { skip: "ambiguous_customers", ids: emailMatches.map((customer) => customer.id) };
   }
   return null;
 }
@@ -208,6 +245,7 @@ export function planStripeCustomerBackfill(
   dryRun = true,
 ): BackfillPlan {
   const plan: BackfillPlan = {
+    skippedOrgs: [],
     counts: {
       dry_run: dryRun,
       livemode: snapshot.livemode,
@@ -237,6 +275,8 @@ export function planStripeCustomerBackfill(
       .map((row) => row.user_id),
   );
 
+  const shared = sharedSubscriptionCustomers(snapshot);
+
   for (const org of snapshot.organizations) {
     plan.counts.orgs_scanned += 1;
     if (existingOrgs.has(org.id)) {
@@ -244,10 +284,29 @@ export function planStripeCustomerBackfill(
       continue;
     }
 
-    const match = matchOrgCustomer(org.id, org.adminEmails, snapshot, claimedIds(plan, snapshot));
-    if (!match) continue;
-    if ("skipShared" in match) {
+    // Every org that uses a shared subscription customer is left to a human.
+    const sharedIds = [...shared]
+      .filter(([, orgIds]) => orgIds.includes(org.id))
+      .map(([customerId]) => customerId);
+    if (sharedIds.length > 0) {
       plan.counts.orgs_skipped_shared += 1;
+      plan.skippedOrgs.push({
+        organization_id: org.id,
+        reason: "shared_subscription_customer",
+        stripe_customer_ids: sharedIds,
+      });
+      continue;
+    }
+
+    const match = matchOrgCustomer(org.id, org.adminEmails, snapshot, claimedIds(plan, snapshot, shared));
+    if (!match) continue;
+    if ("skip" in match) {
+      plan.counts.orgs_skipped_shared += 1;
+      plan.skippedOrgs.push({
+        organization_id: org.id,
+        reason: match.skip,
+        stripe_customer_ids: match.ids,
+      });
       continue;
     }
 
@@ -268,7 +327,7 @@ export function planStripeCustomerBackfill(
       continue;
     }
 
-    const match = matchUserCustomer(user.id, user.email, snapshot, claimedIds(plan, snapshot));
+    const match = matchUserCustomer(user.id, user.email, snapshot, claimedIds(plan, snapshot, shared));
     if (!match) continue;
     if ("skipShared" in match) {
       plan.counts.users_skipped_shared += 1;
@@ -314,7 +373,10 @@ export function formatBackfillPlan(plan: BackfillPlan): string {
       `user_write user_id=${row.user_id} livemode=${row.livemode} stripe_customer_id=${row.stripe_customer_id} email=${row.email_masked}`
     ),
   ];
-  return [formatBackfillCounts(plan.counts), ...mappings].join("\n");
+  const skipped = plan.skippedOrgs.map((row) =>
+    `org_skipped organization_id=${row.organization_id} reason=${row.reason} stripe_customer_ids=${row.stripe_customer_ids.join(",")}`
+  );
+  return [formatBackfillCounts(plan.counts), ...mappings, ...skipped].join("\n");
 }
 
 export function loadBackfillFixture(path = DEFAULT_FIXTURE): BackfillSnapshot {
@@ -363,14 +425,15 @@ async function selectRows<T>(
   client: QueryClient,
   table: string,
   columns: string,
-  orderBy: string,
+  orderBy: string | string[],
   eq?: { column: string; value: string | boolean },
 ): Promise<T[]> {
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
     let query = client.from(table).select(columns);
     if (eq) query = query.eq(eq.column, eq.value);
-    const { data, error } = await query.order(orderBy).range(from, from + PAGE_SIZE - 1);
+    for (const column of [orderBy].flat()) query = query.order(column);
+    const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
     if (error) throw new Error(`${table}: ${error.message}`);
     const page = (data as T[] | null) ?? [];
     rows.push(...page);
@@ -430,13 +493,13 @@ export async function loadHubSnapshot(
     client,
     "org_stripe_customers",
     "organization_id, stripe_customer_id, livemode",
-    "organization_id",
+    ["organization_id", "livemode"],
   );
   const existingUserRefs = await selectRows<{ user_id: string; stripe_customer_id: string; livemode: boolean }>(
     client,
     "user_stripe_customers",
     "user_id, stripe_customer_id, livemode",
-    "user_id",
+    ["user_id", "livemode"],
   );
 
   const orgIds = new Set<string>([
