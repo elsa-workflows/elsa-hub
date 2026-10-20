@@ -64,19 +64,39 @@ EXCEPTION
 END;
 $$;
 
--- True when the statement runs without raising. Any error (for example a
--- foreign key violation) returns false, so a broken cascade is a failed
--- assertion and not an aborted run.
-CREATE OR REPLACE FUNCTION pg_temp.runs(p_sql text)
-RETURNS boolean
+-- Deletes an owner row, then records whether the refs it owned are gone. A
+-- delete that raises (for example a foreign key violation when ON DELETE
+-- CASCADE is missing) is a failed assertion carrying SQLERRM, not an aborted
+-- run. The delete and the check are separate statements of a volatile
+-- function, so the check sees the delete.
+CREATE OR REPLACE FUNCTION pg_temp.assert_cascade(
+  p_name text,
+  p_delete_sql text,
+  p_refs_table text,
+  p_owner_column text,
+  p_owner_id uuid
+)
+RETURNS void
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  remaining bigint;
 BEGIN
-  EXECUTE p_sql;
-  RETURN true;
-EXCEPTION
-  WHEN OTHERS THEN
-    RETURN false;
+  BEGIN
+    EXECUTE p_delete_sql;
+  EXCEPTION
+    WHEN OTHERS THEN
+      PERFORM pg_temp.ok(false, p_name, SQLERRM);
+      RETURN;
+  END;
+
+  EXECUTE format('SELECT count(*) FROM public.%I WHERE %I = %L', p_refs_table, p_owner_column, p_owner_id)
+  INTO remaining;
+  PERFORM pg_temp.ok(
+    remaining = 0,
+    p_name,
+    CASE WHEN remaining = 0 THEN NULL ELSE remaining || ' ref row(s) remain after the delete' END
+  );
 END;
 $$;
 
@@ -106,7 +126,7 @@ GRANT EXECUTE ON FUNCTION pg_temp.set_jwt(uuid) TO anon, authenticated, service_
 GRANT EXECUTE ON FUNCTION pg_temp.throws_unique(text) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION pg_temp.write_denied(text) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION pg_temp.throws_check(text) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION pg_temp.runs(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION pg_temp.assert_cascade(text, text, text, text, uuid) TO anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- Seed. Every fixture user has a distinct email (auth.users.email is unique
@@ -240,6 +260,22 @@ SELECT pg_temp.ok(
       AND a.privilege_type = 'SELECT'
   ),
   'authenticated holds only SELECT, and anon and PUBLIC hold nothing, on both tables'
+);
+
+-- Column-level grants live in pg_attribute.attacl, not pg_class.relacl, so the
+-- check above cannot see them (for example REFERENCES (stripe_customer_id) or
+-- SELECT (stripe_customer_id) on a single column).
+SELECT pg_temp.ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM pg_attribute att
+    CROSS JOIN LATERAL aclexplode(att.attacl) a
+    WHERE att.attrelid IN ('public.org_stripe_customers'::regclass, 'public.user_stripe_customers'::regclass)
+      AND att.attnum > 0
+      AND NOT att.attisdropped
+      AND (a.grantee = 0 OR a.grantee IN ('anon'::regrole, 'authenticated'::regrole))
+  ),
+  'no column-level grant to authenticated, anon or PUBLIC on either table'
 );
 
 -- ---------------------------------------------------------------------------
@@ -380,9 +416,11 @@ SELECT pg_temp.ok(
 
 -- service_role can still write the second mode for the same user.
 SET LOCAL ROLE service_role;
+-- ON CONFLICT DO NOTHING: only a leaked client write could have taken this
+-- key, and that should fail the assertions above, not abort the run here.
 INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
 VALUES ('00000000-0000-4000-8000-00000000000d', true, 'cus_live_personal')
-ON CONFLICT DO NOTHING; -- only a leaked client write could have taken the key; fail on the assertions above, not here
+ON CONFLICT DO NOTHING;
 RESET ROLE;
 
 SELECT pg_temp.ok(
@@ -469,32 +507,20 @@ INSERT INTO public.user_stripe_customers (user_id, livemode, stripe_customer_id)
 
 RESET ROLE;
 
--- The delete runs in its own statement: the refs check below must see its effect.
-SELECT pg_temp.runs($sql$
-  DELETE FROM public.organizations WHERE id = '00000000-0000-4000-8000-000000001004'
-$sql$) AS deleted \gset
-
-SELECT pg_temp.ok(
-  :'deleted'::boolean
-  AND NOT EXISTS (
-    SELECT 1 FROM public.org_stripe_customers
-    WHERE organization_id = '00000000-0000-4000-8000-000000001004'
-  ),
-  'deleting an org removes its customer refs'
+SELECT pg_temp.assert_cascade(
+  'deleting an org removes its customer refs',
+  $sql$ DELETE FROM public.organizations WHERE id = '00000000-0000-4000-8000-000000001004' $sql$,
+  'org_stripe_customers',
+  'organization_id',
+  '00000000-0000-4000-8000-000000001004'
 );
 
--- The delete runs in its own statement: the refs check below must see its effect.
-SELECT pg_temp.runs($sql$
-  DELETE FROM auth.users WHERE id = '00000000-0000-4000-8000-00000000000e'
-$sql$) AS deleted \gset
-
-SELECT pg_temp.ok(
-  :'deleted'::boolean
-  AND NOT EXISTS (
-    SELECT 1 FROM public.user_stripe_customers
-    WHERE user_id = '00000000-0000-4000-8000-00000000000e'
-  ),
-  'deleting a user removes their customer refs'
+SELECT pg_temp.assert_cascade(
+  'deleting a user removes their customer refs',
+  $sql$ DELETE FROM auth.users WHERE id = '00000000-0000-4000-8000-00000000000e' $sql$,
+  'user_stripe_customers',
+  'user_id',
+  '00000000-0000-4000-8000-00000000000e'
 );
 
 -- ---------------------------------------------------------------------------
