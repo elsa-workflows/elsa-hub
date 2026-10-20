@@ -116,7 +116,7 @@ export default function AuthConfirm() {
     const { error } = await signOut({ scope: "local" });
     setBusy(false);
     if (error) {
-      setErrorMessage(describeAuthError(error));
+      setErrorMessage("Could not sign you out. Try again.");
       return;
     }
     setSignedInEmail(null);

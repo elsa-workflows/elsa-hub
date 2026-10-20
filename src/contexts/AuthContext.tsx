@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
-import type { SignOutScope } from "@supabase/supabase-js";
-import { User, Session } from "@supabase/supabase-js";
+import { User, Session, type SignOutScope } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {

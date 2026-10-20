@@ -123,7 +123,7 @@ describe("AuthConfirm", () => {
     signOut.mockResolvedValueOnce({ error: new Error("network down") });
     await signInAndWaitForPanel();
     fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
-    expect(await screen.findByText(/something went wrong while signing in/i)).toBeInTheDocument();
+    expect(await screen.findByText(/could not sign you out/i)).toBeInTheDocument();
     await act(async () => {
       vi.advanceTimersByTime(AUTH_CONFIRM_SIGNED_IN_MS * 2);
     });
@@ -135,7 +135,7 @@ describe("AuthConfirm", () => {
     signOut.mockResolvedValueOnce({ error: new Error("network down") });
     await signInAndWaitForPanel();
     fireEvent.click(screen.getByRole("button", { name: /^sign out$/i }));
-    expect(await screen.findByText(/something went wrong while signing in/i)).toBeInTheDocument();
+    expect(await screen.findByText(/could not sign you out/i)).toBeInTheDocument();
 
     let release: (value: { error: Error | null }) => void = () => {};
     signOut.mockReturnValueOnce(
@@ -148,7 +148,7 @@ describe("AuthConfirm", () => {
     fireEvent.click(button);
     expect(signOut).toHaveBeenCalledTimes(2);
     expect(button).toBeDisabled();
-    expect(screen.queryByText(/something went wrong while signing in/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/could not sign you out/i)).not.toBeInTheDocument();
 
     await act(async () => {
       release({ error: null });
