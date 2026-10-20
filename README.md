@@ -121,6 +121,6 @@ npx tsx scripts/academy-import.ts \
 ```sh
 npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_...
 npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_... --apply
-# or: psql "$DATABASE_URL" -v stripe_price_id=price_... -f scripts/academy-price-switch.sql
+# or: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v stripe_price_id=price_... -f scripts/academy-price-switch.sql
 ```
 

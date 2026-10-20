@@ -16,10 +16,16 @@
 
 BEGIN;
 
+-- psql does not interpolate :'var' inside dollar-quoted blocks, so hand the
+-- value to the guard through a transaction-local setting.
+SELECT set_config('academy.stripe_price_id', :'stripe_price_id', true);
+
 DO $guard$
+DECLARE
+  new_id text := current_setting('academy.stripe_price_id');
 BEGIN
-  IF NOT (:'stripe_price_id' ~ '^price_[A-Za-z0-9_]+$') THEN
-    RAISE EXCEPTION 'stripe_price_id must match ^price_[A-Za-z0-9_]+$ (got %)', :'stripe_price_id';
+  IF new_id !~ '^price_[A-Za-z0-9_]+$' THEN
+    RAISE EXCEPTION 'stripe_price_id must match ^price_[A-Za-z0-9_]+$ (got "%")', new_id;
   END IF;
 END
 $guard$;

@@ -317,6 +317,17 @@ describe("flags and stripe guards", () => {
     expect(sql).toMatch(/\^price_\[A-Za-z0-9_\]\+\$/);
     expect(sql).toMatch(/RAISE EXCEPTION/);
   });
+
+  it("never interpolates a psql variable inside a dollar-quoted block", async () => {
+    // psql does not substitute :'var' inside $tag$ ... $tag$, so the server sees
+    // the literal text and the whole script fails with a syntax error.
+    const { readFileSync } = await import("node:fs");
+    const sql = readFileSync("scripts/academy-price-switch.sql", "utf8");
+    const quoted = [...sql.matchAll(/(\$[A-Za-z_]*\$)([\s\S]*?)\1/g)].map((match) => match[2]);
+    expect(quoted.length).toBeGreaterThan(0);
+    for (const body of quoted) expect(body).not.toMatch(/:'?[A-Za-z_]+'?/);
+    expect(sql).toMatch(/set_config\('academy\.stripe_price_id', :'stripe_price_id'/);
+  });
 });
 
 describe("import planning", () => {
@@ -692,5 +703,73 @@ describe("apply plan", () => {
     };
     await expect(applyPlanWithStore(store, plan, mapping, { publish: true })).rejects.toThrow(/upload failed/);
     expect(store.calls.some((call) => call.startsWith("publish:"))).toBe(false);
+  });
+});
+
+describe("course.json versus the manifest", () => {
+  const gitTree = (extraCourseJson: Record<string, unknown> = {}) => ({
+    "content/courses/demo-core/course.json": JSON.stringify({
+      slug: "demo-core",
+      title: "Demo Core",
+      summary: "A tiny catalog course for importer tests.",
+      sort_order: 0,
+      lessons: [
+        { slug: "welcome", title: "Welcome", sort_order: 0, is_preview: true, body_md_file: "00-welcome.md" },
+      ],
+      ...extraCourseJson,
+    }),
+    "content/courses/demo-core/00-welcome.md": welcomeBody,
+  });
+
+  it("warns when course.json overrides the manifest title, summary or assets", () => {
+    const root = tmpDir();
+    writeTree(root, gitTree({ title: "Renamed Core", summary: "Different.", assets: [] }));
+    const manifest = boxManifest();
+    manifest.courses[0].assets = [{ label: "Offline copy", source: "a/b.zip", sha256: "1".repeat(64), size_bytes: 1 }];
+    const plan = planImport({ manifest, mapping, sourceRoot: root });
+    expect(plan.warnings).toEqual([
+      'demo-core: course.json title "Renamed Core" overrides manifest title "Demo Core"',
+      "demo-core: course.json summary overrides the manifest summary",
+      "demo-core: course.json assets override the manifest assets",
+    ]);
+    expect(formatDryRun(plan)).toContain("course.json title");
+  });
+
+  it("stays quiet when course.json agrees with the manifest", () => {
+    const root = tmpDir();
+    writeTree(root, gitTree());
+    expect(planImport({ manifest: boxManifest(), mapping, sourceRoot: root }).warnings).toEqual([]);
+  });
+
+  it("addresses one storage object whichever source layout supplies the asset", () => {
+    const zip = Buffer.from("core-zip-bytes");
+    const digest = digestBytes(zip);
+    const manifestAsset = {
+      label: "Offline copy",
+      source: "self-paced/packaging/elsa-3.9.0/core.zip",
+      sha256: digest.sha256,
+      size_bytes: digest.sizeBytes,
+    };
+    const manifest = boxManifest();
+    manifest.courses[0].assets = [manifestAsset];
+
+    const boxRoot = tmpDir();
+    writeTree(boxRoot, {
+      "modules/welcome.md": `# Welcome\n\nProceed to paid.\n`,
+      "modules/paid.md": paidBody,
+      "self-paced/packaging/elsa-3.9.0/core.zip": zip,
+    });
+    const gitRoot = tmpDir();
+    writeTree(gitRoot, {
+      ...gitTree({
+        assets: [{ label: "Offline copy", file: "core.zip", sha256: digest.sha256, size_bytes: digest.sizeBytes }],
+      }),
+      "zips/core.zip": zip,
+    });
+
+    const box = planImport({ manifest, mapping, sourceRoot: boxRoot });
+    const git = planImport({ manifest, mapping, sourceRoot: gitRoot, assetsDirs: [path.join(gitRoot, "zips")] });
+    expect(box.assets.map((op) => op.desired.storage_path)).toEqual(["courses/elsa-3.9.0/core.zip"]);
+    expect(git.assets.map((op) => op.desired.storage_path)).toEqual(["courses/elsa-3.9.0/core.zip"]);
   });
 });

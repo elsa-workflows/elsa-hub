@@ -811,6 +811,41 @@ function loadGitCourse(layout: SourceLayout, slug: string): ManifestCourse | nul
   return parsed;
 }
 
+function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+  return (a ?? null) === (b ?? null);
+}
+
+// course.json comes from another repo and wins over the manifest, so say so
+// whenever it changes what the manifest declared.
+export function courseJsonOverrides(manifestCourse: ManifestCourse, gitCourse: ManifestCourse): string[] {
+  const out: string[] = [];
+  const slug = manifestCourse.slug;
+  if (gitCourse.title !== undefined && !sameText(gitCourse.title, manifestCourse.title)) {
+    out.push(
+      `${slug}: course.json title ${JSON.stringify(gitCourse.title)} overrides manifest title ${JSON.stringify(manifestCourse.title)}`,
+    );
+  }
+  if (gitCourse.summary !== undefined && !sameText(gitCourse.summary, manifestCourse.summary)) {
+    out.push(`${slug}: course.json summary overrides the manifest summary`);
+  }
+  if (
+    gitCourse.assets !== undefined &&
+    JSON.stringify(gitCourse.assets) !== JSON.stringify(manifestCourse.assets ?? [])
+  ) {
+    out.push(`${slug}: course.json assets override the manifest assets`);
+  }
+  return out;
+}
+
+// The manifest decides where an object lives. When course.json swaps in its own
+// asset entry for the same bytes, derive the storage path from the manifest's
+// entry so both source layouts address one object.
+function manifestDeclaration(asset: ManifestAsset, manifestCourse: ManifestCourse): ManifestAsset {
+  const sha = assetSha256(asset);
+  if (!sha) return asset;
+  return courseAssets(manifestCourse).find((candidate) => assetSha256(candidate) === sha) ?? asset;
+}
+
 function excludedPrefixes(manifest: AcademyManifest): string[] {
   const extra = (manifest.excluded_asset_sha256_prefixes ?? []).map((item) => item.toLowerCase());
   const defaults = [STALE_COMPLETE_ZIP_PREFIX, SUPERSEDED_COMPLETE_ZIP_PREFIX];
@@ -864,6 +899,8 @@ export function planImport(options: PlanOptions): ImportPlan {
           extra_assets: manifestCourse.extra_assets ?? gitCourse.extra_assets,
         }
       : manifestCourse;
+
+    if (gitCourse) warnings.push(...courseJsonOverrides(manifestCourse, gitCourse));
 
     const codes = productCodesForCourse(options.mapping, course.slug);
     const desiredCourse: PlannedCourse = {
@@ -974,7 +1011,7 @@ export function planImport(options: PlanOptions): ImportPlan {
       const size = assetSizeBytes(asset);
       const fileRef = assetFileRef(asset);
       const label = asset.label;
-      const storagePath = remapStoragePath(asset, course.slug, kit);
+      const storagePath = remapStoragePath(manifestDeclaration(asset, manifestCourse), course.slug, kit);
 
       if (asset.skip) {
         const skipped: PlannedAsset = {
