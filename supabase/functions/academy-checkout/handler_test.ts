@@ -10,6 +10,7 @@ import {
 } from "../_shared/academyLegal.ts";
 import { handleAcademyCheckoutRequest, runAcademyCheckout } from "./handler.ts";
 import { resolveCustomer } from "./stripeCustomer.ts";
+import { captureConsoleError, createQuery, type FailingQueryCall } from "./test_support.ts";
 
 const SOLO_COURSE = {
   id: "00000000-0000-4000-8000-000000002001",
@@ -115,7 +116,7 @@ function createServiceClient(options: {
   org?: { name: string; slug: string } | null;
   billingProfile?: typeof BILLING_PROFILE | null;
   user?: { id: string; email?: string | null } | null;
-  failDriftQuery?: boolean;
+  failCourseQueryOn?: FailingQueryCall;
 } = {}) {
   const courses = options.courses ?? [SOLO_COURSE, TEAM5_COURSE, TEAM10_COURSE];
   const tableReads: string[] = [];
@@ -130,70 +131,21 @@ function createServiceClient(options: {
     },
     from: (table: string) => {
       tableReads.push(table);
-      const filters: Array<[string, unknown]> = [];
-      // Mirrors PostgREST: is(null) matches only NULL, neq never matches NULL.
-      const predicates: Array<(row: Record<string, unknown>) => boolean> = [];
-      let driftQuery = false;
-      const api = {
-        select: (_columns: string) => api,
-        eq: (column: string, value: unknown) => {
-          filters.push([column, value]);
-          return api;
-        },
-        is: (column: string, value: null) => {
-          driftQuery = true;
-          predicates.push((row) => (row[column] ?? null) === value);
-          return api;
-        },
-        neq: (column: string, value: string) => {
-          driftQuery = true;
-          predicates.push((row) => row[column] != null && row[column] !== value);
-          return api;
-        },
-        order: () => api,
-        limit: async (n: number) => {
-          if (driftQuery && options.failDriftQuery) {
-            return { data: null, error: { message: "secret db detail" } };
-          }
-          return { data: match().slice(0, n), error: null };
-        },
-        maybeSingle: async () => {
-          const rows = match();
-          if (rows.length > 1) {
-            return { data: null, error: { code: "PGRST116", message: "multiple rows" } };
-          }
-          return { data: rows[0] ?? null, error: null };
-        },
-        single: async () => {
-          const rows = match();
-          if (rows.length !== 1) {
-            return { data: null, error: { message: "not found" } };
-          }
-          return { data: rows[0], error: null };
-        },
-      };
-      function match(): unknown[] {
-        if (table === "academy_courses") {
-          return courses.filter((row) =>
-            filters.every(([column, value]) => (row as Record<string, unknown>)[column] === value) &&
-            predicates.every((test) => test(row as Record<string, unknown>))
-          );
-        }
-        if (table === "organizations") {
-          const org = options.org === undefined
-            ? { id: ORG_ID, name: "Academy Org", slug: "academy-org" }
-            : options.org;
-          if (!org) return [];
-          if (filters.some(([column, value]) => column === "id" && value !== ORG_ID)) return [];
-          return [org];
-        }
-        if (table === "org_billing_profiles") {
-          if (!options.billingProfile) return [];
-          return [options.billingProfile];
-        }
-        return [];
+      if (table === "academy_courses") {
+        return createQuery(courses, { failOn: options.failCourseQueryOn });
       }
-      return api;
+      if (table === "organizations") {
+        const org = options.org === undefined
+          ? { name: "Academy Org", slug: "academy-org" }
+          : options.org;
+        return createQuery(org ? [{ ...org, id: ORG_ID }] : []);
+      }
+      if (table === "org_billing_profiles") {
+        return createQuery(
+          options.billingProfile ? [{ ...options.billingProfile, organization_id: ORG_ID }] : [],
+        );
+      }
+      return createQuery([]);
     },
   };
 }
@@ -604,30 +556,28 @@ Deno.test("Solo checkout fails closed when another published solo_bundle row has
   assertEquals(stripe.sessions.length, 0);
 });
 
-Deno.test("Solo checkout returns a generic 500 when the price drift lookup fails", async () => {
-  const stripe = createStripeMock();
-  const original = console.error;
-  console.error = () => {};
-  let res: Response;
-  try {
-    res = await runAcademyCheckout({
-      user: USER,
-      body: { courseId: SOLO_COURSE.id },
-      origin: "https://hub.example",
-      deps: {
-        userClient: createUserClient(false),
-        serviceClient: createServiceClient({ failDriftQuery: true }),
-        stripe: stripe.stripe,
-      },
-    });
-  } finally {
-    console.error = original;
-  }
-  const { status, body } = await parseJson(res);
-  assertEquals(status, 500);
-  assertEquals(body.error, "Course lookup failed");
-  assertEquals(stripe.sessions.length, 0);
-});
+for (const failOn of ["maybeSingle", "is", "neq"] as const) {
+  Deno.test(`Solo checkout returns a generic 500 and no session when the ${failOn} course lookup fails`, async () => {
+    const stripe = createStripeMock();
+    const { result: res, logged } = await captureConsoleError(() =>
+      runAcademyCheckout({
+        user: USER,
+        body: { courseId: SOLO_COURSE.id },
+        origin: "https://hub.example",
+        deps: {
+          userClient: createUserClient(false),
+          serviceClient: createServiceClient({ failCourseQueryOn: failOn }),
+          stripe: stripe.stripe,
+        },
+      })
+    );
+    const { status, body } = await parseJson(res);
+    assertEquals(status, 500);
+    assertEquals(body.error, "Course lookup failed");
+    assertEquals(logged.includes("secret db detail"), true);
+    assertEquals(stripe.sessions.length, 0);
+  });
+}
 
 Deno.test("Team checkout fails closed when the SKU row product_code does not match", async () => {
   const stripe = createStripeMock();

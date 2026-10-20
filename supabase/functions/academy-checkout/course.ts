@@ -7,7 +7,7 @@
 // Team: exactly one unpublished SKU row at slug team-5 or team-10.
 // That row's product_code must equal the requested SKU.
 
-import { teamSkuSlug } from "./product.ts";
+import { SOLO_PRODUCT_CODE, teamSkuSlug } from "./product.ts";
 
 export type AcademyCourseRow = {
   id: string;
@@ -60,7 +60,7 @@ export async function loadAcademyCourse(
     return loaded;
   }
 
-  if (body.productCode === "solo_bundle" && !body.courseSlug && !body.courseId) {
+  if (body.productCode === SOLO_PRODUCT_CODE && !body.courseSlug && !body.courseId) {
     return {
       error: {
         status: 400,
@@ -69,7 +69,7 @@ export async function loadAcademyCourse(
     };
   }
 
-  if (body.productCode && body.productCode !== "solo_bundle") {
+  if (body.productCode && body.productCode !== SOLO_PRODUCT_CODE) {
     return {
       error: { status: 400, body: { error: "Unsupported Academy product" } },
     };
@@ -136,7 +136,7 @@ async function assertSharedSoloBundlePrice(
   serviceClient: AcademyCourseQuery,
   course: AcademyCourseRow,
 ): Promise<LoadAcademyCourseResult> {
-  if (course.product_code !== "solo_bundle") {
+  if (course.product_code !== SOLO_PRODUCT_CODE) {
     return {
       error: {
         status: 409,
@@ -159,7 +159,7 @@ async function assertSharedSoloBundlePrice(
       serviceClient
         .from("academy_courses")
         .select("id")
-        .eq("product_code", "solo_bundle")
+        .eq("product_code", SOLO_PRODUCT_CODE)
         .eq("is_published", true),
     ).limit(1);
   const [nullPrice, otherPrice] = await Promise.all([
@@ -193,7 +193,8 @@ function readOne(
   if (result.error?.code === "PGRST116") {
     return { error: { status: 409, body: { error: "Ambiguous course row" } } };
   }
-  if (result.error || !result.data) {
+  if (result.error) return lookupFailed(result.error);
+  if (!result.data) {
     return { error: { status: 404, body: { error: missing } } };
   }
   return { course: result.data as AcademyCourseRow };
