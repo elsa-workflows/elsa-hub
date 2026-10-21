@@ -32,6 +32,7 @@ type Setup = {
   failTables?: string[];
   subscriptions?: FakeSubscription[];
   checkoutSessions?: FakeCheckoutSession[];
+  customerUpdateError?: Error;
   expireError?: Error;
   subscriptionListError?: Error;
   sessionListError?: Error;
@@ -76,6 +77,7 @@ function checkout(setup: Setup = {}) {
   const userClient = fakeUserClient({ memberships: setup.memberships, admin: setup.admin });
   const { stripe, calls } = fakeStripe(setup.subscriptions, {
     checkoutSessions: setup.checkoutSessions,
+    customerUpdateError: setup.customerUpdateError,
     expireError: setup.expireError,
     subscriptionListError: setup.subscriptionListError,
     sessionListError: setup.sessionListError,
@@ -419,4 +421,17 @@ Deno.test("Stripe's customer_tax_location_invalid is the Hub's 400, no-store, wi
   assertEquals(response.status, 400);
   assertNoStoreWithCors(response);
   assertEquals(payload, { error: TAX_LOCATION_INVALID_MESSAGE, code: TAX_LOCATION_INVALID_CODE });
+});
+
+Deno.test("customer_tax_location_invalid from the customer update is the same 400, and no session is created", async () => {
+  const { run, calls } = checkout({
+    customerUpdateError: Object.assign(new Error(SECRET_STRIPE_DETAIL), { code: TAX_LOCATION_INVALID_CODE }),
+  });
+
+  const { result: { response, payload } } = await captureConsoleError(run);
+
+  assertEquals(response.status, 400);
+  assertNoStoreWithCors(response);
+  assertEquals(payload, { error: TAX_LOCATION_INVALID_MESSAGE, code: TAX_LOCATION_INVALID_CODE });
+  assertEquals(calls.sessions.length, 0);
 });

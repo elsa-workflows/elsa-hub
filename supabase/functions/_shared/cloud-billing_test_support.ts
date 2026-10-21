@@ -138,6 +138,7 @@ export function fakeStripe(
   options: {
     checkoutSessions?: FakeCheckoutSession[];
     portalError?: Error;
+    customerUpdateError?: Error;
     expireError?: Error;
     subscriptionListError?: Error;
     sessionListError?: Error;
@@ -160,7 +161,8 @@ export function fakeStripe(
         calls.customersCreated += 1;
         return Promise.resolve({ id: "cus_created" });
       },
-      update: (id: string) => Promise.resolve({ id }),
+      update: (id: string) =>
+        options.customerUpdateError ? Promise.reject(options.customerUpdateError) : Promise.resolve({ id }),
       del: (id: string) => Promise.resolve({ id }),
     },
     subscriptions: {

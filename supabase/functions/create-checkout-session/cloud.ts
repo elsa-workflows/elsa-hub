@@ -240,10 +240,12 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
 
     return jsonResponse(200, { checkoutUrl: session.url });
   } catch (error) {
+    // The helper has already logged its own failures. Tax location wins, as in
+    // the Hub catch: getOrCreateStripeCustomer's customers.update can raise it
+    // wrapped in a StripeCustomerError.
     const customerFailure = customerFailureResponse(error, noStoreHeaders());
-    if (customerFailure) return customerFailure;
-    console.error("Cloud checkout Stripe call failed:", error);
-    return taxLocationFailureResponse(error, noStoreHeaders()) ??
+    if (!customerFailure) console.error("Cloud checkout Stripe call failed:", error);
+    return taxLocationFailureResponse(error, noStoreHeaders()) ?? customerFailure ??
       jsonResponse(500, { error: CLOUD_CHECKOUT_FAILED });
   }
 }
