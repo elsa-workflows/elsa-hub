@@ -65,7 +65,7 @@ describe("ownsSoloBundle", () => {
   });
 });
 
-// The vitest twin of supabase/functions/_shared/academyOwnership_test.ts, so drift fails CI here too.
+// The vitest twin of supabase/functions/_shared/academyOwnership_test.ts, so drift fails `npm test` too.
 describe("the Edge Function copy in supabase/functions/_shared/academyOwnership.ts", () => {
   const SRC_OWNERSHIP = "src/lib/academyOwnership.ts";
   const SRC_ACADEMY = "src/lib/academy.ts";
