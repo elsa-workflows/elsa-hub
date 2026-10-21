@@ -17,19 +17,9 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: { id: "user-1" }, loading: false }),
 }));
 
-vi.mock("@/contexts/OrganizationContext", () => ({
-  useOrganization: () => ({
-    selectedOrganization: { id: "org-1", name: "Acme", slug: "acme" },
-    isAdmin: true,
-    loading: false,
-    organizations: [{ id: "org-1", name: "Acme", slug: "acme" }],
-    selectOrganization: vi.fn(),
-  }),
-}));
-
 vi.mock("@/hooks/useOrganizations", () => ({
   useOrganizations: () => ({
-    organizations: [{ slug: "acme" }],
+    organizations: [{ id: "org-1", name: "Acme", slug: "acme", role: "admin" }],
     loading: false,
   }),
 }));

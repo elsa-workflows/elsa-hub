@@ -140,4 +140,28 @@ describe("CloudBillingPanel", () => {
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /manage or cancel billing/i })).toBeInTheDocument();
   });
+
+  it("explains that Cloud billing needs an organization instead of an admin-only notice", () => {
+    render(
+      <CloudBillingPanel
+        isLoading={false}
+        error={null}
+        planName={null}
+        planStatus={null}
+        subscription={null}
+        canManage={false}
+        hasOrganization={false}
+        billingAccount="missing"
+        cloudLink="missing"
+        onSubscribe={vi.fn()}
+        onManage={vi.fn()}
+        checkoutPending={false}
+        portalPending={false}
+      />,
+    );
+
+    expect(screen.getByText(/cloud billing belongs to an organization/i)).toBeInTheDocument();
+    expect(screen.queryByText(/only organization admins/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
 });

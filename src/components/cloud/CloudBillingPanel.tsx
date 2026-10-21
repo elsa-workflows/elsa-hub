@@ -77,12 +77,14 @@ export function CloudBillingPanel({
           </Alert>
         )}
 
-        {!isLoading && !error && !hasPlan && (
+        {!hasOrganization && (
           <p className="text-muted-foreground">
-            {hasOrganization
-              ? "No Elsa Cloud plan yet for this organization."
-              : "No Elsa Cloud plan yet."}
+            Elsa Cloud billing belongs to an organization. Create or join one to subscribe.
           </p>
+        )}
+
+        {hasOrganization && !isLoading && !error && !hasPlan && (
+          <p className="text-muted-foreground">No Elsa Cloud plan yet for this organization.</p>
         )}
 
         {!isLoading && hasPlan && (
@@ -134,7 +136,7 @@ export function CloudBillingPanel({
             This organization is not linked to Elsa Cloud. Checkout is unavailable until the
             Hub-to-Control organization link is validated.
           </p>
-        ) : !canManage ? (
+        ) : hasOrganization && !canManage ? (
           <p className="text-sm text-muted-foreground">
             Only organization admins can start checkout or open the billing portal.
           </p>
