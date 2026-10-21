@@ -6,6 +6,8 @@ import {
   getStoredStripeCustomerId,
   type StripeCustomerStore,
 } from "../_shared/stripe-customer.ts";
+import { isCloudRequest } from "../_shared/cloud-billing.ts";
+import { handleCloudPortal } from "./cloud.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,7 +51,18 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { organizationId } = await req.json();
+    const body = await req.json();
+    if (isCloudRequest(body)) {
+      return await handleCloudPortal({
+        req,
+        user,
+        userClient,
+        serviceClient,
+        body,
+      });
+    }
+
+    const { organizationId } = body;
     if (!organizationId) {
       return new Response(
         JSON.stringify({ error: "organizationId is required" }),

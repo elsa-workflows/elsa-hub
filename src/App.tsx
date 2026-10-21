@@ -43,6 +43,7 @@ const DockerImageDetail = lazy(() => import("./pages/enterprise/DockerImageDetai
 const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
 const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
 const CloudEngineOverview = lazy(() => import("./pages/cloud/CloudEngineOverview"));
+const CloudBilling = lazy(() => import("./pages/cloud/CloudBilling"));
 const LegacyCloudRedirect = lazy(() =>
   import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.LegacyCloudRedirect }))
 );
@@ -235,9 +236,11 @@ const App = () => (
                 ))}
                 <Route path="settings/notifications" element={<NotificationSettings />} />
                 <Route path="cloud" element={<CloudHome />} />
+                <Route path="cloud/billing" element={<CloudBilling />} />
                 <Route path="cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug" element={<OrgOverview />} />
                 <Route path="org/:slug/cloud" element={<CloudHome />} />
+                <Route path="org/:slug/cloud/billing" element={<CloudBilling />} />
                 <Route path="org/:slug/cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug/orders" element={<OrgOrders />} />
                 <Route path="org/:slug/credits" element={<OrgCredits />} />

@@ -1,4 +1,4 @@
-import { useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { CloudCreateEngineDialog } from "@/components/cloud/CloudCreateEngineDialog";
 import { CloudLinkOrganizationState } from "@/components/cloud/CloudLinkOrganizationState";
@@ -20,6 +20,9 @@ import {
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_PAGE_TITLE,
 } from "@/lib/cloudClient";
+import { useCloudConsolePaths } from "@/lib/cloudPaths";
+import { Button } from "@/components/ui/button";
+import { usePaymentReturnToast } from "@/hooks/usePaymentReturnToast";
 
 export default function CloudHome() {
   const { pathname } = useLocation();
@@ -42,6 +45,7 @@ export default function CloudHome() {
     selectedWorkspace,
   } = useCloudEngines();
   const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
+  const { home } = useCloudConsolePaths();
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
   const showConsole = orgLink.kind === "idle" || orgLink.kind === "linked";
@@ -55,6 +59,8 @@ export default function CloudHome() {
       />
     )
     : null;
+
+  usePaymentReturnToast("success", "Checkout complete", "Manage your plan under Cloud billing.");
 
   return (
     <OrgCloudMembershipGate>
@@ -105,6 +111,10 @@ export default function CloudHome() {
             )}
             {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}
             {showConsole && view.kind === "list" && <CloudEngineList engines={view.engines} />}
+
+            <Button variant="outline" asChild className="min-h-11">
+              <Link to={`${home}/billing`}>Billing details</Link>
+            </Button>
           </div>
         </section>
       </>

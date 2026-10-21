@@ -139,6 +139,23 @@ export function customerFailureResponse(
   });
 }
 
+/** Stripe Tax could not place the customer: their saved address is incomplete or malformed. */
+export const TAX_LOCATION_INVALID_CODE = "customer_tax_location_invalid";
+export const TAX_LOCATION_INVALID_MESSAGE =
+  "We couldn't determine your tax location. Please complete your organisation's billing address (including country and postal code) in Settings → Billing, then try again.";
+
+/** A 400 pointing the buyer at their billing address when Stripe Tax could not place them; null for any other error. */
+export function taxLocationFailureResponse(
+  error: unknown,
+  headers: Record<string, string>,
+): Response | null {
+  if ((error as { code?: string } | null)?.code !== TAX_LOCATION_INVALID_CODE) return null;
+  return new Response(
+    JSON.stringify({ error: TAX_LOCATION_INVALID_MESSAGE, code: TAX_LOCATION_INVALID_CODE }),
+    { status: 400, headers: { ...headers, "Content-Type": "application/json" } },
+  );
+}
+
 const ORG_TABLE = "org_stripe_customers";
 const USER_TABLE = "user_stripe_customers";
 
