@@ -706,6 +706,16 @@ Deno.test("U8: a user whose own metadata customer another owner holds is reporte
   assertEquals(formatBackfillPlan(plan).split("\n").includes("users_skipped_claimed=2"), true);
 });
 
+Deno.test("a user whose email is only on another user's metadata customer is neither written nor skipped", () => {
+  const plan = planUsers({
+    users: [{ id: USER, email: "u@example.test" }, { id: USER_2, email: "v@example.test" }],
+    stripeCustomers: [{ id: "cus_v", email: "U@example.test", metadata: { user_id: USER_2 } }],
+  });
+  assertEquals(plan.userWrites.map((row) => [row.user_id, row.stripe_customer_id]), [[USER_2, "cus_v"]]);
+  assertEquals(plan.skippedUsers, []);
+  assertEquals(plan.counts.users_skipped_claimed, 0);
+});
+
 Deno.test("U5: several bare customers with the user's email name the user and the customer ids", () => {
   const plan = planUsers({
     users: [{ id: USER, email: "u@example.test" }],
@@ -827,4 +837,14 @@ Deno.test("gap 3: the Stripe source searches metadata['organization_id'] and fol
 
   await stripeApiSource("sk_test_x", fetchUrl as typeof fetch).searchByOrganizationId("o'rg");
   assertEquals(requests[2].searchParams.get("query"), "metadata['organization_id']:'o\\'rg'");
+});
+
+Deno.test("the Stripe source escapes a backslash before the quote in the metadata search", async () => {
+  const queries: Array<string | null> = [];
+  const fetchUrl = (input: string | URL | Request) => {
+    queries.push(new URL(String(input)).searchParams.get("query"));
+    return Promise.resolve(Response.json({ data: [], has_more: false, next_page: null }));
+  };
+  await stripeApiSource("sk_test_x", fetchUrl as typeof fetch).searchByOrganizationId("o\\'rg");
+  assertEquals(queries, [String.raw`metadata['organization_id']:'o\\\'rg'`]);
 });
