@@ -10,6 +10,7 @@ import {
   loadHubSnapshot,
   loadStripeCustomers,
   planStripeCustomerBackfill,
+  stripeApiSource,
 } from "./backfill-stripe-customers.ts";
 import { stripeKeyMode } from "../supabase/functions/_shared/stripe-customer.ts";
 
@@ -209,14 +210,13 @@ Deno.test("loadStripeCustomers keeps only this mode, fetches subscription custom
           ? [{ id: "cus_a", livemode: false }, { id: "cus_live", livemode: true }]
           : []);
       },
+      searchByOrganizationId: () => Promise.resolve([]),
       retrieve: (id) => {
         retrieved.push(id);
         return Promise.resolve(id === "cus_gone" ? null : { id, livemode: false });
       },
     },
-    ["Buyer@Example.test"],
-    ["cus_a", "cus_sub", "cus_gone"],
-    false,
+    { emails: ["Buyer@Example.test"], customerIds: ["cus_a", "cus_sub", "cus_gone"], organizationIds: [], livemode: false },
   );
 
   assertEquals(asked, ["Buyer@Example.test", "buyer@example.test"]);
@@ -583,4 +583,248 @@ Deno.test("F2: a user does not take a customer reserved by a subscription row of
     stripeCustomers: [{ id: "cus_U", email: "u@example.test" }, { id: "cus_stored" }],
   }, true);
   assertEquals(plan.userWrites, []);
+});
+
+const byOrg = (a: { organization_id: string }, b: { organization_id: string }) =>
+  a.organization_id.localeCompare(b.organization_id);
+
+Deno.test("gap 1: a bare customer matched only by an admin email two orgs share skips both, in either scan order", () => {
+  const orgA = { id: ORG, adminEmails: ["shared@example.test"] };
+  const orgB = { id: ORG_2, adminEmails: ["Shared@Example.test"] };
+  const planFor = (organizations: Array<{ id: string; adminEmails: string[] }>) => {
+    const plan = planStripeCustomerBackfill({
+      ...BASE,
+      organizations,
+      stripeCustomers: [{ id: "cus_bare", email: "shared@example.test" }],
+    }, true);
+    return { ...plan, skippedOrgs: [...plan.skippedOrgs].sort(byOrg) };
+  };
+  const ab = planFor([orgA, orgB]);
+  const ba = planFor([orgB, orgA]);
+  assertEquals(ab, ba);
+  assertEquals(ab.orgWrites, []);
+  assertEquals(ab.skippedOrgs, [
+    { organization_id: ORG, reason: "ambiguous_customers", stripe_customer_ids: ["cus_bare"] },
+    { organization_id: ORG_2, reason: "ambiguous_customers", stripe_customer_ids: ["cus_bare"] },
+  ]);
+  assertEquals(ab.counts.orgs_skipped_ambiguous, 2);
+  assertEquals(ab.counts.orgs_skipped_claimed, 0);
+});
+
+Deno.test("gap 1: an already stored org does not contend for a bare email customer, and a contended one is not given to the admin as a user", () => {
+  const plan = planStripeCustomerBackfill({
+    ...BASE,
+    organizations: [
+      { id: ORG, adminEmails: ["shared@example.test"] },
+      { id: ORG_2, adminEmails: ["shared@example.test"] },
+      { id: ORG_3, adminEmails: ["shared@example.test"] },
+    ],
+    users: [{ id: "user-admin", email: "shared@example.test" }],
+    existingOrgRefs: [{ organization_id: ORG_3, stripe_customer_id: "cus_stored3", livemode: false }],
+    stripeCustomers: [{ id: "cus_bare", email: "shared@example.test" }, { id: "cus_stored3" }],
+  }, true);
+  assertEquals(plan.orgWrites, []);
+  assertEquals(plan.skippedOrgs.map((row) => row.organization_id).sort(), [ORG, ORG_2]);
+  assertEquals(plan.userWrites, []);
+  assertEquals(plan.skippedUsers, [
+    { user_id: "user-admin", reason: "customers_claimed_elsewhere", stripe_customer_ids: ["cus_bare"] },
+  ]);
+
+  const solo = planStripeCustomerBackfill({
+    ...BASE,
+    organizations: [{ id: ORG, adminEmails: ["shared@example.test"] }, { id: ORG_3, adminEmails: ["shared@example.test"] }],
+    existingOrgRefs: [{ organization_id: ORG_3, stripe_customer_id: "cus_stored3", livemode: false }],
+    stripeCustomers: [{ id: "cus_bare", email: "shared@example.test" }, { id: "cus_stored3" }],
+  }, true);
+  assertEquals(orgWrites(solo), [[ORG, "cus_bare"]]);
+});
+
+Deno.test("gap 1: an org written its own metadata customer still makes a bare customer on its admin email ambiguous for the other org", () => {
+  for (const order of [[0, 1], [1, 0]]) {
+    const orgs = [{ id: ORG, adminEmails: ["shared@example.test"] }, { id: ORG_2, adminEmails: ["shared@example.test"] }];
+    const plan = planStripeCustomerBackfill({
+      ...BASE,
+      organizations: order.map((i) => orgs[i]),
+      stripeCustomers: [
+        { id: "cus_meta", email: "shared@example.test", metadata: { organization_id: ORG } },
+        { id: "cus_bare", email: "shared@example.test" },
+      ],
+    }, true);
+    assertEquals(orgWrites(plan), [[ORG, "cus_meta"]]);
+    assertEquals(plan.skippedOrgs, [
+      { organization_id: ORG_2, reason: "ambiguous_customers", stripe_customer_ids: ["cus_bare"] },
+    ]);
+  }
+});
+
+const USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const USER_2 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+const planUsers = (snapshot: Partial<BackfillSnapshot>) =>
+  planStripeCustomerBackfill({ ...BASE, ...snapshot }, true);
+
+Deno.test("U7: two metadata customers are tie-broken by the user's email, else the user is skipped and reported", () => {
+  const customers: BackfillStripeCustomer[] = [
+    { id: "cus_u1", email: "old@example.test", metadata: { user_id: USER } },
+    { id: "cus_u2", email: "Now@Example.test", metadata: { user_id: USER } },
+  ];
+  const broken = planUsers({ users: [{ id: USER, email: "now@example.test" }], stripeCustomers: customers });
+  assertEquals(broken.userWrites.map((row) => row.stripe_customer_id), ["cus_u2"]);
+  assertEquals(broken.skippedUsers, []);
+
+  const tied = planUsers({ users: [{ id: USER, email: "other@example.test" }], stripeCustomers: customers });
+  assertEquals(tied.userWrites, []);
+  assertEquals(tied.skippedUsers, [
+    { user_id: USER, reason: "ambiguous_customers", stripe_customer_ids: ["cus_u1", "cus_u2"] },
+  ]);
+  assertEquals(tied.counts.users_skipped_ambiguous, 1);
+  assertEquals(
+    formatBackfillPlan(tied).split("\n").includes(
+      `user_skipped user_id=${USER} reason=ambiguous_customers stripe_customer_ids=cus_u1,cus_u2`,
+    ),
+    true,
+  );
+});
+
+Deno.test("U8: a user whose own metadata customer another owner holds is reported as customers_claimed_elsewhere", () => {
+  const plan = planUsers({
+    organizations: [],
+    users: [{ id: USER, email: "u@example.test" }, { id: USER_2, email: "v@example.test" }],
+    existingOrgRefs: [{ organization_id: ORG, stripe_customer_id: "cus_u", livemode: false }],
+    existingUserRefs: [{ user_id: "someone-else", stripe_customer_id: "cus_v", livemode: false }],
+    stripeCustomers: [
+      { id: "cus_u", email: "other@example.test", metadata: { user_id: USER } },
+      { id: "cus_v", email: "v@example.test" },
+    ],
+  });
+  assertEquals(plan.userWrites, []);
+  assertEquals(plan.skippedUsers, [
+    { user_id: USER, reason: "customers_claimed_elsewhere", stripe_customer_ids: ["cus_u"] },
+    { user_id: USER_2, reason: "customers_claimed_elsewhere", stripe_customer_ids: ["cus_v"] },
+  ]);
+  assertEquals(plan.counts.users_skipped_claimed, 2);
+  assertEquals(formatBackfillPlan(plan).split("\n").includes("users_skipped_claimed=2"), true);
+});
+
+Deno.test("U5: several bare customers with the user's email name the user and the customer ids", () => {
+  const plan = planUsers({
+    users: [{ id: USER, email: "u@example.test" }],
+    stripeCustomers: [{ id: "cus_e1", email: "u@example.test" }, { id: "cus_e2", email: "U@example.test" }],
+  });
+  assertEquals(plan.userWrites, []);
+  assertEquals(plan.skippedUsers, [
+    { user_id: USER, reason: "ambiguous_customers", stripe_customer_ids: ["cus_e1", "cus_e2"] },
+  ]);
+  assertEquals(plan.counts.users_skipped_ambiguous, 1);
+  assertEquals(
+    formatBackfillPlan(plan).split("\n").includes(
+      `user_skipped user_id=${USER} reason=ambiguous_customers stripe_customer_ids=cus_e1,cus_e2`,
+    ),
+    true,
+  );
+});
+
+Deno.test("invariant: every user with a metadata or bare email candidate is written, stored or skipped", () => {
+  const U = (n: number) => `${n.toString(16).repeat(8)}-0000-4000-8000-00000000000u`;
+  const users = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ id: U(n), email: `u${n}@example.test` }));
+  const snapshot: BackfillSnapshot = {
+    ...BASE,
+    organizations: [{ id: ORG, adminEmails: ["u7@example.test"] }, { id: ORG_2, adminEmails: ["u7@example.test"] }],
+    users,
+    subscriptions: [{ organization_id: ORG_3, stripe_customer_id: "cus_s6" }], // 6's email customer is reserved
+    existingOrgRefs: [{ organization_id: ORG_3, stripe_customer_id: "cus_m4", livemode: false }], // 4's metadata customer is held
+    existingUserRefs: [{ user_id: U(9), stripe_customer_id: "cus_stored9", livemode: false }],
+    stripeCustomers: [
+      { id: "cus_m1", email: "old1@example.test", metadata: { user_id: U(1) } }, // written by metadata
+      { id: "cus_m2a", email: "x@example.test", metadata: { user_id: U(2) } }, // U7: tied
+      { id: "cus_m2b", email: "y@example.test", metadata: { user_id: U(2) } },
+      { id: "cus_e3a", email: "u3@example.test" }, // U5: two bare email customers
+      { id: "cus_e3b", email: "U3@Example.test" },
+      { id: "cus_m4", metadata: { user_id: U(4) } }, // U8
+      { id: "cus_e5", email: "U5@example.test" }, // written by email
+      { id: "cus_s6", email: "u6@example.test" },
+      { id: "cus_e7", email: "u7@example.test" }, // contended by two orgs: left for a human
+      { id: "cus_o8", email: "u8@example.test", metadata: { organization_id: ORG } }, // an org's customer is no user candidate
+      { id: "cus_stored9", email: "u9@example.test" },
+    ],
+  };
+  const plan = planStripeCustomerBackfill(snapshot, true);
+  const stored = new Set(snapshot.existingUserRefs.map((row) => row.user_id));
+  const written = new Set(plan.userWrites.map((row) => row.user_id));
+  const skipped = new Set(plan.skippedUsers.map((row) => row.user_id));
+  assertEquals([...written].sort(), [U(1), U(5)].sort());
+  assertEquals([...skipped].sort(), [U(2), U(3), U(4), U(6), U(7)].sort());
+  for (const user of users) {
+    const hasCandidate = snapshot.stripeCustomers.some((c) =>
+      !c.metadata?.organization_id && (
+        c.metadata?.user_id === user.id ||
+        (!c.metadata?.user_id && (c.email ?? "").toLowerCase() === user.email.toLowerCase())
+      )
+    );
+    if (hasCandidate) {
+      assertEquals(stored.has(user.id) || written.has(user.id) || skipped.has(user.id), true, `user ${user.id} vanished`);
+    }
+    assertEquals(written.has(user.id) && skipped.has(user.id), false, `user ${user.id} written and skipped`);
+  }
+});
+
+Deno.test("gap 3: an org whose buyer changed email is loaded by metadata search and gets its metadata customer", async () => {
+  const searched: string[] = [];
+  const source = {
+    listByEmail: () => Promise.resolve([] as BackfillStripeCustomer[]),
+    searchByOrganizationId: (organizationId: string) => {
+      searched.push(organizationId);
+      return Promise.resolve(organizationId === ORG
+        ? [
+          { id: "cus_old", email: "former@example.test", livemode: false, metadata: { organization_id: ORG } },
+          { id: "cus_live", livemode: true, metadata: { organization_id: ORG } },
+          { id: "cus_gone", livemode: false, deleted: true, metadata: { organization_id: ORG } },
+        ]
+        : []);
+    },
+    retrieve: () => Promise.resolve(null),
+  };
+  const organizations = [{ id: ORG, adminEmails: ["current@example.test"] }, { id: ORG_2, adminEmails: [] }];
+  const stripeCustomers = await loadStripeCustomers(source, {
+    emails: ["current@example.test"],
+    customerIds: [],
+    organizationIds: organizations.map((org) => org.id),
+    livemode: false,
+  });
+  assertEquals(searched, [ORG, ORG_2]);
+  assertEquals(stripeCustomers.map((customer) => customer.id), ["cus_old"]);
+
+  const plan = planStripeCustomerBackfill({ ...BASE, organizations, stripeCustomers }, true);
+  assertEquals(orgWrites(plan), [[ORG, "cus_old"]]);
+});
+
+Deno.test("gap 3: the Stripe source searches metadata['organization_id'] and follows next_page", async () => {
+  const requests: URL[] = [];
+  const pages: Record<string, unknown> = {
+    first: {
+      data: [{ id: "cus_1", email: "gone@example.test", livemode: false, metadata: { organization_id: ORG } }],
+      has_more: true,
+      next_page: "page_2",
+    },
+    page_2: {
+      data: [{ id: "cus_2", email: null, livemode: false, metadata: { organization_id: ORG } }],
+      has_more: false,
+      next_page: null,
+    },
+  };
+  const fetchUrl = (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(String(input));
+    requests.push(url);
+    assertEquals(new Headers(init?.headers).get("Authorization"), "Bearer sk_test_x");
+    return Promise.resolve(Response.json(pages[url.searchParams.get("page") ?? "first"]));
+  };
+  const customers = await stripeApiSource("sk_test_x", fetchUrl as typeof fetch).searchByOrganizationId(ORG);
+  assertEquals(customers.map((customer) => customer.id), ["cus_1", "cus_2"]);
+  assertEquals(requests.map((url) => url.pathname), ["/v1/customers/search", "/v1/customers/search"]);
+  assertEquals(requests[0].searchParams.get("query"), `metadata['organization_id']:'${ORG}'`);
+  assertEquals(requests.map((url) => url.searchParams.get("page")), [null, "page_2"]);
+  assertEquals(requests[0].searchParams.get("limit"), "100");
+
+  await stripeApiSource("sk_test_x", fetchUrl as typeof fetch).searchByOrganizationId("o'rg");
+  assertEquals(requests[2].searchParams.get("query"), "metadata['organization_id']:'o\\'rg'");
 });

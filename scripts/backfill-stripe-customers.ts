@@ -23,8 +23,26 @@
  * customer another owner holds is skipped with customers_claimed_elsewhere, so
  * no org with a candidate customer ends with neither a write nor a skip line.
  *
+ * A customer with no organization_id that matches only through an admin email
+ * that several orgs (not already stored in this mode) share belongs to none of
+ * them by email: every such org is skipped with ambiguous_customers, whatever
+ * order the orgs are scanned in.
+ *
  * Orgs that share a subscription customer, or whose customers cannot be told
  * apart, are skipped and listed as org_skipped lines for a human to resolve.
+ *
+ * Users mirror the org path: metadata.user_id is trusted and the user's email
+ * only breaks ties; several candidates skip the user with ambiguous_customers;
+ * a candidate that another owner holds (or that an org was skipped over, so a
+ * human decides it) skips the user with customers_claimed_elsewhere. Each is
+ * printed as a user_skipped line, so no user with a candidate ends with neither
+ * a write nor a skip line.
+ *
+ * Stripe customers are loaded by every admin and user email (both cases), by
+ * metadata['organization_id'] for every Hub org (Stripe customer search, so a
+ * buyer whose email changed or who left is still found), and by the customer id
+ * on every subscription row. Only customers in the run's mode are kept, and
+ * deleted customers are dropped.
  */
 
 import { readFileSync } from "node:fs";
@@ -67,7 +85,8 @@ export type BackfillCounts = {
   users_already_stored: number;
   users_matched: number;
   users_would_write: number;
-  users_skipped_shared: number;
+  users_skipped_ambiguous: number;
+  users_skipped_claimed: number;
 };
 
 export type BackfillOrgWrite = {
@@ -95,9 +114,17 @@ export type BackfillSkippedOrg = {
   stripe_customer_ids: string[];
 };
 
+/** A user left alone for a human to resolve, with the Stripe customer ids to look at. */
+export type BackfillSkippedUser = {
+  user_id: string;
+  reason: "ambiguous_customers" | "customers_claimed_elsewhere";
+  stripe_customer_ids: string[];
+};
+
 export type BackfillPlan = {
   counts: BackfillCounts;
   skippedOrgs: BackfillSkippedOrg[];
+  skippedUsers: BackfillSkippedUser[];
   orgWrites: BackfillOrgWrite[];
   userWrites: BackfillUserWrite[];
 };
@@ -188,11 +215,25 @@ function withReservedSubscriptionCustomers(claimed: Set<string>, snapshot: Backf
   return new Set([...claimed, ...subscriptionCustomerIds(snapshot)]);
 }
 
+/** Lower-cased admin email -> the orgs (not already stored in this mode) that list it. */
+function orgsByAdminEmail(snapshot: BackfillSnapshot, storedOrgs: Set<string>): Map<string, Set<string>> {
+  const orgs = new Map<string, Set<string>>();
+  for (const org of snapshot.organizations) {
+    if (storedOrgs.has(org.id)) continue;
+    for (const email of org.adminEmails) {
+      const key = email.toLowerCase();
+      orgs.set(key, (orgs.get(key) ?? new Set<string>()).add(org.id));
+    }
+  }
+  return orgs;
+}
+
 function matchOrgCustomer(
   orgId: string,
   emails: string[],
   snapshot: BackfillSnapshot,
   claimed: Set<string>,
+  adminEmailOrgs: Map<string, Set<string>>,
 ): OrgMatch {
   // A subscription's customer id counts only when Stripe returns it in this
   // mode, it is not deleted, and its metadata does not name another org: a
@@ -250,10 +291,15 @@ function matchOrgCustomer(
     return true;
   });
 
-  if (emailMatches.length === 1) {
+  // A customer matched only by an admin email that another org also lists
+  // could be either org's, so neither gets it; otherwise scan order decides.
+  const contended = emailMatches.some((customer) =>
+    (adminEmailOrgs.get(customer.email!.toLowerCase())?.size ?? 0) > 1
+  );
+  if (emailMatches.length === 1 && !contended) {
     return { id: emailMatches[0].id, email: emailMatches[0].email };
   }
-  if (emailMatches.length > 1) {
+  if (emailMatches.length > 0) {
     return { skip: "ambiguous_customers", ids: emailMatches.map((customer) => customer.id) };
   }
 
@@ -290,13 +336,19 @@ function matchOrgCustomer(
   return null;
 }
 
+type UserMatch = { id: string; email?: string } | { skip: BackfillSkippedUser["reason"]; ids: string[] } | null;
+
 function matchUserCustomer(
   userId: string,
   email: string,
   snapshot: BackfillSnapshot,
   claimed: Set<string>,
-): { id: string; email?: string } | { skipShared: true } | null {
+): UserMatch {
   claimed = withReservedSubscriptionCustomers(claimed, snapshot);
+  const hasUserEmail = (customer: BackfillStripeCustomer) =>
+    (customer.email ?? "").toLowerCase() === email.toLowerCase();
+
+  // metadata.user_id is server-written, so it is trusted; email only breaks ties.
   const metadataMatches = snapshot.stripeCustomers.filter((customer) => {
     if (claimed.has(customer.id)) return false;
     if (customer.metadata?.organization_id) return false;
@@ -305,10 +357,17 @@ function matchUserCustomer(
   if (metadataMatches.length === 1) {
     return { id: metadataMatches[0].id, email: metadataMatches[0].email };
   }
+  if (metadataMatches.length > 1) {
+    const byEmail = metadataMatches.filter(hasUserEmail);
+    if (byEmail.length === 1) {
+      return { id: byEmail[0].id, email: byEmail[0].email };
+    }
+    return { skip: "ambiguous_customers", ids: metadataMatches.map((customer) => customer.id) };
+  }
 
   const emailMatches = snapshot.stripeCustomers.filter((customer) => {
     if (claimed.has(customer.id)) return false;
-    if ((customer.email ?? "").toLowerCase() !== email.toLowerCase()) return false;
+    if (!hasUserEmail(customer)) return false;
     if (customer.metadata?.organization_id) return false;
     if (customer.metadata?.user_id && customer.metadata.user_id !== userId) return false;
     return true;
@@ -318,7 +377,18 @@ function matchUserCustomer(
     return { id: emailMatches[0].id, email: emailMatches[0].email };
   }
   if (emailMatches.length > 1) {
-    return { skipShared: true };
+    return { skip: "ambiguous_customers", ids: emailMatches.map((customer) => customer.id) };
+  }
+
+  // Nothing is left for this user. If its own metadata customer or a bare
+  // customer with its email is unavailable only because another owner holds
+  // it (or an org was skipped over it), report the user instead of dropping it.
+  const heldElsewhere = snapshot.stripeCustomers.filter((customer) => {
+    if (customer.deleted || customer.metadata?.organization_id) return false;
+    return customer.metadata?.user_id === userId || (!customer.metadata?.user_id && hasUserEmail(customer));
+  });
+  if (heldElsewhere.length > 0) {
+    return { skip: "customers_claimed_elsewhere", ids: heldElsewhere.map((customer) => customer.id) };
   }
   return null;
 }
@@ -329,6 +399,7 @@ export function planStripeCustomerBackfill(
 ): BackfillPlan {
   const plan: BackfillPlan = {
     skippedOrgs: [],
+    skippedUsers: [],
     counts: {
       dry_run: dryRun,
       livemode: snapshot.livemode,
@@ -344,7 +415,8 @@ export function planStripeCustomerBackfill(
       users_already_stored: 0,
       users_matched: 0,
       users_would_write: 0,
-      users_skipped_shared: 0,
+      users_skipped_ambiguous: 0,
+      users_skipped_claimed: 0,
     },
     orgWrites: [],
     userWrites: [],
@@ -362,6 +434,7 @@ export function planStripeCustomerBackfill(
   );
 
   const shared = sharedSubscriptionCustomers(snapshot);
+  const adminEmailOrgs = orgsByAdminEmail(snapshot, existingOrgs);
 
   for (const org of snapshot.organizations) {
     plan.counts.orgs_scanned += 1;
@@ -384,7 +457,13 @@ export function planStripeCustomerBackfill(
       continue;
     }
 
-    const match = matchOrgCustomer(org.id, org.adminEmails, snapshot, claimedIds(plan, snapshot, shared));
+    const match = matchOrgCustomer(
+      org.id,
+      org.adminEmails,
+      snapshot,
+      claimedIds(plan, snapshot, shared),
+      adminEmailOrgs,
+    );
     if (!match) continue;
     if ("skip" in match) {
       if (match.skip === "metadata_conflicts_subscription") {
@@ -419,10 +498,20 @@ export function planStripeCustomerBackfill(
       continue;
     }
 
-    const match = matchUserCustomer(user.id, user.email, snapshot, claimedIds(plan, snapshot, shared));
+    // A customer an org was skipped over is left for the human resolving that
+    // org, so no user takes it meanwhile. Orgs do not apply this to each other:
+    // that would make the second of two contending orgs depend on scan order.
+    const claimed = claimedIds(plan, snapshot, shared);
+    for (const row of plan.skippedOrgs) row.stripe_customer_ids.forEach((id) => claimed.add(id));
+    const match = matchUserCustomer(user.id, user.email, snapshot, claimed);
     if (!match) continue;
-    if ("skipShared" in match) {
-      plan.counts.users_skipped_shared += 1;
+    if ("skip" in match) {
+      if (match.skip === "customers_claimed_elsewhere") {
+        plan.counts.users_skipped_claimed += 1;
+      } else {
+        plan.counts.users_skipped_ambiguous += 1;
+      }
+      plan.skippedUsers.push({ user_id: user.id, reason: match.skip, stripe_customer_ids: match.ids });
       continue;
     }
 
@@ -455,7 +544,8 @@ export function formatBackfillCounts(counts: BackfillCounts): string {
     `users_already_stored=${counts.users_already_stored}`,
     `users_matched=${counts.users_matched}`,
     `users_would_write=${counts.users_would_write}`,
-    `users_skipped_shared=${counts.users_skipped_shared}`,
+    `users_skipped_ambiguous=${counts.users_skipped_ambiguous}`,
+    `users_skipped_claimed=${counts.users_skipped_claimed}`,
   ].join("\n");
 }
 
@@ -468,9 +558,14 @@ export function formatBackfillPlan(plan: BackfillPlan): string {
       `user_write user_id=${row.user_id} livemode=${row.livemode} stripe_customer_id=${row.stripe_customer_id} email=${row.email_masked}`
     ),
   ];
-  const skipped = plan.skippedOrgs.map((row) =>
-    `org_skipped organization_id=${row.organization_id} reason=${row.reason} stripe_customer_ids=${row.stripe_customer_ids.join(",")}`
-  );
+  const skipped = [
+    ...plan.skippedOrgs.map((row) =>
+      `org_skipped organization_id=${row.organization_id} reason=${row.reason} stripe_customer_ids=${row.stripe_customer_ids.join(",")}`
+    ),
+    ...plan.skippedUsers.map((row) =>
+      `user_skipped user_id=${row.user_id} reason=${row.reason} stripe_customer_ids=${row.stripe_customer_ids.join(",")}`
+    ),
+  ];
   return [formatBackfillCounts(plan.counts), ...mappings, ...skipped].join("\n");
 }
 
@@ -641,15 +736,20 @@ export async function loadHubSnapshot(
 export type StripeCustomerSource = {
   /** Every customer with exactly this email (Stripe's email filter is case-sensitive), across all pages. */
   listByEmail: (email: string) => Promise<BackfillStripeCustomer[]>;
+  /** Every customer whose metadata.organization_id is this org, across all pages (Stripe customer search). */
+  searchByOrganizationId: (organizationId: string) => Promise<BackfillStripeCustomer[]>;
   /** null when Stripe has no such customer in this mode. */
   retrieve: (id: string) => Promise<BackfillStripeCustomer | null>;
 };
 
 export async function loadStripeCustomers(
   source: StripeCustomerSource,
-  emails: string[],
-  customerIds: string[],
-  livemode: boolean,
+  { emails, customerIds, organizationIds, livemode }: {
+    emails: string[];
+    customerIds: string[];
+    organizationIds: string[];
+    livemode: boolean;
+  },
 ): Promise<BackfillStripeCustomer[]> {
   const queries = [...new Set(emails.flatMap((email) => [email, email.toLowerCase()]))];
   const found: BackfillStripeCustomer[] = [];
@@ -657,11 +757,17 @@ export async function loadStripeCustomers(
   const add = (customer: BackfillStripeCustomer) => {
     if (seen.has(customer.id)) return;
     if (customer.livemode !== undefined && customer.livemode !== livemode) return;
+    if (customer.deleted) return;
     seen.add(customer.id);
     found.push(customer);
   };
   for (const email of queries) {
     for (const customer of await source.listByEmail(email)) add(customer);
+  }
+  // A buyer whose email changed, or who left the org, is found only by the
+  // organization_id the server wrote into the customer's metadata.
+  for (const organizationId of new Set(organizationIds)) {
+    for (const customer of await source.searchByOrganizationId(organizationId)) add(customer);
   }
   for (const id of new Set(customerIds)) {
     if (seen.has(id)) continue;
@@ -689,8 +795,8 @@ function toBackfillCustomer(customer: StripeApiCustomer): BackfillStripeCustomer
   };
 }
 
-function stripeApiSource(stripeKey: string): StripeCustomerSource {
-  const get = (url: URL) => fetch(url, { headers: { Authorization: `Bearer ${stripeKey}` } });
+export function stripeApiSource(stripeKey: string, fetchUrl: typeof fetch = fetch): StripeCustomerSource {
+  const get = (url: URL) => fetchUrl(url, { headers: { Authorization: `Bearer ${stripeKey}` } });
   return {
     async listByEmail(email) {
       const customers: BackfillStripeCustomer[] = [];
@@ -706,6 +812,27 @@ function stripeApiSource(stripeKey: string): StripeCustomerSource {
         customers.push(...page.data.map(toBackfillCustomer));
         if (!page.has_more || page.data.length === 0) return customers;
         startingAfter = page.data[page.data.length - 1].id;
+      }
+    },
+    async searchByOrganizationId(organizationId) {
+      const customers: BackfillStripeCustomer[] = [];
+      const value = organizationId.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+      let page: string | undefined;
+      for (;;) {
+        const url = new URL("https://api.stripe.com/v1/customers/search");
+        url.searchParams.set("query", `metadata['organization_id']:'${value}'`);
+        url.searchParams.set("limit", "100");
+        if (page) url.searchParams.set("page", page);
+        const response = await get(url);
+        if (!response.ok) throw new Error(`Stripe customer search failed: ${response.status}`);
+        const result = await response.json() as {
+          data: StripeApiCustomer[];
+          has_more?: boolean;
+          next_page?: string | null;
+        };
+        customers.push(...result.data.map(toBackfillCustomer));
+        if (!result.has_more || !result.next_page) return customers;
+        page = result.next_page;
       }
     },
     async retrieve(id) {
@@ -745,12 +872,12 @@ async function loadRealSnapshot(livemode: boolean): Promise<BackfillSnapshot> {
     ...hub.organizations.flatMap((org) => org.adminEmails),
     ...hub.users.map((user) => user.email),
   ];
-  const stripeCustomers = await loadStripeCustomers(
-    stripeApiSource(stripeKey),
+  const stripeCustomers = await loadStripeCustomers(stripeApiSource(stripeKey), {
     emails,
-    hub.subscriptions.map((row) => row.stripe_customer_id),
+    customerIds: hub.subscriptions.map((row) => row.stripe_customer_id),
+    organizationIds: hub.organizations.map((org) => org.id),
     livemode,
-  );
+  });
   return { ...hub, stripeCustomers };
 }
 
