@@ -6,6 +6,7 @@ import {
   academyInvoiceFooter,
   isAcademyTosConsentEnabled,
 } from "../_shared/academyLegal.ts";
+import { ACADEMY_ALREADY_OWNED } from "../_shared/academyOwnership.ts";
 import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
 import { soloBundleOwnership } from "./ownership.ts";
 import { academyProductSpec, isTeamAcademyProduct } from "./product.ts";
@@ -139,7 +140,7 @@ export async function runAcademyCheckout(params: {
       return jsonResponse(500, { error: "Entitlement lookup failed" });
     }
     if (ownership === "owned") {
-      return jsonResponse(409, { error: "already_owned" });
+      return jsonResponse(409, { error: ACADEMY_ALREADY_OWNED });
     }
   }
 

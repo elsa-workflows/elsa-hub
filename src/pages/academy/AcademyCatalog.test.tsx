@@ -1,11 +1,22 @@
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
-const { handleBuyCourse, useAcademyCatalog, useAuth } = vi.hoisted(() => ({
+const {
+  handleBuyCourse,
+  listPersonalAcademyGrants,
+  listPublishedCourses,
+  mapCourseAccess,
+  useAcademyCatalog,
+  useAuth,
+} = vi.hoisted(() => ({
   handleBuyCourse: vi.fn(),
+  listPersonalAcademyGrants: vi.fn(),
+  listPublishedCourses: vi.fn(),
+  mapCourseAccess: vi.fn(),
   useAcademyCatalog: vi.fn(),
   useAuth: vi.fn(() => ({ user: null })),
 }));
@@ -26,11 +37,40 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => useAuth(),
 }));
 
+// What RLS shows a platform admin: every user's entitlements, none of them the admin's own.
+const adminVisibleEntitlements = [
+  { user_id: "someone-else", subject_type: "user", course_id: null, product_code: "solo_bundle", revoked_at: null },
+];
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: () => {
+      let rows: Record<string, unknown>[] = adminVisibleEntitlements;
+      const query = {
+        select: () => query,
+        eq: (column: string, value: unknown) => {
+          rows = rows.filter((row) => row[column] === value);
+          return query;
+        },
+        is: (column: string, value: null) => {
+          rows = rows.filter((row) => row[column] === value);
+          return query;
+        },
+        then: (resolve: (result: unknown) => unknown) => resolve({ data: rows, error: null }),
+      };
+      return query;
+    },
+  },
+}));
+
 vi.mock("@/lib/academy", async () => {
   const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
   return {
     ...actual,
     handleBuyCourse,
+    listPersonalAcademyGrants,
+    listPublishedCourses,
+    mapCourseAccess,
   };
 });
 
@@ -56,6 +96,7 @@ const course = {
   currency: "eur",
   stripe_price_id: null,
   product_code: "solo_bundle",
+  product_codes: ["solo_bundle"],
 };
 
 const second = { ...course, id: "course-2", slug: "advanced", title: "Advanced" };
@@ -79,6 +120,7 @@ function loadedCatalog() {
     courses: [course],
     myCourses: [],
     accessByCourseId: {},
+    soloOwnership: "none",
     isLoading: false,
     isError: false,
     error: null,
@@ -199,11 +241,12 @@ describe("Academy catalog", () => {
     expect(screen.getByText("catalogue down")).toBeInTheDocument();
   });
 
-  it("replaces the Buy button with an ownership note when the visitor has access to every published course", () => {
+  it("replaces the Buy button with an ownership note when the visitor owns the Solo Bundle", () => {
     arrangeSignedInCatalog({
       courses: [course, second],
       myCourses: [course, second],
       accessByCourseId: { [course.id]: true, [second.id]: true },
+      soloOwnership: "owned",
     });
 
     renderCatalog();
@@ -231,8 +274,8 @@ describe("Academy catalog", () => {
   });
 
   it.each([
-    ["is loading", { isLoading: true }],
-    ["failed to load", { isError: true, error: new Error("access check failed") }],
+    ["is loading", { soloOwnership: "unknown" }],
+    ["failed to load", { soloOwnership: "unknown", isError: true, error: new Error("access check failed") }],
   ])("shows neither Buy, sign-in nor the ownership note while ownership %s", (_label, state) => {
     arrangeSignedInCatalog(state);
 
@@ -251,5 +294,62 @@ describe("Academy catalog", () => {
 
     expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
     expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
+  });
+});
+
+describe("Academy catalog Solo ownership rule", () => {
+  const everyCourse = { [course.id]: true, [second.id]: true };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const actual = await vi.importActual<typeof import("@/hooks/useAcademyCatalog")>(
+      "@/hooks/useAcademyCatalog",
+    );
+    useAcademyCatalog.mockImplementation(actual.useAcademyCatalog);
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    listPublishedCourses.mockResolvedValue([course, second]);
+  });
+
+  function renderWithQueries() {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(<QueryClientProvider client={client}>{catalogTree()}</QueryClientProvider>);
+  }
+
+  async function expectBuy() {
+    expect(await screen.findByRole("heading", { name: "My courses" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
+  }
+
+  it("shows Buy, not the owned note, to a team-seat holder with access to every course", async () => {
+    mapCourseAccess.mockResolvedValue(everyCourse);
+    listPersonalAcademyGrants.mockResolvedValue([]);
+
+    renderWithQueries();
+
+    await expectBuy();
+  });
+
+  it("shows Buy to an admin without personal grants, though RLS shows them others' grants", async () => {
+    const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
+    mapCourseAccess.mockResolvedValue(everyCourse);
+    listPersonalAcademyGrants.mockImplementation(actual.listPersonalAcademyGrants);
+
+    renderWithQueries();
+
+    await expectBuy();
+    expect(listPersonalAcademyGrants).toHaveBeenCalledWith("user-1");
+  });
+
+  it("shows the owned note to a personal owner", async () => {
+    mapCourseAccess.mockResolvedValue(everyCourse);
+    listPersonalAcademyGrants.mockResolvedValue([{ course_id: null, product_code: "solo_bundle" }]);
+
+    renderWithQueries();
+
+    expect(await screen.findByText(ACADEMY_SOLO_OWNED_NOTE)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument(),
+    );
   });
 });

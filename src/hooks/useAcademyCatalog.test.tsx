@@ -3,11 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 
-const { listPublishedCourses, mapCourseAccess, useAuth } = vi.hoisted(() => ({
-  listPublishedCourses: vi.fn(),
-  mapCourseAccess: vi.fn(),
-  useAuth: vi.fn(),
-}));
+const { listPersonalAcademyGrants, listPublishedCourses, mapCourseAccess, useAuth } = vi.hoisted(
+  () => ({
+    listPersonalAcademyGrants: vi.fn(),
+    listPublishedCourses: vi.fn(),
+    mapCourseAccess: vi.fn(),
+    useAuth: vi.fn(),
+  }),
+);
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => useAuth(),
@@ -15,7 +18,7 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 vi.mock("@/lib/academy", async () => {
   const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
-  return { ...actual, listPublishedCourses, mapCourseAccess };
+  return { ...actual, listPersonalAcademyGrants, listPublishedCourses, mapCourseAccess };
 });
 
 import { useAcademyCatalog } from "./useAcademyCatalog";
@@ -31,6 +34,7 @@ const course = {
   currency: "eur",
   stripe_price_id: null,
   product_code: "solo_bundle",
+  product_codes: ["solo_bundle"],
 };
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -42,7 +46,11 @@ describe("useAcademyCatalog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listPublishedCourses.mockResolvedValue([course]);
+    mapCourseAccess.mockResolvedValue({ [course.id]: true });
+    listPersonalAcademyGrants.mockResolvedValue([]);
   });
+
+  const signedIn = () => useAuth.mockReturnValue({ user: { id: "user-1" }, loading: false });
 
   it("stays loading while auth is still resolving, even after the courses load", async () => {
     useAuth.mockReturnValue({ user: null, loading: true });
@@ -61,7 +69,9 @@ describe("useAcademyCatalog", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.myCourses).toEqual([]);
+    expect(result.current.soloOwnership).toBe("none");
     expect(mapCourseAccess).not.toHaveBeenCalled();
+    expect(listPersonalAcademyGrants).not.toHaveBeenCalled();
   });
 
   it("reports an error when the access check fails", async () => {
@@ -72,5 +82,37 @@ describe("useAcademyCatalog", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.myCourses).toEqual([]);
+  });
+
+  it("lends a team seat's or admin's access to My courses without counting it as ownership", async () => {
+    signedIn();
+
+    const { result } = renderHook(() => useAcademyCatalog(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.myCourses).toEqual([course]);
+    expect(result.current.soloOwnership).toBe("none");
+    expect(listPersonalAcademyGrants).toHaveBeenCalledWith("user-1");
+  });
+
+  it("reports the Solo Bundle owned when a personal grant covers every published course", async () => {
+    signedIn();
+    listPersonalAcademyGrants.mockResolvedValue([{ course_id: null, product_code: "solo_bundle" }]);
+
+    const { result } = renderHook(() => useAcademyCatalog(), { wrapper });
+
+    await waitFor(() => expect(result.current.soloOwnership).toBe("owned"));
+  });
+
+  it("leaves ownership unknown, not the catalogue broken, when the grants read fails", async () => {
+    signedIn();
+    listPersonalAcademyGrants.mockRejectedValue(new Error("grants failed"));
+
+    const { result } = renderHook(() => useAcademyCatalog(), { wrapper });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(listPersonalAcademyGrants).toHaveBeenCalled());
+    expect(result.current.isError).toBe(false);
+    await waitFor(() => expect(result.current.soloOwnership).toBe("unknown"));
   });
 });

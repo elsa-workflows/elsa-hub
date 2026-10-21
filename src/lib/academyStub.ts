@@ -15,6 +15,7 @@ export const ACADEMY_STUB_COURSES: Course[] = [
     currency: "eur",
     stripe_price_id: null,
     product_code: "solo_bundle",
+    product_codes: ["solo_bundle"],
   },
 ];
 

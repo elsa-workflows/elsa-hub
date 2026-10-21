@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { listPublishedCourses, mapCourseAccess, type Course } from "@/lib/academy";
+import type { AcademySoloOwnership } from "@/components/academy/AcademySoloCta";
+import {
+  listPersonalAcademyGrants,
+  listPublishedCourses,
+  mapCourseAccess,
+  type Course,
+} from "@/lib/academy";
+import { soloBundleOwnership } from "@/lib/academyOwnership";
 
 export function useAcademyCatalog() {
   const { user, loading: authLoading } = useAuth();
@@ -12,10 +19,18 @@ export function useAcademyCatalog() {
 
   const courses = coursesQuery.data ?? [];
 
+  // Access only: has_academy_access also lets team seats and admins in.
   const accessQuery = useQuery({
     queryKey: ["academy-access-map", user?.id, courses.map((course) => course.id).join(",")],
     queryFn: () => mapCourseAccess(courses.map((course) => course.id)),
     enabled: Boolean(user) && courses.length > 0,
+  });
+
+  // Ownership: the user's own grants, so seats and admin access don't count.
+  const grantsQuery = useQuery({
+    queryKey: ["academy-personal-grants", user?.id],
+    queryFn: () => listPersonalAcademyGrants(user!.id),
+    enabled: Boolean(user),
   });
 
   const accessByCourseId = accessQuery.data ?? {};
@@ -23,10 +38,18 @@ export function useAcademyCatalog() {
     ? courses.filter((course) => accessByCourseId[course.id])
     : [];
 
+  const soloOwnership = soloBundleOwnership({
+    isLoading: authLoading || coursesQuery.isLoading || (Boolean(user) && grantsQuery.isLoading),
+    isError: coursesQuery.isError || grantsQuery.isError,
+    courses,
+    grants: (user && grantsQuery.data) || [],
+  });
+
   return {
     courses,
     myCourses,
     accessByCourseId,
+    soloOwnership,
     isLoading:
       authLoading ||
       coursesQuery.isLoading ||
@@ -37,6 +60,7 @@ export function useAcademyCatalog() {
     courses: Course[];
     myCourses: Course[];
     accessByCourseId: Record<string, boolean>;
+    soloOwnership: AcademySoloOwnership;
     isLoading: boolean;
     isError: boolean;
     error: unknown;

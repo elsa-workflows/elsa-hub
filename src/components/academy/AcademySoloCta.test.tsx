@@ -3,10 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-const { handleBuyCourse, useAuth } = vi.hoisted(() => ({
+const { handleBuyCourse, toast, useAuth } = vi.hoisted(() => ({
   handleBuyCourse: vi.fn(),
+  toast: { error: vi.fn(), message: vi.fn() },
   useAuth: vi.fn(() => ({ user: null })),
 }));
+
+vi.mock("sonner", () => ({ toast }));
 
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => useAuth(),
@@ -23,6 +26,7 @@ vi.mock("@/lib/academy", async () => {
 import { AcademySoloCta } from "./AcademySoloCta";
 import { ACADEMY_ALREADY_OWNED } from "@/lib/academy";
 import {
+  ACADEMY_CHECKOUT_FAILED_LINE,
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_PAYMENT_SUCCESS_LINE,
   ACADEMY_SOLO_BUY_LABEL,
@@ -45,7 +49,8 @@ function renderCta(path = "/academy", locked = false) {
 
 describe("AcademySoloCta", () => {
   beforeEach(() => {
-    handleBuyCourse.mockClear();
+    handleBuyCourse.mockReset();
+    toast.error.mockClear();
     useAuth.mockReturnValue({ user: null });
   });
 
@@ -119,5 +124,48 @@ describe("AcademySoloCta", () => {
     expect(handleBuyCourse).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
     expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
+  });
+
+  const clickBuy = () =>
+    act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
+    });
+
+  it("toasts and resets Buy when checkout fails for another reason", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    handleBuyCourse.mockRejectedValueOnce(new Error("Stripe is down"));
+    renderCta("/academy");
+
+    await clickBuy();
+
+    expect(toast.error).toHaveBeenCalledWith(ACADEMY_CHECKOUT_FAILED_LINE);
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeEnabled();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
+  });
+
+  it("shows the owned note without a toast when the buy action throws checkout's 409", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    handleBuyCourse.mockRejectedValueOnce({
+      context: new Response(JSON.stringify({ error: ACADEMY_ALREADY_OWNED }), { status: 409 }),
+    });
+    renderCta("/academy");
+
+    await clickBuy();
+
+    expect(await screen.findByText(ACADEMY_SOLO_OWNED_NOTE)).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("disables Buy while checkout is starting", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    let finish: () => void = () => {};
+    handleBuyCourse.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)));
+    renderCta("/academy");
+
+    await clickBuy();
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeDisabled();
+
+    await act(async () => finish());
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeEnabled();
   });
 });

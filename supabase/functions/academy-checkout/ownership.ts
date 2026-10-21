@@ -1,25 +1,19 @@
 // Solo Bundle ownership guard for academy-checkout (#103).
 //
-// Mirrors soloBundleOwnership in src/lib/academyOwnership.ts, which hides Buy in
-// the catalog: the buyer owns the bundle only with access to every published
-// course, and at least one is published. Keep the two in step.
-//
-// Access per course follows the personal-entitlement branch of
-// has_academy_access (supabase/migrations/20261015190000_academy_schema_r2.sql):
-// an active entitlement for the course itself, or a course-less bundle
-// entitlement whose product_code is in the course's product_codes. Only the
-// buyer's own grants (subject_type user) count. A team seat or platform admin
-// access is not a purchase the Solo Bundle would duplicate, so it doesn't block.
+// Reads the buyer's personal entitlements and the published courses, then applies
+// the shared rule in _shared/academyOwnership.ts, which the catalog uses too.
 
+import {
+  ownsSoloBundle,
+  type PersonalAcademyGrant,
+  type PublishedAcademyCourse,
+} from "../_shared/academyOwnership.ts";
 import type { AcademyCourseQuery } from "./course.ts";
 
 export type SoloBundleOwnership = "owned" | "not_owned" | "lookup_failed";
 
 // Above PostgREST's default max-rows a page can come back truncated.
 const OWNERSHIP_READ_LIMIT = 1000;
-
-type EntitlementGrant = { course_id: string | null; product_code: string | null };
-type PublishedCourse = { id: string; product_codes: string[] | null };
 
 export async function soloBundleOwnership(
   serviceClient: AcademyCourseQuery,
@@ -46,17 +40,11 @@ export async function soloBundleOwnership(
     return "lookup_failed";
   }
 
-  const grants = (entitlements.data ?? []) as EntitlementGrant[];
-  const published = (courses.data ?? []) as PublishedCourse[];
+  const published = (courses.data ?? []) as PublishedAcademyCourse[];
   // A full page may be truncated, so it can't prove access to every course.
-  if (published.length === 0 || published.length >= OWNERSHIP_READ_LIMIT) return "not_owned";
+  if (published.length >= OWNERSHIP_READ_LIMIT) return "not_owned";
 
-  const covers = (course: PublishedCourse) =>
-    grants.some((grant) =>
-      grant.course_id === course.id ||
-      (grant.course_id === null &&
-        grant.product_code !== null &&
-        (course.product_codes ?? []).includes(grant.product_code))
-    );
-  return published.every(covers) ? "owned" : "not_owned";
+  return ownsSoloBundle((entitlements.data ?? []) as PersonalAcademyGrant[], published)
+    ? "owned"
+    : "not_owned";
 }

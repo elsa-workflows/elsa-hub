@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,9 +8,11 @@ import {
   ACADEMY_ALREADY_OWNED,
   ACADEMY_TEAM_LICENCES_URL,
   handleBuyCourse,
+  isAcademyAlreadyOwnedError,
   type AcademyBuyOutcome,
 } from "@/lib/academy";
 import {
+  ACADEMY_CHECKOUT_FAILED_LINE,
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
   ACADEMY_PAYMENT_SUCCESS_LINE,
@@ -39,7 +42,10 @@ type AcademySoloCtaProps = {
    * a buy action nor the note. Default "none".
    */
   ownership?: AcademySoloOwnership;
-  /** Resolving to ACADEMY_ALREADY_OWNED (checkout's 409) swaps Buy for the owned note. */
+  /**
+   * Resolving to ACADEMY_ALREADY_OWNED, or rejecting with checkout's 409 already_owned, swaps Buy
+   * for the owned note. Any other rejection shows an error toast and re-enables Buy.
+   */
   onBuyCourse?: () => void | Promise<AcademyBuyOutcome>;
 };
 
@@ -68,8 +74,17 @@ export function AcademySoloCta({
   const showGumroadClaim = locked && signedIn && ACADEMY_GUMROAD_CLAIM_LIVE;
   const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${search}`)}`;
   const [checkoutSaysOwned, setCheckoutSaysOwned] = useState(false);
+  const [buying, setBuying] = useState(false);
   const buy = async () => {
-    if ((await onBuyCourse()) === ACADEMY_ALREADY_OWNED) setCheckoutSaysOwned(true);
+    setBuying(true);
+    try {
+      if ((await onBuyCourse()) === ACADEMY_ALREADY_OWNED) setCheckoutSaysOwned(true);
+    } catch (error) {
+      if (await isAcademyAlreadyOwnedError(error)) setCheckoutSaysOwned(true);
+      else toast.error(ACADEMY_CHECKOUT_FAILED_LINE);
+    } finally {
+      setBuying(false);
+    }
   };
 
   let purchaseArea: ReactNode = null;
@@ -84,7 +99,7 @@ export function AcademySoloCta({
     );
   } else if (ownership === "none" && !paymentSuccess) {
     purchaseArea = signedIn ? (
-      <Button type="button" onClick={buy}>
+      <Button type="button" onClick={buy} disabled={buying}>
         {ACADEMY_SOLO_BUY_LABEL}
       </Button>
     ) : (

@@ -56,6 +56,7 @@ export const ACADEMY_SOLO_OWNED_LINK = "My courses";
 export const ACADEMY_SOLO_BUY_LABEL = "Buy the Solo Bundle";
 export const ACADEMY_SOLO_SIGN_IN_LABEL = "Sign in to buy";
 export const ACADEMY_SOLO_SIGNED_OUT_NOTE = "New here? Creating an Elsa Hub account is free.";
+export const ACADEMY_CHECKOUT_FAILED_LINE = "Could not start checkout. Try again.";
 
 export const ACADEMY_GUMROAD_CLAIM_LINE =
   "Bought on Gumroad? Sign in with the verified email you used there and your access attaches. Bought with a different email? Use the claim code from our email.";

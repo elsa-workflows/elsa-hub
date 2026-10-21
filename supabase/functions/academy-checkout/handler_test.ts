@@ -10,7 +10,12 @@ import {
 } from "../_shared/academyLegal.ts";
 import { handleAcademyCheckoutRequest, runAcademyCheckout } from "./handler.ts";
 import { resolveCustomer } from "./stripeCustomer.ts";
-import { captureConsoleError, createQuery, type FailingQueryCall } from "./test_support.ts";
+import {
+  bulkPublished,
+  captureConsoleError,
+  createQuery,
+  type FailingQueryCall,
+} from "./test_support.ts";
 
 const SOLO_COURSE = {
   id: "00000000-0000-4000-8000-000000002001",
@@ -681,7 +686,7 @@ function entitlement(grant: Partial<EntitlementRow>): EntitlementRow {
 
 async function checkoutSoloWithEntitlements(
   entitlements: EntitlementRow[],
-  options: { failEntitlementsRead?: boolean } = {},
+  options: { failEntitlementsRead?: boolean; courses?: CourseRow[] } = {},
 ) {
   const stripe = createStripeMock();
   const { result: res, logged } = await captureConsoleError(() =>
@@ -692,7 +697,7 @@ async function checkoutSoloWithEntitlements(
       deps: {
         userClient: createUserClient(false),
         serviceClient: createServiceClient({
-          courses: [SOLO_COURSE, SECOND_SOLO_COURSE, TEAM5_COURSE],
+          courses: options.courses ?? [SOLO_COURSE, SECOND_SOLO_COURSE, TEAM5_COURSE],
           entitlements,
           failEntitlementsRead: options.failEntitlementsRead,
         }),
@@ -750,6 +755,17 @@ for (const [label, entitlements] of NOT_OWNER_CASES) {
     assertEquals(stripe.sessions.length, 1);
   });
 }
+
+Deno.test("a full page of published courses can't prove ownership, so Solo still gets a session", async () => {
+  // 1000 rows is the read limit: the page may be truncated, so courses past it may be uncovered.
+  const { status, body, stripe } = await checkoutSoloWithEntitlements(
+    [entitlement({ product_code: "solo_bundle" })],
+    { courses: [SOLO_COURSE, ...bulkPublished(999, SOLO_COURSE)] },
+  );
+  assertEquals(status, 200);
+  assertEquals(body.sessionId, "cs_test_academy");
+  assertEquals(stripe.sessions.length, 1);
+});
 
 Deno.test("Solo checkout returns a generic 500 and no Stripe call when the entitlement read fails", async () => {
   const { status, body, stripe, logged } = await checkoutSoloWithEntitlements(

@@ -57,6 +57,7 @@ import {
   lessonPath,
   listCourseKitAssets,
   listCourseLessons,
+  listPersonalAcademyGrants,
   listPublishedCourses,
   scrollAcademySoloBundleIntoView,
 } from "./academy";
@@ -217,6 +218,26 @@ describe("academy data layer", () => {
   it("falls back to stub courses when academy_courses is missing in DEV", async () => {
     order.mockResolvedValue({ data: null, error: missingTable });
     await expect(listPublishedCourses()).resolves.toEqual(ACADEMY_STUB_COURSES);
+  });
+
+  it("reads only the user's own active personal grants, since RLS shows admins every row", async () => {
+    const grant = { course_id: null, product_code: "solo_bundle" };
+    is.mockResolvedValueOnce({ data: [grant], error: null });
+
+    await expect(listPersonalAcademyGrants("user-1")).resolves.toEqual([grant]);
+    expect(from).toHaveBeenCalledWith("academy_entitlements");
+    expect(select).toHaveBeenCalledWith("course_id, product_code");
+    expect(eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(eq).toHaveBeenCalledWith("subject_type", "user");
+    expect(is).toHaveBeenCalledWith("revoked_at", null);
+  });
+
+  it("treats missing academy_entitlements as no personal grants and rethrows other errors", async () => {
+    is.mockResolvedValueOnce({ data: null, error: missingTable });
+    await expect(listPersonalAcademyGrants("user-1")).resolves.toEqual([]);
+
+    is.mockResolvedValueOnce({ data: null, error: { code: "42501", message: "denied" } });
+    await expect(listPersonalAcademyGrants("user-1")).rejects.toMatchObject({ code: "42501" });
   });
 
   it("treats a missing has_academy_access RPC as no access", async () => {

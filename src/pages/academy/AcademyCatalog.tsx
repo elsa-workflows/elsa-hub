@@ -17,20 +17,13 @@ import {
   handleBuyCourse,
   scrollAcademySoloBundleIntoView,
 } from "@/lib/academy";
-import { soloBundleOwnership } from "@/lib/academyOwnership";
 import { ACADEMY_DESCRIPTION, ACADEMY_TITLE, academyCatalogJsonLd } from "@/lib/academySeo";
 import { SITE_URL } from "@/lib/site";
 
 export default function AcademyCatalog() {
   const { hash } = useLocation();
-  const { courses, myCourses, accessByCourseId, isLoading, isError, error } = useAcademyCatalog();
-
-  const ownership = soloBundleOwnership({
-    isLoading,
-    isError,
-    courses,
-    hasAccess: accessByCourseId,
-  });
+  const { courses, myCourses, accessByCourseId, soloOwnership, isLoading, isError, error } =
+    useAcademyCatalog();
 
   useLayoutEffect(() => {
     scrollAcademySoloBundleIntoView(hash);
@@ -104,7 +97,7 @@ export default function AcademyCatalog() {
 
           <AcademySoloCta
             id={ACADEMY_SOLO_BUNDLE_ID}
-            ownership={ownership}
+            ownership={soloOwnership}
             onBuyCourse={handleBuyCourse}
           />
         </div>
