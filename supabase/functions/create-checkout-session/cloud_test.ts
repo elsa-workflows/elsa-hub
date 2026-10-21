@@ -1,6 +1,8 @@
 import { assert, assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudCheckout } from "./cloud.ts";
+import { CLOUD_CHECKOUT_FAILED } from "../_shared/cloud-billing.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
+import { TAX_LOCATION_INVALID_CODE, TAX_LOCATION_INVALID_MESSAGE } from "../_shared/stripe-customer.ts";
 import {
   assertNoStoreWithCors,
   captureConsoleError,
@@ -13,6 +15,7 @@ import {
   fakeUserClient,
   HUB_ORG,
   hubRequest,
+  minutesFromNow,
   OTHER_ORG,
   SITE_ORIGIN,
   storedOrgCustomer,
@@ -30,6 +33,9 @@ type Setup = {
   subscriptions?: FakeSubscription[];
   checkoutSessions?: FakeCheckoutSession[];
   expireError?: Error;
+  subscriptionListError?: Error;
+  sessionListError?: Error;
+  sessionCreateError?: Error;
   origin?: string;
   env?: Record<string, string | undefined>;
 };
@@ -46,6 +52,7 @@ function openCloudSession(
     status: "open",
     url: "https://checkout.example/open-cloud",
     success_url: SUCCESS_URL,
+    expires_at: minutesFromNow(20),
     ...overrides,
     metadata: {
       ...CLOUD_METADATA,
@@ -70,6 +77,9 @@ function checkout(setup: Setup = {}) {
   const { stripe, calls } = fakeStripe(setup.subscriptions, {
     checkoutSessions: setup.checkoutSessions,
     expireError: setup.expireError,
+    subscriptionListError: setup.subscriptionListError,
+    sessionListError: setup.sessionListError,
+    sessionCreateError: setup.sessionCreateError,
   });
   const run = async () => {
     const response = await handleCloudCheckout({
@@ -276,6 +286,7 @@ for (
     ["another price", openCloudSession({ metadata: { cloud_price_id: "price_old_cloud" } })],
     ["no recorded price", { ...openCloudSession(), metadata: { ...CLOUD_METADATA } }],
     ["another return URL", openCloudSession({ success_url: `${SITE_ORIGIN}/cloud?payment=success` })],
+    ["less than 10 minutes left", openCloudSession({ expires_at: minutesFromNow(9) })],
   ] as const
 ) {
   Deno.test(`an open Cloud checkout for ${name} is expired and a new one created`, async () => {
@@ -323,7 +334,13 @@ Deno.test("a stale session that will not expire is logged and a new one still cr
 Deno.test("an open Hub checkout session does not block a Cloud checkout", async () => {
   const { run, calls } = checkout({
     checkoutSessions: [
-      { id: "cs_hub", status: "open", url: "https://checkout.example/open-hub", metadata: { bundle_id: "b1" } },
+      {
+        id: "cs_hub",
+        status: "open",
+        url: "https://checkout.example/open-hub",
+        expires_at: minutesFromNow(20),
+        metadata: { bundle_id: "b1" },
+      },
     ],
   });
 
@@ -359,4 +376,47 @@ Deno.test("Hub and ended Cloud subscriptions do not block checkout", async () =>
 
   assertEquals(response.status, 200);
   assertEquals(calls.sessions.length, 1);
+});
+
+Deno.test("an open Cloud checkout with 10 minutes left is still reused", async () => {
+  const { run, calls } = checkout({ checkoutSessions: [openCloudSession({ expires_at: minutesFromNow(10) + 5 })] });
+
+  const { payload } = await run();
+
+  assertEquals(payload.checkoutUrl, "https://checkout.example/open-cloud");
+  assertEquals(calls.expired, []);
+  assertEquals(calls.sessions.length, 0);
+});
+
+const SECRET_STRIPE_DETAIL = "secret stripe detail: rate limited on acct_123";
+
+for (
+  const [name, failure] of [
+    ["subscriptions.list", { subscriptionListError: new Error(SECRET_STRIPE_DETAIL) }],
+    ["checkout.sessions.list", { sessionListError: new Error(SECRET_STRIPE_DETAIL) }],
+    ["checkout.sessions.create", { sessionCreateError: new Error(SECRET_STRIPE_DETAIL) }],
+  ] as const
+) {
+  Deno.test(`a rejecting ${name} is a logged, generic, no-store 500`, async () => {
+    const { run } = checkout(failure);
+
+    const { result: { response, payload }, logged } = await captureConsoleError(run);
+
+    assertEquals(response.status, 500);
+    assertNoStoreWithCors(response);
+    assertEquals(payload, { error: CLOUD_CHECKOUT_FAILED });
+    assertStringIncludes(logged, SECRET_STRIPE_DETAIL);
+  });
+}
+
+Deno.test("Stripe's customer_tax_location_invalid is the Hub's 400, no-store, without Stripe's text", async () => {
+  const { run } = checkout({
+    sessionCreateError: Object.assign(new Error(SECRET_STRIPE_DETAIL), { code: TAX_LOCATION_INVALID_CODE }),
+  });
+
+  const { result: { response, payload } } = await captureConsoleError(run);
+
+  assertEquals(response.status, 400);
+  assertNoStoreWithCors(response);
+  assertEquals(payload, { error: TAX_LOCATION_INVALID_MESSAGE, code: TAX_LOCATION_INVALID_CODE });
 });

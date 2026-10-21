@@ -6,10 +6,12 @@ import {
   getOrCreateStripeCustomer,
   type StripeCustomerClient,
   type StripeCustomerStore,
+  taxLocationFailureResponse,
 } from "../_shared/stripe-customer.ts";
 import {
   assertStripeTestMode,
   buildCloudCheckoutMetadata,
+  CLOUD_CHECKOUT_FAILED,
   CLOUD_LINK_READ_FAILED,
   CLOUD_ORGANIZATION_REQUIRED,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
@@ -39,6 +41,9 @@ import { trustedSiteOrigin } from "../_shared/site-origin.ts";
  */
 const CLOUD_CHECKOUT_SESSION_TTL_SECONDS = 31 * 60;
 
+/** An open session is handed out only with this long left, so the admin has time to pay. */
+const CLOUD_CHECKOUT_REUSE_MIN_SECONDS_LEFT = 10 * 60;
+
 /** The Stripe surface Cloud checkout uses; the real client satisfies it. */
 export type CloudCheckoutStripe = StripeCustomerClient & {
   subscriptions: {
@@ -62,14 +67,18 @@ const REUSE_METADATA_KEYS = [
 
 /**
  * An open session is reused only when it is the one this request would
- * create: the same Control org, Hub org and price, returning to the same URL.
+ * create (the same Control org, Hub org and price, returning to the same URL)
+ * and has at least ten minutes left.
  */
-function isSameCheckout(
+function isReusable(
   session: OpenCheckoutSession,
   metadata: CloudCheckoutMetadata,
   successUrl: string,
+  nowSeconds: number,
 ): boolean {
-  return session.success_url === successUrl &&
+  return !!session.url &&
+    session.expires_at - nowSeconds >= CLOUD_CHECKOUT_REUSE_MIN_SECONDS_LEFT &&
+    session.success_url === successUrl &&
     REUSE_METADATA_KEYS.every((key) => session.metadata?.[key] === metadata[key]);
 }
 
@@ -162,9 +171,11 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     apiVersion: "2025-08-27.basil",
   });
 
-  let stripeCustomerId: string;
+  // Every Stripe call from here on fails into one catch: the customer helper's
+  // own generic 500, the Hub's tax-location 400, or a logged generic 500, all
+  // no-store. Stripe's message never reaches the client.
   try {
-    stripeCustomerId = await getOrCreateStripeCustomer(
+    const stripeCustomerId = await getOrCreateStripeCustomer(
       { orgId: organizationId },
       {
         stripe,
@@ -177,61 +188,62 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
         metadata: { organization_id: organizationId, user_id: user.id },
       },
     );
-  } catch (error) {
-    const failure = customerFailureResponse(error, noStoreHeaders());
-    if (failure) return failure;
-    throw error;
-  }
 
-  // Stripe's default status filter returns every subscription that is not canceled.
-  const existing = await stripe.subscriptions.list({ customer: stripeCustomerId, limit: 100 });
-  if (orgHasBlockingCloudSubscription(existing.data)) {
-    return jsonResponse(409, {
-      error: "This organization already has a Cloud subscription",
-      code: CLOUD_SUBSCRIPTION_EXISTS_CODE,
+    // Stripe's default status filter returns every subscription that is not canceled.
+    const existing = await stripe.subscriptions.list({ customer: stripeCustomerId, limit: 100 });
+    if (orgHasBlockingCloudSubscription(existing.data)) {
+      return jsonResponse(409, {
+        error: "This organization already has a Cloud subscription",
+        code: CLOUD_SUBSCRIPTION_EXISTS_CODE,
+      });
+    }
+
+    const metadata = buildCloudCheckoutMetadata({
+      hubUserId: user.id,
+      hubOrganizationId: organizationId,
+      controlOrganizationId,
+      priceId: stripePriceId,
     });
+    const origin = trustedSiteOrigin(req, env);
+    const successUrl = `${origin}${cloudCheckoutSuccessPath(org?.slug)}`;
+
+    // Reuse an open Cloud checkout, so a second click or a second admin gets the
+    // same session. That holds only when the requests aren't simultaneous: two
+    // that both list before either creates will each open one. When one of them
+    // completes, stripe-webhook expires the customer's other open Cloud sessions.
+    // An open session that no longer matches (another Control org, price or
+    // return URL) or is about to expire is expired rather than handed out.
+    const openCloudSessions = await listOpenCloudCheckoutSessions(stripe.checkout.sessions, stripeCustomerId);
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const reusable = openCloudSessions.find((session) => isReusable(session, metadata, successUrl, nowSeconds));
+    for (const stale of openCloudSessions) {
+      if (stale !== reusable) await expireCheckoutSession(stripe.checkout.sessions, stale.id);
+    }
+    if (reusable) {
+      return jsonResponse(200, { checkoutUrl: reusable.url });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: stripeCustomerId,
+      customer_update: { address: "auto", name: "auto" },
+      client_reference_id: controlOrganizationId,
+      line_items: [{ price: stripePriceId, quantity: 1 }],
+      metadata,
+      subscription_data: { metadata },
+      automatic_tax: { enabled: true },
+      tax_id_collection: { enabled: true },
+      success_url: successUrl,
+      cancel_url: `${origin}${cloudCheckoutCancelPath(org?.slug)}`,
+      expires_at: nowSeconds + CLOUD_CHECKOUT_SESSION_TTL_SECONDS,
+    });
+
+    return jsonResponse(200, { checkoutUrl: session.url });
+  } catch (error) {
+    const customerFailure = customerFailureResponse(error, noStoreHeaders());
+    if (customerFailure) return customerFailure;
+    console.error("Cloud checkout Stripe call failed:", error);
+    return taxLocationFailureResponse(error, noStoreHeaders()) ??
+      jsonResponse(500, { error: CLOUD_CHECKOUT_FAILED });
   }
-
-  const metadata = buildCloudCheckoutMetadata({
-    hubUserId: user.id,
-    hubOrganizationId: organizationId,
-    controlOrganizationId,
-    priceId: stripePriceId,
-  });
-  const origin = trustedSiteOrigin(req, env);
-  const successUrl = `${origin}${cloudCheckoutSuccessPath(org?.slug)}`;
-
-  // Reuse an open Cloud checkout, so a second click or a second admin gets the
-  // same session. That holds only when the requests aren't simultaneous: two
-  // that both list before either creates will each open one. When one of them
-  // completes, stripe-webhook expires the customer's other open Cloud sessions.
-  // An open session that no longer matches (another Control org, price or
-  // return URL) is expired rather than handed out.
-  const openCloudSessions = await listOpenCloudCheckoutSessions(stripe.checkout.sessions, stripeCustomerId);
-  const reusable = openCloudSessions.find((session) =>
-    session.url && isSameCheckout(session, metadata, successUrl)
-  );
-  for (const stale of openCloudSessions) {
-    if (stale !== reusable) await expireCheckoutSession(stripe.checkout.sessions, stale.id);
-  }
-  if (reusable) {
-    return jsonResponse(200, { checkoutUrl: reusable.url });
-  }
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: stripeCustomerId,
-    customer_update: { address: "auto", name: "auto" },
-    client_reference_id: controlOrganizationId,
-    line_items: [{ price: stripePriceId, quantity: 1 }],
-    metadata,
-    subscription_data: { metadata },
-    automatic_tax: { enabled: true },
-    tax_id_collection: { enabled: true },
-    success_url: successUrl,
-    cancel_url: `${origin}${cloudCheckoutCancelPath(org?.slug)}`,
-    expires_at: Math.floor(Date.now() / 1000) + CLOUD_CHECKOUT_SESSION_TTL_SECONDS,
-  });
-
-  return jsonResponse(200, { checkoutUrl: session.url });
 }

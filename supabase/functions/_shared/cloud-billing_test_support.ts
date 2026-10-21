@@ -111,8 +111,14 @@ export type FakeCheckoutSession = {
   status: string;
   url: string | null;
   success_url?: string | null;
+  expires_at: number;
   metadata?: Record<string, string> | null;
 };
+
+/** A Checkout Session expires_at the given number of minutes from now. */
+export function minutesFromNow(minutes: number): number {
+  return Math.floor(Date.now() / 1000) + minutes * 60;
+}
 
 /** Stripe's list filter: no status means every subscription that is not canceled. */
 function subscriptionMatches(status: unknown, sub: FakeSubscription): boolean {
@@ -133,7 +139,9 @@ export function fakeStripe(
     checkoutSessions?: FakeCheckoutSession[];
     portalError?: Error;
     expireError?: Error;
+    subscriptionListError?: Error;
     sessionListError?: Error;
+    sessionCreateError?: Error;
   } = {},
 ) {
   const calls = {
@@ -158,6 +166,7 @@ export function fakeStripe(
     subscriptions: {
       list: (params: Record<string, unknown>) => {
         calls.subscriptionLists.push(params);
+        if (options.subscriptionListError) return Promise.reject(options.subscriptionListError);
         return page(subscriptions.filter((sub) => subscriptionMatches(params.status, sub)), params);
       },
     },
@@ -175,6 +184,7 @@ export function fakeStripe(
         },
         create: (params: unknown) => {
           calls.sessions.push(params as Record<string, unknown>);
+          if (options.sessionCreateError) return Promise.reject(options.sessionCreateError);
           return Promise.resolve({ url: "https://checkout.example/session" });
         },
       },

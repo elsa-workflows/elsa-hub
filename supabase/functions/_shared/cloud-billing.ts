@@ -44,6 +44,7 @@ export const CLOUD_ORG_NOT_LINKED_CODE = "cloud_org_not_linked";
 export const CLOUD_ORGANIZATION_REQUIRED = "Cloud billing requires an organization";
 export const CLOUD_LINK_READ_FAILED =
   "We couldn't check this organization's Elsa Cloud link. Please try again later.";
+export const CLOUD_CHECKOUT_FAILED = "We couldn't start Cloud checkout. Please try again later.";
 
 /** A Cloud checkout or portal request, as opposed to the Hub's own billing. */
 export function isCloudRequest(body: unknown): boolean {
@@ -154,6 +155,8 @@ export type OpenCheckoutSession = {
   id: string;
   url: string | null;
   success_url?: string | null;
+  /** Unix seconds. */
+  expires_at: number;
   metadata?: Record<string, string> | null;
 };
 

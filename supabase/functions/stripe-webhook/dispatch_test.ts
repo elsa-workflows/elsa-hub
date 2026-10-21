@@ -4,6 +4,7 @@ import {
   captureConsoleError,
   type FakeCheckoutSession,
   fakeStripe,
+  minutesFromNow,
 } from "../_shared/cloud-billing_test_support.ts";
 import {
   type AcademyEntitlementRow,
@@ -133,6 +134,7 @@ const openSession = (id: string, metadata: Record<string, string>): FakeCheckout
   id,
   status: "open",
   url: `https://checkout.example/${id}`,
+  expires_at: minutesFromNow(30),
   metadata,
 });
 
