@@ -6,7 +6,7 @@ import {
   getOrCreateStripeCustomer,
   type StripeCustomerStore,
 } from "../_shared/stripe-customer.ts";
-import { isCloudCheckoutRequest } from "../_shared/cloud-billing.ts";
+import { isCloudRequest } from "../_shared/cloud-billing.ts";
 import { handleCloudCheckout } from "./cloud.ts";
 
 const corsHeaders = {
@@ -72,14 +72,13 @@ serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    if (isCloudCheckoutRequest(body)) {
+    if (isCloudRequest(body)) {
       return await handleCloudCheckout({
         req,
         user,
         userClient,
         serviceClient,
         body,
-        corsHeaders,
       });
     }
 

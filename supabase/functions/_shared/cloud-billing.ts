@@ -10,12 +10,13 @@
  * - #79 `readValidatedControlOrganizationId` from `cloud_organization_links`
  *   (Control org id for checkout metadata)
  *
- * Cloud billing is org-only. The Hub organization comes from
- * organization_members plus `is_org_admin`. The Control organization id
- * comes from #79's validated link row, never from the Hub org id or the client.
+ * Cloud billing is org-only. The Hub organization is the one the request
+ * names, admitted by `is_org_admin` (checkout, portal) or `is_org_member`
+ * (status). The Control organization id comes from #79's validated link row
+ * for that org, never from the Hub org id or the client.
  */
 
-import { stripeKeyMode } from "./stripe-customer.ts";
+import { type EnvReader, stripeKeyMode } from "./stripe-customer.ts";
 
 export const CLOUD_KIND = "cloud";
 export const ACADEMY_KIND = "academy";
@@ -42,7 +43,8 @@ export const CLOUD_ORGANIZATION_REQUIRED = "Cloud billing requires an organizati
 export const CLOUD_LINK_READ_FAILED =
   "We couldn't check this organization's Elsa Cloud link. Please try again later.";
 
-export function isCloudCheckoutRequest(body: unknown): boolean {
+/** A Cloud checkout or portal request, as opposed to the Hub's own billing. */
+export function isCloudRequest(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
   const productType = (body as { productType?: unknown }).productType;
   const kind = (body as { kind?: unknown }).kind;
@@ -111,19 +113,6 @@ export function cloudOrganizationIdFromBody(body: unknown): string | null {
   return organizationId || null;
 }
 
-export type HubOrganizationMembership = {
-  organization_id: string;
-  role?: string;
-};
-
-export type LinkedHubOrganization =
-  | { organizationId: string }
-  | { status: number; error: string; code?: string };
-
-function isAdminMembershipRole(role?: string): boolean {
-  return role === "admin" || role === "owner";
-}
-
 export function unlinkedControlOrganizationError(): {
   status: number;
   error: string;
@@ -134,51 +123,6 @@ export function unlinkedControlOrganizationError(): {
     code: CLOUD_ORG_NOT_LINKED_CODE,
     error: "No organization is linked to this account",
   };
-}
-
-export function selectLinkedHubOrganization(
-  memberships: HubOrganizationMembership[],
-  clientOrganizationId?: string | null,
-): LinkedHubOrganization {
-  const requested = clientOrganizationId?.trim();
-  if (!requested) {
-    return { status: 400, error: CLOUD_ORGANIZATION_REQUIRED };
-  }
-
-  const matched = memberships.some(
-    (row) => row.organization_id === requested && isAdminMembershipRole(row.role),
-  );
-  return matched ? { organizationId: requested } : unlinkedControlOrganizationError();
-}
-
-type HubOrganizationMembershipStore = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => PromiseLike<{
-        data: HubOrganizationMembership[] | null;
-        error: { message: string } | null;
-      }>;
-    };
-  };
-};
-
-/** Throws a generic error on a read failure; the detail is logged, not returned. */
-export async function readLinkedHubAdminOrganizations(
-  supabase: unknown,
-  userId: string,
-): Promise<HubOrganizationMembership[]> {
-  const store = supabase as HubOrganizationMembershipStore;
-  const { data, error } = await store
-    .from("organization_members")
-    .select("organization_id, role")
-    .eq("user_id", userId);
-
-  if (error) {
-    console.error("Failed to read organization membership:", error);
-    throw new Error("We couldn't check your organization membership. Please try again later.");
-  }
-
-  return (data ?? []).filter((row) => isAdminMembershipRole(row.role) && row.organization_id);
 }
 
 export function cloudLinkFromControlOrganizationId(
@@ -235,7 +179,7 @@ export function assertStripeTestMode(secretKey: string | undefined): void {
   }
 }
 
-export function readCloudPriceId(env: { get(key: string): string | undefined } = Deno.env): string {
+export function readCloudPriceId(env: EnvReader = Deno.env): string {
   const priceId = env.get("STRIPE_CLOUD_PRICE_ID") ?? env.get("CLOUD_STRIPE_PRICE_ID");
   if (!priceId) {
     throw new Error("Cloud billing is not configured");
@@ -243,8 +187,11 @@ export function readCloudPriceId(env: { get(key: string): string | undefined } =
   return priceId;
 }
 
-/** Statuses after which a subscription can no longer bill or be reactivated. */
-const ENDED_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired"]);
+/**
+ * Statuses after which a subscription can no longer bill or be reactivated.
+ * src/lib/cloud/billingContract.ts mirrors this list for the billing page.
+ */
+export const ENDED_SUBSCRIPTION_STATUSES: readonly string[] = ["canceled", "incomplete_expired"];
 
 /**
  * Any Cloud subscription that has not ended blocks a second checkout:
@@ -259,7 +206,7 @@ export function orgHasBlockingCloudSubscription(
 ): boolean {
   return subscriptions.some((sub) =>
     classifyStripeDataObject(sub) === "cloud" &&
-    !ENDED_SUBSCRIPTION_STATUSES.has(sub.status ?? "")
+    !ENDED_SUBSCRIPTION_STATUSES.includes(sub.status ?? "")
   );
 }
 

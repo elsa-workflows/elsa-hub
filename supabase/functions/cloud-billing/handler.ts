@@ -15,22 +15,8 @@ import {
   cloudOrganizationIdFromBody,
   readControlEntitlement,
 } from "../_shared/cloud-billing.ts";
+import { jsonResponse, noStoreHeaders } from "../_shared/cloud-http.ts";
 import { readValidatedControlOrganizationId } from "../_shared/cloud-organization-link.ts";
-
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-const headers = { ...corsHeaders, "Cache-Control": "no-store" };
-
-export function json(status: number, payload: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { ...headers, "Content-Type": "application/json" },
-  });
-}
 
 export type CloudBillingStripe = {
   subscriptions: {
@@ -47,21 +33,35 @@ export type CloudBillingStatusContext = {
   stripe: () => CloudBillingStripe;
 };
 
+/** Cloud has one plan; its label is fixed until Control reports the entitlement. */
+const CLOUD_PLAN_NAME = "Elsa Cloud";
+
 function cloudSubscriptionView(sub: Stripe.Subscription) {
-  const item = sub.items?.data?.[0];
-  const periodEnd = item?.current_period_end ??
+  const periodEnd = sub.items?.data?.[0]?.current_period_end ??
     (sub as unknown as { current_period_end?: number }).current_period_end;
-  const product = item?.price?.product;
-  const productName = typeof product === "object" && product && "name" in product
-    ? String((product as { name?: string }).name ?? "Elsa Cloud")
-    : "Elsa Cloud";
   return {
     id: sub.id,
     status: sub.status,
     cancelAtPeriodEnd: sub.cancel_at_period_end === true,
     currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
-    planName: productName,
+    planName: CLOUD_PLAN_NAME,
   };
+}
+
+/**
+ * The customer's Cloud subscriptions. The first page of live ones (Stripe's
+ * default filter skips canceled) covers any realistic customer; ended ones are
+ * listed only when no live Cloud subscription is on that page.
+ */
+async function listCloudSubscriptions(
+  stripe: CloudBillingStripe,
+  customer: string,
+): Promise<Stripe.Subscription[]> {
+  const cloudOnly = (page: { data: Stripe.Subscription[] }) =>
+    page.data.filter((sub) => classifyStripeDataObject(sub) === "cloud");
+  const live = cloudOnly(await stripe.subscriptions.list({ customer, limit: 100 }));
+  if (live.length > 0) return live;
+  return cloudOnly(await stripe.subscriptions.list({ customer, status: "ended", limit: 100 }));
 }
 
 /**
@@ -73,17 +73,17 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
   const { user, userClient, serviceClient, env } = ctx;
 
   const organizationId = cloudOrganizationIdFromBody(ctx.body);
-  if (!organizationId) return json(400, { error: CLOUD_ORGANIZATION_REQUIRED });
+  if (!organizationId) return jsonResponse(400, { error: CLOUD_ORGANIZATION_REQUIRED });
 
   const { data: isMember } = await userClient.rpc("is_org_member", { p_org_id: organizationId });
-  if (!isMember) return json(403, { error: "Forbidden" });
+  if (!isMember) return jsonResponse(403, { error: "Forbidden" });
   const { data: isAdmin } = await userClient.rpc("is_org_admin", { p_org_id: organizationId });
   const canManage = isAdmin === true;
 
   try {
     assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
   } catch (error) {
-    return json(503, { error: (error as Error).message });
+    return jsonResponse(503, { error: (error as Error).message });
   }
 
   let customerId: string | null;
@@ -94,7 +94,7 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
       { supabase: serviceClient as unknown as StripeCustomerStore, env },
     );
   } catch (error) {
-    const failure = customerFailureResponse(error, headers);
+    const failure = customerFailureResponse(error, noStoreHeaders());
     if (failure) return failure;
     throw error;
   }
@@ -104,7 +104,7 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
     controlOrganizationId = await readValidatedControlOrganizationId(serviceClient, organizationId);
   } catch (error) {
     console.error("Cloud billing status link read failed:", error);
-    return json(500, { error: CLOUD_LINK_READ_FAILED });
+    return jsonResponse(500, { error: CLOUD_LINK_READ_FAILED });
   }
 
   const entitlement = await readControlEntitlement({
@@ -113,17 +113,10 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
   });
 
   const subscriptions = customerId
-    ? (await ctx.stripe().subscriptions.list({
-      customer: customerId,
-      status: "all",
-      limit: 20,
-      expand: ["data.items.data.price"],
-    })).data
-      .filter((sub) => classifyStripeDataObject(sub) === "cloud")
-      .map(cloudSubscriptionView)
+    ? (await listCloudSubscriptions(ctx.stripe(), customerId)).map(cloudSubscriptionView)
     : [];
 
-  return json(200, {
+  return jsonResponse(200, {
     billingAccount: customerId ? "linked" : "missing",
     cloudLink: cloudLinkFromControlOrganizationId(controlOrganizationId),
     controlOrganizationId,

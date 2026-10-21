@@ -8,8 +8,14 @@ const server = readFileSync(
   "utf8",
 );
 
+/** The server's exported literal for name, parsed as JSON (strings and string arrays). */
+function serverValue(name: string): unknown {
+  const declaration = server.match(new RegExp(`export const ${name}(?::[^=]+)? = ([^;]+);`));
+  return declaration ? JSON.parse(declaration[1]) : undefined;
+}
+
 describe("Cloud billing contract", () => {
   it.each(Object.entries(contract))("%s matches the server's value", (name, value) => {
-    expect(server).toContain(`export const ${name} = ${JSON.stringify(value)};`);
+    expect(serverValue(name)).toEqual(value);
   });
 });

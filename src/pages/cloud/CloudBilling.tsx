@@ -1,36 +1,20 @@
-import { useEffect } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
 import { CloudBillingPanel } from "@/components/cloud/CloudBillingPanel";
 import { useCloudBilling } from "@/hooks/useCloudBilling";
+import { usePaymentReturnToast } from "@/hooks/usePaymentReturnToast";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 function CloudBillingBody() {
   const { pathname } = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const billing = useCloudBilling();
   const { home } = useCloudConsolePaths();
   const inDashboard = pathname.startsWith("/dashboard");
 
-  useEffect(() => {
-    const payment = searchParams.get("payment");
-    if (payment !== "cancelled" && payment !== "success") return;
-    if (payment === "cancelled") {
-      toast.message("Checkout cancelled", {
-        description: "Your Elsa Cloud subscription was not changed.",
-      });
-    } else {
-      toast.success("Checkout complete", {
-        description: "Your Elsa Cloud plan will appear here once Control reports the entitlement.",
-      });
-    }
-    const next = new URLSearchParams(searchParams);
-    next.delete("payment");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
+  // Checkout success returns to Cloud home; only a cancel lands here.
+  usePaymentReturnToast("cancelled", "Checkout cancelled", "Your Elsa Cloud subscription was not changed.");
 
   return (
     <section className={inDashboard ? "p-6" : "py-10 md:py-16"}>

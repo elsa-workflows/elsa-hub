@@ -7,17 +7,16 @@ import {
   cloudCheckoutSuccessPath,
   cloudOrganizationIdFromBody,
   cloudPortalReturnPath,
-  isCloudCheckoutRequest,
+  isCloudRequest,
   isCloudStripeEvent,
   orgHasBlockingCloudSubscription,
-  selectLinkedHubOrganization,
 } from "./cloud-billing.ts";
 
 Deno.test("a Cloud request is recognized by productType or kind; Hub bodies are not", () => {
-  assertEquals(isCloudCheckoutRequest({ productType: "cloud" }), true);
-  assertEquals(isCloudCheckoutRequest({ kind: "cloud" }), true);
-  assertEquals(isCloudCheckoutRequest({ bundleId: "b1", organizationId: "org-1" }), false);
-  assertEquals(isCloudCheckoutRequest(null), false);
+  assertEquals(isCloudRequest({ productType: "cloud" }), true);
+  assertEquals(isCloudRequest({ kind: "cloud" }), true);
+  assertEquals(isCloudRequest({ bundleId: "b1", organizationId: "org-1" }), false);
+  assertEquals(isCloudRequest(null), false);
 });
 
 Deno.test("the organization id comes from the body, and blank means personal mode", () => {
@@ -25,32 +24,6 @@ Deno.test("the organization id comes from the body, and blank means personal mod
   assertEquals(cloudOrganizationIdFromBody({ organizationId: "" }), null);
   assertEquals(cloudOrganizationIdFromBody({ organizationId: 42 }), null);
   assertEquals(cloudOrganizationIdFromBody(null), null);
-});
-
-Deno.test("the linked Hub org is an admin membership row, never a client foreign id", () => {
-  const admin = [{ organization_id: "org-b", role: "admin" }];
-  assertEquals(selectLinkedHubOrganization(admin, "org-b"), { organizationId: "org-b" });
-  assertEquals(selectLinkedHubOrganization([{ organization_id: "org-b", role: "owner" }], "org-b"), {
-    organizationId: "org-b",
-  });
-  for (
-    const [memberships, requested] of [
-      [admin, "org-foreign"],
-      [[], "org-b"],
-      [[{ organization_id: "org-b" }], "org-b"],
-      [[{ organization_id: "org-b", role: "member" }], "org-b"],
-    ] as const
-  ) {
-    assertEquals(selectLinkedHubOrganization([...memberships], requested), {
-      status: 403,
-      code: "cloud_org_not_linked",
-      error: "No organization is linked to this account",
-    });
-  }
-  assertEquals(selectLinkedHubOrganization(admin, undefined), {
-    status: 400,
-    error: "Cloud billing requires an organization",
-  });
 });
 
 Deno.test("checkout metadata carries the Hub user, Hub org and Control org", () => {

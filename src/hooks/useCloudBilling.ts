@@ -9,6 +9,7 @@ import {
   CLOUD_ORGANIZATION_REQUIRED,
   CLOUD_PRODUCT_TYPE,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
+  ENDED_SUBSCRIPTION_STATUSES,
 } from "@/lib/cloud/billingContract";
 import { isHubOrgAdmin } from "@/lib/cloud/organizationLink";
 import { redirectTo } from "@/lib/cloud/redirect";
@@ -135,9 +136,9 @@ export function useCloudBilling() {
   });
 
   const snapshot = statusQuery.data;
-  const stripeSubscription = snapshot?.subscriptions?.find((sub) =>
-    ["active", "trialing", "past_due", "paused"].includes(sub.status),
-  ) ?? snapshot?.subscriptions?.[0];
+  const stripeSubscription = snapshot?.subscriptions?.find(
+    (sub) => !ENDED_SUBSCRIPTION_STATUSES.includes(sub.status),
+  );
 
   const planName = snapshot?.entitlement?.planName || stripeSubscription?.planName || null;
   const planStatus = snapshot?.entitlement?.status || stripeSubscription?.status || null;

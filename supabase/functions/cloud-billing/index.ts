@@ -1,17 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { corsHeaders, handleCloudBillingStatus, json } from "./handler.ts";
+import { jsonResponse, preflightResponse } from "../_shared/cloud-http.ts";
+import { handleCloudBillingStatus } from "./handler.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return preflightResponse();
   }
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return json(401, { error: "Unauthorized" });
+      return jsonResponse(401, { error: "Unauthorized" });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -25,7 +26,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await serviceClient.auth.getUser(token);
     if (userError || !user) {
-      return json(401, { error: "Unauthorized" });
+      return jsonResponse(401, { error: "Unauthorized" });
     }
 
     return await handleCloudBillingStatus({
@@ -39,6 +40,6 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Cloud billing status error:", error);
-    return json(500, { error: "We couldn't load Cloud billing. Please try again later." });
+    return jsonResponse(500, { error: "We couldn't load Cloud billing. Please try again later." });
   }
 });

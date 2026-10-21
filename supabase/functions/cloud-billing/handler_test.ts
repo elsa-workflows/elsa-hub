@@ -65,6 +65,41 @@ Deno.test("status reports the org's stored customer, link and Cloud subscription
   assertEquals(payload.controlOrganizationId, CONTROL_ORG);
   assertEquals(payload.canManage, true);
   assertEquals(payload.subscriptions.map((sub: { id: string }) => sub.id), ["sub_cloud"]);
+  assertEquals(payload.subscriptions[0].planName, "Elsa Cloud");
+  assertEquals(calls.subscriptionLists, [{ customer: "cus_org_a", limit: 100 }]);
+});
+
+Deno.test("a busy customer's live Cloud subscription is found behind many ended Hub subscriptions", async () => {
+  const endedHub = Array.from({ length: 25 }, (_, index) => ({
+    id: `sub_hub_${index}`,
+    status: "canceled",
+    metadata: { billing_type: "recurring" },
+  }));
+  const { run, calls } = status({
+    subscriptions: [...endedHub, { id: "sub_cloud", status: "active", metadata: { kind: "cloud" } }],
+  });
+
+  const { payload } = await run();
+
+  assertEquals(payload.subscriptions.map((sub: { id: string }) => sub.id), ["sub_cloud"]);
+  assertEquals(calls.subscriptionLists.length, 1);
+});
+
+Deno.test("ended Cloud subscriptions are listed only when no live one is on the first page", async () => {
+  const { run, calls } = status({
+    subscriptions: [
+      { id: "sub_hub", status: "active", metadata: { billing_type: "recurring" } },
+      { id: "sub_old_cloud", status: "canceled", metadata: { kind: "cloud" } },
+    ],
+  });
+
+  const { payload } = await run();
+
+  assertEquals(payload.subscriptions.map((sub: { id: string }) => sub.id), ["sub_old_cloud"]);
+  assertEquals(calls.subscriptionLists, [
+    { customer: "cus_org_a", limit: 100 },
+    { customer: "cus_org_a", status: "ended", limit: 100 },
+  ]);
 });
 
 Deno.test("a stored customer without a link still reports billingAccount, so the portal stays reachable", async () => {

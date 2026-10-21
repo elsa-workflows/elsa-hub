@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { CloudCreateEngineDialog } from "@/components/cloud/CloudCreateEngineDialog";
 import { CloudLinkOrganizationState } from "@/components/cloud/CloudLinkOrganizationState";
@@ -23,12 +22,11 @@ import {
 } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { usePaymentReturnToast } from "@/hooks/usePaymentReturnToast";
 
 export default function CloudHome() {
   const { pathname } = useLocation();
   const { slug } = useParams<{ slug?: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { organizations } = useOrganizations();
   const currentOrg = organizations.find((org) => org.slug === slug);
   const hubOrganizationId = currentOrg?.id;
@@ -62,15 +60,7 @@ export default function CloudHome() {
     )
     : null;
 
-  useEffect(() => {
-    if (searchParams.get("payment") !== "success") return;
-    toast.success("Checkout complete", {
-      description: "Your Elsa Cloud plan will appear here once Control reports the entitlement.",
-    });
-    const next = new URLSearchParams(searchParams);
-    next.delete("payment");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
+  usePaymentReturnToast("success", "Checkout complete", "Manage your plan under Cloud billing.");
 
   return (
     <OrgCloudMembershipGate>

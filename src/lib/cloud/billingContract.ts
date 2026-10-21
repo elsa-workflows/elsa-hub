@@ -8,3 +8,6 @@
 export const CLOUD_PRODUCT_TYPE = "cloud";
 export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
 export const CLOUD_ORGANIZATION_REQUIRED = "Cloud billing requires an organization";
+
+/** Statuses after which a subscription can no longer bill or be reactivated. */
+export const ENDED_SUBSCRIPTION_STATUSES: readonly string[] = ["canceled", "incomplete_expired"];

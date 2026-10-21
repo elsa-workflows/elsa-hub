@@ -101,6 +101,10 @@ vi.mock("@/hooks/useCloudOrganizationLink", () => ({
   }),
 }));
 
+const { toastSuccess } = vi.hoisted(() => ({ toastSuccess: vi.fn() }));
+
+vi.mock("sonner", () => ({ toast: { success: toastSuccess, message: vi.fn(), error: vi.fn() } }));
+
 import CloudHome from "./CloudHome";
 
 function LocationProbe() {
@@ -397,5 +401,15 @@ describe("CloudHome", () => {
         "noindex,nofollow",
       );
     });
+  });
+
+  it("points a returning checkout at Cloud billing instead of promising a plan here", async () => {
+    renderHome("/dashboard/org/acme/cloud?payment=success");
+
+    await waitFor(() =>
+      expect(toastSuccess).toHaveBeenCalledWith("Checkout complete", {
+        description: "Manage your plan under Cloud billing.",
+      }),
+    );
   });
 });

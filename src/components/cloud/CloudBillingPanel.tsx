@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { CloudSubscriptionStatus } from "@/hooks/useCloudBilling";
+import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
 
 function statusLabel(status: string | null, cancelAtPeriodEnd: boolean): string {
   if (!status) return "No subscription";
@@ -12,7 +13,6 @@ function statusLabel(status: string | null, cancelAtPeriodEnd: boolean): string 
   if (status === "active" || status === "trialing") return "Active";
   if (status === "past_due") return "Past due";
   if (status === "paused") return "Paused";
-  if (status === "canceled") return "Canceled";
   return status;
 }
 
@@ -45,7 +45,7 @@ export function CloudBillingPanel({
   checkoutPending: boolean;
   portalPending: boolean;
 }) {
-  const hasPlan = Boolean(planName && planStatus && planStatus !== "canceled");
+  const hasPlan = Boolean(planName && planStatus && !ENDED_SUBSCRIPTION_STATUSES.includes(planStatus));
   const linkedToControl = cloudLink === "linked";
   const hasStoredCustomer = billingAccount === "linked";
   const periodEnd = subscription?.currentPeriodEnd

@@ -3,11 +3,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const { invoke, navigate, redirectTo } = vi.hoisted(() => ({
+const { invoke, navigate, redirectTo, toastMessage } = vi.hoisted(() => ({
   invoke: vi.fn(),
   navigate: vi.fn(),
   redirectTo: vi.fn(),
+  toastMessage: vi.fn(),
 }));
+
+vi.mock("sonner", () => ({ toast: { message: toastMessage, success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("@/components/Seo", () => ({
   Seo: () => null,
@@ -117,5 +120,15 @@ describe("Cloud billing pages", () => {
     });
     expect(screen.queryByRole("link", { name: /pricing/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /waitlist/i })).not.toBeInTheDocument();
+  });
+
+  it("says the subscription is unchanged when checkout is cancelled", async () => {
+    renderAt("/dashboard/org/acme/cloud/billing?payment=cancelled");
+
+    await waitFor(() =>
+      expect(toastMessage).toHaveBeenCalledWith("Checkout cancelled", {
+        description: "Your Elsa Cloud subscription was not changed.",
+      }),
+    );
   });
 });

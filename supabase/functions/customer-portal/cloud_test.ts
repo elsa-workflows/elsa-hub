@@ -1,5 +1,6 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudPortal } from "./cloud.ts";
+import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
   ADMIN,
   captureConsoleError,
@@ -18,6 +19,7 @@ function portal(setup: {
   admin?: boolean;
   failTables?: string[];
   env?: Record<string, string | undefined>;
+  portalError?: Error;
 } = {}) {
   const serviceClient = fakeSupabase({
     tables: {
@@ -30,7 +32,7 @@ function portal(setup: {
     },
     failTables: setup.failTables,
   });
-  const { stripe, calls } = fakeStripe();
+  const { stripe, calls } = fakeStripe([], { portalError: setup.portalError });
   const run = async () => {
     const response = await handleCloudPortal({
       req: hubRequest("customer-portal"),
@@ -44,7 +46,6 @@ function portal(setup: {
       }) as never,
       serviceClient: serviceClient as never,
       body: (setup.body ?? { productType: "cloud", organizationId: HUB_ORG }) as never,
-      corsHeaders: {},
       env: testEnv(setup.env),
       stripe,
     });
@@ -60,6 +61,7 @@ Deno.test("the portal opens only the requested org's stored test-mode customer",
 
   assertEquals(response.status, 200);
   assertEquals(payload.url, "https://billing.example/portal");
+  assertEquals(hasNoStore(response), true);
   assertEquals(calls.portals, [{
     customer: "cus_org_a",
     return_url: "https://elsa-hub.example/dashboard/org/org-a/cloud/billing",
@@ -114,4 +116,14 @@ Deno.test("an org with no stored customer is 404", async () => {
 
   assertEquals(response.status, 404);
   assertEquals(calls.portals.length, 0);
+});
+
+Deno.test("a Stripe portal failure is a generic 500 and logs the detail", async () => {
+  const { run } = portal({ portalError: new Error("secret stripe detail") });
+
+  const { result: { response, payload }, logged } = await captureConsoleError(run);
+
+  assertEquals(response.status, 500);
+  assertEquals(payload.error.includes("secret stripe detail"), false);
+  assertStringIncludes(logged, "secret stripe detail");
 });

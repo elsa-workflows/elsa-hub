@@ -10,17 +10,26 @@ import {
 import {
   assertStripeTestMode,
   buildCloudCheckoutMetadata,
+  classifyStripeDataObject,
   CLOUD_LINK_READ_FAILED,
+  CLOUD_ORGANIZATION_REQUIRED,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
+  cloudOrganizationIdFromBody,
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
-  readLinkedHubAdminOrganizations,
-  selectLinkedHubOrganization,
   unlinkedControlOrganizationError,
 } from "../_shared/cloud-billing.ts";
+import { jsonResponse, noStoreHeaders } from "../_shared/cloud-http.ts";
 import { readValidatedControlOrganizationId } from "../_shared/cloud-organization-link.ts";
+
+/**
+ * How long a new Cloud Checkout Session stays open. Stripe accepts 30 minutes
+ * to 24 hours; a minute over the minimum absorbs clock skew. Short, so an
+ * abandoned session stops being reused soon.
+ */
+const CLOUD_CHECKOUT_SESSION_TTL_SECONDS = 31 * 60;
 
 /** The Stripe surface Cloud checkout uses; the real client satisfies it. */
 export type CloudCheckoutStripe = StripeCustomerClient & {
@@ -31,6 +40,9 @@ export type CloudCheckoutStripe = StripeCustomerClient & {
   };
   checkout: {
     sessions: {
+      list(params: { customer: string; status: "open"; limit?: number }): Promise<{
+        data: Array<{ url: string | null; metadata?: Record<string, string> | null }>;
+      }>;
       create(params: Stripe.Checkout.SessionCreateParams): Promise<{ url: string | null }>;
     };
   };
@@ -44,55 +56,36 @@ export type CloudCheckoutContext = {
   body: {
     organizationId?: string;
   };
-  corsHeaders: Record<string, string>;
   env?: EnvReader;
   stripe?: CloudCheckoutStripe;
 };
 
-function jsonResponse(
-  corsHeaders: Record<string, string>,
-  status: number,
-  payload: Record<string, unknown>,
-): Response {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
+/**
+ * Org-only Cloud checkout. The org is the one the request names; `is_org_admin`
+ * alone decides whether the caller may bill it. No membership rows are read:
+ * the Control link is looked up by that org id, so there is no list of linked
+ * orgs to find.
+ */
 export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Response> {
-  const { req, user, userClient, serviceClient, body, corsHeaders } = ctx;
+  const { req, user, userClient, serviceClient, body } = ctx;
   const env = ctx.env ?? Deno.env;
 
   try {
     assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
   } catch (error) {
-    return jsonResponse(corsHeaders, 503, { error: (error as Error).message });
+    return jsonResponse(503, { error: (error as Error).message });
   }
 
-  let memberships: Awaited<ReturnType<typeof readLinkedHubAdminOrganizations>>;
-  try {
-    memberships = await readLinkedHubAdminOrganizations(userClient, user.id);
-  } catch (error) {
-    return jsonResponse(corsHeaders, 500, { error: (error as Error).message });
+  const organizationId = cloudOrganizationIdFromBody(body);
+  if (!organizationId) {
+    return jsonResponse(400, { error: CLOUD_ORGANIZATION_REQUIRED });
   }
-
-  const linked = selectLinkedHubOrganization(memberships, body.organizationId);
-  if ("error" in linked) {
-    return jsonResponse(corsHeaders, linked.status, {
-      error: linked.error,
-      ...(linked.code ? { code: linked.code } : {}),
-    });
-  }
-  const organizationId = linked.organizationId;
 
   const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
     p_org_id: organizationId,
   });
   if (adminError || !isAdmin) {
-    return jsonResponse(corsHeaders, 403, {
-      error: "Only organization admins can start Cloud checkout",
-    });
+    return jsonResponse(403, { error: "Only organization admins can start Cloud checkout" });
   }
 
   let controlOrganizationId: string | null;
@@ -103,18 +96,18 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     );
   } catch (error) {
     console.error("Cloud checkout link read failed:", error);
-    return jsonResponse(corsHeaders, 500, { error: CLOUD_LINK_READ_FAILED });
+    return jsonResponse(500, { error: CLOUD_LINK_READ_FAILED });
   }
   if (!controlOrganizationId) {
     const { status, ...unlinked } = unlinkedControlOrganizationError();
-    return jsonResponse(corsHeaders, status, unlinked);
+    return jsonResponse(status, unlinked);
   }
 
   let stripePriceId: string;
   try {
     stripePriceId = readCloudPriceId(env);
   } catch (error) {
-    return jsonResponse(corsHeaders, 503, { error: (error as Error).message });
+    return jsonResponse(503, { error: (error as Error).message });
   }
 
   const { data: org } = await userClient
@@ -160,7 +153,7 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
       },
     );
   } catch (error) {
-    const failure = customerFailureResponse(error, corsHeaders);
+    const failure = customerFailureResponse(error, noStoreHeaders());
     if (failure) return failure;
     throw error;
   }
@@ -168,10 +161,23 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
   // Stripe's default status filter returns every subscription that is not canceled.
   const existing = await stripe.subscriptions.list({ customer: stripeCustomerId, limit: 100 });
   if (orgHasBlockingCloudSubscription(existing.data)) {
-    return jsonResponse(corsHeaders, 409, {
+    return jsonResponse(409, {
       error: "This organization already has a Cloud subscription",
       code: CLOUD_SUBSCRIPTION_EXISTS_CODE,
     });
+  }
+
+  // Two clicks or two admins must not open two Cloud checkouts: reuse an open one.
+  const openSessions = await stripe.checkout.sessions.list({
+    customer: stripeCustomerId,
+    status: "open",
+    limit: 100,
+  });
+  const openCloudSession = openSessions.data.find((session) =>
+    session.url && classifyStripeDataObject(session) === "cloud"
+  );
+  if (openCloudSession) {
+    return jsonResponse(200, { checkoutUrl: openCloudSession.url });
   }
 
   const metadata = buildCloudCheckoutMetadata({
@@ -193,7 +199,8 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     tax_id_collection: { enabled: true },
     success_url: `${origin}${cloudCheckoutSuccessPath(org?.slug)}`,
     cancel_url: `${origin}${cloudCheckoutCancelPath(org?.slug)}`,
+    expires_at: Math.floor(Date.now() / 1000) + CLOUD_CHECKOUT_SESSION_TTL_SECONDS,
   });
 
-  return jsonResponse(corsHeaders, 200, { checkoutUrl: session.url });
+  return jsonResponse(200, { checkoutUrl: session.url });
 }

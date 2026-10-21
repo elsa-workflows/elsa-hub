@@ -62,6 +62,10 @@ const emptySnapshot = {
   entitlement: null,
 };
 
+function sub(id: string, status: string) {
+  return { id, status, cancelAtPeriodEnd: false, currentPeriodEnd: null, planName: "Elsa Cloud" };
+}
+
 let queryClient: QueryClient;
 let path: string;
 
@@ -204,6 +208,36 @@ describe("useCloudBilling", () => {
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith("No Cloud billing account yet. Start a Cloud subscription first."),
     );
+  });
+
+  it("shows the first subscription that has not ended, whatever its status", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        ...emptySnapshot,
+        subscriptions: [sub("sub_old", "canceled"), sub("sub_expired", "incomplete_expired"), sub("sub_unpaid", "unpaid")],
+      },
+      error: null,
+    });
+
+    const result = await renderBilling();
+
+    expect(result.current.subscription?.id).toBe("sub_unpaid");
+    expect(result.current.planStatus).toBe("unpaid");
+  });
+
+  it("reports no subscription when every Cloud subscription has ended", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        ...emptySnapshot,
+        subscriptions: [sub("sub_old", "canceled"), sub("sub_expired", "incomplete_expired")],
+      },
+      error: null,
+    });
+
+    const result = await renderBilling();
+
+    expect(result.current.subscription).toBeNull();
+    expect(result.current.planStatus).toBeNull();
   });
 
   it("reports the server's message when status fails", async () => {

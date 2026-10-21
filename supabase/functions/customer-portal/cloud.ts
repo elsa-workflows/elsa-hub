@@ -12,6 +12,7 @@ import {
   cloudOrganizationIdFromBody,
   cloudPortalReturnPath,
 } from "../_shared/cloud-billing.ts";
+import { jsonResponse, noStoreHeaders } from "../_shared/cloud-http.ts";
 
 export type CloudPortalContext = {
   req: Request;
@@ -21,7 +22,6 @@ export type CloudPortalContext = {
   body: {
     organizationId?: string;
   };
-  corsHeaders: Record<string, string>;
   env?: EnvReader;
   stripe?: {
     billingPortal: {
@@ -32,42 +32,31 @@ export type CloudPortalContext = {
   };
 };
 
-function jsonResponse(
-  corsHeaders: Record<string, string>,
-  status: number,
-  payload: Record<string, unknown>,
-): Response {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
 /**
  * Org-only and read-only: opens the portal for the org's stored Stripe
  * customer after `is_org_admin`. Never creates a customer, never reads a
  * personal one.
  */
 export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Response> {
-  const { req, userClient, serviceClient, body, corsHeaders } = ctx;
+  const { req, userClient, serviceClient, body } = ctx;
   const env = ctx.env ?? Deno.env;
 
   try {
     assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
   } catch (error) {
-    return jsonResponse(corsHeaders, 503, { error: (error as Error).message });
+    return jsonResponse(503, { error: (error as Error).message });
   }
 
   const organizationId = cloudOrganizationIdFromBody(body);
   if (!organizationId) {
-    return jsonResponse(corsHeaders, 400, { error: CLOUD_ORGANIZATION_REQUIRED });
+    return jsonResponse(400, { error: CLOUD_ORGANIZATION_REQUIRED });
   }
 
   const { data: isAdmin, error: adminError } = await userClient.rpc("is_org_admin", {
     p_org_id: organizationId,
   });
   if (adminError || !isAdmin) {
-    return jsonResponse(corsHeaders, 403, {
+    return jsonResponse(403, {
       error: "Only organization admins can manage Cloud billing",
     });
   }
@@ -80,13 +69,13 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
       { supabase: serviceClient as unknown as StripeCustomerStore, env },
     );
   } catch (error) {
-    const failure = customerFailureResponse(error, corsHeaders);
+    const failure = customerFailureResponse(error, noStoreHeaders());
     if (failure) return failure;
     throw error;
   }
 
   if (!customerId) {
-    return jsonResponse(corsHeaders, 404, {
+    return jsonResponse(404, {
       error: "No Cloud billing account yet. Start a Cloud subscription first.",
     });
   }
@@ -102,10 +91,16 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
   });
 
   const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
-  const portalSession = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: `${origin}${cloudPortalReturnPath(org?.slug)}`,
-  });
+  let portalUrl: string;
+  try {
+    portalUrl = (await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${origin}${cloudPortalReturnPath(org?.slug)}`,
+    })).url;
+  } catch (error) {
+    console.error("Cloud billing portal session failed:", error);
+    return jsonResponse(500, { error: "We couldn't open the billing portal. Please try again later." });
+  }
 
-  return jsonResponse(corsHeaders, 200, { url: portalSession.url });
+  return jsonResponse(200, { url: portalUrl });
 }

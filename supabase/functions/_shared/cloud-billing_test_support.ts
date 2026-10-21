@@ -101,14 +101,39 @@ export type FakeSubscription = {
   metadata?: Record<string, string> | null;
 };
 
-/** Records every Stripe call the Cloud handlers make. */
-export function fakeStripe(subscriptions: FakeSubscription[] = []) {
+export type FakeCheckoutSession = {
+  id: string;
+  status: string;
+  url: string | null;
+  metadata?: Record<string, string> | null;
+};
+
+/** Stripe's list filter: no status means every subscription that is not canceled. */
+function subscriptionMatches(status: unknown, sub: FakeSubscription): boolean {
+  if (status === undefined) return sub.status !== "canceled";
+  if (status === "all") return true;
+  if (status === "ended") return sub.status === "canceled" || sub.status === "incomplete_expired";
+  return sub.status === status;
+}
+
+/**
+ * Records every Stripe call the Cloud handlers make. Lists honour status and
+ * limit (Stripe's default page is 10) like the real API, newest first in the
+ * given order.
+ */
+export function fakeStripe(
+  subscriptions: FakeSubscription[] = [],
+  options: { checkoutSessions?: FakeCheckoutSession[]; portalError?: Error } = {},
+) {
   const calls = {
     customersCreated: 0,
     subscriptionLists: [] as Array<Record<string, unknown>>,
+    sessionLists: [] as Array<Record<string, unknown>>,
     sessions: [] as Array<Record<string, unknown>>,
     portals: [] as Array<{ customer: string; return_url: string }>,
   };
+  const page = <T>(rows: T[], params: Record<string, unknown>) =>
+    Promise.resolve({ data: rows.slice(0, (params.limit as number | undefined) ?? 10) });
   const stripe = {
     customers: {
       create: () => {
@@ -121,11 +146,16 @@ export function fakeStripe(subscriptions: FakeSubscription[] = []) {
     subscriptions: {
       list: (params: Record<string, unknown>) => {
         calls.subscriptionLists.push(params);
-        return Promise.resolve({ data: subscriptions });
+        return page(subscriptions.filter((sub) => subscriptionMatches(params.status, sub)), params);
       },
     },
     checkout: {
       sessions: {
+        list: (params: Record<string, unknown>) => {
+          calls.sessionLists.push(params);
+          const sessions = options.checkoutSessions ?? [];
+          return page(sessions.filter((session) => !params.status || session.status === params.status), params);
+        },
         create: (params: unknown) => {
           calls.sessions.push(params as Record<string, unknown>);
           return Promise.resolve({ url: "https://checkout.example/session" });
@@ -136,7 +166,9 @@ export function fakeStripe(subscriptions: FakeSubscription[] = []) {
       sessions: {
         create: (params: { customer: string; return_url: string }) => {
           calls.portals.push(params);
-          return Promise.resolve({ url: "https://billing.example/portal" });
+          return options.portalError
+            ? Promise.reject(options.portalError)
+            : Promise.resolve({ url: "https://billing.example/portal" });
         },
       },
     },

@@ -1,9 +1,11 @@
-import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assert, assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudCheckout } from "./cloud.ts";
+import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
   captureConsoleError,
   CLIENT_CONTROL_ORG,
   CONTROL_ORG,
+  type FakeCheckoutSession,
   fakeStripe,
   type FakeSubscription,
   fakeSupabase,
@@ -24,8 +26,11 @@ type Setup = {
   storedCustomers?: Array<ReturnType<typeof storedOrgCustomer>>;
   failTables?: string[];
   subscriptions?: FakeSubscription[];
+  checkoutSessions?: FakeCheckoutSession[];
   env?: Record<string, string | undefined>;
 };
+
+const CLOUD_METADATA = { kind: "cloud", product_type: "cloud" };
 
 function checkout(setup: Setup = {}) {
   const serviceClient = fakeSupabase({
@@ -35,22 +40,22 @@ function checkout(setup: Setup = {}) {
     },
     failTables: setup.failTables,
   });
-  const { stripe, calls } = fakeStripe(setup.subscriptions);
+  const userClient = fakeUserClient({ memberships: setup.memberships, admin: setup.admin });
+  const { stripe, calls } = fakeStripe(setup.subscriptions, { checkoutSessions: setup.checkoutSessions });
   const run = async () => {
     const response = await handleCloudCheckout({
       req: hubRequest("create-checkout-session"),
       user: { id: "admin-1", email: "admin@example.test" },
-      userClient: fakeUserClient({ memberships: setup.memberships, admin: setup.admin }) as never,
+      userClient: userClient as never,
       serviceClient: serviceClient as never,
       body: (setup.body ?? { productType: "cloud", organizationId: HUB_ORG }) as never,
-      corsHeaders: {},
       env: testEnv(setup.env),
       stripe: stripe as never,
     });
     return { response, payload: await response.json() };
   };
   const customerTouched = () => serviceClient.reads.includes("org_stripe_customers");
-  return { run, calls, serviceClient, customerTouched };
+  return { run, calls, serviceClient, userClient, customerTouched };
 }
 
 Deno.test("a linked org admin's checkout carries the linked Control id, not the Hub or a client id", async () => {
@@ -61,6 +66,7 @@ Deno.test("a linked org admin's checkout carries the linked Control id, not the 
   const { response } = await run();
 
   assertEquals(response.status, 200);
+  assertEquals(hasNoStore(response), true);
   const [session] = calls.sessions;
   const metadata = session.metadata as Record<string, string>;
   const subscriptionMetadata = (session.subscription_data as { metadata: Record<string, string> }).metadata;
@@ -130,20 +136,31 @@ for (
   const [name, memberships] of [
     ["an org the caller does not administer", [{ organization_id: OTHER_ORG, role: "admin" }]],
     ["a caller with no organization", []],
-    ["a membership row without a role", [{ organization_id: HUB_ORG, role: "" }]],
   ] as const
 ) {
-  Deno.test(`checkout for ${name} is 403 cloud_org_not_linked`, async () => {
+  Deno.test(`checkout for ${name} is 403 and touches no customer`, async () => {
     const { run, calls, customerTouched } = checkout({ memberships: [...memberships] });
 
-    const { response, payload } = await run();
+    const { response } = await run();
 
     assertEquals(response.status, 403);
-    assertEquals(payload.code, "cloud_org_not_linked");
     assertEquals(customerTouched(), false);
     assertEquals(calls.sessions.length, 0);
   });
 }
+
+Deno.test("is_org_admin alone decides who may check out; membership rows are not read", async () => {
+  const { run, calls, userClient } = checkout({
+    memberships: [{ organization_id: HUB_ORG, role: "member" }],
+    admin: true,
+  });
+
+  const { response } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(calls.sessions.length, 1);
+  assertEquals(userClient.reads.includes("organization_members"), false);
+});
 
 for (
   const [name, links] of [
@@ -189,7 +206,7 @@ Deno.test("a stored-customer failure is the helper's generic 500", async () => {
 for (const status of ["active", "trialing", "past_due", "unpaid", "paused", "incomplete"]) {
   Deno.test(`an existing ${status} Cloud subscription is 409 and opens no session`, async () => {
     const { run, calls } = checkout({
-      subscriptions: [{ id: "sub_cloud", status, metadata: { kind: "cloud", product_type: "cloud" } }],
+      subscriptions: [{ id: "sub_cloud", status, metadata: CLOUD_METADATA }],
     });
 
     const { response, payload } = await run();
@@ -199,6 +216,46 @@ for (const status of ["active", "trialing", "past_due", "unpaid", "paused", "inc
     assertEquals(calls.sessions.length, 0);
   });
 }
+
+Deno.test("an open Cloud checkout session is reused and no second session is created", async () => {
+  const { run, calls } = checkout({
+    checkoutSessions: [
+      { id: "cs_cloud", status: "open", url: "https://checkout.example/open-cloud", metadata: CLOUD_METADATA },
+    ],
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.checkoutUrl, "https://checkout.example/open-cloud");
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.sessionLists, [{ customer: "cus_created", status: "open", limit: 100 }]);
+});
+
+Deno.test("an open Hub checkout session does not block a Cloud checkout", async () => {
+  const { run, calls } = checkout({
+    checkoutSessions: [
+      { id: "cs_hub", status: "open", url: "https://checkout.example/open-hub", metadata: { bundle_id: "b1" } },
+    ],
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.checkoutUrl, "https://checkout.example/session");
+  assertEquals(calls.sessions.length, 1);
+});
+
+Deno.test("a new Cloud session expires soon after Stripe's 30-minute minimum", async () => {
+  const { run, calls } = checkout();
+  const now = Math.floor(Date.now() / 1000);
+
+  await run();
+
+  const expiresAt = calls.sessions[0].expires_at as number;
+  assert(expiresAt > now + 30 * 60, `expires_at ${expiresAt} is within Stripe's 30-minute minimum`);
+  assert(expiresAt <= now + 35 * 60, `expires_at ${expiresAt} is more than 35 minutes out`);
+});
 
 Deno.test("Hub and ended Cloud subscriptions do not block checkout", async () => {
   const { run, calls } = checkout({
