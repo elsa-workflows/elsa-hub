@@ -26,15 +26,21 @@ Deno.test("the organization id comes from the body, and blank means personal mod
   assertEquals(cloudOrganizationIdFromBody(null), null);
 });
 
-Deno.test("checkout metadata carries the Hub user, Hub org and Control org", () => {
+Deno.test("checkout metadata carries the Hub user, Hub org, Control org and price", () => {
   assertEquals(
-    buildCloudCheckoutMetadata({ hubUserId: "u", hubOrganizationId: "hub", controlOrganizationId: "ctrl" }),
+    buildCloudCheckoutMetadata({
+      hubUserId: "u",
+      hubOrganizationId: "hub",
+      controlOrganizationId: "ctrl",
+      priceId: "price_cloud",
+    }),
     {
       kind: "cloud",
       product_type: "cloud",
       hub_user_id: "u",
       hub_organization_id: "hub",
       elsa_control_organization_id: "ctrl",
+      cloud_price_id: "price_cloud",
     },
   );
 });

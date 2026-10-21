@@ -3,6 +3,7 @@ import { handleCloudPortal } from "./cloud.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
   ADMIN,
+  assertNoStoreWithCors,
   captureConsoleError,
   fakeStripe,
   fakeSupabase,
@@ -20,6 +21,7 @@ function portal(setup: {
   failTables?: string[];
   env?: Record<string, string | undefined>;
   portalError?: Error;
+  origin?: string;
 } = {}) {
   const serviceClient = fakeSupabase({
     tables: {
@@ -35,7 +37,7 @@ function portal(setup: {
   const { stripe, calls } = fakeStripe([], { portalError: setup.portalError });
   const run = async () => {
     const response = await handleCloudPortal({
-      req: hubRequest("customer-portal"),
+      req: hubRequest("customer-portal", setup.origin),
       user: { id: ADMIN },
       userClient: fakeUserClient({
         memberships: [
@@ -104,8 +106,17 @@ Deno.test("a stored-customer read error is the helper's generic 500, not 404", a
   const { result: { response, payload } } = await captureConsoleError(run);
 
   assertEquals(response.status, 500);
+  assertNoStoreWithCors(response);
   assertEquals(payload.error, "We couldn't set up your billing customer. Please try again later.");
   assertEquals(calls.portals.length, 0);
+});
+
+Deno.test("a foreign Origin returns from the portal to the Hub site", async () => {
+  const { run, calls } = portal({ origin: "https://attacker.example" });
+
+  await run();
+
+  assertEquals(calls.portals[0].return_url, "https://elsa-hub.example/dashboard/org/org-a/cloud/billing");
 });
 
 Deno.test("an org with no stored customer is 404", async () => {

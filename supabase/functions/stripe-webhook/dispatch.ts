@@ -6,7 +6,7 @@
  * then Hub billing_type handlers.
  */
 import type Stripe from "https://esm.sh/stripe@18.5.0";
-import { handleCloudStripeEvent, isCloudStripeEvent } from "./cloud.ts";
+import { type CloudWebhookStripe, handleCloudStripeEvent, isCloudStripeEvent } from "./cloud.ts";
 import {
   handleAcademyAsyncPaymentFailed,
   handleAcademyCheckout,
@@ -41,7 +41,7 @@ export async function dispatchStripeWebhookEvent(
   },
 ): Promise<StripeWebhookKind> {
   if (isCloudStripeEvent(event)) {
-    await handleCloudStripeEvent(event);
+    await handleCloudStripeEvent(event, deps.stripe as CloudWebhookStripe);
     return "cloud";
   }
 

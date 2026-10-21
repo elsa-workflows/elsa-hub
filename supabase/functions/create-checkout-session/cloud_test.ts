@@ -2,6 +2,7 @@ import { assert, assertEquals, assertStringIncludes } from "https://deno.land/st
 import { handleCloudCheckout } from "./cloud.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
+  assertNoStoreWithCors,
   captureConsoleError,
   CLIENT_CONTROL_ORG,
   CONTROL_ORG,
@@ -13,6 +14,7 @@ import {
   HUB_ORG,
   hubRequest,
   OTHER_ORG,
+  SITE_ORIGIN,
   storedOrgCustomer,
   testEnv,
   validatedLink,
@@ -27,10 +29,34 @@ type Setup = {
   failTables?: string[];
   subscriptions?: FakeSubscription[];
   checkoutSessions?: FakeCheckoutSession[];
+  expireError?: Error;
+  origin?: string;
   env?: Record<string, string | undefined>;
 };
 
 const CLOUD_METADATA = { kind: "cloud", product_type: "cloud" };
+const SUCCESS_URL = `${SITE_ORIGIN}/dashboard/org/org-a/cloud?payment=success`;
+
+/** An open Cloud session matching what this request would create, unless overridden. */
+function openCloudSession(
+  overrides: Partial<Omit<FakeCheckoutSession, "metadata">> & { metadata?: Record<string, string> } = {},
+): FakeCheckoutSession {
+  return {
+    id: "cs_cloud",
+    status: "open",
+    url: "https://checkout.example/open-cloud",
+    success_url: SUCCESS_URL,
+    ...overrides,
+    metadata: {
+      ...CLOUD_METADATA,
+      hub_user_id: "admin-1",
+      hub_organization_id: HUB_ORG,
+      elsa_control_organization_id: CONTROL_ORG,
+      cloud_price_id: "price_test_cloud",
+      ...overrides.metadata,
+    },
+  };
+}
 
 function checkout(setup: Setup = {}) {
   const serviceClient = fakeSupabase({
@@ -41,10 +67,13 @@ function checkout(setup: Setup = {}) {
     failTables: setup.failTables,
   });
   const userClient = fakeUserClient({ memberships: setup.memberships, admin: setup.admin });
-  const { stripe, calls } = fakeStripe(setup.subscriptions, { checkoutSessions: setup.checkoutSessions });
+  const { stripe, calls } = fakeStripe(setup.subscriptions, {
+    checkoutSessions: setup.checkoutSessions,
+    expireError: setup.expireError,
+  });
   const run = async () => {
     const response = await handleCloudCheckout({
-      req: hubRequest("create-checkout-session"),
+      req: hubRequest("create-checkout-session", setup.origin),
       user: { id: "admin-1", email: "admin@example.test" },
       userClient: userClient as never,
       serviceClient: serviceClient as never,
@@ -74,6 +103,7 @@ Deno.test("a linked org admin's checkout carries the linked Control id, not the 
   assertEquals(metadata.elsa_control_organization_id, CONTROL_ORG);
   assertEquals(metadata.hub_organization_id, HUB_ORG);
   assertEquals(metadata.hub_user_id, "admin-1");
+  assertEquals(metadata.cloud_price_id, "price_test_cloud");
   assertEquals(subscriptionMetadata, metadata);
   assertEquals(session.customer, "cus_created");
   assertEquals(serviceClient.tables.org_stripe_customers, [storedOrgCustomer(HUB_ORG, "cus_created")]);
@@ -99,6 +129,15 @@ Deno.test("checkout returns to the billed org's Cloud pages", async () => {
     calls.sessions[0].cancel_url,
     "https://elsa-hub.example/dashboard/org/org-a/cloud/billing?payment=cancelled",
   );
+});
+
+Deno.test("a foreign Origin returns to the Hub site, not to the foreign host", async () => {
+  const { run, calls } = checkout({ origin: "https://attacker.example" });
+
+  await run();
+
+  assertEquals(calls.sessions[0].success_url, SUCCESS_URL);
+  assertEquals(calls.sessions[0].cancel_url, `${SITE_ORIGIN}/dashboard/org/org-a/cloud/billing?payment=cancelled`);
 });
 
 Deno.test("personal Cloud checkout is 400 and touches no customer", async () => {
@@ -199,6 +238,7 @@ Deno.test("a stored-customer failure is the helper's generic 500", async () => {
   const { result: { response, payload } } = await captureConsoleError(run);
 
   assertEquals(response.status, 500);
+  assertNoStoreWithCors(response);
   assertEquals(payload.error, "We couldn't set up your billing customer. Please try again later.");
   assertEquals(calls.sessions.length, 0);
 });
@@ -217,19 +257,67 @@ for (const status of ["active", "trialing", "past_due", "unpaid", "paused", "inc
   });
 }
 
-Deno.test("an open Cloud checkout session is reused and no second session is created", async () => {
-  const { run, calls } = checkout({
-    checkoutSessions: [
-      { id: "cs_cloud", status: "open", url: "https://checkout.example/open-cloud", metadata: CLOUD_METADATA },
-    ],
-  });
+Deno.test("an open Cloud checkout for the same orgs, price and return URL is reused", async () => {
+  const { run, calls } = checkout({ checkoutSessions: [openCloudSession()] });
 
   const { response, payload } = await run();
 
   assertEquals(response.status, 200);
   assertEquals(payload.checkoutUrl, "https://checkout.example/open-cloud");
   assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.expired, []);
   assertEquals(calls.sessionLists, [{ customer: "cus_created", status: "open", limit: 100 }]);
+});
+
+for (
+  const [name, stale] of [
+    ["another Control org", openCloudSession({ metadata: { elsa_control_organization_id: CLIENT_CONTROL_ORG } })],
+    ["another Hub org", openCloudSession({ metadata: { hub_organization_id: OTHER_ORG } })],
+    ["another price", openCloudSession({ metadata: { cloud_price_id: "price_old_cloud" } })],
+    ["no recorded price", { ...openCloudSession(), metadata: { ...CLOUD_METADATA } }],
+    ["another return URL", openCloudSession({ success_url: `${SITE_ORIGIN}/cloud?payment=success` })],
+  ] as const
+) {
+  Deno.test(`an open Cloud checkout for ${name} is expired and a new one created`, async () => {
+    const { run, calls } = checkout({ checkoutSessions: [stale] });
+
+    const { response, payload } = await run();
+
+    assertEquals(response.status, 200);
+    assertEquals(calls.expired, ["cs_cloud"]);
+    assertEquals(calls.sessions.length, 1);
+    assertEquals(payload.checkoutUrl, "https://checkout.example/session");
+  });
+}
+
+Deno.test("a matching open Cloud checkout is reused and a stale one beside it expired", async () => {
+  const { run, calls } = checkout({
+    checkoutSessions: [
+      openCloudSession({ id: "cs_stale", metadata: { cloud_price_id: "price_old_cloud" } }),
+      openCloudSession(),
+    ],
+  });
+
+  const { payload } = await run();
+
+  assertEquals(payload.checkoutUrl, "https://checkout.example/open-cloud");
+  assertEquals(calls.expired, ["cs_stale"]);
+  assertEquals(calls.sessions.length, 0);
+});
+
+Deno.test("a stale session that will not expire is logged and a new one still created", async () => {
+  const { run, calls } = checkout({
+    checkoutSessions: [openCloudSession({ metadata: { cloud_price_id: "price_old_cloud" } })],
+    expireError: new Error("Only Checkout Sessions with a status of `open` can be expired."),
+  });
+
+  const { result: { response, payload }, logged } = await captureConsoleError(run);
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.checkoutUrl, "https://checkout.example/session");
+  assertEquals(calls.expired, ["cs_cloud"]);
+  assertStringIncludes(logged, "cs_cloud");
+  assertStringIncludes(logged, "can be expired");
 });
 
 Deno.test("an open Hub checkout session does not block a Cloud checkout", async () => {
@@ -244,6 +332,7 @@ Deno.test("an open Hub checkout session does not block a Cloud checkout", async 
   assertEquals(response.status, 200);
   assertEquals(payload.checkoutUrl, "https://checkout.example/session");
   assertEquals(calls.sessions.length, 1);
+  assertEquals(calls.expired, []);
 });
 
 Deno.test("a new Cloud session expires soon after Stripe's 30-minute minimum", async () => {

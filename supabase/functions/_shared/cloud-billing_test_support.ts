@@ -1,5 +1,8 @@
 // Shared test doubles for the Cloud checkout, portal and status tests.
 
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { corsHeaders, hasNoStore } from "./cloud-http.ts";
+
 type Row = Record<string, unknown>;
 
 export const HUB_ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -7,6 +10,8 @@ export const OTHER_ORG = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 export const CONTROL_ORG = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 export const CLIENT_CONTROL_ORG = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 export const ADMIN = "admin-1";
+/** The Hub site the test env names in SITE_URL, and the default request origin. */
+export const SITE_ORIGIN = "https://elsa-hub.example";
 
 export const SECRET_DB_ERROR = { message: "secret db detail", code: "XX000" };
 
@@ -105,6 +110,7 @@ export type FakeCheckoutSession = {
   id: string;
   status: string;
   url: string | null;
+  success_url?: string | null;
   metadata?: Record<string, string> | null;
 };
 
@@ -123,13 +129,19 @@ function subscriptionMatches(status: unknown, sub: FakeSubscription): boolean {
  */
 export function fakeStripe(
   subscriptions: FakeSubscription[] = [],
-  options: { checkoutSessions?: FakeCheckoutSession[]; portalError?: Error } = {},
+  options: {
+    checkoutSessions?: FakeCheckoutSession[];
+    portalError?: Error;
+    expireError?: Error;
+    sessionListError?: Error;
+  } = {},
 ) {
   const calls = {
     customersCreated: 0,
     subscriptionLists: [] as Array<Record<string, unknown>>,
     sessionLists: [] as Array<Record<string, unknown>>,
     sessions: [] as Array<Record<string, unknown>>,
+    expired: [] as string[],
     portals: [] as Array<{ customer: string; return_url: string }>,
   };
   const page = <T>(rows: T[], params: Record<string, unknown>) =>
@@ -153,8 +165,13 @@ export function fakeStripe(
       sessions: {
         list: (params: Record<string, unknown>) => {
           calls.sessionLists.push(params);
+          if (options.sessionListError) return Promise.reject(options.sessionListError);
           const sessions = options.checkoutSessions ?? [];
           return page(sessions.filter((session) => !params.status || session.status === params.status), params);
+        },
+        expire: (id: string) => {
+          calls.expired.push(id);
+          return options.expireError ? Promise.reject(options.expireError) : Promise.resolve({ id });
         },
         create: (params: unknown) => {
           calls.sessions.push(params as Record<string, unknown>);
@@ -180,16 +197,25 @@ export function testEnv(overrides: Record<string, string | undefined> = {}) {
   const values: Record<string, string | undefined> = {
     STRIPE_SECRET_KEY: "sk_test_cloud",
     STRIPE_CLOUD_PRICE_ID: "price_test_cloud",
+    SITE_URL: SITE_ORIGIN,
     ...overrides,
   };
   return { get: (key: string) => values[key] };
 }
 
-export function hubRequest(path: string) {
-  return new Request(`https://elsa-hub.example/functions/v1/${path}`, {
+export function hubRequest(path: string, origin = SITE_ORIGIN) {
+  return new Request(`${SITE_ORIGIN}/functions/v1/${path}`, {
     method: "POST",
-    headers: { origin: "https://elsa-hub.example" },
+    headers: { origin },
   });
+}
+
+/** Every Cloud response, failures included, is no-store and carries the CORS headers. */
+export function assertNoStoreWithCors(response: Response) {
+  assertEquals(hasNoStore(response), true, "Cache-Control: no-store is missing");
+  for (const [name, value] of Object.entries(corsHeaders())) {
+    assertEquals(response.headers.get(name), value, `${name} is missing`);
+  }
 }
 
 /** Runs fn with console.error silenced and returns what was logged. */

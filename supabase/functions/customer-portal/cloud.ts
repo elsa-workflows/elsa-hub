@@ -13,6 +13,7 @@ import {
   cloudPortalReturnPath,
 } from "../_shared/cloud-billing.ts";
 import { jsonResponse, noStoreHeaders } from "../_shared/cloud-http.ts";
+import { trustedSiteOrigin } from "../_shared/site-origin.ts";
 
 export type CloudPortalContext = {
   req: Request;
@@ -90,7 +91,7 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
     apiVersion: "2025-08-27.basil",
   });
 
-  const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
+  const origin = trustedSiteOrigin(req, env);
   let portalUrl: string;
   try {
     portalUrl = (await stripe.billingPortal.sessions.create({

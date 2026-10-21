@@ -25,6 +25,7 @@ export const CONTROL_ORGANIZATION_METADATA_KEY = "elsa_control_organization_id";
 export const HUB_ORGANIZATION_METADATA_KEY = "hub_organization_id";
 export const HUB_USER_METADATA_KEY = "hub_user_id";
 export const CLOUD_PRODUCT_TYPE_METADATA_KEY = "product_type";
+export const CLOUD_PRICE_ID_METADATA_KEY = "cloud_price_id";
 export const KIND_METADATA_KEY = "kind";
 
 export type StripeTrafficKind = "cloud" | "academy" | "hub";
@@ -35,6 +36,7 @@ export type CloudCheckoutMetadata = {
   [HUB_USER_METADATA_KEY]: string;
   [CONTROL_ORGANIZATION_METADATA_KEY]: string;
   [HUB_ORGANIZATION_METADATA_KEY]: string;
+  [CLOUD_PRICE_ID_METADATA_KEY]: string;
 };
 
 export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
@@ -135,6 +137,7 @@ export function buildCloudCheckoutMetadata(input: {
   hubUserId: string;
   hubOrganizationId: string;
   controlOrganizationId: string;
+  priceId: string;
 }): CloudCheckoutMetadata {
   return {
     [KIND_METADATA_KEY]: CLOUD_KIND,
@@ -142,7 +145,45 @@ export function buildCloudCheckoutMetadata(input: {
     [HUB_USER_METADATA_KEY]: input.hubUserId,
     [CONTROL_ORGANIZATION_METADATA_KEY]: input.controlOrganizationId,
     [HUB_ORGANIZATION_METADATA_KEY]: input.hubOrganizationId,
+    [CLOUD_PRICE_ID_METADATA_KEY]: input.priceId,
   };
+}
+
+/** An open Checkout Session as Stripe lists it; the real client satisfies it. */
+export type OpenCheckoutSession = {
+  id: string;
+  url: string | null;
+  success_url?: string | null;
+  metadata?: Record<string, string> | null;
+};
+
+/** The Checkout Session calls Cloud checkout and the webhook use to find and close open Cloud sessions. */
+export type CloudCheckoutSessions = {
+  list(params: { customer: string; status: "open"; limit?: number }): Promise<{ data: OpenCheckoutSession[] }>;
+  expire(id: string): Promise<unknown>;
+};
+
+/** The customer's open Cloud Checkout Sessions, from the first 100 open sessions. */
+export async function listOpenCloudCheckoutSessions(
+  sessions: CloudCheckoutSessions,
+  customer: string,
+): Promise<OpenCheckoutSession[]> {
+  const open = await sessions.list({ customer, status: "open", limit: 100 });
+  return open.data.filter((session) => classifyStripeDataObject(session) === "cloud");
+}
+
+/**
+ * Expires a Checkout Session. A failure is logged, not thrown: the usual cause
+ * is a session that completed or expired after it was listed, and Stripe
+ * refuses to expire a session that is no longer open. Any other leftover
+ * closes on its own within the 31-minute session lifetime.
+ */
+export async function expireCheckoutSession(sessions: CloudCheckoutSessions, id: string): Promise<void> {
+  try {
+    await sessions.expire(id);
+  } catch (error) {
+    console.error(`Could not expire Cloud Checkout Session ${id}:`, error);
+  }
 }
 
 /**

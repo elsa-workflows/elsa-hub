@@ -2,6 +2,7 @@ import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.
 import { handleCloudBillingStatus } from "./handler.ts";
 import {
   ADMIN,
+  assertNoStoreWithCors,
   captureConsoleError,
   CONTROL_ORG,
   fakeStripe,
@@ -157,6 +158,7 @@ Deno.test("a stored-customer read error is the helper's generic 500, not missing
   const { result: { response, payload } } = await captureConsoleError(run);
 
   assertEquals(response.status, 500);
+  assertNoStoreWithCors(response);
   assertEquals(payload.error, "We couldn't set up your billing customer. Please try again later.");
 });
 
