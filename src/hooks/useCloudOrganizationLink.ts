@@ -30,12 +30,18 @@ export function useCloudOrganizationLink(hubOrganizationId: string | undefined) 
 export function useCloudOrganizationLinkView(
   hubOrganizationId: string | undefined,
   isOrgAdmin: boolean,
-): CloudOrganizationLinkView {
+): CloudOrganizationLinkView & { refetch: () => void } {
   const link = useCloudOrganizationLink(hubOrganizationId);
-  return cloudOrganizationLinkView({
-    hubOrganizationId,
-    isOrgAdmin,
-    linkLoading: Boolean(hubOrganizationId) && (link.isPending || link.isFetching),
-    linked: Boolean(link.data),
-  });
+  return {
+    ...cloudOrganizationLinkView({
+      hubOrganizationId,
+      isOrgAdmin,
+      linkLoading: Boolean(hubOrganizationId) && (link.isPending || link.isFetching),
+      linked: Boolean(link.data),
+      linkError: Boolean(hubOrganizationId) && link.isError,
+    }),
+    refetch: () => {
+      void link.refetch();
+    },
+  };
 }

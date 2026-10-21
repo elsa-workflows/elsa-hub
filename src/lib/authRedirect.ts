@@ -2,6 +2,39 @@ export const AUTH_CALLBACK_PATH = "/auth/callback";
 export const AUTH_CONFIRM_PATH = "/auth/confirm";
 export const AUTH_REDIRECT_STORAGE_KEY = "authRedirect";
 export const DEFAULT_POST_AUTH_PATH = "/dashboard";
+export const PROFILE_SETTINGS_PATH = "/dashboard/settings";
+
+export const PROFILE_ROUTE_TABLE = [
+  {
+    kind: "page" as const,
+    parent: "dashboard" as const,
+    path: PROFILE_SETTINGS_PATH,
+    childPath: "settings",
+  },
+  {
+    kind: "redirect" as const,
+    parent: "dashboard" as const,
+    path: "/dashboard/settings/profile",
+    childPath: "settings/profile",
+    to: PROFILE_SETTINGS_PATH,
+  },
+  {
+    kind: "redirect" as const,
+    parent: "root" as const,
+    path: "/profile",
+    childPath: "/profile",
+    to: PROFILE_SETTINGS_PATH,
+  },
+] as const;
+
+export const LEGACY_PROFILE_PATHS = PROFILE_ROUTE_TABLE.filter(
+  (route): route is Extract<(typeof PROFILE_ROUTE_TABLE)[number], { kind: "redirect" }> =>
+    route.kind === "redirect",
+).map((route) => route.path);
+
+export const DASHBOARD_AVATAR_MENU_LINKS = [
+  { name: "Profile Settings", to: PROFILE_SETTINGS_PATH },
+] as const;
 
 const SCHEME_AFTER_DECODE = /^[a-zA-Z][a-zA-Z+\-.]*:/;
 
@@ -83,6 +116,10 @@ export function sanitizeAuthRedirect(redirectTo?: string | null): string | null 
 
 export function getAuthCallbackUrl(origin: string = window.location.origin): string {
   return `${origin}${AUTH_CALLBACK_PATH}`;
+}
+
+export function getAuthConfirmUrl(origin: string = window.location.origin): string {
+  return `${origin}${AUTH_CONFIRM_PATH}`;
 }
 
 export function rememberAuthRedirect(redirectTo?: string | null): void {

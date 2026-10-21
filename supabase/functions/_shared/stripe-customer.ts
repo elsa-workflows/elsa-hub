@@ -1,25 +1,42 @@
 /**
  * Hub Stripe customer identity.
  *
- * Public helper (stable signature; other functions such as academy-checkout import this):
+ * Public helper (other functions such as academy-checkout import this):
  *
  *   getOrCreateStripeCustomer(
  *     owner: { userId: string } | { orgId: string },
- *     deps?: GetOrCreateStripeCustomerDeps,
+ *     deps: GetOrCreateStripeCustomerDeps, // { stripe, supabase, env? }
  *   ): Promise<string>
  *
  * Returns the stored Stripe customer id for that owner and livemode. When none
- * exists, creates one in Stripe with metadata only (idempotency key
- * cust:org:<id>:<livemode> or cust:user:<id>:<livemode>), stores the ref, then
- * updates email, name, and address. Concurrent creates rely on unique
- * (owner, livemode) plus an on-conflict re-read. If this call created a
- * different Stripe customer than the stored winner, that orphan is deleted.
+ * exists, creates one in Stripe with owner-derived metadata only (idempotency
+ * key cust:org:<id>:<livemode> or cust:user:<id>:<livemode>), stores the ref,
+ * then updates email, name, address, and the caller's extra metadata. The
+ * create parameters must depend on the owner alone: Stripe rejects a reused
+ * idempotency key whose parameters differ, so two admins of one org racing
+ * (or retrying within 24 hours) would otherwise fail. Concurrent creates rely
+ * on unique (owner, livemode) plus an on-conflict re-read. If this call
+ * created a different Stripe customer than the stored winner, that orphan is
+ * deleted.
  *
- * livemode is derived from the Stripe secret key prefix (sk_live_ is live).
+ * Whenever the caller supplies email, name, address, or metadata, they are
+ * written to the customer on every call, for a stored customer too, so the
+ * current buyer's details are not left stale.
  *
- * deps.stripe and deps.supabase are required in tests. In edge functions they
- * may be omitted and are then built from STRIPE_SECRET_KEY, SUPABASE_URL, and
- * SUPABASE_SERVICE_ROLE_KEY.
+ * Failures (database or Stripe) are logged with their detail and thrown as a
+ * StripeCustomerError with a generic message, so a catch block can return
+ * customerFailureResponse(error, headers) without leaking internals.
+ *
+ * getStoredStripeCustomerId is the read-only lookup (customer-portal): it
+ * never creates a customer.
+ *
+ * livemode is derived from STRIPE_SECRET_KEY, read through the injected
+ * deps.env (default Deno.env): sk_live_ and rk_live_ are live, sk_test_ and
+ * rk_test_ are test (see stripeKeyMode). A missing or unrecognised key is an
+ * error, never silently test mode.
+ *
+ * deps.stripe and deps.supabase are always injected. This module has no
+ * imports so scripts (tsx) can import stripeKeyMode.
  *
  * This module does not list Stripe customers by email.
  */
@@ -73,15 +90,54 @@ export type StripeCustomerFilter = {
   maybeSingle: () => PromiseLike<{ data: StripeCustomerRow | null; error: StripeCustomerQueryError | null }>;
 };
 
+export type EnvReader = { get: (key: string) => string | undefined };
+
 export type GetOrCreateStripeCustomerDeps = {
-  stripe?: StripeCustomerClient;
-  supabase?: unknown;
+  stripe: StripeCustomerClient;
+  supabase: StripeCustomerStore;
+  env?: EnvReader;
   email?: string;
   name?: string;
   address?: StripeCustomerAddress;
   metadata?: Record<string, string>;
-  stripeSecretKey?: string;
 };
+
+const GENERIC_MESSAGE = "We couldn't set up your billing customer. Please try again later.";
+
+/** Generic by design; the detail is logged. code is a Stripe error code, kept so callers can still branch on it. */
+export class StripeCustomerError extends Error {
+  readonly code?: string;
+  constructor(code?: string) {
+    super(GENERIC_MESSAGE);
+    this.name = "StripeCustomerError";
+    this.code = code;
+  }
+}
+
+function fail(context: string, detail: unknown, code?: string): never {
+  console.error(`${context}:`, detail);
+  throw new StripeCustomerError(code);
+}
+
+async function stripeCall<T>(context: string, call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    return fail(context, error, (error as { code?: string } | null)?.code);
+  }
+}
+
+/** A 500 with the generic message when the error is the helper's; null for any other error. */
+export function customerFailureResponse(
+  error: unknown,
+  headers: Record<string, string>,
+): Response | null {
+  if (!(error instanceof StripeCustomerError)) return null;
+  return new Response(JSON.stringify({ error: error.message }), {
+    status: 500,
+    headers: { ...headers, "Content-Type": "application/json" },
+  });
+}
 
 const ORG_TABLE = "org_stripe_customers";
 const USER_TABLE = "user_stripe_customers";
@@ -102,8 +158,18 @@ function ownerValue(owner: StripeCustomerOwner): string {
   return isOrgOwner(owner) ? owner.orgId : owner.userId;
 }
 
-function livemodeFromStripeKey(key: string | undefined): boolean {
-  return (key ?? "").startsWith("sk_live_");
+const LIVE_KEY_PREFIXES = ["sk_live_", "rk_live_"];
+const TEST_KEY_PREFIXES = ["sk_test_", "rk_test_"];
+
+/**
+ * The mode a Stripe secret (sk_) or restricted (rk_) key carries. Throws on any
+ * other prefix, so callers that must not guess (backfill guard, delete-user)
+ * refuse an unrecognised key.
+ */
+export function stripeKeyMode(key: string): "live" | "test" {
+  if (LIVE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) return "live";
+  if (TEST_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) return "test";
+  throw new Error("STRIPE_SECRET_KEY must start with sk_live_, sk_test_, rk_live_ or rk_test_");
 }
 
 function idempotencyKey(owner: StripeCustomerOwner, livemode: boolean): string {
@@ -112,54 +178,18 @@ function idempotencyKey(owner: StripeCustomerOwner, livemode: boolean): string {
     : `cust:user:${owner.userId}:${livemode}`;
 }
 
-function isUniqueViolation(error: { message: string; code?: string }): boolean {
-  if (error.code === "23505") return true;
-  const message = error.message.toLowerCase();
-  return message.includes("duplicate") || message.includes("unique");
+function isUniqueViolation(error: StripeCustomerQueryError): boolean {
+  return error.code === "23505";
 }
 
-function envGet(name: string): string | undefined {
-  return (globalThis as { Deno?: { env: { get: (key: string) => string | undefined } } }).Deno?.env.get(name);
-}
-
-type ResolvedStripeCustomerDeps = GetOrCreateStripeCustomerDeps & {
-  stripe: StripeCustomerClient;
-  supabase: StripeCustomerStore;
-  stripeSecretKey?: string;
-};
-
-async function resolveDeps(
-  deps?: GetOrCreateStripeCustomerDeps,
-): Promise<ResolvedStripeCustomerDeps> {
-  const stripeSecretKey = deps?.stripeSecretKey ?? envGet("STRIPE_SECRET_KEY");
-
-  if (deps?.stripe && deps?.supabase) {
-    return {
-      ...deps,
-      stripe: deps.stripe,
-      supabase: deps.supabase as StripeCustomerStore,
-      stripeSecretKey,
-    };
+function isLiveMode(env: EnvReader | undefined): boolean {
+  const key = (env ?? Deno.env).get("STRIPE_SECRET_KEY");
+  if (!key) throw new Error("STRIPE_SECRET_KEY is not configured");
+  try {
+    return stripeKeyMode(key) === "live";
+  } catch (error) {
+    return fail("Unrecognised STRIPE_SECRET_KEY prefix", (error as Error).message);
   }
-
-  const supabaseUrl = envGet("SUPABASE_URL");
-  const serviceRoleKey = envGet("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!stripeSecretKey || !supabaseUrl || !serviceRoleKey) {
-    throw new Error("getOrCreateStripeCustomer requires deps.stripe and deps.supabase, or Stripe and Supabase env vars");
-  }
-
-  const [{ default: Stripe }, { createClient }] = await Promise.all([
-    import("https://esm.sh/stripe@18.5.0"),
-    import("https://esm.sh/@supabase/supabase-js@2.57.2"),
-  ]);
-
-  return {
-    ...deps,
-    stripe: new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" }) as StripeCustomerClient,
-    supabase: createClient(supabaseUrl, serviceRoleKey) as unknown as StripeCustomerStore,
-    stripeSecretKey,
-  };
 }
 
 async function readStoredCustomerId(
@@ -174,9 +204,7 @@ async function readStoredCustomerId(
     .eq("livemode", livemode)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(`Failed to read stored Stripe customer: ${error.message}`);
-  }
+  if (error) fail("Failed to read stored Stripe customer", error);
 
   return data?.stripe_customer_id ?? null;
 }
@@ -194,7 +222,7 @@ async function storeCustomerId(
   const { error } = await supabase.from(ownerTable(owner)).insert(row);
   if (!error) return "ok";
   if (isUniqueViolation(error)) return "conflict";
-  throw new Error(`Failed to store Stripe customer: ${error.message}`);
+  return fail("Failed to store Stripe customer", error);
 }
 
 async function deleteOrphan(
@@ -212,52 +240,69 @@ async function deleteOrphan(
 
 export async function getOrCreateStripeCustomer(
   owner: StripeCustomerOwner,
-  deps?: GetOrCreateStripeCustomerDeps,
+  deps: GetOrCreateStripeCustomerDeps,
 ): Promise<string> {
   if (isOrgOwner(owner) ? !owner.orgId : !owner.userId) {
     throw new Error("getOrCreateStripeCustomer requires owner.userId or owner.orgId");
   }
 
-  const resolved = await resolveDeps(deps);
-  const livemode = livemodeFromStripeKey(resolved.stripeSecretKey);
-  const stored = await readStoredCustomerId(resolved.supabase, owner, livemode);
-  if (stored) return stored;
+  const { stripe, supabase } = deps;
+  const livemode = isLiveMode(deps.env);
+  const customerId = await readStoredCustomerId(supabase, owner, livemode) ??
+    await createAndStoreCustomer(deps, owner, livemode);
 
-  const metadata: Record<string, string> = {
-    ...(resolved.metadata ?? {}),
-  };
-  if (isOrgOwner(owner)) {
-    metadata.organization_id = owner.orgId;
-  } else {
-    metadata.user_id = owner.userId;
-  }
-  metadata.livemode = String(livemode);
-
-  const created = await resolved.stripe.customers.create(
-    { metadata },
-    { idempotencyKey: idempotencyKey(owner, livemode) },
-  );
-
-  if (!created?.id) {
-    throw new Error("Stripe customer create returned no id");
+  if (deps.email || deps.name || deps.address || deps.metadata) {
+    const ownerMetadata = ownerMetadataFor(owner, livemode);
+    await stripeCall("Failed to update Stripe customer", () =>
+      stripe.customers.update(customerId, {
+        ...(deps.email ? { email: deps.email } : {}),
+        ...(deps.name ? { name: deps.name } : {}),
+        ...(deps.address ? { address: deps.address } : {}),
+        metadata: { ...(deps.metadata ?? {}), ...ownerMetadata },
+      }));
   }
 
-  const write = await storeCustomerId(resolved.supabase, owner, livemode, created.id);
-  if (write === "conflict") {
-    const raced = await readStoredCustomerId(resolved.supabase, owner, livemode);
-    if (raced) {
-      await deleteOrphan(resolved.stripe, created.id, raced);
-      return raced;
-    }
-    throw new Error("Stripe customer store conflicted and no stored id could be re-read");
+  return customerId;
+}
+
+function ownerMetadataFor(owner: StripeCustomerOwner, livemode: boolean): Record<string, string> {
+  return isOrgOwner(owner)
+    ? { organization_id: owner.orgId, livemode: String(livemode) }
+    : { user_id: owner.userId, livemode: String(livemode) };
+}
+
+async function createAndStoreCustomer(
+  { stripe, supabase }: GetOrCreateStripeCustomerDeps,
+  owner: StripeCustomerOwner,
+  livemode: boolean,
+): Promise<string> {
+  const created = await stripeCall("Failed to create Stripe customer", () =>
+    stripe.customers.create(
+      { metadata: ownerMetadataFor(owner, livemode) },
+      { idempotencyKey: idempotencyKey(owner, livemode) },
+    ));
+
+  if (!created?.id) fail("Stripe customer create returned no id", created);
+
+  const write = await storeCustomerId(supabase, owner, livemode, created.id);
+  if (write === "ok") return created.id;
+
+  const raced = await readStoredCustomerId(supabase, owner, livemode);
+  if (!raced) fail("Stripe customer store conflicted and no stored id could be re-read", owner);
+  await deleteOrphan(stripe, created.id, raced);
+  return raced;
+}
+
+/**
+ * Read-only: the stored customer id for this owner in the mode of the Stripe
+ * key, or null. Never creates a customer or calls Stripe.
+ */
+export async function getStoredStripeCustomerId(
+  owner: StripeCustomerOwner,
+  deps: { supabase: StripeCustomerStore; env?: EnvReader },
+): Promise<string | null> {
+  if (isOrgOwner(owner) ? !owner.orgId : !owner.userId) {
+    throw new Error("getStoredStripeCustomerId requires owner.userId or owner.orgId");
   }
-
-  await resolved.stripe.customers.update(created.id, {
-    ...(resolved.email ? { email: resolved.email } : {}),
-    ...(resolved.name ? { name: resolved.name } : {}),
-    ...(resolved.address ? { address: resolved.address } : {}),
-    metadata,
-  });
-
-  return created.id;
+  return await readStoredCustomerId(deps.supabase, owner, isLiveMode(deps.env));
 }

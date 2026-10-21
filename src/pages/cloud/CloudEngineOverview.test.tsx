@@ -6,6 +6,7 @@ import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_ENGINE,
   CLOUD_ERROR_HEADING,
+  CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ASK_ADMIN,
   CLOUD_OPEN_STUDIO,
@@ -101,10 +102,14 @@ vi.mock("@/hooks/useOrganizations", () => ({
 
 const orgLinkState = vi.hoisted(() => ({
   current: { kind: "idle" } as CloudOrganizationLinkView,
+  refetch: vi.fn(),
 }));
 
 vi.mock("@/hooks/useCloudOrganizationLink", () => ({
-  useCloudOrganizationLinkView: () => orgLinkState.current,
+  useCloudOrganizationLinkView: () => ({
+    ...orgLinkState.current,
+    refetch: orgLinkState.refetch,
+  }),
 }));
 
 import CloudEngineOverviewPage from "./CloudEngineOverview";
@@ -137,6 +142,7 @@ describe("CloudEngineOverview", () => {
     });
     orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
     orgLinkState.current = { kind: "idle" };
+    orgLinkState.refetch.mockReset();
   });
 
   it("shows overview actions for a Ready engine", () => {
@@ -226,6 +232,17 @@ describe("CloudEngineOverview", () => {
     expect(screen.getByText(CLOUD_LINK_ORG_ASK_ADMIN)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
     expect(viewState.setupCloud).not.toHaveBeenCalled();
+  });
+
+  it("shows a retryable error when the link check fails", () => {
+    orgLinkState.current = { kind: "error" };
+    viewState.current = { kind: "ready", engine };
+    renderOverview();
+    expect(screen.getByText(CLOUD_ERROR_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_CHECK_ERROR)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_OPEN_STUDIO })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(orgLinkState.refetch).toHaveBeenCalled();
   });
 
   it("keeps the delete dialog open until the action resolves and shows errors", async () => {

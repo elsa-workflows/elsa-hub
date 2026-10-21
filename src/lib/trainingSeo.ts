@@ -1,7 +1,8 @@
-import { FUNDAMENTALS_CORE_GUMROAD_URL } from "./trainingInterest";
 import { SITE_URL } from "./site";
+import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH } from "./academyPaths";
 
 export const TRAINING_PATH = "/elsa-plus/training";
+export const ACADEMY_SOLO_BUNDLE_PATH = `${ACADEMY_PATH}${ACADEMY_SOLO_BUNDLE_HASH}`;
 export const TRAINING_TITLE = "Elsa Workflows Training | Hands-on Elsa 3 Course for .NET";
 export const TRAINING_DESCRIPTION =
   "Learn Elsa Workflows 3 hands-on: self-paced course and lab kit for hosting, Studio, HTTP workflows and approvals. Solo Bundle, team packs, workshops.";
@@ -105,7 +106,7 @@ export function trainingCourseJsonLd(): Record<string, unknown> {
         price: TRAINING_OFFER_PRICE,
         priceCurrency: TRAINING_OFFER_CURRENCY,
         priceValidUntil: TRAINING_PRICE_VALID_UNTIL,
-        url: FUNDAMENTALS_CORE_GUMROAD_URL,
+        url: `${SITE_URL}${ACADEMY_PATH}`,
         availability: "https://schema.org/InStock",
       },
       {
@@ -115,7 +116,7 @@ export function trainingCourseJsonLd(): Record<string, unknown> {
         price: String(TRAINING_POST_LAUNCH_PRICE_EUR),
         priceCurrency: TRAINING_OFFER_CURRENCY,
         validFrom: TRAINING_REGULAR_PRICE_VALID_FROM,
-        url: FUNDAMENTALS_CORE_GUMROAD_URL,
+        url: `${SITE_URL}${ACADEMY_PATH}`,
         availability: "https://schema.org/InStock",
       },
     ],

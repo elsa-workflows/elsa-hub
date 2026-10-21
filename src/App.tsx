@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { ACADEMY_TERMS_INDEX_PATH } from "@/lib/academyLegal";
 import { LEGACY_CLOUD_PATH } from "@/lib/cloudPaths";
 import {
   ELSA_RUNTIME_PATH,
@@ -16,6 +17,8 @@ import {
   elsaRuntimeImagePath,
   getLegacyElsaRuntimeRedirectTarget,
 } from "@/lib/elsaRuntime";
+import { PROFILE_ROUTE_TABLE } from "@/lib/authRedirect";
+import { LEGACY_TERMS_PATH } from "@/lib/legalRedirects";
 
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
 
@@ -64,6 +67,10 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
+const AcademyCatalog = lazy(() => import("./pages/academy/AcademyCatalog"));
+const AcademyCourse = lazy(() => import("./pages/academy/AcademyCourse"));
+const AcademyLesson = lazy(() => import("./pages/academy/AcademyLesson"));
+
 // Dashboard
 const DashboardLayout = lazy(() =>
   import("@/components/dashboard").then((m) => ({ default: m.DashboardLayout }))
@@ -190,6 +197,9 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/academy" element={<AcademyCatalog />} />
+              <Route path="/academy/:courseSlug" element={<AcademyCourse />} />
+              <Route path="/academy/:courseSlug/:lessonSlug" element={<AcademyLesson />} />
               {/* The .html variant is a prerendered download/import target for
                   crawlers and Medium. If a real browser lands on it, send the
                   user to the clean SPA route so React Router doesn't 404. */}
@@ -198,6 +208,7 @@ const App = () => (
               <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/legal/terms" element={<TermsIndex />} />
               <Route path="/legal/academy-terms" element={<AcademyTerms />} />
+              <Route path={LEGACY_TERMS_PATH} element={<Navigate to={ACADEMY_TERMS_INDEX_PATH} replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
@@ -210,7 +221,19 @@ const App = () => (
               {/* Dashboard Routes */}
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<DashboardHome />} />
-                <Route path="settings" element={<ProfileSettings />} />
+                {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "dashboard").map((route) => (
+                  <Route
+                    key={route.path}
+                    path={route.childPath}
+                    element={
+                      route.kind === "redirect" ? (
+                        <Navigate to={route.to} replace />
+                      ) : (
+                        <ProfileSettings />
+                      )
+                    }
+                  />
+                ))}
                 <Route path="settings/notifications" element={<NotificationSettings />} />
                 <Route path="cloud" element={<CloudHome />} />
                 <Route path="cloud/billing" element={<CloudBilling />} />
@@ -255,6 +278,17 @@ const App = () => (
               </Route>
 
               {/* Backward Compatibility Redirects */}
+              {PROFILE_ROUTE_TABLE.filter((route) => route.parent === "root").map((route) => (
+                <Route
+                  key={route.path}
+                  path={route.path}
+                  element={
+                    route.kind === "redirect" ? (
+                      <Navigate to={route.to} replace />
+                    ) : null
+                  }
+                />
+              ))}
               <Route path="/account" element={<Navigate to="/dashboard" replace />} />
               <Route path="/org/:slug" element={<OrgRedirect />} />
               

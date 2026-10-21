@@ -22,8 +22,8 @@ echo "=== apply academy scratch_prelude.sql ==="
 echo "=== apply cloud-organization-links scratch_prelude.sql ==="
 "${PSQL[@]}" -f "$ROOT/supabase/tests/cloud-organization-links/scratch_prelude.sql"
 
-echo "=== apply 20261016020000_cloud_organization_links.sql ==="
-"${PSQL[@]}" -f "$ROOT/supabase/migrations/20261016020000_cloud_organization_links.sql"
+echo "=== apply 20261016023351_cloud_organization_links.sql ==="
+"${PSQL[@]}" -f "$ROOT/supabase/migrations/20261016023351_cloud_organization_links.sql"
 
 echo "=== apply rls.sql ==="
 "${PSQL[@]}" -f "$ROOT/supabase/tests/cloud-organization-links/rls.sql"

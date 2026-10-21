@@ -1,7 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { getOrCreateStripeCustomer } from "../_shared/stripe-customer.ts";
+import {
+  customerFailureResponse,
+  getOrCreateStripeCustomer,
+  type StripeCustomerStore,
+} from "../_shared/stripe-customer.ts";
 import { isCloudCheckoutRequest } from "../_shared/cloud-billing.ts";
 import { handleCloudCheckout } from "./cloud.ts";
 
@@ -303,39 +307,19 @@ serve(async (req) => {
         }
       : undefined;
 
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    // The helper also writes these to a stored customer, so no follow-up update is needed.
     const stripeCustomerId = await getOrCreateStripeCustomer(
       { orgId: organizationId },
       {
-        stripe: {
-          customers: {
-            create: (params, options) => stripe.customers.create(params, options),
-            update: (id, params) => stripe.customers.update(id, params),
-            del: (id) => stripe.customers.del(id),
-          },
-        },
-        supabase: serviceClient,
+        stripe,
+        // supabase-js's generics are too deep to infer against the structural store type.
+        supabase: serviceClient as unknown as StripeCustomerStore,
         email: userEmail,
         name: billingProfile?.company_legal_name || org.name,
         address: addressPayload,
-        metadata: {
-          organization_id: organizationId,
-          user_id: userId,
-        },
-        stripeSecretKey,
+        metadata: { organization_id: organizationId, user_id: userId },
       },
     );
-
-    if (billingProfile) {
-      await stripe.customers.update(stripeCustomerId, {
-        name: billingProfile.company_legal_name || org.name,
-        address: addressPayload,
-        metadata: {
-          organization_id: organizationId,
-          user_id: userId,
-        },
-      });
-    }
 
     if (billingProfile?.vat_number && billingProfile?.country) {
       try {
@@ -502,6 +486,9 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const customerFailure = customerFailureResponse(error, corsHeaders);
+    if (customerFailure) return customerFailure;
 
     const message = error instanceof Error ? error.message : "Internal server error";
 

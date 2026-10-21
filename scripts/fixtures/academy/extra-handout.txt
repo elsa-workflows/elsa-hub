@@ -1,0 +1,1 @@
+Fixture extra asset for academy-import tests. Not production content.

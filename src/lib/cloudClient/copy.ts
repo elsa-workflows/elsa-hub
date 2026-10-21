@@ -18,6 +18,11 @@ export const CLOUD_LINK_ORG_MESSAGE =
   "Connect this Hub organization to Elsa Cloud so engines and checkout can use it.";
 export const CLOUD_LINK_ORG_ASK_ADMIN =
   "Ask an organization admin to link Elsa Cloud for this organization.";
+export const CLOUD_LINK_CHECK_ERROR =
+  "Could not check whether this organization is linked to Elsa Cloud.";
+export const CLOUD_PICK_ORG_HEADING = "Choose an organization";
+export const CLOUD_PICK_ORG_MESSAGE =
+  "Pick which Hub organization to open in Elsa Cloud.";
 export const CLOUD_CREATE_ENGINE = "Create engine";
 export const CLOUD_ENGINE_NAME_LABEL = "Engine name";
 export const CLOUD_OPEN_STUDIO = "Open Studio";

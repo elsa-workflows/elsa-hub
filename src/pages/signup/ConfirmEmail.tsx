@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { Mail } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
+import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -10,6 +11,11 @@ export default function ConfirmEmail() {
 
   return (
     <Layout>
+      <Seo
+        path="/signup/confirm-email"
+        title="Confirm your email — Elsa+"
+        description="Check your inbox for a confirmation link to activate your Elsa+ account."
+      />
       <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center py-12 px-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader className="space-y-4">

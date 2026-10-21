@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { PROFILE_SETTINGS_PATH } from "@/lib/authRedirect";
 
 type ContextType = "org" | "provider" | "admin" | null;
 
@@ -37,7 +38,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   const navigateToProfile = () => {
-    navigate("/dashboard/settings");
+    navigate(PROFILE_SETTINGS_PATH);
   };
 
   const navigateToAdmin = (path?: string) => {

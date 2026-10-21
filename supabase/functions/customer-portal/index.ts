@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import {
+  customerFailureResponse,
+  getStoredStripeCustomerId,
+  type StripeCustomerStore,
+} from "../_shared/stripe-customer.ts";
 import { isCloudCheckoutRequest } from "../_shared/cloud-billing.ts";
 import { handleCloudPortal } from "./cloud.ts";
 
@@ -44,7 +49,6 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const userEmail = user.email;
 
     // Parse request body
     const body = await req.json();
@@ -57,13 +61,6 @@ serve(async (req) => {
         body,
         corsHeaders,
       });
-    }
-
-    if (!userEmail) {
-      return new Response(
-        JSON.stringify({ error: "User email not found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     const { organizationId } = body;
@@ -90,23 +87,17 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const livemode = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").startsWith("sk_live_");
-    const { data: stored, error: storedError } = await serviceClient
-      .from("org_stripe_customers")
-      .select("stripe_customer_id")
-      .eq("organization_id", organizationId)
-      .eq("livemode", livemode)
-      .maybeSingle();
-    if (storedError) {
-      throw storedError;
-    }
-    if (!stored?.stripe_customer_id) {
+    const customerId = await getStoredStripeCustomerId(
+      { orgId: organizationId },
+      // supabase-js's generics are too deep to infer against the structural store type.
+      { supabase: serviceClient as unknown as StripeCustomerStore },
+    );
+    if (!customerId) {
       return new Response(
         JSON.stringify({ error: "No Stripe customer found for this organization" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const customerId = stored.stripe_customer_id;
 
     // Create customer portal session
     const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
@@ -121,6 +112,8 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Customer portal error:", error);
+    const customerFailure = customerFailureResponse(error, corsHeaders);
+    if (customerFailure) return customerFailure;
     const message = error instanceof Error ? error.message : "Internal server error";
     return new Response(
       JSON.stringify({ error: message }),

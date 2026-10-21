@@ -1,11 +1,11 @@
-// Canonical Elsa 3.8.0 samples shared across the public site.
-// Source of truth: https://github.com/elsa-workflows/elsa-core/tree/3.8.0
+// Canonical Elsa samples shared across the public site.
+// Source of truth: https://github.com/elsa-workflows/elsa-core/tree/3.9.0
 //
 // Do not duplicate these strings inline. Import from here so the homepage
 // and get-started docs stay in lockstep with the release branch.
 
 // Embedding Elsa in a .NET host.
-// Source paths (tag 3.8.0):
+// Source paths (tag 3.9.0):
 //   src/modules/Elsa/Extensions/DependencyInjectionExtensions.cs:18   -> AddElsa
 //   src/modules/Elsa.Workflows.Core/Extensions/ModuleExtensions.cs:11 -> UseWorkflows
 //   src/modules/Elsa.Http/Extensions/ModuleExtensions.cs:15           -> UseHttp
