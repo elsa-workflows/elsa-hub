@@ -3,16 +3,13 @@
  * Hub must not record them as orders, credits, or Hub subscriptions.
  * Academy events (`kind=academy`) are not Cloud and are left for #54.
  */
-import { classifyStripeEvent, isCloudStripeEvent } from "../_shared/cloud-billing.ts";
+import { isCloudStripeEvent } from "../_shared/cloud-billing.ts";
 
 export { isCloudStripeEvent };
 
-export async function handleCloudStripeEvent(event: { id?: string; type?: string }): Promise<void> {
+export function handleCloudStripeEvent(event: { type?: string }): Promise<void> {
   console.log(
     `Cloud Stripe event ${event.type ?? "unknown"} left for Control; Hub orders and credits unchanged`,
   );
-}
-
-export function cloudWebhookDecision(event: { data?: { object?: unknown } }): "cloud" | "academy" | "hub" {
-  return classifyStripeEvent(event);
+  return Promise.resolve();
 }

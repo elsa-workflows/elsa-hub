@@ -1,14 +1,16 @@
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import {
+  customerFailureResponse,
+  type EnvReader,
   getOrCreateStripeCustomer,
-  type GetOrCreateStripeCustomerDeps,
-  type StripeCustomerCreateParams,
-  type StripeCustomerOwner,
+  type StripeCustomerClient,
+  type StripeCustomerStore,
 } from "../_shared/stripe-customer.ts";
 import {
   assertStripeTestMode,
   buildCloudCheckoutMetadata,
+  CLOUD_LINK_READ_FAILED,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
@@ -20,6 +22,20 @@ import {
 } from "../_shared/cloud-billing.ts";
 import { readValidatedControlOrganizationId } from "../_shared/cloud-organization-link.ts";
 
+/** The Stripe surface Cloud checkout uses; the real client satisfies it. */
+export type CloudCheckoutStripe = StripeCustomerClient & {
+  subscriptions: {
+    list(params: { customer: string; limit?: number }): Promise<{
+      data: Array<{ id: string; status: string; metadata?: Record<string, string> | null }>;
+    }>;
+  };
+  checkout: {
+    sessions: {
+      create(params: Stripe.Checkout.SessionCreateParams): Promise<{ url: string | null }>;
+    };
+  };
+};
+
 export type CloudCheckoutContext = {
   req: Request;
   user: { id: string; email?: string | null };
@@ -29,31 +45,8 @@ export type CloudCheckoutContext = {
     organizationId?: string;
   };
   corsHeaders: Record<string, string>;
-  env?: { get(key: string): string | undefined };
-  getOrCreateStripeCustomer?: (
-    owner: StripeCustomerOwner,
-    deps?: GetOrCreateStripeCustomerDeps,
-  ) => Promise<string>;
-  stripe?: {
-    customers: {
-      create: (
-        params: StripeCustomerCreateParams,
-        options?: { idempotencyKey?: string },
-      ) => Promise<{ id: string }>;
-      update: (id: string, params: StripeCustomerCreateParams) => Promise<{ id: string }>;
-      del: (id: string) => Promise<{ id: string }>;
-    };
-    subscriptions: {
-      list: (params: { customer: string; status?: string; limit?: number }) => Promise<{
-        data: Array<{ id: string; status: string; metadata?: Record<string, string> }>;
-      }>;
-    };
-    checkout: {
-      sessions: {
-        create: (params: Stripe.Checkout.SessionCreateParams) => Promise<{ url: string | null }>;
-      };
-    };
-  };
+  env?: EnvReader;
+  stripe?: CloudCheckoutStripe;
 };
 
 function jsonResponse(
@@ -74,16 +67,14 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
   try {
     assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Cloud billing is not configured";
-    return jsonResponse(corsHeaders, 503, { error: message });
+    return jsonResponse(corsHeaders, 503, { error: (error as Error).message });
   }
 
   let memberships: Awaited<ReturnType<typeof readLinkedHubAdminOrganizations>>;
   try {
     memberships = await readLinkedHubAdminOrganizations(userClient, user.id);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to read organization membership";
-    return jsonResponse(corsHeaders, 500, { error: message });
+    return jsonResponse(corsHeaders, 500, { error: (error as Error).message });
   }
 
   const linked = selectLinkedHubOrganization(memberships, body.organizationId);
@@ -111,33 +102,26 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
       organizationId,
     );
   } catch (error) {
-    const message = error instanceof Error
-      ? error.message
-      : "Failed to read Control organization link";
-    return jsonResponse(corsHeaders, 500, { error: message });
+    console.error("Cloud checkout link read failed:", error);
+    return jsonResponse(corsHeaders, 500, { error: CLOUD_LINK_READ_FAILED });
   }
   if (!controlOrganizationId) {
-    const unlinked = unlinkedControlOrganizationError();
-    return jsonResponse(corsHeaders, unlinked.status, {
-      error: unlinked.error,
-      code: unlinked.code,
-    });
+    const { status, ...unlinked } = unlinkedControlOrganizationError();
+    return jsonResponse(corsHeaders, status, unlinked);
   }
 
   let stripePriceId: string;
   try {
     stripePriceId = readCloudPriceId(env);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Cloud billing is not configured";
-    return jsonResponse(corsHeaders, 503, { error: message });
+    return jsonResponse(corsHeaders, 503, { error: (error as Error).message });
   }
 
   const { data: org } = await userClient
     .from("organizations")
-    .select("name")
+    .select("name, slug")
     .eq("id", organizationId)
     .maybeSingle();
-  const orgName = org?.name ?? undefined;
 
   const { data: billingProfile } = await serviceClient
     .from("org_billing_profiles")
@@ -156,42 +140,36 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
       }
     : undefined;
 
-  const stripeSecretKey = env.get("STRIPE_SECRET_KEY");
-  const stripe = ctx.stripe ?? new Stripe(stripeSecretKey!, {
+  const stripe: CloudCheckoutStripe = ctx.stripe ?? new Stripe(env.get("STRIPE_SECRET_KEY")!, {
     apiVersion: "2025-08-27.basil",
   });
 
-  const resolveCustomer = ctx.getOrCreateStripeCustomer ?? getOrCreateStripeCustomer;
-  const stripeCustomerId = await resolveCustomer(
-    { orgId: organizationId },
-    {
-      stripe: {
-        customers: {
-          create: (params, options) => stripe.customers.create(params, options),
-          update: (id, params) => stripe.customers.update(id, params),
-          del: (id) => stripe.customers.del(id),
-        },
+  let stripeCustomerId: string;
+  try {
+    stripeCustomerId = await getOrCreateStripeCustomer(
+      { orgId: organizationId },
+      {
+        stripe,
+        // supabase-js's generics are too deep to infer against the structural store type.
+        supabase: serviceClient as unknown as StripeCustomerStore,
+        env,
+        email: user.email ?? undefined,
+        name: billingProfile?.company_legal_name || org?.name || undefined,
+        address,
+        metadata: { organization_id: organizationId, user_id: user.id },
       },
-      supabase: serviceClient,
-      email: user.email ?? undefined,
-      name: billingProfile?.company_legal_name || orgName || undefined,
-      address,
-      metadata: {
-        organization_id: organizationId,
-        user_id: user.id,
-      },
-      stripeSecretKey,
-    },
-  );
+    );
+  } catch (error) {
+    const failure = customerFailureResponse(error, corsHeaders);
+    if (failure) return failure;
+    throw error;
+  }
 
-  const existing = await stripe.subscriptions.list({
-    customer: stripeCustomerId,
-    status: "all",
-    limit: 20,
-  });
+  // Stripe's default status filter returns every subscription that is not canceled.
+  const existing = await stripe.subscriptions.list({ customer: stripeCustomerId, limit: 100 });
   if (orgHasBlockingCloudSubscription(existing.data)) {
     return jsonResponse(corsHeaders, 409, {
-      error: "This organization already has an active Cloud subscription",
+      error: "This organization already has a Cloud subscription",
       code: CLOUD_SUBSCRIPTION_EXISTS_CODE,
     });
   }
@@ -213,8 +191,8 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     subscription_data: { metadata },
     automatic_tax: { enabled: true },
     tax_id_collection: { enabled: true },
-    success_url: `${origin}${cloudCheckoutSuccessPath()}`,
-    cancel_url: `${origin}${cloudCheckoutCancelPath()}`,
+    success_url: `${origin}${cloudCheckoutSuccessPath(org?.slug)}`,
+    cancel_url: `${origin}${cloudCheckoutCancelPath(org?.slug)}`,
   });
 
   return jsonResponse(corsHeaders, 200, { checkoutUrl: session.url });
