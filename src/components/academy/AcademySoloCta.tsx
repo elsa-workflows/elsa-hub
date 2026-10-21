@@ -1,10 +1,18 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { ACADEMY_TEAM_LICENCES_URL, handleBuyCourse } from "@/lib/academy";
 import {
+  ACADEMY_ALREADY_OWNED,
+  ACADEMY_TEAM_LICENCES_URL,
+  handleBuyCourse,
+  isAcademyAlreadyOwnedError,
+  type AcademyBuyOutcome,
+} from "@/lib/academy";
+import {
+  ACADEMY_CHECKOUT_FAILED_LINE,
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
   ACADEMY_PAYMENT_SUCCESS_LINE,
@@ -14,6 +22,7 @@ import {
   ACADEMY_SOLO_LOCKED_HEADING,
   ACADEMY_SOLO_OWNED_LINK,
   ACADEMY_SOLO_OWNED_NOTE,
+  ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE,
   ACADEMY_SOLO_SIGN_IN_LABEL,
   ACADEMY_SOLO_SIGNED_OUT_NOTE,
   ACADEMY_TEAM_LINE_AFTER,
@@ -23,18 +32,24 @@ import {
   isAcademyPaymentSuccess,
 } from "@/lib/academyCopy";
 
-export type AcademySoloOwnership = "owned" | "unknown" | "none";
+export type AcademySoloOwnership = "owned" | "unknown" | "failed" | "none";
 
 type AcademySoloCtaProps = {
   id?: string;
   locked?: boolean;
   /**
-   * "owned": the visitor has access to every published bundle course, so show a note instead
-   * of a buy action. "unknown": ownership is still loading or failed to load, so show neither
-   * a buy action nor the note. Default "none".
+   * "owned": the visitor's personal grants cover every published course, so show a note instead
+   * of a buy action. A team seat or admin access lends access but does not count. "unknown":
+   * ownership is still loading, so show neither a buy action nor the note. "failed": ownership
+   * could not be checked, so show no buy action and tell a signed-in visitor to refresh.
+   * Default "none".
    */
   ownership?: AcademySoloOwnership;
-  onBuyCourse?: typeof handleBuyCourse;
+  /**
+   * Resolving to ACADEMY_ALREADY_OWNED, or rejecting with checkout's 409 already_owned, swaps Buy
+   * for the owned note. Any other rejection shows an error toast and re-enables Buy.
+   */
+  onBuyCourse?: () => void | Promise<AcademyBuyOutcome>;
 };
 
 export function AcademyPaymentSuccessNote() {
@@ -61,9 +76,22 @@ export function AcademySoloCta({
   const showIncluded = !locked;
   const showGumroadClaim = locked && signedIn && ACADEMY_GUMROAD_CLAIM_LIVE;
   const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${search}`)}`;
+  const [checkoutSaysOwned, setCheckoutSaysOwned] = useState(false);
+  const [buying, setBuying] = useState(false);
+  const buy = async () => {
+    setBuying(true);
+    try {
+      if ((await onBuyCourse()) === ACADEMY_ALREADY_OWNED) setCheckoutSaysOwned(true);
+    } catch (error) {
+      if (await isAcademyAlreadyOwnedError(error)) setCheckoutSaysOwned(true);
+      else toast.error(ACADEMY_CHECKOUT_FAILED_LINE);
+    } finally {
+      setBuying(false);
+    }
+  };
 
   let purchaseArea: ReactNode = null;
-  if (ownership === "owned") {
+  if (ownership === "owned" || checkoutSaysOwned) {
     purchaseArea = (
       <p className="text-sm">
         {ACADEMY_SOLO_OWNED_NOTE}{" "}
@@ -72,9 +100,13 @@ export function AcademySoloCta({
         </a>
       </p>
     );
+  } else if (ownership === "failed" && signedIn) {
+    purchaseArea = (
+      <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE}</p>
+    );
   } else if (ownership === "none" && !paymentSuccess) {
     purchaseArea = signedIn ? (
-      <Button type="button" onClick={() => onBuyCourse()}>
+      <Button type="button" onClick={buy} disabled={buying}>
         {ACADEMY_SOLO_BUY_LABEL}
       </Button>
     ) : (

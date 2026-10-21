@@ -10,7 +10,12 @@ import {
 } from "../_shared/academyLegal.ts";
 import { handleAcademyCheckoutRequest, runAcademyCheckout } from "./handler.ts";
 import { resolveCustomer } from "./stripeCustomer.ts";
-import { captureConsoleError, createQuery, type FailingQueryCall } from "./test_support.ts";
+import {
+  bulkPublished,
+  captureConsoleError,
+  createQuery,
+  type FailingQueryCall,
+} from "./test_support.ts";
 
 const SOLO_COURSE = {
   id: "00000000-0000-4000-8000-000000002001",
@@ -21,6 +26,7 @@ const SOLO_COURSE = {
   price_cents: 2900,
   currency: "eur",
   is_published: true,
+  product_codes: ["solo_bundle"],
 };
 
 const TEAM5_COURSE = {
@@ -61,8 +67,17 @@ const BILLING_PROFILE = {
 };
 
 type SessionCreate = Record<string, unknown>;
-type CourseRow = Omit<typeof SOLO_COURSE, "stripe_price_id"> & {
+type CourseRow = Omit<typeof SOLO_COURSE, "stripe_price_id" | "product_codes"> & {
   stripe_price_id: string | null;
+  product_codes?: string[];
+};
+
+type EntitlementRow = {
+  user_id: string;
+  subject_type: "user" | "org";
+  course_id: string | null;
+  product_code: string | null;
+  revoked_at: string | null;
 };
 
 function createStripeMock(options?: {
@@ -72,15 +87,18 @@ function createStripeMock(options?: {
   const sessions: SessionCreate[] = [];
   const created: Record<string, unknown>[] = [];
   const updated: Array<{ id: string; params: Record<string, unknown> }> = [];
+  const listed: string[] = [];
   let createCount = 0;
 
   return {
     sessions,
     created,
     updated,
+    listed,
     stripe: {
       customers: {
         list: async ({ email }: { email: string }) => {
+          listed.push(email);
           assertEquals(email, USER.email);
           return {
             data: options?.existingCustomerId ? [{ id: options.existingCustomerId }] : [],
@@ -117,6 +135,8 @@ function createServiceClient(options: {
   billingProfile?: typeof BILLING_PROFILE | null;
   user?: { id: string; email?: string | null } | null;
   failCourseQueryOn?: FailingQueryCall;
+  entitlements?: EntitlementRow[];
+  failEntitlementsRead?: boolean;
 } = {}) {
   const courses = options.courses ?? [SOLO_COURSE, TEAM5_COURSE, TEAM10_COURSE];
   const tableReads: string[] = [];
@@ -133,6 +153,11 @@ function createServiceClient(options: {
       tableReads.push(table);
       if (table === "academy_courses") {
         return createQuery(courses, { failOn: options.failCourseQueryOn });
+      }
+      if (table === "academy_entitlements") {
+        return createQuery(options.entitlements ?? [], {
+          failOn: options.failEntitlementsRead ? "limit" : undefined,
+        });
       }
       if (table === "organizations") {
         const org = options.org === undefined
@@ -639,6 +664,134 @@ Deno.test("course without stripe_price_id is rejected and never hardcodes a pric
   assertEquals(status, 400);
   assertEquals(body.error, "This course is not configured for purchase yet");
   assertEquals(stripe.sessions.length, 0);
+});
+
+const SECOND_SOLO_COURSE = {
+  ...SOLO_COURSE,
+  id: "00000000-0000-4000-8000-000000002002",
+  slug: "second-published-course",
+  title: "Second Published Course",
+};
+
+function entitlement(grant: Partial<EntitlementRow>): EntitlementRow {
+  return {
+    user_id: USER.id,
+    subject_type: "user",
+    course_id: null,
+    product_code: null,
+    revoked_at: null,
+    ...grant,
+  };
+}
+
+async function checkoutSoloWithEntitlements(
+  entitlements: EntitlementRow[],
+  options: { failEntitlementsRead?: boolean; courses?: CourseRow[] } = {},
+) {
+  const stripe = createStripeMock();
+  const { result: res, logged } = await captureConsoleError(() =>
+    runAcademyCheckout({
+      user: USER,
+      body: { courseId: SOLO_COURSE.id },
+      origin: "https://hub.example",
+      deps: {
+        userClient: createUserClient(false),
+        serviceClient: createServiceClient({
+          courses: options.courses ?? [SOLO_COURSE, SECOND_SOLO_COURSE, TEAM5_COURSE],
+          entitlements,
+          failEntitlementsRead: options.failEntitlementsRead,
+        }),
+        stripe: stripe.stripe,
+      },
+    })
+  );
+  return { ...(await parseJson(res)), stripe, logged };
+}
+
+function assertNoStripeCalls(stripe: ReturnType<typeof createStripeMock>) {
+  assertEquals(stripe.listed.length, 0);
+  assertEquals(stripe.created.length, 0);
+  assertEquals(stripe.updated.length, 0);
+  assertEquals(stripe.sessions.length, 0);
+}
+
+const OWNER_CASES: Array<[string, EntitlementRow[]]> = [
+  ["a solo_bundle entitlement", [entitlement({ product_code: "solo_bundle" })]],
+  [
+    "course entitlements for every published course",
+    [
+      entitlement({ course_id: SOLO_COURSE.id }),
+      entitlement({ course_id: SECOND_SOLO_COURSE.id }),
+    ],
+  ],
+];
+
+for (const [label, entitlements] of OWNER_CASES) {
+  Deno.test(`Solo owner with ${label} gets 409 already_owned and no Stripe call`, async () => {
+    const { status, body, stripe } = await checkoutSoloWithEntitlements(entitlements);
+    assertEquals(status, 409);
+    assertEquals(body, { error: "already_owned" });
+    assertNoStripeCalls(stripe);
+  });
+}
+
+const NOT_OWNER_CASES: Array<[string, EntitlementRow[]]> = [
+  ["no entitlements", []],
+  ["access to only one of two published courses", [entitlement({ course_id: SOLO_COURSE.id })]],
+  ["a revoked solo_bundle entitlement", [
+    entitlement({ product_code: "solo_bundle", revoked_at: "2026-10-01T00:00:00Z" }),
+  ]],
+  ["a bundle entitlement for a SKU the courses do not list", [entitlement({ product_code: "team_5" })]],
+  ["another user's solo_bundle entitlement", [
+    entitlement({ product_code: "solo_bundle", user_id: "00000000-0000-4000-8000-000000000099" }),
+  ]],
+];
+
+for (const [label, entitlements] of NOT_OWNER_CASES) {
+  Deno.test(`Solo buyer with ${label} still gets a Checkout session`, async () => {
+    const { status, body, stripe } = await checkoutSoloWithEntitlements(entitlements);
+    assertEquals(status, 200);
+    assertEquals(body.sessionId, "cs_test_academy");
+    assertEquals(stripe.sessions.length, 1);
+  });
+}
+
+Deno.test("a full page of published courses can't prove ownership, so Solo still gets a session", async () => {
+  // 1000 rows is the read limit: the page may be truncated, so courses past it may be uncovered.
+  const { status, body, stripe } = await checkoutSoloWithEntitlements(
+    [entitlement({ product_code: "solo_bundle" })],
+    { courses: [SOLO_COURSE, ...bulkPublished(999, SOLO_COURSE)] },
+  );
+  assertEquals(status, 200);
+  assertEquals(body.sessionId, "cs_test_academy");
+  assertEquals(stripe.sessions.length, 1);
+});
+
+Deno.test("Solo checkout returns a generic 500 and no Stripe call when the entitlement read fails", async () => {
+  const { status, body, stripe, logged } = await checkoutSoloWithEntitlements(
+    [entitlement({ product_code: "solo_bundle" })],
+    { failEntitlementsRead: true },
+  );
+  assertEquals(status, 500);
+  assertEquals(body, { error: "Entitlement lookup failed" });
+  assertEquals(logged.includes("secret db detail"), true);
+  assertNoStripeCalls(stripe);
+});
+
+Deno.test("Team checkout does not read the buyer's personal entitlements", async () => {
+  const stripe = createStripeMock();
+  const service = createServiceClient({
+    billingProfile: BILLING_PROFILE,
+    entitlements: [entitlement({ product_code: "solo_bundle" })],
+  });
+  const res = await runAcademyCheckout({
+    user: USER,
+    body: { productCode: "team_5", organizationId: ORG_ID },
+    origin: "https://hub.example",
+    deps: { userClient: createUserClient(true), serviceClient: service, stripe: stripe.stripe },
+  });
+  assertEquals(res.status, 200);
+  assertEquals(service.tableReads.includes("academy_entitlements"), false);
 });
 
 Deno.test("HTTP handler requires a signed-in user", async () => {
