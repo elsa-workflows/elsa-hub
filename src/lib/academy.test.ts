@@ -39,6 +39,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import {
+  ACADEMY_ALREADY_OWNED,
   ACADEMY_KIT_SIGNED_URL_TTL_SECONDS,
   ACADEMY_KITS_BUCKET,
   ACADEMY_SOLO_BUNDLE_HASH,
@@ -51,10 +52,12 @@ import {
   getLessonPageMeta,
   handleBuyCourse,
   hasAcademyAccess,
+  isAcademyAlreadyOwnedError,
   isMissingAcademyRelation,
   lessonPath,
   listCourseKitAssets,
   listCourseLessons,
+  listPersonalAcademyGrants,
   listPublishedCourses,
   scrollAcademySoloBundleIntoView,
 } from "./academy";
@@ -217,8 +220,52 @@ describe("academy data layer", () => {
     await expect(listPublishedCourses()).resolves.toEqual(ACADEMY_STUB_COURSES);
   });
 
+  it("reads only the user's own active personal grants, since RLS shows admins every row", async () => {
+    const grant = { course_id: null, product_code: "solo_bundle" };
+    is.mockResolvedValueOnce({ data: [grant], error: null });
+
+    await expect(listPersonalAcademyGrants("user-1")).resolves.toEqual([grant]);
+    expect(from).toHaveBeenCalledWith("academy_entitlements");
+    expect(select).toHaveBeenCalledWith("course_id, product_code");
+    expect(eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(eq).toHaveBeenCalledWith("subject_type", "user");
+    expect(is).toHaveBeenCalledWith("revoked_at", null);
+  });
+
+  it("treats missing academy_entitlements as no personal grants and rethrows other errors", async () => {
+    is.mockResolvedValueOnce({ data: null, error: missingTable });
+    await expect(listPersonalAcademyGrants("user-1")).resolves.toEqual([]);
+
+    is.mockResolvedValueOnce({ data: null, error: { code: "42501", message: "denied" } });
+    await expect(listPersonalAcademyGrants("user-1")).rejects.toMatchObject({ code: "42501" });
+  });
+
   it("treats a missing has_academy_access RPC as no access", async () => {
     rpc.mockResolvedValue({ data: null, error: missingRpc });
     await expect(hasAcademyAccess("course-1")).resolves.toBe(false);
+  });
+});
+
+describe("isAcademyAlreadyOwnedError", () => {
+  // supabase.functions.invoke puts the function's Response on error.context.
+  const invokeError = (status: number, body: unknown) => ({
+    name: "FunctionsHttpError",
+    context: new Response(JSON.stringify(body), { status }),
+  });
+
+  it("recognises academy-checkout's 409 already_owned", async () => {
+    await expect(
+      isAcademyAlreadyOwnedError(invokeError(409, { error: ACADEMY_ALREADY_OWNED })),
+    ).resolves.toBe(true);
+  });
+
+  it.each([
+    ["another 409", invokeError(409, { error: "Ambiguous course row" })],
+    ["a 500", invokeError(500, { error: ACADEMY_ALREADY_OWNED })],
+    ["a non-JSON 409", { context: new Response("conflict", { status: 409 }) }],
+    ["a network error", new Error("Failed to fetch")],
+    ["null", null],
+  ])("is false for %s", async (_label, error) => {
+    await expect(isAcademyAlreadyOwnedError(error)).resolves.toBe(false);
   });
 });

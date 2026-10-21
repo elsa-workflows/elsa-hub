@@ -1,13 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH, ACADEMY_SOLO_BUNDLE_ID } from "./academyPaths";
+import type { PersonalAcademyGrant } from "./academyOwnership";
 
 export { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH, ACADEMY_SOLO_BUNDLE_ID };
 export const ACADEMY_KITS_BUCKET = "academy-kits";
 export const ACADEMY_KIT_SIGNED_URL_TTL_SECONDS = 600;
 
 export const ACADEMY_COURSE_COLUMNS =
-  "id, slug, title, summary, sort_order, is_published, price_cents, currency, stripe_price_id, product_code";
+  "id, slug, title, summary, sort_order, is_published, price_cents, currency, stripe_price_id, product_code, product_codes";
 
 export const ACADEMY_ASSET_COLUMNS = "id, course_id, lesson_id, label, storage_path";
 
@@ -22,6 +23,7 @@ export type Course = {
   currency: string;
   stripe_price_id: string | null;
   product_code: string | null;
+  product_codes: string[];
 };
 
 export type LessonSummary = {
@@ -142,6 +144,30 @@ export function scrollAcademySoloBundleIntoView(
  */
 export function academyCheckoutFields(courseId: string) {
   return { courseId };
+}
+
+/**
+ * academy-checkout's 409 error code when the buyer already owns the Solo Bundle (#103).
+ * Mirrored in supabase/functions/_shared/academyOwnership.ts; its test asserts they match.
+ */
+export const ACADEMY_ALREADY_OWNED = "already_owned";
+
+/** What a Solo buy action reports back to the CTA. */
+export type AcademyBuyOutcome = typeof ACADEMY_ALREADY_OWNED | undefined;
+
+/**
+ * True when a supabase.functions.invoke error is academy-checkout's 409 already_owned, so the
+ * buy action can return ACADEMY_ALREADY_OWNED and the CTA shows the owned note.
+ */
+export async function isAcademyAlreadyOwnedError(error: unknown): Promise<boolean> {
+  const response = (error as { context?: unknown } | null)?.context;
+  if (!(response instanceof Response) || response.status !== 409) return false;
+  try {
+    const body = await response.clone().json();
+    return body?.error === ACADEMY_ALREADY_OWNED;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -270,6 +296,27 @@ export async function hasAcademyAccess(courseId: string): Promise<boolean> {
   return data === true;
 }
 
+/**
+ * The signed-in user's own active entitlements, which decide Solo Bundle ownership. The explicit
+ * user_id filter matters: RLS returns every entitlement row to platform admins.
+ */
+export async function listPersonalAcademyGrants(userId: string): Promise<PersonalAcademyGrant[]> {
+  const { data, error } = await academyClient
+    .from("academy_entitlements")
+    .select("course_id, product_code")
+    .eq("user_id", userId)
+    .eq("subject_type", "user")
+    .is("revoked_at", null);
+
+  if (error) {
+    if (isMissingAcademyRelation(error)) return [];
+    throw error;
+  }
+
+  return (data ?? []) as PersonalAcademyGrant[];
+}
+
+/** Access only (My courses, lesson unlocks): has_academy_access also counts team seats and admins. */
 export async function mapCourseAccess(courseIds: string[]): Promise<Record<string, boolean>> {
   const uniqueIds = [...new Set(courseIds)];
   const entries = await Promise.all(

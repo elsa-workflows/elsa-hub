@@ -14,19 +14,12 @@ import {
   academyInvoiceFooter,
   isAcademyTosConsentEnabled,
 } from "./academyLegal.ts";
+import { extractExportAssignment } from "./parity_test_support.ts";
 
 const SRC_LIB_ACADEMY_LEGAL = new URL(
   "../../../src/lib/academyLegal.ts",
   import.meta.url,
 );
-
-function extractExportAssignment(source: string, name: string): string {
-  const match = source.match(new RegExp(`export const ${name} = ([\\s\\S]*?);`));
-  if (!match) {
-    throw new Error(`Missing export ${name} in source`);
-  }
-  return match[1].trim();
-}
 
 Deno.test("shared academy legal strings stay identical to src/lib/academyLegal.ts", async () => {
   const srcText = await Deno.readTextFile(SRC_LIB_ACADEMY_LEGAL);
