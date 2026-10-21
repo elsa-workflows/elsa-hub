@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 const { handleBuyCourse, useAuth } = vi.hoisted(() => ({
@@ -21,6 +21,7 @@ vi.mock("@/lib/academy", async () => {
 });
 
 import { AcademySoloCta } from "./AcademySoloCta";
+import { ACADEMY_ALREADY_OWNED } from "@/lib/academy";
 import {
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_PAYMENT_SUCCESS_LINE,
@@ -28,6 +29,7 @@ import {
   ACADEMY_SOLO_HEADING,
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
+  ACADEMY_SOLO_OWNED_NOTE,
   ACADEMY_SOLO_SIGN_IN_LABEL,
   ACADEMY_SOLO_SIGNED_OUT_NOTE,
   academySoloBundleBody,
@@ -94,5 +96,28 @@ describe("AcademySoloCta", () => {
 
     expect(screen.getByTestId("academy-payment-success")).toHaveTextContent(ACADEMY_PAYMENT_SUCCESS_LINE);
     expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+  });
+
+  it("swaps Buy for the owned note when checkout reports already_owned", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    handleBuyCourse.mockResolvedValueOnce(ACADEMY_ALREADY_OWNED);
+    renderCta("/academy");
+
+    fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
+    expect(await screen.findByText(ACADEMY_SOLO_OWNED_NOTE)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+  });
+
+  it("keeps Buy when checkout reports nothing", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    handleBuyCourse.mockResolvedValueOnce(undefined);
+    renderCta("/academy");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
+    });
+    expect(handleBuyCourse).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
   });
 });

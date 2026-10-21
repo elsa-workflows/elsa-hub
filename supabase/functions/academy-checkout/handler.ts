@@ -7,6 +7,7 @@ import {
   isAcademyTosConsentEnabled,
 } from "../_shared/academyLegal.ts";
 import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
+import { soloBundleOwnership } from "./ownership.ts";
 import { academyProductSpec, isTeamAcademyProduct } from "./product.ts";
 import {
   invoiceCustomFields,
@@ -129,6 +130,17 @@ export async function runAcademyCheckout(params: {
 
   if (teamProduct && !organizationId) {
     return jsonResponse(400, { error: "organizationId is required for Team purchases" });
+  }
+
+  // Before any Stripe call, so an owner never gets a customer or a session.
+  if (!teamProduct) {
+    const ownership = await soloBundleOwnership(deps.serviceClient, userId);
+    if (ownership === "lookup_failed") {
+      return jsonResponse(500, { error: "Entitlement lookup failed" });
+    }
+    if (ownership === "owned") {
+      return jsonResponse(409, { error: "already_owned" });
+    }
   }
 
   let organizationName: string | undefined;

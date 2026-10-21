@@ -39,6 +39,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 import {
+  ACADEMY_ALREADY_OWNED,
   ACADEMY_KIT_SIGNED_URL_TTL_SECONDS,
   ACADEMY_KITS_BUCKET,
   ACADEMY_SOLO_BUNDLE_HASH,
@@ -51,6 +52,7 @@ import {
   getLessonPageMeta,
   handleBuyCourse,
   hasAcademyAccess,
+  isAcademyAlreadyOwnedError,
   isMissingAcademyRelation,
   lessonPath,
   listCourseKitAssets,
@@ -220,5 +222,29 @@ describe("academy data layer", () => {
   it("treats a missing has_academy_access RPC as no access", async () => {
     rpc.mockResolvedValue({ data: null, error: missingRpc });
     await expect(hasAcademyAccess("course-1")).resolves.toBe(false);
+  });
+});
+
+describe("isAcademyAlreadyOwnedError", () => {
+  // supabase.functions.invoke puts the function's Response on error.context.
+  const invokeError = (status: number, body: unknown) => ({
+    name: "FunctionsHttpError",
+    context: new Response(JSON.stringify(body), { status }),
+  });
+
+  it("recognises academy-checkout's 409 already_owned", async () => {
+    await expect(
+      isAcademyAlreadyOwnedError(invokeError(409, { error: ACADEMY_ALREADY_OWNED })),
+    ).resolves.toBe(true);
+  });
+
+  it.each([
+    ["another 409", invokeError(409, { error: "Ambiguous course row" })],
+    ["a 500", invokeError(500, { error: ACADEMY_ALREADY_OWNED })],
+    ["a non-JSON 409", { context: new Response("conflict", { status: 409 }) }],
+    ["a network error", new Error("Failed to fetch")],
+    ["null", null],
+  ])("is false for %s", async (_label, error) => {
+    await expect(isAcademyAlreadyOwnedError(error)).resolves.toBe(false);
   });
 });

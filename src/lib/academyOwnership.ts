@@ -11,6 +11,8 @@ type SoloBundleOwnershipInput = {
 /**
  * has_academy_access also grants via a single-course entitlement, a team seat or an admin, so
  * only access to every published course counts as owning the bundle.
+ * academy-checkout mirrors this rule server side, counting personal entitlements only
+ * (supabase/functions/academy-checkout/ownership.ts). Keep the two in step.
  */
 export function soloBundleOwnership({
   isLoading,

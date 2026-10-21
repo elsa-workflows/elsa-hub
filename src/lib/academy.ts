@@ -144,6 +144,27 @@ export function academyCheckoutFields(courseId: string) {
   return { courseId };
 }
 
+/** academy-checkout's 409 error code when the buyer already owns the Solo Bundle (#103). */
+export const ACADEMY_ALREADY_OWNED = "already_owned";
+
+/** What a Solo buy action reports back to the CTA. */
+export type AcademyBuyOutcome = typeof ACADEMY_ALREADY_OWNED | undefined;
+
+/**
+ * True when a supabase.functions.invoke error is academy-checkout's 409 already_owned, so the
+ * buy action can return ACADEMY_ALREADY_OWNED and the CTA shows the owned note.
+ */
+export async function isAcademyAlreadyOwnedError(error: unknown): Promise<boolean> {
+  const response = (error as { context?: unknown } | null)?.context;
+  if (!(response instanceof Response) || response.status !== 409) return false;
+  try {
+    const body = await response.clone().json();
+    return body?.error === ACADEMY_ALREADY_OWNED;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Placeholder until Stripe checkout lands. Always buys the Solo Bundle.
  */

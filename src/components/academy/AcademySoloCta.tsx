@@ -1,9 +1,14 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
-import { ACADEMY_TEAM_LICENCES_URL, handleBuyCourse } from "@/lib/academy";
+import {
+  ACADEMY_ALREADY_OWNED,
+  ACADEMY_TEAM_LICENCES_URL,
+  handleBuyCourse,
+  type AcademyBuyOutcome,
+} from "@/lib/academy";
 import {
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
@@ -34,7 +39,8 @@ type AcademySoloCtaProps = {
    * a buy action nor the note. Default "none".
    */
   ownership?: AcademySoloOwnership;
-  onBuyCourse?: typeof handleBuyCourse;
+  /** Resolving to ACADEMY_ALREADY_OWNED (checkout's 409) swaps Buy for the owned note. */
+  onBuyCourse?: () => void | Promise<AcademyBuyOutcome>;
 };
 
 export function AcademyPaymentSuccessNote() {
@@ -61,9 +67,13 @@ export function AcademySoloCta({
   const showIncluded = !locked;
   const showGumroadClaim = locked && signedIn && ACADEMY_GUMROAD_CLAIM_LIVE;
   const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${search}`)}`;
+  const [checkoutSaysOwned, setCheckoutSaysOwned] = useState(false);
+  const buy = async () => {
+    if ((await onBuyCourse()) === ACADEMY_ALREADY_OWNED) setCheckoutSaysOwned(true);
+  };
 
   let purchaseArea: ReactNode = null;
-  if (ownership === "owned") {
+  if (ownership === "owned" || checkoutSaysOwned) {
     purchaseArea = (
       <p className="text-sm">
         {ACADEMY_SOLO_OWNED_NOTE}{" "}
@@ -74,7 +84,7 @@ export function AcademySoloCta({
     );
   } else if (ownership === "none" && !paymentSuccess) {
     purchaseArea = signedIn ? (
-      <Button type="button" onClick={() => onBuyCourse()}>
+      <Button type="button" onClick={buy}>
         {ACADEMY_SOLO_BUY_LABEL}
       </Button>
     ) : (
