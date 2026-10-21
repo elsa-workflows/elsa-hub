@@ -52,6 +52,8 @@ export const ACADEMY_SOLO_INCLUDED = [
 
 export const ACADEMY_SOLO_OWNED_NOTE = "You own the Solo Bundle.";
 export const ACADEMY_SOLO_OWNED_LINK = "My courses";
+export const ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE =
+  "We couldn't check your purchases. Refresh to try again.";
 
 export const ACADEMY_SOLO_BUY_LABEL = "Buy the Solo Bundle";
 export const ACADEMY_SOLO_SIGN_IN_LABEL = "Sign in to buy";

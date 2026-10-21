@@ -80,6 +80,7 @@ import {
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_OWNED_LINK,
   ACADEMY_SOLO_OWNED_NOTE,
+  ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE,
   ACADEMY_SOLO_SIGN_IN_LABEL,
   ACADEMY_SOLO_SIGNED_OUT_NOTE,
   academySoloBundleBody,
@@ -351,5 +352,17 @@ describe("Academy catalog Solo ownership rule", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument(),
     );
+  });
+
+  it("hides Buy and asks for a refresh when the grants read fails", async () => {
+    mapCourseAccess.mockResolvedValue(everyCourse);
+    listPersonalAcademyGrants.mockRejectedValue(new Error("grants failed"));
+
+    renderWithQueries();
+
+    expect(await screen.findByText(ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My courses" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
   });
 });

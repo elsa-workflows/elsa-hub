@@ -3,7 +3,8 @@ import type { AcademySoloOwnership } from "@/components/academy/AcademySoloCta";
 /*
  * The marked rule is mirrored in supabase/functions/_shared/academyOwnership.ts, which
  * academy-checkout uses to refuse a second Solo purchase (#103). Edit both together:
- * supabase/functions/_shared/academyOwnership_test.ts asserts they stay identical.
+ * supabase/functions/_shared/academyOwnership_test.ts (Deno) and academyOwnership.test.ts
+ * (vitest) assert they stay identical.
  */
 
 // <solo-bundle-ownership-rule>
@@ -41,13 +42,17 @@ type SoloBundleOwnershipInput = {
   grants: PersonalAcademyGrant[];
 };
 
-/** The Solo CTA's ownership state: unknown until both the courses and the grants have loaded. */
+/**
+ * The Solo CTA's ownership state: failed when the courses or the grants could not be read,
+ * otherwise unknown until both have loaded.
+ */
 export function soloBundleOwnership({
   isLoading,
   isError,
   courses,
   grants,
 }: SoloBundleOwnershipInput): AcademySoloOwnership {
-  if (isLoading || isError) return "unknown";
+  if (isError) return "failed";
+  if (isLoading) return "unknown";
   return ownsSoloBundle(grants, courses) ? "owned" : "none";
 }

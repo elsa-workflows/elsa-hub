@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -34,15 +34,20 @@ import {
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
   ACADEMY_SOLO_OWNED_NOTE,
+  ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE,
   ACADEMY_SOLO_SIGN_IN_LABEL,
   ACADEMY_SOLO_SIGNED_OUT_NOTE,
   academySoloBundleBody,
 } from "@/lib/academyCopy";
 
-function renderCta(path = "/academy", locked = false) {
+function renderCta(
+  path = "/academy",
+  locked = false,
+  ownership?: ComponentProps<typeof AcademySoloCta>["ownership"],
+) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <AcademySoloCta locked={locked} onBuyCourse={handleBuyCourse} />
+      <AcademySoloCta locked={locked} ownership={ownership} onBuyCourse={handleBuyCourse} />
     </MemoryRouter>,
   );
 }
@@ -167,5 +172,29 @@ describe("AcademySoloCta", () => {
 
     await act(async () => finish());
     expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeEnabled();
+  });
+
+  it("hides Buy and says so when ownership could not be checked", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    renderCta("/academy", false, "failed");
+
+    expect(screen.getByText(ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
+  });
+
+  it("shows nothing in the purchase area while ownership is unknown", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    renderCta("/academy", false, "unknown");
+
+    expect(screen.queryByText(ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+  });
+
+  it("does not mention purchases to a signed-out visitor when ownership could not be checked", () => {
+    renderCta("/academy", false, "failed");
+
+    expect(screen.queryByText(ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).not.toBeInTheDocument();
   });
 });

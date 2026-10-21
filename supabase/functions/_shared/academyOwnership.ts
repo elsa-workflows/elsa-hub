@@ -1,8 +1,9 @@
 /**
  * Solo Bundle ownership for Edge Functions (#103).
  * The marked rule is copied from src/lib/academyOwnership.ts, because Edge Functions cannot
- * import src/lib. academyOwnership_test.ts reads both files as text and asserts the rule and
- * ACADEMY_ALREADY_OWNED (src/lib/academy.ts) stay identical.
+ * import src/lib. academyOwnership_test.ts (Deno) and src/lib/academyOwnership.test.ts (vitest)
+ * read both files as text and assert the rule and ACADEMY_ALREADY_OWNED (src/lib/academy.ts) stay
+ * identical.
  */
 
 /** academy-checkout's 409 error code when the buyer already owns the Solo Bundle. */

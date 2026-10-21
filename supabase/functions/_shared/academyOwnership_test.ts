@@ -4,30 +4,17 @@ import {
   ownsSoloBundle,
   type PublishedAcademyCourse,
 } from "./academyOwnership.ts";
+import { extractExportAssignment, extractMarkedBlock } from "./parity_test_support.ts";
 
 const readSibling = (path: string) => Deno.readTextFile(new URL(path, import.meta.url));
 
-const RULE_START = "// <solo-bundle-ownership-rule>";
-const RULE_END = "// </solo-bundle-ownership-rule>";
-
-function extractRule(source: string, file: string): string {
-  const start = source.indexOf(RULE_START);
-  const end = source.indexOf(RULE_END);
-  if (start < 0 || end < start) throw new Error(`Missing ownership rule markers in ${file}`);
-  return source.slice(start, end + RULE_END.length);
-}
-
-function extractExportAssignment(source: string, name: string): string {
-  const match = source.match(new RegExp(`export const ${name} = ([\\s\\S]*?);`));
-  if (!match) throw new Error(`Missing export ${name} in source`);
-  return match[1].trim();
-}
+const RULE = "solo-bundle-ownership-rule";
 
 Deno.test("the Solo Bundle ownership rule stays identical to src/lib/academyOwnership.ts", async () => {
   const src = "../../../src/lib/academyOwnership.ts";
   assertEquals(
-    extractRule(await readSibling("./academyOwnership.ts"), "academyOwnership.ts"),
-    extractRule(await readSibling(src), src),
+    extractMarkedBlock(await readSibling("./academyOwnership.ts"), RULE, "academyOwnership.ts"),
+    extractMarkedBlock(await readSibling(src), RULE, src),
   );
 });
 

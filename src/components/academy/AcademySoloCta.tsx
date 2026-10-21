@@ -22,6 +22,7 @@ import {
   ACADEMY_SOLO_LOCKED_HEADING,
   ACADEMY_SOLO_OWNED_LINK,
   ACADEMY_SOLO_OWNED_NOTE,
+  ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE,
   ACADEMY_SOLO_SIGN_IN_LABEL,
   ACADEMY_SOLO_SIGNED_OUT_NOTE,
   ACADEMY_TEAM_LINE_AFTER,
@@ -31,15 +32,17 @@ import {
   isAcademyPaymentSuccess,
 } from "@/lib/academyCopy";
 
-export type AcademySoloOwnership = "owned" | "unknown" | "none";
+export type AcademySoloOwnership = "owned" | "unknown" | "failed" | "none";
 
 type AcademySoloCtaProps = {
   id?: string;
   locked?: boolean;
   /**
-   * "owned": the visitor has access to every published bundle course, so show a note instead
-   * of a buy action. "unknown": ownership is still loading or failed to load, so show neither
-   * a buy action nor the note. Default "none".
+   * "owned": the visitor's personal grants cover every published course, so show a note instead
+   * of a buy action. A team seat or admin access lends access but does not count. "unknown":
+   * ownership is still loading, so show neither a buy action nor the note. "failed": ownership
+   * could not be checked, so show no buy action and tell a signed-in visitor to refresh.
+   * Default "none".
    */
   ownership?: AcademySoloOwnership;
   /**
@@ -96,6 +99,10 @@ export function AcademySoloCta({
           {ACADEMY_SOLO_OWNED_LINK}
         </a>
       </p>
+    );
+  } else if (ownership === "failed" && signedIn) {
+    purchaseArea = (
+      <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE}</p>
     );
   } else if (ownership === "none" && !paymentSuccess) {
     purchaseArea = signedIn ? (

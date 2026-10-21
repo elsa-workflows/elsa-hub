@@ -104,7 +104,7 @@ describe("useAcademyCatalog", () => {
     await waitFor(() => expect(result.current.soloOwnership).toBe("owned"));
   });
 
-  it("leaves ownership unknown, not the catalogue broken, when the grants read fails", async () => {
+  it("reports ownership failed, not the catalogue broken, when the grants read fails", async () => {
     signedIn();
     listPersonalAcademyGrants.mockRejectedValue(new Error("grants failed"));
 
@@ -113,6 +113,6 @@ describe("useAcademyCatalog", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     await waitFor(() => expect(listPersonalAcademyGrants).toHaveBeenCalled());
     expect(result.current.isError).toBe(false);
-    await waitFor(() => expect(result.current.soloOwnership).toBe("unknown"));
+    await waitFor(() => expect(result.current.soloOwnership).toBe("failed"));
   });
 });
