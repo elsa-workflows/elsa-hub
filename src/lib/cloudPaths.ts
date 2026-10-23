@@ -1,7 +1,6 @@
 import { useLocation, useParams } from "react-router-dom";
 import { preferredCloudOrgSlug } from "@/lib/selectedOrganization";
 
-export const ELSACLOUD_APP_URL = "https://elsacloud.app";
 export const CLOUD_PUBLIC_HOME = "/elsa-plus/cloud-services";
 export const DASHBOARD_CLOUD_PATH = "/dashboard/cloud";
 export const LEGACY_CLOUD_PATH = "/cloud";

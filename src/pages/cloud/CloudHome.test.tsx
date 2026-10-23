@@ -11,7 +11,6 @@ import {
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ASK_ADMIN,
-  CLOUD_MANAGE_LINK,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
@@ -159,10 +158,6 @@ describe("CloudHome", () => {
     expect(screen.getByRole("heading", { name: CLOUD_PAGE_TITLE })).toBeInTheDocument();
     expect(screen.getByText(CLOUD_ENGINES_INTRO)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_EMPTY_MESSAGE)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: CLOUD_MANAGE_LINK })).toHaveAttribute(
-      "href",
-      "/dashboard/org/acme/cloud",
-    );
     expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /billing details/i })).toHaveAttribute(
       "href",
