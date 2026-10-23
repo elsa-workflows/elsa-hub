@@ -52,6 +52,8 @@ describe("BPMN positioning copy", () => {
       screen.getByAltText("The new React-based Elsa Studio designer (preview)"),
     ).toBeInTheDocument();
     expect(screen.getByText("Preview, coming in Elsa 3.11")).toBeInTheDocument();
+    expect(screen.getByText(/through the Elsa 3\.9 API/)).toBeInTheDocument();
+    expect(screen.getByText(/Elsa 3\.9 exposes workflow instances and execution journals/)).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn.Interchange", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(FORBIDDEN);
@@ -86,6 +88,7 @@ describe("BPMN positioning copy", () => {
     expect(screen.getByText(/remain on the extensions roadmap/i)).toBeInTheDocument();
     expect(screen.queryByText(/BPMN 2\.0 certified/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/fully compliant/i)).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(FORBIDDEN);
   });
 
   it("mentions 3.9.0 BPMN packages on get-started without rewriting the release card", async () => {

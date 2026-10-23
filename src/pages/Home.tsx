@@ -47,7 +47,7 @@ const lifecycleSteps = [
   {
     icon: Activity,
     title: "Operate",
-    body: "Inspect workflow instances and execution journals through the Elsa 3.8 API, and manage them from Elsa Studio. Structured logs, console logs and OpenTelemetry are available as opt-in diagnostics modules.",
+    body: "Inspect workflow instances and execution journals through the Elsa 3.9 API, and manage them from Elsa Studio. Structured logs, console logs and OpenTelemetry are available as opt-in diagnostics modules.",
   },
 ];
 
@@ -333,7 +333,7 @@ export default function Home() {
               <div>
                 <dt className="font-medium mb-1">Inspectable execution</dt>
                 <dd className="text-sm text-muted-foreground">
-                  Elsa 3.8 exposes workflow instances and execution journals through
+                  Elsa 3.9 exposes workflow instances and execution journals through
                   its API for external observability tooling.
                 </dd>
               </div>
