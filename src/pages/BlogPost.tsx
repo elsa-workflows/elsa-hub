@@ -72,7 +72,7 @@ export default function BlogPost() {
   if (state.kind === "loading") {
     return (
       <Layout>
-        <article className="container max-w-3xl py-16">
+        <article className="container max-w-3xl min-w-0 py-16">
           <Skeleton className="h-6 w-32 mb-6" />
           <Skeleton className="h-12 w-full mb-3" />
           <Skeleton className="h-12 w-3/4 mb-6" />
@@ -219,7 +219,7 @@ export default function BlogPost() {
         <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
       </Helmet>
 
-      <article className="container max-w-3xl py-12 md:py-16">
+      <article className="container max-w-3xl min-w-0 py-12 md:py-16">
         <div className="mb-6 flex items-center justify-between -ml-3">
           <Button asChild variant="ghost" size="sm">
             <Link to="/blog">
@@ -300,7 +300,7 @@ export default function BlogPost() {
         )}
 
         <div
-          className="prose prose-neutral dark:prose-invert max-w-none [&_img]:cursor-zoom-in"
+          className="prose prose-neutral dark:prose-invert max-w-none min-w-0 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_img]:cursor-zoom-in"
           onClick={handleArticleClick}
           dangerouslySetInnerHTML={{ __html: post.html }}
         />
