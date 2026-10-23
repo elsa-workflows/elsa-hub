@@ -39,7 +39,7 @@ function renderNavWithRoutes(path = "/") {
       <Routes>
         <Route path="/" element={<div>home page</div>} />
         <Route path="/features" element={<div>features page</div>} />
-        <Route path="/cloud" element={<div>cloud page</div>} />
+        <Route path="/dashboard/cloud" element={<div>cloud page</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -67,12 +67,14 @@ describe("Navigation Cloud leaf", () => {
     ).toHaveLength(0);
   });
 
-  it("navigates Cloud through the router without a full reload", () => {
+  it("navigates Elsa Cloud through the router without a full reload", () => {
     renderNavWithRoutes("/");
-    const cloud = screen.getAllByRole("link", { name: "Cloud" })[0];
+    fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
+    const cloud = screen.getAllByRole("link", { name: /elsa cloud/i })[0];
+    expect(cloud).toHaveAttribute("href", "/dashboard/cloud");
     expect(fireEvent.click(cloud)).toBe(false);
 
-    expect(screen.getByTestId("location")).toHaveTextContent("/cloud");
+    expect(screen.getByTestId("location")).toHaveTextContent("/dashboard/cloud");
     expect(screen.getByText("cloud page")).toBeInTheDocument();
   });
 

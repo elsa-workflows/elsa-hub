@@ -19,6 +19,22 @@ vi.mock("@/hooks/useUserProfile", () => ({
   useUserProfile: () => ({ profile: null }),
 }));
 
+vi.mock("@/hooks/useOrganizations", () => ({
+  useOrganizations: () => ({
+    organizations: [{ id: "org-1", slug: "acme", name: "Acme Ltd" }],
+  }),
+}));
+
+vi.mock("@/hooks/useOwnedHubProducts", () => ({
+  useOwnedHubProducts: () => ({
+    ownsCloud: false,
+    ownsAcademy: false,
+    ownsNothing: true,
+    academyLoading: false,
+  }),
+  shouldShowOrgCloudNav: () => true,
+}));
+
 vi.mock("./ContextSwitcher", () => ({
   ContextSwitcher: () => <div>Org switcher</div>,
 }));
