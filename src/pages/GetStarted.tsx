@@ -129,7 +129,7 @@ export default function GetStarted() {
       <Seo path="/get-started" title="Get started with the workflow and BPMN engine for .NET" description={`Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa ${ELSA_VERSION} ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.`} />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Get Started with Elsa</h1>
             <p className="text-xl text-muted-foreground">
@@ -145,7 +145,7 @@ export default function GetStarted() {
 
       {/* Latest release */}
       <section id="latest-release" className="py-10 md:py-12 border-y border-border/60 scroll-mt-20">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <div className="max-w-4xl rounded-lg border bg-card p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <h2 className="text-2xl font-bold">Latest stable release: Elsa {ELSA_VERSION}</h2>
@@ -217,7 +217,7 @@ export default function GetStarted() {
 
       {/* Choose Your Path */}
       <section className="py-16 md:py-20">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <ScrollReveal>
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-4">Choose Your Path</h2>
@@ -239,7 +239,7 @@ export default function GetStarted() {
 
       {/* Templates */}
       <section id="templates" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <ScrollReveal>
             <div className="mb-10 max-w-3xl">
               <div className="flex items-center gap-3 mb-4">
@@ -272,7 +272,7 @@ export default function GetStarted() {
             </div>
           </ScrollReveal>
 
-          <div className="grid lg:grid-cols-2 gap-6 max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
             <ScrollReveal>
               <div className="space-y-4">
                 <div>
@@ -341,7 +341,7 @@ export default function GetStarted() {
 
 
           <ScrollReveal delay={200}>
-            <div className="mt-10 grid md:grid-cols-3 gap-4 max-w-5xl">
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl">
               <div className="rounded-lg border bg-background p-5">
                 <h4 className="font-semibold mb-2 text-sm">Feature model</h4>
                 <p className="text-xs text-muted-foreground">
@@ -402,7 +402,7 @@ export default function GetStarted() {
 
       {/* Build Your Own - Guide Cards */}
       <section id="build-your-own" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <ScrollReveal>
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-4">Build Your Own</h2>
@@ -424,7 +424,7 @@ export default function GetStarted() {
 
       {/* Resources */}
       <section className="py-16 md:py-24">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <ScrollReveal>
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Resources & Documentation</h2>

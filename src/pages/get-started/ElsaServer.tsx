@@ -141,7 +141,7 @@ export default function ElsaServer() {
       
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <div className="mb-6">
             <GuideBreadcrumb currentPage="Elsa Server" />
           </div>
@@ -159,7 +159,7 @@ export default function ElsaServer() {
 
       {/* Guide Content */}
       <section className="py-16 md:py-24">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <div className="max-w-4xl mx-auto space-y-16">
             {/* Prerequisites */}
             <PrerequisitesBox
@@ -280,8 +280,8 @@ cd ElsaServer`}
             {/* Next Steps */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Next Steps</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Button variant="outline" className="h-auto p-4 justify-start" asChild>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button variant="outline" className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start" asChild>
                   <a
                     href="https://docs.elsaworkflows.io/application-types/elsa-server"
                     target="_blank"
@@ -297,7 +297,7 @@ cd ElsaServer`}
                     <ExternalLink className="h-4 w-4 ml-auto" />
                   </a>
                 </Button>
-                <Button variant="outline" className="h-auto p-4 justify-start" asChild>
+                <Button variant="outline" className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start" asChild>
                   <a
                     href="https://github.com/elsa-workflows/elsa-samples"
                     target="_blank"

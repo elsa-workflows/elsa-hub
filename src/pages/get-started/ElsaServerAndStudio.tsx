@@ -346,7 +346,7 @@ export default function ElsaServerAndStudio() {
       />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <div className="mb-6">
             <GuideBreadcrumb currentPage="Server + Studio" />
           </div>
@@ -374,7 +374,7 @@ export default function ElsaServerAndStudio() {
 
       {/* Guide Content */}
       <section className="py-16 md:py-24">
-        <div className="container min-w-0 overflow-x-clip">
+        <div className="container">
           <div className="max-w-4xl mx-auto space-y-16">
             {/* Version compatibility */}
             <div
@@ -726,10 +726,10 @@ export default function ElsaServerAndStudio() {
             {/* Next Steps */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Next Steps</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button
                   variant="outline"
-                  className="h-auto p-4 justify-start"
+                  className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start"
                   asChild
                 >
                   <a
@@ -749,7 +749,7 @@ export default function ElsaServerAndStudio() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-auto p-4 justify-start"
+                  className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start"
                   asChild
                 >
                   <a
