@@ -129,7 +129,7 @@ export default function GetStarted() {
       <Seo path="/get-started" title="Get started with the workflow and BPMN engine for .NET" description={`Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa ${ELSA_VERSION} ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.`} />
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Get Started with Elsa</h1>
             <p className="text-xl text-muted-foreground">
@@ -145,7 +145,7 @@ export default function GetStarted() {
 
       {/* Latest release */}
       <section id="latest-release" className="py-10 md:py-12 border-y border-border/60 scroll-mt-20">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <div className="max-w-4xl rounded-lg border bg-card p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <h2 className="text-2xl font-bold">Latest stable release: Elsa {ELSA_VERSION}</h2>
@@ -172,7 +172,7 @@ export default function GetStarted() {
               </li>
               <li>
                 <strong className="text-foreground">The localhost SecurityRoot grant is gone.</strong>{" "}
-                <code className="font-mono">EnableLocalHostPermissionGrantForSecurityRoot()</code> was
+                <code className="font-mono break-all">EnableLocalHostPermissionGrantForSecurityRoot()</code> was
                 removed. Localhost requests get no special access. Bootstrap the first admin with{" "}
                 <code className="font-mono">UseDefaultAdmin(...)</code> or an admin API key.
               </li>
@@ -217,7 +217,7 @@ export default function GetStarted() {
 
       {/* Choose Your Path */}
       <section className="py-16 md:py-20">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <ScrollReveal>
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-4">Choose Your Path</h2>
@@ -239,7 +239,7 @@ export default function GetStarted() {
 
       {/* Templates */}
       <section id="templates" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <ScrollReveal>
             <div className="mb-10 max-w-3xl">
               <div className="flex items-center gap-3 mb-4">
@@ -402,7 +402,7 @@ export default function GetStarted() {
 
       {/* Build Your Own - Guide Cards */}
       <section id="build-your-own" className="py-16 md:py-20 bg-surface-subtle scroll-mt-20">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <ScrollReveal>
             <div className="mb-12">
               <h2 className="text-2xl font-bold mb-4">Build Your Own</h2>
@@ -424,7 +424,7 @@ export default function GetStarted() {
 
       {/* Resources */}
       <section className="py-16 md:py-24">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <ScrollReveal>
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Resources & Documentation</h2>

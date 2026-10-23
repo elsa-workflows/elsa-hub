@@ -141,7 +141,7 @@ export default function ElsaServer() {
       
       {/* Hero */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <div className="mb-6">
             <GuideBreadcrumb currentPage="Elsa Server" />
           </div>
@@ -159,7 +159,7 @@ export default function ElsaServer() {
 
       {/* Guide Content */}
       <section className="py-16 md:py-24">
-        <div className="container">
+        <div className="container min-w-0 overflow-x-clip">
           <div className="max-w-4xl mx-auto space-y-16">
             {/* Prerequisites */}
             <PrerequisitesBox
@@ -239,7 +239,7 @@ cd ElsaServer`}
                 <p>
                   The localhost SecurityRoot grant was removed in Elsa {ELSA_VERSION}. Localhost
                   requests get no special access, and{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs break-all">
                     EnableLocalHostPermissionGrantForSecurityRoot()
                   </code>{" "}
                   no longer exists. Use the default admin bootstrap above.
