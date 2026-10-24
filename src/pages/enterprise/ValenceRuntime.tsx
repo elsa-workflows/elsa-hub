@@ -313,7 +313,13 @@ export default function ValenceRuntime() {
           <p className="text-sm text-muted-foreground leading-relaxed">
             Not yet a supported distribution — stable release guarantees are on the roadmap.
             Production hardening, container scanning, and image signing are already in place.
-            The public Community images currently ship Elsa 3.8.x and have no Elsa 3.9 tag yet.
+            Elsa Community images on Docker Hub (
+            <span className="font-mono text-xs">elsaworkflows/elsa-server-v3</span>,{" "}
+            <span className="font-mono text-xs">elsa-studio-v3</span>,{" "}
+            <span className="font-mono text-xs">elsa-server-and-studio-v3</span>) ship Elsa 3.9.0.
+            Those are not these Elsa Runtime Community images, and not the Apps aliases{" "}
+            <span className="font-mono text-xs">elsaworkflows/elsa-server</span> /{" "}
+            <span className="font-mono text-xs">elsaworkflows/elsa-studio</span>.
           </p>
         </div>
       </section>
@@ -368,9 +374,13 @@ export default function ValenceRuntime() {
           <div className="space-y-4 pt-4">
             <h3 className="text-2xl font-bold">Try it</h3>
             <p className="text-muted-foreground leading-relaxed">
-              The Community images are public on GitHub Container Registry. No account, no login —
-              just pull. Pick the combined single-container deployment, or run server and Studio
-              separately.
+              Elsa Runtime Community images are public on GitHub Container Registry. No account, no
+              login — just pull. Pick the combined single-container deployment, or run server and
+              Studio separately. For the Elsa 3.9.0 Community images on Docker Hub, see the{" "}
+              <Link to="/get-started/docker" className="text-primary hover:underline">
+                Docker get-started guide
+              </Link>
+              .
             </p>
 
             <div className="space-y-3">
@@ -458,7 +468,12 @@ docker pull ghcr.io/valence-works/runtime-ce-studio:\${ELSA_STUDIO_VERSION}`}
             <p className="text-sm text-muted-foreground leading-relaxed">
               The older Docker Hub names (<span className="font-mono">valenceworks/elsa-pro-*</span>)
               still work for anyone who already pulled them, but they are no longer updated. New
-              Community builds publish to ghcr.io; new paid builds publish to the private registry.
+              Elsa Runtime Community builds publish to ghcr.io; new paid builds publish to the
+              private registry. Elsa 3 Community images publish to Docker Hub as{" "}
+              <span className="font-mono text-xs">elsaworkflows/elsa-*-v3</span>. The Apps aliases{" "}
+              <span className="font-mono text-xs">elsaworkflows/elsa-server</span> and{" "}
+              <span className="font-mono text-xs">elsaworkflows/elsa-studio</span> are a separate
+              product and have not changed.
             </p>
             <div className="flex flex-wrap gap-4 text-sm">
               <a
