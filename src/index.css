@@ -189,6 +189,20 @@
 
   #root { position: relative; z-index: 1; }
 
+  article {
+    min-width: 0;
+  }
+
+  article pre,
+  article table {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  article table {
+    display: block;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply tracking-tight;
     font-family: var(--font-display);
