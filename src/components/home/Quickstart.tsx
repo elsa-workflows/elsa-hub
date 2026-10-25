@@ -4,7 +4,7 @@ import { Check, Copy, Terminal, Container, ArrowRight, BookOpen, Server, Layers,
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
 import { ELSA_TEMPLATES_VERSION } from "@/data/elsaVersion";
-import { ELSA_DOCKER_RUN_COMMAND } from "@/data/canonicalSamples";
+import { ELSA_COMMUNITY_DOCKER_TAG, ELSA_DOCKER_RUN_COMMAND } from "@/data/canonicalSamples";
 
 
 interface CommandCardProps {
@@ -94,7 +94,7 @@ export function Quickstart() {
             icon={Container}
             label="Docker"
             command={ELSA_DOCKER_RUN_COMMAND}
-            helper="Server and Studio in one container — Elsa 3.9.0 Community image on Docker Hub. Separate server and Studio images are available too."
+            helper={`Server and Studio in one container — Elsa ${ELSA_COMMUNITY_DOCKER_TAG} Community image on Docker Hub. A standalone server image is available too.`}
             href="/get-started/docker"
             hrefLabel="Docker guide"
           />

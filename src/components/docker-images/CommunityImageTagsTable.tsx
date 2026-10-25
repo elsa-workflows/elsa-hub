@@ -35,12 +35,6 @@ export function CommunityImageTagsTable() {
         when it is the highest version. Previews only get <code className="font-mono text-sm">X.Y.Z-preview.N</code>.
         Images are multi-arch: linux/amd64 and linux/arm64.
       </p>
-      <p className="text-sm text-muted-foreground">
-        This does not apply to the Apps aliases{" "}
-        <code className="font-mono text-xs">elsaworkflows/elsa-server</code> and{" "}
-        <code className="font-mono text-xs">elsaworkflows/elsa-studio</code>, which are a separate product and
-        have not changed.
-      </p>
       <div className="rounded-lg border overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">

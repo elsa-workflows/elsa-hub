@@ -317,9 +317,8 @@ export default function ValenceRuntime() {
             Production hardening, container scanning, and image signing are already in place.
             The public Elsa Runtime Community images currently ship Elsa {RUNTIME_IMAGE_LINE}.x.
             Elsa Community images on Docker Hub (
-            <span className="font-mono text-xs">elsaworkflows/elsa-server-v3</span>,{" "}
-            <span className="font-mono text-xs">elsa-studio-v3</span>,{" "}
-            <span className="font-mono text-xs">elsa-server-and-studio-v3</span>) ship Elsa {ELSA_COMMUNITY_DOCKER_TAG}.
+            <span className="font-mono text-xs">elsaworkflows/elsa-server-and-studio-v3</span>,{" "}
+            <span className="font-mono text-xs">elsa-server-v3</span>) ship Elsa {ELSA_COMMUNITY_DOCKER_TAG}.
             Those are not these Elsa Runtime Community images, and not the Apps aliases{" "}
             <span className="font-mono text-xs">elsaworkflows/elsa-server</span> /{" "}
             <span className="font-mono text-xs">elsaworkflows/elsa-studio</span>.
@@ -379,7 +378,7 @@ export default function ValenceRuntime() {
             <p className="text-muted-foreground leading-relaxed">
               Elsa Runtime Community images are public on GitHub Container Registry. No account, no
               login — just pull. Pick the combined single-container deployment, or run server and
-              Studio separately. For the Elsa 3.9.0 Community images on Docker Hub, see the{" "}
+              Studio separately. For the Elsa {ELSA_COMMUNITY_DOCKER_TAG} Community images on Docker Hub, see the{" "}
               <Link to="/get-started/docker" className="text-primary hover:underline">
                 Docker get-started guide
               </Link>
@@ -473,10 +472,7 @@ docker pull ghcr.io/valence-works/runtime-ce-combined:${RUNTIME_IMAGE_TAG}`}
               still work for anyone who already pulled them, but they are no longer updated. New
               Elsa Runtime Community builds publish to ghcr.io; new paid builds publish to the
               private registry. Elsa 3 Community images publish to Docker Hub as{" "}
-              <span className="font-mono text-xs">elsaworkflows/elsa-*-v3</span>. The Apps aliases{" "}
-              <span className="font-mono text-xs">elsaworkflows/elsa-server</span> and{" "}
-              <span className="font-mono text-xs">elsaworkflows/elsa-studio</span> are a separate
-              product and have not changed.
+              <span className="font-mono text-xs">elsaworkflows/elsa-*-v3</span>.
             </p>
             <div className="flex flex-wrap gap-4 text-sm">
               <a

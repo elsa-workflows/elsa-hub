@@ -15,8 +15,6 @@ import {
   ELSA_DOCKER_RUN_COMMAND,
   ELSA_DOCKER_SERVER_PULL_COMMAND,
   ELSA_DOCKER_SERVER_RUN_COMMAND,
-  ELSA_DOCKER_STUDIO_PULL_COMMAND,
-  ELSA_DOCKER_STUDIO_RUN_COMMAND,
   ELSA_DOCKER_VERSIONED_EXAMPLE,
   PAID_REGISTRY_LOGIN_COMMAND,
   PAID_IMAGES,
@@ -41,30 +39,6 @@ const dockerOptions = [
     runCommand: ELSA_DOCKER_SERVER_RUN_COMMAND,
     accessUrl: "http://localhost:13000/elsa/api",
     swaggerUrl: "http://localhost:13000/swagger",
-    note: (
-      <span>
-        Run <strong>docker network create elsa</strong> once if you plan to pair this with the
-        standalone Studio container.
-      </span>
-    ),
-  },
-  {
-    title: "Studio — standalone",
-    description:
-      "The visual workflow designer only. Requires a running Elsa server to connect to.",
-    pullCommand: ELSA_DOCKER_STUDIO_PULL_COMMAND,
-    runCommand: ELSA_DOCKER_STUDIO_RUN_COMMAND,
-    accessUrl: "http://localhost:14000",
-    credentials: { username: "admin", password: "password" },
-    note: (
-      <span className="flex items-center gap-2">
-        <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
-        <span>
-          <strong>Requires a server</strong> — start the standalone server container (or use the
-          combined image) before running Studio.
-        </span>
-      </span>
-    ),
   },
 ];
 
@@ -144,7 +118,6 @@ export default function Docker() {
               <h3 className="font-semibold">Community — Docker Hub, no login</h3>
               <ul className="text-xs font-mono text-muted-foreground space-y-1">
                 <li>{COMMUNITY_IMAGES.server}</li>
-                <li>{COMMUNITY_IMAGES.studio}</li>
                 <li>{COMMUNITY_IMAGES.combined}</li>
               </ul>
               <p className="text-sm text-muted-foreground">

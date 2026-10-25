@@ -20,7 +20,7 @@ import {
 } from "@/components/docker-images";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { getDockerImage, dockerImages } from "@/data/dockerImages";
-import { PAID_REGISTRY_LOGIN_COMMAND } from "@/data/canonicalSamples";
+import { ELSA_COMMUNITY_DOCKER_TAG, PAID_REGISTRY_LOGIN_COMMAND } from "@/data/canonicalSamples";
 import { RUNTIME_IMAGE_TAG, RUNTIME_IMAGES_SHARE_TAG_COPY } from "@/data/runtimeImage";
 
 import { renderInlineCode } from "@/lib/renderInlineCode";
@@ -121,10 +121,7 @@ networks:
             manifest digest, with a subscription attached; it ships from a private registry using a
             registry token issued when your subscription starts. This is not the Elsa 3 Community
             image on Docker Hub (<code className="font-mono text-xs">elsaworkflows/elsa-*-v3</code>,
-            currently 3.9.0) and not the Apps aliases{" "}
-            <code className="font-mono text-xs">elsaworkflows/elsa-server</code> /{" "}
-            <code className="font-mono text-xs">elsaworkflows/elsa-studio</code>, which have not
-            changed.
+            currently {ELSA_COMMUNITY_DOCKER_TAG}).
           </p>
 
 
