@@ -6,7 +6,8 @@ export function injectIntoShell(shell: string, headExtras: string, bodyHtml: str
     .replace(/<title[\s\S]*?<\/title>/i, "")
     .replace(/<meta\s+(?:[^>]*\s)?name="description"[^>]*\/?>/i, "")
     .replace(/<meta\s+(?:[^>]*\s)?property="og:(title|description|url|type|image(?::width|:height)?|site_name)"[^>]*\/?>/gi, "")
-    .replace(/<meta\s+(?:[^>]*\s)?name="twitter:(title|description|image|card)"[^>]*\/?>/gi, "");
+    .replace(/<meta\s+(?:[^>]*\s)?name="twitter:(title|description|image|card)"[^>]*\/?>/gi, "")
+    .replace(/<link\s+(?:[^>]*\s)?rel="canonical"[^>]*\/?>/gi, "");
 
   html = html.replace(/<\/head>/i, `    ${headExtras}\n  </head>`);
   html = html.replace(

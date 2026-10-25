@@ -25,8 +25,8 @@ import {
   SITE_OG_IMAGE_WIDTH,
   SITE_TWITTER_CARD,
   SITE_URL,
-  resolveSocialImage,
 } from "@/lib/site";
+import { blogPostSeo } from "@/lib/blogSeo";
 import { InlineNewsletter } from "@/components/newsletter";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -149,13 +149,15 @@ export default function BlogPost() {
   }
 
   const post = state.post;
-  const canonical = post.canonicalUrl || `${BLOG_CANONICAL_BASE}/${post.slug}`;
-  const seoTitle = post.seo?.title || post.title;
-  const seoDescription = post.seo?.description || post.description || "";
-  const rawImage = post.seo?.openGraphImage || post.featuredImage;
-  const ogImage = resolveSocialImage(rawImage);
-  const usingDefaultImage = !rawImage;
-  const pageTitle = `${seoTitle} — Elsa Workflows`;
+  // Same values as the build-time prerender (scripts/prerender-blog.ts).
+  const {
+    canonical,
+    title: seoTitle,
+    description: seoDescription,
+    image: ogImage,
+    usingDefaultImage,
+    pageTitle,
+  } = blogPostSeo(post);
 
   const jsonLd = {
     "@context": "https://schema.org",
