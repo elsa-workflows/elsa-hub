@@ -21,7 +21,7 @@ import {
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { getDockerImage, dockerImages } from "@/data/dockerImages";
 import { PAID_REGISTRY_LOGIN_COMMAND } from "@/data/canonicalSamples";
-import { RUNTIME_IMAGE_TAG } from "@/data/runtimeImage";
+import { RUNTIME_IMAGE_TAG, RUNTIME_IMAGES_SHARE_TAG_COPY } from "@/data/runtimeImage";
 
 import { renderInlineCode } from "@/lib/renderInlineCode";
 import { AlertCircle, ArrowRight, Boxes, ExternalLink } from "lucide-react";
@@ -218,7 +218,7 @@ networks:
           <div>
             <h3 className="font-semibold mb-2">Pin a version</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              Studio and Core both ship {RUNTIME_IMAGE_TAG}, so one tag covers all three images.
+              {RUNTIME_IMAGES_SHARE_TAG_COPY}
             </p>
             <CodeBlock
               code={`docker pull ${image.image}:${RUNTIME_IMAGE_TAG}`}

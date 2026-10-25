@@ -16,6 +16,7 @@ import {
   PAID_REGISTRY_LOGIN_COMMAND,
   PAID_IMAGES,
 } from "@/data/canonicalSamples";
+import { RUNTIME_IMAGES_SHARE_TAG_COPY } from "@/data/runtimeImage";
 
 const dockerOptions = [
   {
@@ -153,8 +154,7 @@ export default function Docker() {
           <div className="space-y-2">
             <h3 className="font-semibold">Pinning versions</h3>
             <p className="text-sm text-muted-foreground">
-              Studio and Core both ship the same tag, so one pin covers server, Studio, and
-              combined.
+              {RUNTIME_IMAGES_SHARE_TAG_COPY}
             </p>
             <CodeBlock code={ELSA_DOCKER_VERSIONED_EXAMPLE} language="bash" />
           </div>
