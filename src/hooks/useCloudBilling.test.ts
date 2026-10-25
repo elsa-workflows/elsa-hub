@@ -58,7 +58,11 @@ vi.mock("@/hooks/useCloudOrganizationLink", () => ({
 }));
 
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
-import { CLOUD_BILLING_UNAVAILABLE, CLOUD_LINK_CHECK_ERROR } from "@/lib/cloudClient";
+import {
+  CLOUD_BILLING_NOT_AVAILABLE_YET,
+  CLOUD_BILLING_UNAVAILABLE,
+  CLOUD_LINK_CHECK_ERROR,
+} from "@/lib/cloudClient";
 import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
 import { useCloudBilling } from "./useCloudBilling";
 
@@ -317,14 +321,35 @@ describe("useCloudBilling", () => {
 
     expect(result.current.error?.message).toBe(CLOUD_BILLING_UNAVAILABLE);
     expect(result.current.errorRetryable).toBe(true);
+    expect(result.current.unavailable).toBe(false);
   });
 
-  it("shows the sandbox-only Stripe gate message without Retry", async () => {
-    invoke.mockResolvedValue(httpFailure(503, { error: "Cloud billing is sandbox-only" }));
+  it.each(["Cloud billing is sandbox-only", "Cloud billing is not configured"])(
+    "treats the %s gate as unavailable, not a user-facing error",
+    async (internal) => {
+      const info = vi.spyOn(console, "info").mockImplementation(() => {});
+      invoke.mockResolvedValue(httpFailure(503, { error: internal }));
+
+      const result = await renderBilling();
+
+      expect(result.current.unavailable).toBe(true);
+      expect(result.current.error).toBeNull();
+      expect(result.current.errorRetryable).toBe(false);
+      expect(info).toHaveBeenCalledWith("Cloud billing gate:", internal);
+      info.mockRestore();
+    },
+  );
+
+  it("treats a gateway 503 with no JSON body as a retryable transport error", async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: new FunctionsHttpError(new Response("gateway timeout", { status: 503 })),
+    });
 
     const result = await renderBilling();
 
-    expect(result.current.error?.message).toBe("Cloud billing is sandbox-only");
-    expect(result.current.errorRetryable).toBe(false);
+    expect(result.current.unavailable).toBe(false);
+    expect(result.current.error?.message).toBe(CLOUD_BILLING_UNAVAILABLE);
+    expect(result.current.errorRetryable).toBe(true);
   });
 });
