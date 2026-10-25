@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blogPrerenderPaths, buildHead } from "../../scripts/prerender-blog";
-import { injectIntoShell } from "../../scripts/prerender-shell";
+import { injectIntoShell, prerenderOutputPaths } from "../../scripts/prerender-shell";
+import { ELSA4_OUT_PATHS } from "../../scripts/prerender-elsa4-preview";
 
 const SHELL = `<!doctype html><html><head>
     <meta charset="UTF-8" />
@@ -21,7 +22,17 @@ const SHELL = `<!doctype html><html><head>
     <meta data-rh="true" name="twitter:image" content="https://www.elsaworkflows.io/og-default.png" />
   </head><body><div id="root"></div></body></html>`;
 
-const post = {
+interface TestPost {
+  slug: string;
+  title: string;
+  description?: string;
+  publishedAt?: string;
+  featuredImage?: string;
+  seo?: { title?: string; description?: string };
+  html: string;
+}
+
+const post: TestPost = {
   slug: "elsa-4-transactional-outbox",
   title: "Inside Elsa 4's Transactional Outbox",
   description: "Long description",
@@ -31,7 +42,7 @@ const post = {
   html: "<p>Body</p>",
 };
 
-function render(p = post) {
+function render(p: TestPost = post) {
   return injectIntoShell(SHELL, buildHead(p), "<article></article>");
 }
 
@@ -74,7 +85,8 @@ describe("prerender-blog head", () => {
   });
 
   it("falls back to title, description and the default image", () => {
-    const html = render({ ...post, seo: undefined as never, featuredImage: undefined as never });
+    const { seo: _seo, featuredImage: _image, ...plain } = post;
+    const html = render(plain);
     expect(html).toContain(`property="og:title" content="Inside Elsa 4's Transactional Outbox"`);
     expect(html).toContain('property="og:description" content="Long description"');
     expect(html).toContain('property="og:image" content="https://www.elsaworkflows.io/og-default.png"');
@@ -89,5 +101,10 @@ describe("prerender-blog head", () => {
 
   it("writes both /blog/<slug>.html and /blog/<slug>/index.html", () => {
     expect(blogPrerenderPaths("/d", "a")).toEqual([resolve("/d/blog/a.html"), resolve("/d/blog/a/index.html")]);
+  });
+
+  it("writes /elsa-4 as elsa-4.html and elsa-4/index.html", () => {
+    expect(prerenderOutputPaths("/d", "/elsa-4/")).toEqual([resolve("/d/elsa-4.html"), resolve("/d/elsa-4/index.html")]);
+    expect(ELSA4_OUT_PATHS[1]).toBe(resolve("dist/elsa-4/index.html"));
   });
 });

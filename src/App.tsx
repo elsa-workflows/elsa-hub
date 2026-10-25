@@ -147,7 +147,7 @@ const App = () => (
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               <Route path="/elsa-4" element={<Elsa4Preview />} />
-              {/* The crawler-readable page is emitted as /elsa-4.html. */}
+              {/* The crawler-readable page is emitted as /elsa-4/index.html (served at /elsa-4) and /elsa-4.html. */}
               <Route path="/elsa-4.html" element={<Navigate to="/elsa-4" replace />} />
               <Route path="/features" element={<Features />} />
               <Route path="/community/radar" element={<RadarMap />} />
