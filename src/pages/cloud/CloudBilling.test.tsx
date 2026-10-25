@@ -40,6 +40,7 @@ vi.mock("@/hooks/useCloudOrganizationLink", () => ({
     data: { hub_organization_id: "org-1", control_organization_id: "ctrl-1", validated_at: "2026-01-01" },
     isPending: false,
     isFetching: false,
+    isSuccess: true,
     isError: false,
   }),
 }));

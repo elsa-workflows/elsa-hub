@@ -14,13 +14,18 @@ describe("CloudLinkOrganizationState", () => {
       <CloudLinkOrganizationState
         canLink
         onLink={vi.fn()}
-        pending
         status="pending"
       />,
     );
     const button = screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION });
     expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
     expect(button.querySelector("svg")).toBeTruthy();
+  });
+
+  it("treats success like idle so the link button stays available", () => {
+    render(<CloudLinkOrganizationState canLink onLink={vi.fn()} status="success" />);
+    expect(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION })).toBeEnabled();
   });
 
   it("shows the updating copy for a 503 bootstrap and keeps the console hidden", () => {

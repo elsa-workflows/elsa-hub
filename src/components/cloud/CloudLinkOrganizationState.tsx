@@ -1,6 +1,7 @@
 import { Cloud, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import type { CloudSetupStatus } from "@/hooks/useCloudWorkspace";
 import {
   CLOUD_ERROR_RETRY,
   CLOUD_LINK_ORG_ACTION,
@@ -11,24 +12,22 @@ import {
   CLOUD_LINK_ORG_UPDATING,
 } from "@/lib/cloudClient";
 
-export type CloudLinkSetupStatus = "idle" | "pending" | "updating" | "error";
+export type { CloudSetupStatus };
 
 export function CloudLinkOrganizationState({
   canLink,
   onLink,
   onRetry,
-  pending = false,
   status = "idle",
   message,
 }: {
   canLink: boolean;
   onLink?: () => void;
   onRetry?: () => void;
-  pending?: boolean;
-  status?: CloudLinkSetupStatus;
+  status?: CloudSetupStatus;
   message?: string;
 }) {
-  const busy = pending || status === "pending";
+  const busy = status === "pending";
   const updating = status === "updating";
   const failed = status === "error";
 
@@ -62,6 +61,7 @@ export function CloudLinkOrganizationState({
           className="mt-4 min-h-11 min-w-11"
           onClick={onLink}
           disabled={busy}
+          aria-busy={busy}
         >
           {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />}
           {CLOUD_LINK_ORG_ACTION}

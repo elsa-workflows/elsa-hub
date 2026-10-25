@@ -381,7 +381,10 @@ describe("CloudHome", () => {
     viewState.setupPending = true;
     viewState.setupStatus = "pending";
     renderHome();
-    expect(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION })).toBeDisabled();
+    const button = screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button.querySelector("svg")).toBeTruthy();
   });
 
   it("shows a retryable error when the link check fails", () => {

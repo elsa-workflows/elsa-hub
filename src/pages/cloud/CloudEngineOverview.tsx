@@ -107,8 +107,7 @@ export default function CloudEngineOverviewPage() {
                 canLink={orgLink.canLink}
                 onLink={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
                 onRetry={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
-                pending={setupPending}
-                status={setupStatus === "success" ? "idle" : setupStatus}
+                status={setupStatus}
                 message={setupMessage}
               />
             )}

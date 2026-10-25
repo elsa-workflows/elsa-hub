@@ -146,7 +146,7 @@ export function CloudBillingPanel({
               </Button>
             )}
           </div>
-        ) : canManage && hasOrganization && !linkedToControl && !isLoading && needsLink ? (
+        ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error && needsLink ? (
           <p className="text-sm text-muted-foreground">
             {cloudHomeHref ? (
               <Link to={cloudHomeHref} className="text-primary underline underline-offset-4">
@@ -156,7 +156,7 @@ export function CloudBillingPanel({
               CLOUD_BILLING_NEEDS_LINK
             )}
           </p>
-        ) : canManage && hasOrganization && !linkedToControl && !isLoading ? (
+        ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error ? (
           <p className="text-sm text-muted-foreground">
             This organization is not linked to Elsa Cloud. Checkout is unavailable until the
             Hub-to-Control organization link is validated.

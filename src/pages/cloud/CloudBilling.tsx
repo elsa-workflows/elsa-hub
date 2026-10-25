@@ -41,7 +41,7 @@ function CloudBillingBody() {
           cloudHomeHref={home}
           onSubscribe={() => billing.startCheckout.mutate()}
           onManage={() => billing.openPortal.mutate()}
-          onRetry={() => billing.refresh()}
+          onRetry={billing.errorRetryable ? () => billing.refresh() : undefined}
           checkoutPending={billing.startCheckout.isPending}
           portalPending={billing.openPortal.isPending}
         />
