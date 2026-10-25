@@ -35,6 +35,8 @@ export default function CloudEngineOverviewPage() {
     refetch,
     setupCloud,
     setupPending,
+    setupStatus,
+    setupMessage,
     workspaceId,
     workspaces,
     selectWorkspace,
@@ -97,14 +99,16 @@ export default function CloudEngineOverviewPage() {
             {orgLink.kind === "error" && (
               <CloudErrorState message={CLOUD_LINK_CHECK_ERROR} onRetry={orgLink.refetch} />
             )}
-            {view.kind === "error" && orgLink.kind !== "error" && (
+            {view.kind === "error" && orgLink.kind !== "error" && orgLink.kind !== "needsLink" && (
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
-            {orgLink.kind === "needsLink" && view.kind !== "error" && (
+            {orgLink.kind === "needsLink" && (
               <CloudLinkOrganizationState
                 canLink={orgLink.canLink}
                 onLink={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
-                pending={setupPending}
+                onRetry={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
+                status={setupStatus}
+                message={setupMessage}
               />
             )}
             {showConsole && view.kind === "needsSetup" && (

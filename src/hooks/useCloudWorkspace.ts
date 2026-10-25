@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_SUCCESS,
+  CLOUD_LINK_ORG_UPDATING,
+  CLOUD_ORG_LINK_CONFLICT,
+  CLOUD_ORG_LINK_CONFLICT_CODE,
   cloudClient,
   isCloudBffError,
   isCloudUpdating,
@@ -58,6 +64,22 @@ export type CloudWorkspaceView =
   | { kind: "needsSetup" }
   | { kind: "ready"; workspace: CloudWorkspace }
   | { kind: "error"; message: string };
+
+export type CloudSetupStatus = "idle" | "pending" | "updating" | "error" | "success";
+
+export function cloudSetupOutcome(
+  result: CloudBffResponse | undefined,
+  pending: boolean,
+): { status: CloudSetupStatus; message?: string } {
+  if (pending) return { status: "pending" };
+  if (!result) return { status: "idle" };
+  if (result.ok) return { status: "success" };
+  if (isCloudUpdating(result)) return { status: "updating", message: CLOUD_LINK_ORG_UPDATING };
+  if (isCloudBffError(result) && result.code === CLOUD_ORG_LINK_CONFLICT_CODE) {
+    return { status: "error", message: CLOUD_ORG_LINK_CONFLICT };
+  }
+  return { status: "error", message: CLOUD_LINK_ORG_ERROR };
+}
 
 export async function fetchCloudWorkspaces(): Promise<CloudBffResponse> {
   return cloudClient.invoke({ action: "listWorkspaces" });
@@ -138,7 +160,9 @@ export function useCloudWorkspace() {
         setSetupReady(true);
       }
       void queryClient.invalidateQueries({ queryKey: CLOUD_WORKSPACE_QUERY_KEY });
-      void queryClient.invalidateQueries({ queryKey: CLOUD_ORGANIZATION_LINK_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: CLOUD_ORGANIZATION_LINK_QUERY_KEY }).then(() => {
+        toast.success(CLOUD_LINK_ORG_SUCCESS);
+      });
     },
   });
 
@@ -165,6 +189,8 @@ export function useCloudWorkspace() {
         };
   }
 
+  const setup = cloudSetupOutcome(bootstrap.data, bootstrap.isPending);
+
   return {
     ...query,
     view,
@@ -175,6 +201,8 @@ export function useCloudWorkspace() {
     },
     setupCloud: (hubOrganizationId?: string) => bootstrap.mutate(hubOrganizationId),
     setupPending: bootstrap.isPending,
+    setupStatus: setup.status,
+    setupMessage: setup.message,
     refetch: async () => {
       bootstrap.reset();
       if (!canLoad) return;

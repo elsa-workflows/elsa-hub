@@ -43,7 +43,23 @@ vi.mock("@/hooks/useOrganizations", () => ({
 
 vi.mock("@/lib/cloud/redirect", () => ({ redirectTo }));
 
-import { FunctionsHttpError } from "@supabase/supabase-js";
+const linkState = vi.hoisted(() => ({
+  data: { hub_organization_id: "org-1", control_organization_id: "ctrl-1", validated_at: "2026-01-01" } as
+    | { hub_organization_id: string; control_organization_id: string; validated_at: string }
+    | null,
+  isPending: false,
+  isFetching: false,
+  isSuccess: true,
+  isError: false,
+}));
+
+vi.mock("@/hooks/useCloudOrganizationLink", () => ({
+  useCloudOrganizationLink: () => linkState,
+}));
+
+import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
+import { CLOUD_BILLING_UNAVAILABLE, CLOUD_LINK_CHECK_ERROR } from "@/lib/cloudClient";
+import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
 import { useCloudBilling } from "./useCloudBilling";
 
 /** What supabase-js returns for a non-2xx function response: no data, the body on error.context. */
@@ -106,6 +122,15 @@ describe("useCloudBilling", () => {
     redirectTo.mockReset();
     toastError.mockReset();
     invoke.mockResolvedValue({ data: emptySnapshot, error: null });
+    linkState.data = {
+      hub_organization_id: "org-1",
+      control_organization_id: "ctrl-1",
+      validated_at: "2026-01-01",
+    };
+    linkState.isPending = false;
+    linkState.isFetching = false;
+    linkState.isSuccess = true;
+    linkState.isError = false;
   });
 
   it("starts Cloud checkout for the route's org", async () => {
@@ -240,11 +265,66 @@ describe("useCloudBilling", () => {
     expect(result.current.planStatus).toBeNull();
   });
 
-  it("reports the server's message when status fails", async () => {
+  it("fetches billing when unlinked so an active subscription still offers Manage", async () => {
+    linkState.data = null;
+    linkState.isSuccess = true;
+    invoke.mockResolvedValue({
+      data: {
+        ...emptySnapshot,
+        billingAccount: "linked",
+        canManage: true,
+        subscriptions: [sub("sub_live", "active")],
+      },
+      error: null,
+    });
+
+    const result = await renderBilling();
+
+    expect(result.current.needsLink).toBe(true);
+    expect(functionBodies("cloud-billing")).toEqual([{ organizationId: "org-1" }]);
+    expect(result.current.canManage).toBe(true);
+    expect(result.current.subscription?.status).toBe("active");
+    expect(result.current.planStatus).toBe("active");
+    expect(result.current.billingAccount).toBe("linked");
+    const hasPlan = Boolean(
+      result.current.planName &&
+        result.current.planStatus &&
+        !ENDED_SUBSCRIPTION_STATUSES.includes(result.current.planStatus),
+    );
+    expect(hasPlan || result.current.billingAccount === "linked").toBe(true);
+  });
+
+  it("shows a retryable link-check error instead of needsLink when the link query fails", async () => {
+    linkState.data = null;
+    linkState.isSuccess = false;
+    linkState.isError = true;
+
+    const result = await renderBilling();
+
+    expect(result.current.needsLink).toBe(false);
+    expect(result.current.error?.message).toBe(CLOUD_LINK_CHECK_ERROR);
+    expect(result.current.errorRetryable).toBe(true);
+    expect(functionBodies("cloud-billing")).toEqual([{ organizationId: "org-1" }]);
+  });
+
+  it("maps FunctionsFetchError to a friendly billing message", async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: new FunctionsFetchError(new Error("Failed to send a request to the Edge Function")),
+    });
+
+    const result = await renderBilling();
+
+    expect(result.current.error?.message).toBe(CLOUD_BILLING_UNAVAILABLE);
+    expect(result.current.errorRetryable).toBe(true);
+  });
+
+  it("shows the sandbox-only Stripe gate message without Retry", async () => {
     invoke.mockResolvedValue(httpFailure(503, { error: "Cloud billing is sandbox-only" }));
 
     const result = await renderBilling();
 
     expect(result.current.error?.message).toBe("Cloud billing is sandbox-only");
+    expect(result.current.errorRetryable).toBe(false);
   });
 });

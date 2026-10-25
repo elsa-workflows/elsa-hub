@@ -239,7 +239,7 @@ async function callControl(
   action: CloudBffAction,
   request: CloudBffRequest,
 ): Promise<ControlResult> {
-  const call = (next: ControlCall) => ctx.controlFetch(next, ctx.accessToken);
+  const call = (next: ControlCall) => ctx.controlFetch({ ...next, action }, ctx.accessToken);
 
   switch (action) {
     case "compatibility":

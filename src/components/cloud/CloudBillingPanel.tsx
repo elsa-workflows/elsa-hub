@@ -1,11 +1,13 @@
 import { CreditCard, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { CloudSubscriptionStatus } from "@/hooks/useCloudBilling";
 import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
+import { CLOUD_BILLING_NEEDS_LINK, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
 
 function statusLabel(status: string | null, cancelAtPeriodEnd: boolean): string {
   if (!status) return "No subscription";
@@ -28,8 +30,11 @@ export function CloudBillingPanel({
   cloudLink,
   onSubscribe,
   onManage,
+  onRetry,
   checkoutPending,
   portalPending,
+  needsLink = false,
+  cloudHomeHref,
 }: {
   isLoading: boolean;
   error: Error | null;
@@ -42,8 +47,11 @@ export function CloudBillingPanel({
   cloudLink: "missing" | "linked";
   onSubscribe: () => void;
   onManage: () => void;
+  onRetry?: () => void;
   checkoutPending: boolean;
   portalPending: boolean;
+  needsLink?: boolean;
+  cloudHomeHref?: string;
 }) {
   const hasPlan = Boolean(planName && planStatus && !ENDED_SUBSCRIPTION_STATUSES.includes(planStatus));
   const linkedToControl = cloudLink === "linked";
@@ -73,7 +81,14 @@ export function CloudBillingPanel({
 
         {error && (
           <Alert variant="destructive">
-            <AlertDescription>{error.message}</AlertDescription>
+            <AlertDescription className="space-y-3">
+              <p>{error.message}</p>
+              {onRetry && (
+                <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+                  {CLOUD_ERROR_RETRY}
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -131,7 +146,17 @@ export function CloudBillingPanel({
               </Button>
             )}
           </div>
-        ) : canManage && hasOrganization && !linkedToControl && !isLoading ? (
+        ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error && needsLink ? (
+          <p className="text-sm text-muted-foreground">
+            {cloudHomeHref ? (
+              <Link to={cloudHomeHref} className="text-primary underline underline-offset-4">
+                {CLOUD_BILLING_NEEDS_LINK}
+              </Link>
+            ) : (
+              CLOUD_BILLING_NEEDS_LINK
+            )}
+          </p>
+        ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error ? (
           <p className="text-sm text-muted-foreground">
             This organization is not linked to Elsa Cloud. Checkout is unavailable until the
             Hub-to-Control organization link is validated.

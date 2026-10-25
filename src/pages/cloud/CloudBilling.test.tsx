@@ -35,6 +35,16 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 vi.mock("@/lib/cloud/redirect", () => ({ redirectTo }));
 
+vi.mock("@/hooks/useCloudOrganizationLink", () => ({
+  useCloudOrganizationLink: () => ({
+    data: { hub_organization_id: "org-1", control_organization_id: "ctrl-1", validated_at: "2026-01-01" },
+    isPending: false,
+    isFetching: false,
+    isSuccess: true,
+    isError: false,
+  }),
+}));
+
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
   return {

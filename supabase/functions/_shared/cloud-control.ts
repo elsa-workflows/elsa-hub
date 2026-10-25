@@ -26,7 +26,12 @@ export type ControlCall = {
   path: string;
   body?: unknown;
   headers?: Record<string, string>;
+  action?: string;
 };
+
+export function logControlStatus(status: number, action: string | undefined) {
+  console.info(`control_status=${status} action=${action ?? "unknown"}`);
+}
 
 export type ControlResult = {
   ok: true;
@@ -52,7 +57,10 @@ export function createControlFetch(
 ): ControlFetch {
   return async (call, accessToken) => {
     const baseUrl = (env.get("ELSA_CONTROL_API_BASE_URL") ?? "").replace(/\/+$/, "");
-    if (!baseUrl) return { ok: false, kind: "updating" };
+    if (!baseUrl) {
+      logControlStatus(0, call.action);
+      return { ok: false, kind: "updating" };
+    }
 
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), CONTROL_TIMEOUT_MS);
@@ -63,6 +71,7 @@ export function createControlFetch(
         body: call.body !== undefined ? JSON.stringify(call.body) : undefined,
         signal: ctrl.signal,
       });
+      logControlStatus(res.status, call.action);
       const text = await res.text();
       let parsed: unknown = null;
       if (text) {
@@ -100,6 +109,7 @@ export function createControlFetch(
         etag: res.headers.get("ETag") ?? undefined,
       };
     } catch {
+      logControlStatus(0, call.action);
       return { ok: false, kind: "updating" };
     } finally {
       clearTimeout(timeout);
