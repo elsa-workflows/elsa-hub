@@ -5,15 +5,23 @@
  * Elsa NuGet packages and Get Started guides. This constant is the image
  * tag visitors see on Elsa+ Runtime pages (copy, tag-table examples, pins).
  *
- * Studio and Core both ship 3.9.0, so one tag covers server, Studio, and
- * combined. Docker run / compose quickstarts still use `:latest`, which
- * currently has the same digest as 3.9.0. Image names stay as published:
- *   ghcr.io/valence-works/runtime-ce-{server,studio,combined}:3.9.0
- *   valenceruntimeimages.azurecr.io/runtime-{server,studio,combined}:3.9.0
+ * The server, studio and combined images all share this tag; they are built
+ * from the same Elsa version. Docker run / compose quickstarts still use
+ * `:latest`. Image names stay as published:
+ *   ghcr.io/valence-works/runtime-ce-{server,studio,combined}:<tag>
+ *   valenceruntimeimages.azurecr.io/runtime-{server,studio,combined}:<tag>
  *
- * Paid ACR also publishes the immutable pin 3.9.0-build.209; mention that
- * only where a page already shows a pinned build.
+ * Community GHCR publishes only `latest` and this tag. Paid ACR also
+ * publishes `sha-<commit>` and `<tag>-build.N`.
  */
 export const RUNTIME_IMAGE_TAG = "3.9.0";
 
-export const RUNTIME_IMAGE_LINE = "3.9";
+/** major.minor of RUNTIME_IMAGE_TAG — do not set this separately. */
+export function runtimeImageLineFromTag(tag: string): string {
+  return tag.split(".").slice(0, 2).join(".");
+}
+
+export const RUNTIME_IMAGE_LINE = runtimeImageLineFromTag(RUNTIME_IMAGE_TAG);
+
+export const RUNTIME_IMAGES_SHARE_TAG_COPY =
+  `The server, studio and combined images all share one tag — they're all built from Elsa ${RUNTIME_IMAGE_TAG}.`;

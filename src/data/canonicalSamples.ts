@@ -74,7 +74,7 @@ export const ELSA_DOCKER_STUDIO_RUN_COMMAND = `docker run -it \\
   --name elsa-studio \\
   ${COMMUNITY_IMAGES.studio}:latest`;
 
-// Studio and Core both ship RUNTIME_IMAGE_TAG, so one tag covers all three.
+// The server, studio and combined images all share RUNTIME_IMAGE_TAG.
 export const ELSA_DOCKER_VERSIONED_EXAMPLE = `docker pull ${COMMUNITY_IMAGES.server}:${RUNTIME_IMAGE_TAG}
 docker pull ${COMMUNITY_IMAGES.studio}:${RUNTIME_IMAGE_TAG}
 docker pull ${COMMUNITY_IMAGES.combined}:${RUNTIME_IMAGE_TAG}`;

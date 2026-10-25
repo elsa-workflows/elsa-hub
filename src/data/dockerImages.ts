@@ -2,7 +2,45 @@ import { Container, LayoutDashboard, Boxes, type LucideIcon } from "lucide-react
 import runtimeServerArtwork from "@/assets/runtime-server-artwork.png.asset.json";
 import runtimeStudioArtwork from "@/assets/runtime-studio-artwork.png.asset.json";
 import runtimeCombinedArtwork from "@/assets/runtime-combined-artwork.png.asset.json";
-import { RUNTIME_IMAGE_LINE } from "@/data/runtimeImage";
+import { RUNTIME_IMAGE_LINE, RUNTIME_IMAGE_TAG } from "@/data/runtimeImage";
+
+export type RuntimeImageTagRow = {
+  pattern: string;
+  example: string;
+  description: string;
+};
+
+const latestTag: RuntimeImageTagRow = {
+  pattern: "latest",
+  example: "latest",
+  description: "Most recent published build",
+};
+
+const elsaVersionTag: RuntimeImageTagRow = {
+  pattern: "<elsa-version>",
+  example: RUNTIME_IMAGE_TAG,
+  description: "Pin to this Elsa version",
+};
+
+/** Tags published on ghcr.io/valence-works/runtime-ce-{server,studio,combined}. */
+export const COMMUNITY_RUNTIME_IMAGE_TAGS: RuntimeImageTagRow[] = [latestTag, elsaVersionTag];
+
+/** Tags published on valenceruntimeimages.azurecr.io/runtime-{server,studio,combined}. */
+export const PAID_RUNTIME_IMAGE_TAGS: RuntimeImageTagRow[] = [
+  latestTag,
+  elsaVersionTag,
+  {
+    pattern: "sha-<commit>",
+    example: "sha-<commit>",
+    description: "Pinned to an exact git commit",
+  },
+  {
+    pattern: "<elsa-version>-build.N",
+    example: `${RUNTIME_IMAGE_TAG}-build.N`,
+    description: "Immutable paid build",
+  },
+];
+
 
 
 export type DockerImageEnvVar = {
