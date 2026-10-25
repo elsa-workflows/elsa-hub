@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ELSA_DOCKER_VERSIONED_EXAMPLE } from "./canonicalSamples";
+import { ELSA_COMMUNITY_DOCKER_TAG, ELSA_DOCKER_VERSIONED_EXAMPLE } from "./canonicalSamples";
 import {
   COMMUNITY_RUNTIME_IMAGE_TAGS,
   dockerImages,
@@ -29,10 +29,12 @@ describe("RUNTIME_IMAGE_TAG", () => {
     expect(server?.description).not.toContain("Elsa 3.8");
   });
 
-  it("is the single pin in versioned pull examples", () => {
-    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(`runtime-ce-server:${RUNTIME_IMAGE_TAG}`);
-    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(`runtime-ce-studio:${RUNTIME_IMAGE_TAG}`);
-    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(`runtime-ce-combined:${RUNTIME_IMAGE_TAG}`);
+  it("is not the tag in the Elsa 3 Community (Docker Hub) pull examples", () => {
+    // Community snippets moved to Docker Hub elsaworkflows/*-v3 (#89/#90) and pin
+    // ELSA_COMMUNITY_DOCKER_TAG; RUNTIME_IMAGE_TAG stays on the Elsa+ Runtime pages.
+    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(`elsa-server-v3:${ELSA_COMMUNITY_DOCKER_TAG}`);
+    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(`elsa-server-and-studio-v3:${ELSA_COMMUNITY_DOCKER_TAG}`);
+    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).not.toContain("runtime-ce-");
     expect(ELSA_DOCKER_VERSIONED_EXAMPLE).not.toContain("ELSA_SERVER_VERSION");
     expect(ELSA_DOCKER_VERSIONED_EXAMPLE).not.toContain("ELSA_STUDIO_VERSION");
   });
