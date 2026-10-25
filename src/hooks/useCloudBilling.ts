@@ -109,13 +109,14 @@ export function classifyBillingStatusFailure(
   // ("Cloud billing is sandbox-only" / "Cloud billing is not configured").
   // A 503 with no JSON body is an edge/gateway outage, not the Stripe gate.
   if (status === 503 && internal) {
-    console.info("Cloud billing gate:", internal);
-    return new CloudBillingStatusError({
+    const gate = new CloudBillingStatusError({
       kind: "gate",
       message: CLOUD_BILLING_NOT_AVAILABLE_YET,
       retryable: false,
       internalMessage: internal,
     });
+    console.info("Cloud billing gate:", gate.internalMessage);
+    return gate;
   }
   if (status === 503) {
     return new CloudBillingStatusError({
@@ -190,7 +191,10 @@ export function useCloudBilling() {
   const statusQuery = useQuery({
     queryKey: ["cloud-billing", user?.id, organizationId],
     enabled: !!user && !!organizationId,
-    retry: 1,
+    retry: (failureCount, error) => {
+      if (error instanceof CloudBillingStatusError && error.kind === "gate") return false;
+      return failureCount < 1;
+    },
     retryDelay: 0,
     queryFn: async (): Promise<CloudBillingSnapshot> => {
       const { payload, error } = await invokeCloudFunction("cloud-billing", {

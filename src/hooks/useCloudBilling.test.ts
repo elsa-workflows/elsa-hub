@@ -64,7 +64,7 @@ import {
   CLOUD_LINK_CHECK_ERROR,
 } from "@/lib/cloudClient";
 import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
-import { useCloudBilling } from "./useCloudBilling";
+import { classifyBillingStatusFailure, useCloudBilling } from "./useCloudBilling";
 
 /** What supabase-js returns for a non-2xx function response: no data, the body on error.context. */
 function httpFailure(status: number, body: Record<string, unknown>) {
@@ -322,6 +322,7 @@ describe("useCloudBilling", () => {
     expect(result.current.error?.message).toBe(CLOUD_BILLING_UNAVAILABLE);
     expect(result.current.errorRetryable).toBe(true);
     expect(result.current.unavailable).toBe(false);
+    expect(functionBodies("cloud-billing")).toHaveLength(2);
   });
 
   it.each(["Cloud billing is sandbox-only", "Cloud billing is not configured"])(
@@ -335,10 +336,25 @@ describe("useCloudBilling", () => {
       expect(result.current.unavailable).toBe(true);
       expect(result.current.error).toBeNull();
       expect(result.current.errorRetryable).toBe(false);
+      expect(functionBodies("cloud-billing")).toHaveLength(1);
+      expect(info).toHaveBeenCalledTimes(1);
       expect(info).toHaveBeenCalledWith("Cloud billing gate:", internal);
       info.mockRestore();
     },
   );
+
+  it("classifies a gate 503 with the public unavailable copy and logs internalMessage", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const failure = classifyBillingStatusFailure(
+      new FunctionsHttpError(new Response(JSON.stringify({ error: "Cloud billing is sandbox-only" }), { status: 503 })),
+      { error: "Cloud billing is sandbox-only" },
+    );
+    expect(failure.kind).toBe("gate");
+    expect(failure.message).toBe(CLOUD_BILLING_NOT_AVAILABLE_YET);
+    expect(failure.internalMessage).toBe("Cloud billing is sandbox-only");
+    expect(info).toHaveBeenCalledWith("Cloud billing gate:", failure.internalMessage);
+    info.mockRestore();
+  });
 
   it("treats a gateway 503 with no JSON body as a retryable transport error", async () => {
     invoke.mockResolvedValue({
