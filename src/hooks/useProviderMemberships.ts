@@ -58,6 +58,8 @@ export function useProviderMemberships() {
   };
 
   useEffect(() => {
+    setProviders([]);
+    setError(null);
     fetchProviders();
   }, [userId]);
 

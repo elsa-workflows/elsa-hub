@@ -28,6 +28,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function shouldReuseAuthIdentity(event: string) {
+  return event === "TOKEN_REFRESHED" || event === "SIGNED_IN" || event === "INITIAL_SESSION";
+}
+
+function applyAuthSnapshot(
+  setUser: (updater: (prev: User | null) => User | null) => void,
+  setSession: (updater: (prev: Session | null) => Session | null) => void,
+  nextUser: User | null,
+  nextSession: Session | null,
+  reuseIdentity: boolean,
+) {
+  setUser((prev) =>
+    reuseIdentity && prev?.id && nextUser?.id && prev.id === nextUser.id ? prev : nextUser,
+  );
+  setSession((prev) =>
+    reuseIdentity &&
+    prev?.access_token === nextSession?.access_token &&
+    prev?.user?.id === nextSession?.user?.id
+      ? prev
+      : nextSession,
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -48,15 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentUserIdRef.current = nextUserId;
 
         // supabase-js re-emits TOKEN_REFRESHED / SIGNED_IN on visibilitychange.
-        // Keep the same user object when the id is unchanged so hooks that
-        // depend on `user` (useOrganizations, layout guards) do not refetch
-        // and remount the dashboard. Loading stays false after the first
-        // session check.
-        setUser((prev) => (prev?.id && nextUser?.id && prev.id === nextUser.id ? prev : nextUser));
-        setSession((prev) =>
-          prev?.access_token === session?.access_token && prev?.user?.id === session?.user?.id
-            ? prev
-            : session,
+        // Reuse the same user object for those events (and INITIAL_SESSION)
+        // when the id is unchanged so hooks that depend on `user` do not
+        // refetch and remount the dashboard. USER_UPDATED must apply the new
+        // user and session (password setup, email/identity changes).
+        applyAuthSnapshot(
+          setUser,
+          setSession,
+          nextUser,
+          session,
+          shouldReuseAuthIdentity(event),
         );
         setLoading(false);
 
@@ -97,12 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentUserIdRef.current === undefined) {
         currentUserIdRef.current = nextUser?.id ?? null;
       }
-      setUser((prev) => (prev?.id && nextUser?.id && prev.id === nextUser.id ? prev : nextUser));
-      setSession((prev) =>
-        prev?.access_token === session?.access_token && prev?.user?.id === session?.user?.id
-          ? prev
-          : session,
-      );
+      applyAuthSnapshot(setUser, setSession, nextUser, session, true);
       setLoading(false);
     });
 

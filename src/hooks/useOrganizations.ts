@@ -61,6 +61,8 @@ export function useOrganizations() {
   };
 
   useEffect(() => {
+    setOrganizations([]);
+    setError(null);
     fetchOrganizations();
   }, [userId]);
 

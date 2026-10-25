@@ -213,5 +213,30 @@ describe("AuthContext passwordless methods", () => {
       await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.user).toBe(userRef);
     });
+
+    it("updates user on same-id USER_UPDATED when fields change", async () => {
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+
+      authStateListeners[0]("SIGNED_IN", {
+        user: { id: "u1", email: "old@example.com", identities: [{ provider: "github" }] },
+        access_token: "t1",
+      });
+      await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+      const userRef = result.current.user;
+
+      const updatedUser = {
+        id: "u1",
+        email: "new@example.com",
+        identities: [{ provider: "github" }, { provider: "email" }],
+      };
+      authStateListeners[0]("USER_UPDATED", { user: updatedUser, access_token: "t1" });
+
+      await waitFor(() => expect(result.current.user?.email).toBe("new@example.com"));
+      expect(result.current.user).not.toBe(userRef);
+      expect(result.current.user).toEqual(updatedUser);
+      expect(result.current.session?.user).toEqual(updatedUser);
+      expect(result.current.loading).toBe(false);
+    });
   });
 });
