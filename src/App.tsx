@@ -56,6 +56,7 @@ const Resources = lazy(() => import("./pages/Resources"));
 const Roadmap = lazy(() => import("./pages/Roadmap"));
 const AcademyTerms = lazy(() => import("./pages/legal/AcademyTerms"));
 const TermsIndex = lazy(() => import("./pages/legal/TermsIndex"));
+const CloudTerms = lazy(() => import("./pages/legal/CloudTerms"));
 const CommunityContent = lazy(() => import("./pages/resources/CommunityContent"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -203,6 +204,7 @@ const App = () => (
               <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/legal/terms" element={<TermsIndex />} />
               <Route path="/legal/academy-terms" element={<AcademyTerms />} />
+              <Route path="/legal/cloud-terms" element={<CloudTerms />} />
               <Route path={LEGACY_TERMS_PATH} element={<Navigate to={ACADEMY_TERMS_INDEX_PATH} replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />

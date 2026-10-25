@@ -6,6 +6,7 @@ import {
   ACADEMY_TERMS_PATH,
   ACADEMY_TERMS_TITLE,
 } from "@/lib/academyLegal";
+import { CLOUD_TERMS_PATH, CLOUD_TERMS_TITLE } from "@/lib/cloudLegal";
 
 export default function TermsIndex() {
   return (
@@ -30,8 +31,12 @@ export default function TermsIndex() {
             <p className="text-sm text-muted-foreground">{ACADEMY_TERMS_TITLE}.</p>
           </li>
           <li>
-            <h2 className="text-xl font-semibold mb-1">Elsa Cloud</h2>
-            <p className="text-sm text-muted-foreground">Coming soon.</p>
+            <h2 className="text-xl font-semibold mb-1">
+              <Link to={CLOUD_TERMS_PATH} className="text-primary hover:underline">
+                Elsa Cloud
+              </Link>
+            </h2>
+            <p className="text-sm text-muted-foreground">{CLOUD_TERMS_TITLE}.</p>
           </li>
         </ul>
       </div>
