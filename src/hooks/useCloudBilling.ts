@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import {
+  CLOUD_BILLING_UNAVAILABLE_CODE,
   CLOUD_ORGANIZATION_REQUIRED,
   CLOUD_PRODUCT_TYPE,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
@@ -82,6 +83,17 @@ function gateMessage(payload: FunctionPayload | null): string | null {
   return message || null;
 }
 
+function isLegacyGateErrorText(message: string | null): boolean {
+  return message === "Cloud billing is sandbox-only" || message === "Cloud billing is not configured";
+}
+
+function isBillingGate(payload: FunctionPayload | null): boolean {
+  if (payload?.code === CLOUD_BILLING_UNAVAILABLE_CODE) return true;
+  // Fallback for one release while cloud-billing may still omit `code`.
+  // Remove after both sides ship billing_unavailable.
+  return isLegacyGateErrorText(gateMessage(payload));
+}
+
 export function billingStatusErrorMessage(
   error: unknown,
   payload: FunctionPayload | null,
@@ -105,15 +117,15 @@ export function classifyBillingStatusFailure(
 
   const status = httpStatus(error);
   const internal = gateMessage(payload);
-  // Handler gate: 503 + JSON `{ error }` from assertStripeTestMode
-  // ("Cloud billing is sandbox-only" / "Cloud billing is not configured").
-  // A 503 with no JSON body is an edge/gateway outage, not the Stripe gate.
-  if (status === 503 && internal) {
+  // Handler gate: 503 with `code: billing_unavailable` (preferred) or the
+  // assertStripeTestMode error text (fallback). A 503 with no JSON body is
+  // an edge/gateway outage, not the Stripe gate.
+  if (status === 503 && isBillingGate(payload)) {
     const gate = new CloudBillingStatusError({
       kind: "gate",
       message: CLOUD_BILLING_NOT_AVAILABLE_YET,
       retryable: false,
-      internalMessage: internal,
+      internalMessage: internal ?? payload?.code,
     });
     console.info("Cloud billing gate:", gate.internalMessage);
     return gate;

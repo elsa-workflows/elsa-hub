@@ -41,6 +41,7 @@ export type CloudCheckoutMetadata = {
 
 export const CLOUD_SUBSCRIPTION_EXISTS_CODE = "cloud_subscription_exists";
 export const CLOUD_ORG_NOT_LINKED_CODE = "cloud_org_not_linked";
+export const CLOUD_BILLING_UNAVAILABLE_CODE = "billing_unavailable";
 export const CLOUD_ORGANIZATION_REQUIRED = "Cloud billing requires an organization";
 export const CLOUD_LINK_READ_FAILED =
   "We couldn't check this organization's Elsa Cloud link. Please try again later.";
