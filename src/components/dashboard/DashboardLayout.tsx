@@ -1,10 +1,15 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { RouteFallback } from "@/components/RouteFallback";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import { DashboardProvider } from "@/contexts/DashboardContext";
 import { useAuth } from "@/contexts/AuthContext";
+
+function DashboardPageFallback() {
+  return <RouteFallback className="min-h-[50vh]" />;
+}
 
 export function DashboardLayout() {
   const { user, loading } = useAuth();
@@ -39,7 +44,12 @@ export function DashboardLayout() {
           <SidebarInset>
             <DashboardHeader />
             <main className="flex-1 overflow-auto">
-              <Outlet />
+              {/* Keep the dashboard chrome mounted when a lazy page suspends.
+                  The app-level Suspense around <Routes> would otherwise unmount
+                  the sidebar and look like a full reload. */}
+              <Suspense fallback={<DashboardPageFallback />}>
+                <Outlet />
+              </Suspense>
             </main>
           </SidebarInset>
         </div>
