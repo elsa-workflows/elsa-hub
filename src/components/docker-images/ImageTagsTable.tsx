@@ -1,10 +1,12 @@
+import { RUNTIME_IMAGE_TAG } from "@/data/runtimeImage";
+
 const tags: Array<{ pattern: string; example: string; description: string }> = [
   { pattern: "latest", example: "latest", description: "Most recent build from main — always moving" },
   { pattern: "<version>-preview.<build>", example: "1.0.0-preview.42", description: "Preview build from main, auto-increments per push" },
   { pattern: "<version>", example: "1.0.0", description: "Stable release (from a git tag)" },
   { pattern: "<major>.<minor>", example: "1.0", description: "Latest patch within a minor version" },
   { pattern: "<major>", example: "1", description: "Latest minor+patch within a major version" },
-  { pattern: "elsa-<elsa-version>", example: "elsa-3.8.0-preview.5413", description: "Latest build targeting a specific Elsa version" },
+  { pattern: "elsa-<elsa-version>", example: `elsa-${RUNTIME_IMAGE_TAG}`, description: "Latest build targeting a specific Elsa version" },
   { pattern: "sha-<commit>", example: "sha-07169a7", description: "Pinned to an exact commit" },
 ];
 

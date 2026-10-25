@@ -21,6 +21,7 @@ import {
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { DockerImageCard } from "@/components/docker-images";
 import { dockerImages } from "@/data/dockerImages";
+import { RUNTIME_IMAGE_LINE } from "@/data/runtimeImage";
 import { ArrowRight, Boxes, Check, ExternalLink, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -313,7 +314,7 @@ export default function ValenceRuntime() {
           <p className="text-sm text-muted-foreground leading-relaxed">
             Not yet a supported distribution — stable release guarantees are on the roadmap.
             Production hardening, container scanning, and image signing are already in place.
-            The public Community images currently ship Elsa 3.8.x and have no Elsa 3.9 tag yet.
+            The public Community images currently ship Elsa {RUNTIME_IMAGE_LINE}.x.
           </p>
         </div>
       </section>
