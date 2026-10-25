@@ -35,14 +35,18 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 vi.mock("@/lib/cloud/redirect", () => ({ redirectTo }));
 
+const linkState = vi.hoisted(() => ({
+  data: { hub_organization_id: "org-1", control_organization_id: "ctrl-1", validated_at: "2026-01-01" } as
+    | { hub_organization_id: string; control_organization_id: string; validated_at: string }
+    | null,
+  isPending: false,
+  isFetching: false,
+  isSuccess: true,
+  isError: false,
+}));
+
 vi.mock("@/hooks/useCloudOrganizationLink", () => ({
-  useCloudOrganizationLink: () => ({
-    data: { hub_organization_id: "org-1", control_organization_id: "ctrl-1", validated_at: "2026-01-01" },
-    isPending: false,
-    isFetching: false,
-    isSuccess: true,
-    isError: false,
-  }),
+  useCloudOrganizationLink: () => linkState,
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -53,7 +57,17 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_NOT_AVAILABLE_YET, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
 import CloudBilling from "./CloudBilling";
+
+function httpFailure(status: number, body: Record<string, unknown> | string) {
+  const payload = typeof body === "string" ? body : JSON.stringify(body);
+  return {
+    data: null,
+    error: new FunctionsHttpError(new Response(payload, { status })),
+  };
+}
 
 function renderAt(path: string) {
   const client = new QueryClient({
@@ -76,6 +90,13 @@ describe("Cloud billing pages", () => {
     invoke.mockReset();
     navigate.mockReset();
     redirectTo.mockReset();
+    linkState.data = {
+      hub_organization_id: "org-1",
+      control_organization_id: "ctrl-1",
+      validated_at: "2026-01-01",
+    };
+    linkState.isSuccess = true;
+    linkState.isError = false;
     invoke.mockImplementation(async (name: string) => {
       if (name === "cloud-billing") {
         return {
@@ -140,5 +161,42 @@ describe("Cloud billing pages", () => {
         description: "Your Elsa Cloud subscription was not changed.",
       }),
     );
+  });
+
+  it("shows a neutral unavailable notice and the link CTA for an unlinked org on the gate 503", async () => {
+    linkState.data = null;
+    invoke.mockImplementation(async (name: string) =>
+      name === "cloud-billing"
+        ? httpFailure(503, { error: "Cloud billing is sandbox-only" })
+        : { data: null, error: null },
+    );
+
+    renderAt("/dashboard/org/acme/cloud/billing");
+
+    const notice = await screen.findByText(CLOUD_BILLING_NOT_AVAILABLE_YET);
+    const alert = notice.closest("[role='alert']");
+    expect(alert).toBeInTheDocument();
+    expect(alert).not.toHaveClass("text-destructive");
+    expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: CLOUD_BILLING_NEEDS_LINK })).toHaveAttribute(
+      "href",
+      "/dashboard/org/acme/cloud",
+    );
+  });
+
+  it("shows only the neutral unavailable notice for a linked org on the gate 503", async () => {
+    invoke.mockImplementation(async (name: string) =>
+      name === "cloud-billing"
+        ? httpFailure(503, { error: "Cloud billing is not configured" })
+        : { data: null, error: null },
+    );
+
+    renderAt("/dashboard/org/acme/cloud/billing");
+
+    expect(await screen.findByText(CLOUD_BILLING_NOT_AVAILABLE_YET)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sandbox-only|not configured/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
   });
 });

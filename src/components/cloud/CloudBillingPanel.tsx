@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { CloudSubscriptionStatus } from "@/hooks/useCloudBilling";
 import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
-import { CLOUD_BILLING_NEEDS_LINK, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
+import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_NOT_AVAILABLE_YET, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
 
 function statusLabel(status: string | null, cancelAtPeriodEnd: boolean): string {
   if (!status) return "No subscription";
@@ -34,6 +34,7 @@ export function CloudBillingPanel({
   checkoutPending,
   portalPending,
   needsLink = false,
+  unavailable = false,
   cloudHomeHref,
 }: {
   isLoading: boolean;
@@ -51,6 +52,7 @@ export function CloudBillingPanel({
   checkoutPending: boolean;
   portalPending: boolean;
   needsLink?: boolean;
+  unavailable?: boolean;
   cloudHomeHref?: string;
 }) {
   const hasPlan = Boolean(planName && planStatus && !ENDED_SUBSCRIPTION_STATUSES.includes(planStatus));
@@ -79,6 +81,14 @@ export function CloudBillingPanel({
           </div>
         )}
 
+        {unavailable && (
+          <Alert>
+            <AlertDescription>
+              <p>{CLOUD_BILLING_NOT_AVAILABLE_YET}</p>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {error && (
           <Alert variant="destructive">
             <AlertDescription className="space-y-3">
@@ -98,7 +108,7 @@ export function CloudBillingPanel({
           </p>
         )}
 
-        {hasOrganization && !isLoading && !error && !hasPlan && (
+        {hasOrganization && !isLoading && !error && !unavailable && !hasPlan && (
           <p className="text-muted-foreground">No Elsa Cloud plan yet for this organization.</p>
         )}
 
@@ -120,7 +130,7 @@ export function CloudBillingPanel({
           </div>
         )}
 
-        {canManage && (linkedToControl || hasPlan || hasStoredCustomer) ? (
+        {canManage && !unavailable && (linkedToControl || hasPlan || hasStoredCustomer) ? (
           <div className="flex flex-col sm:flex-row gap-3">
             {linkedToControl && !hasPlan && (
               <Button
@@ -146,7 +156,7 @@ export function CloudBillingPanel({
               </Button>
             )}
           </div>
-        ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error && needsLink ? (
+        ) : canManage && hasOrganization && !isLoading && !error && needsLink ? (
           <p className="text-sm text-muted-foreground">
             {cloudHomeHref ? (
               <Link to={cloudHomeHref} className="text-primary underline underline-offset-4">
@@ -156,7 +166,7 @@ export function CloudBillingPanel({
               CLOUD_BILLING_NEEDS_LINK
             )}
           </p>
-        ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error ? (
+        ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error && !unavailable ? (
           <p className="text-sm text-muted-foreground">
             This organization is not linked to Elsa Cloud. Checkout is unavailable until the
             Hub-to-Control organization link is validated.

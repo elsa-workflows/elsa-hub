@@ -38,6 +38,7 @@ function CloudBillingBody() {
           billingAccount={billing.billingAccount}
           cloudLink={billing.cloudLink}
           needsLink={billing.needsLink}
+          unavailable={billing.unavailable}
           cloudHomeHref={home}
           onSubscribe={() => billing.startCheckout.mutate()}
           onManage={() => billing.openPortal.mutate()}

@@ -2,7 +2,13 @@ import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_UNAVAILABLE, CLOUD_ERROR_RETRY, CLOUD_LINK_CHECK_ERROR } from "@/lib/cloudClient";
+import {
+  CLOUD_BILLING_NEEDS_LINK,
+  CLOUD_BILLING_NOT_AVAILABLE_YET,
+  CLOUD_BILLING_UNAVAILABLE,
+  CLOUD_ERROR_RETRY,
+  CLOUD_LINK_CHECK_ERROR,
+} from "@/lib/cloudClient";
 import { CloudBillingPanel } from "./CloudBillingPanel";
 
 type PanelProps = ComponentProps<typeof CloudBillingPanel>;
@@ -125,13 +131,40 @@ describe("CloudBillingPanel", () => {
     expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
   });
 
-  it("shows the sandbox-only Stripe gate without Retry", () => {
+  it("shows a neutral unavailable notice and the link CTA when the org is unlinked", () => {
     renderPanel({
       ...noPlan,
-      error: new Error("Cloud billing is sandbox-only"),
+      billingAccount: "missing",
+      cloudLink: "missing",
+      unavailable: true,
+      needsLink: true,
+      cloudHomeHref: "/dashboard/org/acme/cloud",
     });
 
-    expect(screen.getByText("Cloud billing is sandbox-only")).toBeInTheDocument();
+    const notice = screen.getByText(CLOUD_BILLING_NOT_AVAILABLE_YET).closest("[role='alert']");
+    expect(notice).toBeInTheDocument();
+    expect(notice).not.toHaveClass("text-destructive");
+    expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: CLOUD_BILLING_NEEDS_LINK })).toHaveAttribute(
+      "href",
+      "/dashboard/org/acme/cloud",
+    );
+  });
+
+  it("shows only the neutral unavailable notice when the org is linked", () => {
+    renderPanel({
+      ...noPlan,
+      billingAccount: "missing",
+      cloudLink: "missing",
+      unavailable: true,
+      needsLink: false,
+      cloudHomeHref: "/dashboard/org/acme/cloud",
+    });
+
+    expect(screen.getByText(CLOUD_BILLING_NOT_AVAILABLE_YET)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
+    expect(screen.queryByText(/not linked to elsa cloud/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
   });
 

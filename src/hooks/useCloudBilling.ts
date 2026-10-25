@@ -19,7 +19,11 @@ import {
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
   ENDED_SUBSCRIPTION_STATUSES,
 } from "@/lib/cloud/billingContract";
-import { CLOUD_BILLING_UNAVAILABLE, CLOUD_LINK_CHECK_ERROR } from "@/lib/cloudClient";
+import {
+  CLOUD_BILLING_NOT_AVAILABLE_YET,
+  CLOUD_BILLING_UNAVAILABLE,
+  CLOUD_LINK_CHECK_ERROR,
+} from "@/lib/cloudClient";
 import { isHubOrgAdmin } from "@/lib/cloud/organizationLink";
 import { redirectTo } from "@/lib/cloud/redirect";
 
@@ -42,12 +46,40 @@ export type CloudBillingSnapshot = {
 
 type FunctionPayload = Record<string, unknown> & { error?: string; code?: string; state?: string };
 
+export type CloudBillingStatusKind = "gate" | "transport" | "status";
+
+export class CloudBillingStatusError extends Error {
+  readonly kind: CloudBillingStatusKind;
+  readonly retryable: boolean;
+  readonly internalMessage?: string;
+
+  constructor(input: {
+    kind: CloudBillingStatusKind;
+    message: string;
+    retryable: boolean;
+    internalMessage?: string;
+  }) {
+    super(input.message);
+    this.name = "CloudBillingStatusError";
+    this.kind = input.kind;
+    this.retryable = input.retryable;
+    this.internalMessage = input.internalMessage;
+  }
+}
+
+const LINK_CHECK_ERROR = new Error(CLOUD_LINK_CHECK_ERROR);
+
 function isRetryableTransportError(error: unknown): boolean {
   return error instanceof FunctionsFetchError || error instanceof FunctionsRelayError;
 }
 
 function httpStatus(error: unknown): number | undefined {
   return error instanceof FunctionsHttpError ? error.context?.status : undefined;
+}
+
+function gateMessage(payload: FunctionPayload | null): string | null {
+  const message = typeof payload?.error === "string" ? payload.error.trim() : "";
+  return message || null;
 }
 
 export function billingStatusErrorMessage(
@@ -59,9 +91,46 @@ export function billingStatusErrorMessage(
   return CLOUD_BILLING_UNAVAILABLE;
 }
 
-export function isRetryableBillingStatusError(error: unknown): boolean {
-  if (isRetryableTransportError(error)) return true;
-  return httpStatus(error) !== 503;
+export function classifyBillingStatusFailure(
+  error: unknown,
+  payload: FunctionPayload | null,
+): CloudBillingStatusError {
+  if (isRetryableTransportError(error)) {
+    return new CloudBillingStatusError({
+      kind: "transport",
+      message: CLOUD_BILLING_UNAVAILABLE,
+      retryable: true,
+    });
+  }
+
+  const status = httpStatus(error);
+  const internal = gateMessage(payload);
+  // Handler gate: 503 + JSON `{ error }` from assertStripeTestMode
+  // ("Cloud billing is sandbox-only" / "Cloud billing is not configured").
+  // A 503 with no JSON body is an edge/gateway outage, not the Stripe gate.
+  if (status === 503 && internal) {
+    const gate = new CloudBillingStatusError({
+      kind: "gate",
+      message: CLOUD_BILLING_NOT_AVAILABLE_YET,
+      retryable: false,
+      internalMessage: internal,
+    });
+    console.info("Cloud billing gate:", gate.internalMessage);
+    return gate;
+  }
+  if (status === 503) {
+    return new CloudBillingStatusError({
+      kind: "transport",
+      message: CLOUD_BILLING_UNAVAILABLE,
+      retryable: true,
+    });
+  }
+
+  return new CloudBillingStatusError({
+    kind: "status",
+    message: billingStatusErrorMessage(error, payload),
+    retryable: true,
+  });
 }
 
 /**
@@ -122,16 +191,17 @@ export function useCloudBilling() {
   const statusQuery = useQuery({
     queryKey: ["cloud-billing", user?.id, organizationId],
     enabled: !!user && !!organizationId,
-    retry: 1,
+    retry: (failureCount, error) => {
+      if (error instanceof CloudBillingStatusError && error.kind === "gate") return false;
+      return failureCount < 1;
+    },
     retryDelay: 0,
     queryFn: async (): Promise<CloudBillingSnapshot> => {
       const { payload, error } = await invokeCloudFunction("cloud-billing", {
         organizationId: requireOrganizationId(),
       });
       if (error || typeof payload?.error === "string") {
-        throw Object.assign(new Error(billingStatusErrorMessage(error, payload)), {
-          retryable: isRetryableBillingStatusError(error),
-        });
+        throw classifyBillingStatusFailure(error, payload);
       }
       const controlOrganizationId =
         typeof payload?.controlOrganizationId === "string" && payload.controlOrganizationId.trim()
@@ -183,11 +253,12 @@ export function useCloudBilling() {
   const planStatus = snapshot?.entitlement?.status || stripeSubscription?.status || null;
   const canManage = snapshot?.canManage ?? isAdmin;
   const billingError = statusQuery.error instanceof Error ? statusQuery.error : null;
+  const unavailable = billingError instanceof CloudBillingStatusError && billingError.kind === "gate";
   const linkCheckFailed = Boolean(organizationId) && orgLink.isError;
-  const error = linkCheckFailed ? new Error(CLOUD_LINK_CHECK_ERROR) : billingError;
-  const errorRetryable = linkCheckFailed || Boolean(
-    billingError && "retryable" in billingError && billingError.retryable,
-  );
+  const error = linkCheckFailed ? LINK_CHECK_ERROR : unavailable ? null : billingError;
+  const errorRetryable =
+    linkCheckFailed ||
+    Boolean(!unavailable && billingError instanceof CloudBillingStatusError && billingError.retryable);
 
   return {
     organizationId,
@@ -195,6 +266,7 @@ export function useCloudBilling() {
     orgLoading,
     isLoading: statusQuery.isLoading || orgLoading || linkLoading,
     needsLink: Boolean(organizationId) && orgLink.isSuccess && !orgLink.data,
+    unavailable,
     error,
     errorRetryable,
     snapshot,
