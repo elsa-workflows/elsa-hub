@@ -1,5 +1,6 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudBillingStatus } from "./handler.ts";
+import { CLOUD_BILLING_UNAVAILABLE_CODE } from "../_shared/cloud-billing.ts";
 import {
   ADMIN,
   assertNoStoreWithCors,
@@ -24,6 +25,7 @@ function status(setup: {
   links?: Array<ReturnType<typeof validatedLink>>;
   failTables?: string[];
   subscriptions?: FakeSubscription[];
+  env?: Record<string, string | undefined>;
 } = {}) {
   const serviceClient = fakeSupabase({
     tables: {
@@ -40,7 +42,7 @@ function status(setup: {
       userClient: fakeUserClient({ memberships: setup.memberships, admin: setup.admin }) as never,
       serviceClient: serviceClient as never,
       body: "body" in setup ? setup.body : { organizationId: HUB_ORG },
-      env: testEnv(),
+      env: testEnv(setup.env),
       stripe: () => stripe as never,
     });
     return { response, payload: await response.json() };
@@ -171,3 +173,16 @@ Deno.test("a link read error is a generic 500 and logs the detail", async () => 
   assertEquals(payload.error.includes("secret db detail"), false);
   assertStringIncludes(logged, "secret db detail");
 });
+
+for (const [label, key, error] of [
+  ["sandbox-only", "sk_live_cloud", "Cloud billing is sandbox-only"],
+  ["not-configured", "", "Cloud billing is not configured"],
+] as const) {
+  Deno.test(`Stripe ${label} gate is 503 with billing_unavailable`, async () => {
+    const { run } = status({ env: { STRIPE_SECRET_KEY: key } });
+    const { response, payload } = await run();
+    assertEquals(response.status, 503);
+    assertEquals(payload.error, error);
+    assertEquals(payload.code, CLOUD_BILLING_UNAVAILABLE_CODE);
+  });
+}

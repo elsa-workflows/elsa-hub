@@ -63,7 +63,7 @@ import {
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_LINK_CHECK_ERROR,
 } from "@/lib/cloudClient";
-import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
+import { CLOUD_BILLING_UNAVAILABLE_CODE, ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
 import { classifyBillingStatusFailure, useCloudBilling } from "./useCloudBilling";
 
 /** What supabase-js returns for a non-2xx function response: no data, the body on error.context. */
@@ -325,34 +325,60 @@ describe("useCloudBilling", () => {
     expect(functionBodies("cloud-billing")).toHaveLength(2);
   });
 
+  it("classifies a code-only billing_unavailable 503 as the gate", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const failure = classifyBillingStatusFailure(
+      new FunctionsHttpError(new Response(JSON.stringify({ code: CLOUD_BILLING_UNAVAILABLE_CODE }), { status: 503 })),
+      { code: CLOUD_BILLING_UNAVAILABLE_CODE },
+    );
+    expect(failure.kind).toBe("gate");
+    expect(failure.message).toBe(CLOUD_BILLING_NOT_AVAILABLE_YET);
+    expect(failure.internalMessage).toBe(CLOUD_BILLING_UNAVAILABLE_CODE);
+    expect(info).toHaveBeenCalledWith("Cloud billing gate:", failure.internalMessage);
+    info.mockRestore();
+  });
+
   it.each(["Cloud billing is sandbox-only", "Cloud billing is not configured"])(
-    "treats the %s gate as unavailable, not a user-facing error",
-    async (internal) => {
+    "classifies a text-only %s 503 as the gate fallback",
+    (internal) => {
       const info = vi.spyOn(console, "info").mockImplementation(() => {});
-      invoke.mockResolvedValue(httpFailure(503, { error: internal }));
-
-      const result = await renderBilling();
-
-      expect(result.current.unavailable).toBe(true);
-      expect(result.current.error).toBeNull();
-      expect(result.current.errorRetryable).toBe(false);
-      expect(functionBodies("cloud-billing")).toHaveLength(1);
-      expect(info).toHaveBeenCalledTimes(1);
-      expect(info).toHaveBeenCalledWith("Cloud billing gate:", internal);
+      const failure = classifyBillingStatusFailure(
+        new FunctionsHttpError(new Response(JSON.stringify({ error: internal }), { status: 503 })),
+        { error: internal },
+      );
+      expect(failure.kind).toBe("gate");
+      expect(failure.message).toBe(CLOUD_BILLING_NOT_AVAILABLE_YET);
+      expect(failure.internalMessage).toBe(internal);
+      expect(info).toHaveBeenCalledWith("Cloud billing gate:", failure.internalMessage);
       info.mockRestore();
     },
   );
 
-  it("classifies a gate 503 with the public unavailable copy and logs internalMessage", () => {
+  it("treats a code-bearing gate as unavailable without retrying", async () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    const failure = classifyBillingStatusFailure(
-      new FunctionsHttpError(new Response(JSON.stringify({ error: "Cloud billing is sandbox-only" }), { status: 503 })),
-      { error: "Cloud billing is sandbox-only" },
-    );
-    expect(failure.kind).toBe("gate");
-    expect(failure.message).toBe(CLOUD_BILLING_NOT_AVAILABLE_YET);
-    expect(failure.internalMessage).toBe("Cloud billing is sandbox-only");
-    expect(info).toHaveBeenCalledWith("Cloud billing gate:", failure.internalMessage);
+    invoke.mockResolvedValue(httpFailure(503, {
+      error: "Cloud billing is sandbox-only",
+      code: CLOUD_BILLING_UNAVAILABLE_CODE,
+    }));
+
+    const result = await renderBilling();
+
+    expect(result.current.unavailable).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.errorRetryable).toBe(false);
+    expect(functionBodies("cloud-billing")).toHaveLength(1);
+    info.mockRestore();
+  });
+
+  it("treats a text-only sandbox-only 503 as unavailable for the fallback release", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    invoke.mockResolvedValue(httpFailure(503, { error: "Cloud billing is sandbox-only" }));
+
+    const result = await renderBilling();
+
+    expect(result.current.unavailable).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(functionBodies("cloud-billing")).toHaveLength(1);
     info.mockRestore();
   });
 
