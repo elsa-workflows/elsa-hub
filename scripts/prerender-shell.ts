@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+
 // Shared postbuild helper: drop the SPA shell's default title/social tags
 // and inject route-specific head + #root markup.
 
@@ -15,4 +17,18 @@ export function injectIntoShell(shell: string, headExtras: string, bodyHtml: str
     `<div id="root">${bodyHtml}</div>`,
   );
   return html;
+}
+
+/**
+ * Files to write for a prerendered route such as "elsa-4" or "blog/<slug>".
+ *
+ * Production (Lovable/Cloudflare) serves /<route> from <route>/index.html
+ * when it exists and otherwise falls back to the SPA shell with the site
+ * default title and OG image; it never maps /<route> to <route>.html. So the
+ * folder index is what shared links resolve to. <route>.html is kept for
+ * existing links and importers (e.g. Medium) that use the .html URL.
+ */
+export function prerenderOutputPaths(dist: string, route: string): string[] {
+  const clean = route.replace(/^\/+|\/+$/g, "");
+  return [resolve(dist, `${clean}.html`), resolve(dist, clean, "index.html")];
 }

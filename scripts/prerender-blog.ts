@@ -17,9 +17,8 @@ import {
   SITE_URL,
 } from "../src/lib/site";
 import { BLOG_UPSTREAM_URL, blogPostSeo } from "../src/lib/blogSeo";
-import { injectIntoShell } from "./prerender-shell";
+import { injectIntoShell, prerenderOutputPaths } from "./prerender-shell";
 
-const UPSTREAM = BLOG_UPSTREAM_URL;
 const SITE = SITE_URL;
 const DIST = resolve("dist");
 const SHELL_PATH = resolve(DIST, "index.html");
@@ -42,7 +41,7 @@ interface PostSummary {
 }
 interface Post extends PostSummary { html: string }
 
-export function esc(s: string): string {
+function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
@@ -105,14 +104,14 @@ export function buildHead(post: Post): string {
 
 /** Files written for one post: /blog/<slug>.html and /blog/<slug>/index.html. */
 export function blogPrerenderPaths(dist: string, slug: string): string[] {
-  return [resolve(dist, "blog", `${slug}.html`), resolve(dist, "blog", slug, "index.html")];
+  return prerenderOutputPaths(dist, `blog/${slug}`);
 }
 
 function absolutizeAssetUrls(html: string): string {
   if (!html) return html;
   return html.replace(
     /(\b(?:src|href)=")(?:\.\.\/|\.\/)?(assets\/[^"]+)(")/gi,
-    (_m, pre, path, post) => `${pre}${UPSTREAM}/${path}${post}`,
+    (_m, pre, path, post) => `${pre}${BLOG_UPSTREAM_URL}/${path}${post}`,
   );
 }
 
@@ -143,7 +142,7 @@ export async function prerenderBlog(): Promise<void> {
 
   let index: { posts: PostSummary[] };
   try {
-    index = await fetchJson<{ posts: PostSummary[] }>(`${UPSTREAM}/index.json`);
+    index = await fetchJson<{ posts: PostSummary[] }>(`${BLOG_UPSTREAM_URL}/index.json`);
   } catch (e) {
     console.warn(`[prerender-blog] couldn't fetch blog index: ${(e as Error).message}. Skipping.`);
     return;
@@ -155,7 +154,7 @@ export async function prerenderBlog(): Promise<void> {
 
   for (const summary of posts) {
     try {
-      const post = await fetchJson<Post>(`${UPSTREAM}/posts/${encodeURIComponent(summary.slug)}.json`);
+      const post = await fetchJson<Post>(`${BLOG_UPSTREAM_URL}/posts/${encodeURIComponent(summary.slug)}.json`);
       const headExtras = buildHead(post);
       const article = buildArticle(post);
       const html = injectIntoShell(shell, headExtras, article);
