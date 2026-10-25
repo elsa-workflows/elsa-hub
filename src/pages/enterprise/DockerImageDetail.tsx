@@ -20,11 +20,8 @@ import {
 } from "@/components/docker-images";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { getDockerImage, dockerImages } from "@/data/dockerImages";
-import {
-  PAID_REGISTRY_LOGIN_COMMAND,
-  ELSA_SERVER_VERSION_PLACEHOLDER,
-  ELSA_STUDIO_VERSION_PLACEHOLDER,
-} from "@/data/canonicalSamples";
+import { PAID_REGISTRY_LOGIN_COMMAND } from "@/data/canonicalSamples";
+import { RUNTIME_IMAGE_TAG } from "@/data/runtimeImage";
 
 import { renderInlineCode } from "@/lib/renderInlineCode";
 import { AlertCircle, ArrowRight, Boxes, ExternalLink } from "lucide-react";
@@ -221,14 +218,10 @@ networks:
           <div>
             <h3 className="font-semibold mb-2">Pin a version</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              Studio may target a different Elsa version than the server, so pin them separately.
+              Studio and Core both ship {RUNTIME_IMAGE_TAG}, so one tag covers all three images.
             </p>
             <CodeBlock
-              code={`docker pull ${image.image}:${
-                image.slug === "runtime-studio"
-                  ? ELSA_STUDIO_VERSION_PLACEHOLDER
-                  : ELSA_SERVER_VERSION_PLACEHOLDER
-              }`}
+              code={`docker pull ${image.image}:${RUNTIME_IMAGE_TAG}`}
               language="bash"
             />
           </div>

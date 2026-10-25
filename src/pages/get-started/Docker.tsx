@@ -153,8 +153,8 @@ export default function Docker() {
           <div className="space-y-2">
             <h3 className="font-semibold">Pinning versions</h3>
             <p className="text-sm text-muted-foreground">
-              Server, Studio and Combined are versioned independently — Studio may target a
-              different Elsa version than the server.
+              Studio and Core both ship the same tag, so one pin covers server, Studio, and
+              combined.
             </p>
             <CodeBlock code={ELSA_DOCKER_VERSIONED_EXAMPLE} language="bash" />
           </div>
