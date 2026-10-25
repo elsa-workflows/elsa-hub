@@ -63,8 +63,8 @@ export function orgCloudMembershipDecision(
   orgsLoading: boolean,
 ): OrgCloudMembershipDecision {
   if (!orgSlug) return { kind: "stay" };
-  if (orgsLoading) return { kind: "pending" };
   if (organizations.some((org) => org.slug === orgSlug)) return { kind: "stay" };
+  if (orgsLoading) return { kind: "pending" };
   return { kind: "redirect", to: DASHBOARD_CLOUD_PATH };
 }
 
@@ -87,7 +87,7 @@ export function dashboardCloudRouteDecision(
   if (pathname !== DASHBOARD_CLOUD_PATH && !pathname.startsWith(`${DASHBOARD_CLOUD_PATH}/`)) {
     return { kind: "stay" };
   }
-  if (orgsLoading) return { kind: "pending" };
+  if (orgsLoading && organizations.length === 0) return { kind: "pending" };
   const slug = preferredCloudOrgSlug(organizations, preferredSlug);
   if (!slug) {
     return organizations.length > 1 ? { kind: "pickOrg" } : { kind: "stay" };

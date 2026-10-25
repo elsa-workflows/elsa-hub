@@ -12,12 +12,13 @@ interface ProviderMembership {
 
 export function useProviderMemberships() {
   const { user } = useAuth();
+  const userId = user?.id;
   const [providers, setProviders] = useState<ProviderMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchProviders = async () => {
-    if (!user) {
+    if (!userId) {
       setProviders([]);
       setLoading(false);
       return;
@@ -36,7 +37,7 @@ export function useProviderMemberships() {
             logo_url
           )
         `)
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       if (error) throw error;
 
@@ -57,8 +58,10 @@ export function useProviderMemberships() {
   };
 
   useEffect(() => {
+    setProviders([]);
+    setError(null);
     fetchProviders();
-  }, [user]);
+  }, [userId]);
 
   return {
     providers,
