@@ -9,6 +9,8 @@ import {
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ASK_ADMIN,
+  CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_UPDATING,
   CLOUD_OPEN_STUDIO,
   CLOUD_PAGE_TITLE,
   CLOUD_RESTART,
@@ -46,6 +48,8 @@ const viewState = vi.hoisted(() => ({
   current: { kind: "loading" } as CloudEngineOverviewView,
   setupCloud: vi.fn(),
   setupPending: false,
+  setupStatus: "idle" as "idle" | "pending" | "updating" | "error" | "success",
+  setupMessage: undefined as string | undefined,
   refetch: vi.fn(),
   workspaceId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   workspaces: [] as { id: string; name: string }[],
@@ -74,6 +78,8 @@ vi.mock("@/hooks/useCloudEngineOverview", () => ({
     view: viewState.current,
     setupCloud: viewState.setupCloud,
     setupPending: viewState.setupPending,
+    setupStatus: viewState.setupStatus,
+    setupMessage: viewState.setupMessage,
     refetch: viewState.refetch,
     workspaceId: viewState.workspaceId,
     workspaces: viewState.workspaces,
@@ -137,6 +143,9 @@ describe("CloudEngineOverview", () => {
     document.querySelectorAll("meta[name='robots']").forEach((node) => node.remove());
     viewState.setupCloud.mockReset();
     viewState.refetch.mockReset();
+    viewState.setupPending = false;
+    viewState.setupStatus = "idle";
+    viewState.setupMessage = undefined;
     Object.values(lifecycle).forEach((value) => {
       if (typeof value === "function" && "mockReset" in value) value.mockReset();
     });
@@ -222,6 +231,26 @@ describe("CloudEngineOverview", () => {
     renderOverview();
     expect(screen.queryByRole("button", { name: CLOUD_OPEN_STUDIO })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION }));
+    expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
+  });
+
+  it("shows the bootstrap updating copy on the link card instead of the console", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "ready", engine };
+    viewState.setupStatus = "updating";
+    viewState.setupMessage = CLOUD_LINK_ORG_UPDATING;
+    renderOverview();
+    expect(screen.getByText(CLOUD_LINK_ORG_UPDATING)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_OPEN_STUDIO })).not.toBeInTheDocument();
+  });
+
+  it("shows Retry when linking from overview returns 401 or 403", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "ready", engine };
+    viewState.setupStatus = "error";
+    viewState.setupMessage = CLOUD_LINK_ORG_ERROR;
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
     expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
   });
 

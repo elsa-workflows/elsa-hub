@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_UNAVAILABLE, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
 import { CloudBillingPanel } from "./CloudBillingPanel";
 
 type PanelProps = ComponentProps<typeof CloudBillingPanel>;
@@ -34,7 +36,11 @@ function renderPanel(overrides: Partial<PanelProps> = {}) {
     portalPending: false,
     ...overrides,
   };
-  render(<CloudBillingPanel {...props} />);
+  render(
+    <MemoryRouter>
+      <CloudBillingPanel {...props} />
+    </MemoryRouter>,
+  );
   return props;
 }
 
@@ -77,10 +83,30 @@ describe("CloudBillingPanel", () => {
   });
 
   it("does not treat org admin as linked when the Control organization link is missing", () => {
-    renderPanel({ ...noPlan, billingAccount: "missing", cloudLink: "missing" });
+    renderPanel({
+      ...noPlan,
+      billingAccount: "missing",
+      cloudLink: "missing",
+      needsLink: true,
+      cloudHomeHref: "/dashboard/org/acme/cloud",
+    });
 
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/not linked to elsa cloud/i)).toBeInTheDocument();
+    const cta = screen.getByRole("link", { name: CLOUD_BILLING_NEEDS_LINK });
+    expect(cta).toHaveAttribute("href", "/dashboard/org/acme/cloud");
+  });
+
+  it("shows a Retry control for a friendly billing outage", () => {
+    const onRetry = vi.fn();
+    renderPanel({
+      ...noPlan,
+      error: new Error(CLOUD_BILLING_UNAVAILABLE),
+      onRetry,
+    });
+
+    expect(screen.getByText(CLOUD_BILLING_UNAVAILABLE)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_ERROR_RETRY }));
+    expect(onRetry).toHaveBeenCalled();
   });
 
   it("lets an admin open the portal when a Cloud subscription exists without a Control link", () => {

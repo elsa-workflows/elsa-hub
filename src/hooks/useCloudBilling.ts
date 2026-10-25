@@ -1,9 +1,14 @@
 import { useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FunctionsHttpError } from "@supabase/supabase-js";
+import {
+  FunctionsFetchError,
+  FunctionsHttpError,
+  FunctionsRelayError,
+} from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCloudOrganizationLink } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import {
   CLOUD_ORGANIZATION_REQUIRED,
@@ -11,6 +16,8 @@ import {
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
   ENDED_SUBSCRIPTION_STATUSES,
 } from "@/lib/cloud/billingContract";
+import { CLOUD_UPDATING_CODE } from "@/lib/cloud";
+import { CLOUD_BILLING_UNAVAILABLE } from "@/lib/cloudClient";
 import { isHubOrgAdmin } from "@/lib/cloud/organizationLink";
 import { redirectTo } from "@/lib/cloud/redirect";
 
@@ -31,13 +38,31 @@ export type CloudBillingSnapshot = {
   entitlement: { planName?: string; status?: string } | null;
 };
 
-type FunctionPayload = Record<string, unknown> & { error?: string; code?: string };
+type FunctionPayload = Record<string, unknown> & { error?: string; code?: string; state?: string };
 
 /**
  * Invokes a Cloud billing function and returns its JSON body on success and on
  * failure alike. supabase-js returns no data for a non-2xx response; the body
  * (with the server's message and code) is on the FunctionsHttpError's context.
  */
+export function billingStatusErrorMessage(
+  error: unknown,
+  payload: FunctionPayload | null,
+): string {
+  const status = error instanceof FunctionsHttpError ? error.context?.status : undefined;
+  if (
+    error instanceof FunctionsFetchError ||
+    error instanceof FunctionsRelayError ||
+    status === 503 ||
+    payload?.state === "updating" ||
+    payload?.code === CLOUD_UPDATING_CODE
+  ) {
+    return CLOUD_BILLING_UNAVAILABLE;
+  }
+  if (typeof payload?.error === "string" && payload.error.trim()) return payload.error;
+  return CLOUD_BILLING_UNAVAILABLE;
+}
+
 async function invokeCloudFunction(
   name: string,
   body: Record<string, unknown>,
@@ -70,6 +95,9 @@ export function useCloudBilling() {
   const organization = slug ? organizations.find((org) => org.slug === slug) : undefined;
   const organizationId = organization?.id;
   const isAdmin = isHubOrgAdmin(organization?.role);
+  const orgLink = useCloudOrganizationLink(organizationId);
+  const linkLoading = Boolean(organizationId) && (orgLink.isPending || orgLink.isFetching);
+  const linked = Boolean(orgLink.data);
 
   const requireOrganizationId = () => {
     if (!organizationId) throw new Error(CLOUD_ORGANIZATION_REQUIRED);
@@ -88,12 +116,20 @@ export function useCloudBilling() {
 
   const statusQuery = useQuery({
     queryKey: ["cloud-billing", user?.id, organizationId],
-    enabled: !!user && !!organizationId,
+    enabled: !!user && !!organizationId && linked,
+    retry: 1,
+    retryDelay: 0,
     queryFn: async (): Promise<CloudBillingSnapshot> => {
-      const { payload: data, failure } = await invokeCloudFunction("cloud-billing", {
-        organizationId: requireOrganizationId(),
+      const { data, error } = await supabase.functions.invoke("cloud-billing", {
+        body: { organizationId: requireOrganizationId() },
       });
-      if (failure) throw new Error(failure);
+      let payload: FunctionPayload | null = data ?? null;
+      if (error instanceof FunctionsHttpError) {
+        payload = (await error.context.json().catch(() => payload)) as FunctionPayload | null;
+      }
+      if (error || typeof payload?.error === "string") {
+        throw new Error(billingStatusErrorMessage(error, payload));
+      }
       const controlOrganizationId =
         typeof data?.controlOrganizationId === "string" && data.controlOrganizationId.trim()
           ? data.controlOrganizationId.trim()
@@ -147,7 +183,8 @@ export function useCloudBilling() {
     organizationId,
     isAdmin,
     orgLoading,
-    isLoading: statusQuery.isLoading || orgLoading,
+    isLoading: statusQuery.isLoading || orgLoading || linkLoading,
+    needsLink: Boolean(organizationId) && !linkLoading && !linked,
     error: statusQuery.error instanceof Error ? statusQuery.error : null,
     snapshot,
     billingAccount: snapshot?.billingAccount ?? "missing",

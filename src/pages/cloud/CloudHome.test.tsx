@@ -11,6 +11,8 @@ import {
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ASK_ADMIN,
+  CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_UPDATING,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
@@ -46,6 +48,8 @@ const viewState = vi.hoisted(() => ({
   current: { kind: "loading" } as CloudEngineListView,
   setupCloud: vi.fn(),
   setupPending: false,
+  setupStatus: "idle" as "idle" | "pending" | "updating" | "error" | "success",
+  setupMessage: undefined as string | undefined,
   refetch: vi.fn(),
   workspaces: [] as { id: string; name: string }[],
   selectWorkspace: vi.fn(),
@@ -62,6 +66,8 @@ vi.mock("@/hooks/useCloudEngines", () => ({
     view: viewState.current,
     setupCloud: viewState.setupCloud,
     setupPending: viewState.setupPending,
+    setupStatus: viewState.setupStatus,
+    setupMessage: viewState.setupMessage,
     refetch: viewState.refetch,
     workspaces: viewState.workspaces,
     selectWorkspace: viewState.selectWorkspace,
@@ -133,6 +139,8 @@ describe("CloudHome", () => {
     viewState.refetch.mockReset();
     viewState.createEngine.mockReset();
     viewState.setupPending = false;
+    viewState.setupStatus = "idle";
+    viewState.setupMessage = undefined;
     viewState.options = undefined;
     viewState.atLimit = false;
     viewState.canCreate = false;
@@ -338,9 +346,42 @@ describe("CloudHome", () => {
   it("still shows a link conflict when the org needs a link", () => {
     orgLinkState.current = { kind: "needsLink", canLink: true };
     viewState.current = { kind: "error", message: CLOUD_ORG_LINK_CONFLICT };
+    viewState.setupStatus = "error";
+    viewState.setupMessage = CLOUD_ORG_LINK_CONFLICT;
     renderHome();
     expect(screen.getByText(CLOUD_ORG_LINK_CONFLICT)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it("shows the bootstrap updating copy on the link card and hides the console", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "updating", message: CLOUD_UPDATING_MESSAGE };
+    viewState.setupStatus = "updating";
+    viewState.setupMessage = CLOUD_LINK_ORG_UPDATING;
+    renderHome();
+    expect(screen.getByText(CLOUD_LINK_ORG_UPDATING)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText("Production")).not.toBeInTheDocument();
+  });
+
+  it("shows a Retry control when linking returns 401 or 403", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "error", message: "Sign in required." };
+    viewState.setupStatus = "error";
+    viewState.setupMessage = CLOUD_LINK_ORG_ERROR;
+    renderHome();
+    expect(screen.getByText(CLOUD_LINK_ORG_ERROR)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
+  });
+
+  it("shows a spinner on the link button while bootstrap is pending", () => {
+    orgLinkState.current = { kind: "needsLink", canLink: true };
+    viewState.current = { kind: "needsSetup" };
+    viewState.setupPending = true;
+    viewState.setupStatus = "pending";
+    renderHome();
+    expect(screen.getByRole("button", { name: CLOUD_LINK_ORG_ACTION })).toBeDisabled();
   });
 
   it("shows a retryable error when the link check fails", () => {

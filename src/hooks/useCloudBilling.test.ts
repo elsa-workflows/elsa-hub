@@ -43,7 +43,21 @@ vi.mock("@/hooks/useOrganizations", () => ({
 
 vi.mock("@/lib/cloud/redirect", () => ({ redirectTo }));
 
-import { FunctionsHttpError } from "@supabase/supabase-js";
+const linkState = vi.hoisted(() => ({
+  data: { hub_organization_id: "org-1", control_organization_id: "ctrl-1", validated_at: "2026-01-01" } as
+    | { hub_organization_id: string; control_organization_id: string; validated_at: string }
+    | null,
+  isPending: false,
+  isFetching: false,
+  isError: false,
+}));
+
+vi.mock("@/hooks/useCloudOrganizationLink", () => ({
+  useCloudOrganizationLink: () => linkState,
+}));
+
+import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
+import { CLOUD_BILLING_UNAVAILABLE } from "@/lib/cloudClient";
 import { useCloudBilling } from "./useCloudBilling";
 
 /** What supabase-js returns for a non-2xx function response: no data, the body on error.context. */
@@ -106,6 +120,13 @@ describe("useCloudBilling", () => {
     redirectTo.mockReset();
     toastError.mockReset();
     invoke.mockResolvedValue({ data: emptySnapshot, error: null });
+    linkState.data = {
+      hub_organization_id: "org-1",
+      control_organization_id: "ctrl-1",
+      validated_at: "2026-01-01",
+    };
+    linkState.isPending = false;
+    linkState.isFetching = false;
   });
 
   it("starts Cloud checkout for the route's org", async () => {
@@ -240,11 +261,34 @@ describe("useCloudBilling", () => {
     expect(result.current.planStatus).toBeNull();
   });
 
-  it("reports the server's message when status fails", async () => {
-    invoke.mockResolvedValue(httpFailure(503, { error: "Cloud billing is sandbox-only" }));
+  it("skips cloud-billing when the org is unlinked", async () => {
+    linkState.data = null;
+    const result = await renderBilling();
+
+    expect(result.current.needsLink).toBe(true);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("maps FunctionsFetchError to a friendly billing message", async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: new FunctionsFetchError(new Error("Failed to send a request to the Edge Function")),
+    });
 
     const result = await renderBilling();
 
-    expect(result.current.error?.message).toBe("Cloud billing is sandbox-only");
+    expect(result.current.error?.message).toBe(CLOUD_BILLING_UNAVAILABLE);
+  });
+
+  it("maps a 503 updating status to a friendly billing message", async () => {
+    invoke.mockResolvedValue(httpFailure(503, {
+      ok: false,
+      state: "updating",
+      error: "Cloud billing is sandbox-only",
+    }));
+
+    const result = await renderBilling();
+
+    expect(result.current.error?.message).toBe(CLOUD_BILLING_UNAVAILABLE);
   });
 });

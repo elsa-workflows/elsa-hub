@@ -16,6 +16,11 @@ import {
   setCloudSetupMarker,
 } from "@/lib/cloudClient/setupMarker";
 import {
+  CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_UPDATING,
+} from "@/lib/cloudClient";
+import {
+  cloudSetupOutcome,
   cloudWorkspaceView,
   fetchCloudWorkspaces,
   pickCloudWorkspace,
@@ -49,6 +54,38 @@ function wrapper({ children }: { children: ReactNode }) {
 function mockInvoke(handler: (body: CloudBffRequest) => CloudBffResponse) {
   return vi.spyOn(cloudClient, "invoke").mockImplementation(async (body) => handler(body));
 }
+
+const { toastSuccess } = vi.hoisted(() => ({ toastSuccess: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { success: toastSuccess, error: vi.fn() } }));
+
+describe("cloudSetupOutcome", () => {
+  it("maps a 503 updating bootstrap to the link-card copy", () => {
+    expect(
+      cloudSetupOutcome(
+        {
+          ok: false,
+          state: "updating",
+          code: CLOUD_UPDATING_CODE,
+          error: CLOUD_UPDATING_MESSAGE,
+        },
+        false,
+      ),
+    ).toEqual({ status: "updating", message: CLOUD_LINK_ORG_UPDATING });
+  });
+
+  it("maps unauthorized or forbidden to a retryable error", () => {
+    expect(
+      cloudSetupOutcome({ ok: false, code: "unauthorized", error: "Sign in required." }, false),
+    ).toEqual({ status: "error", message: CLOUD_LINK_ORG_ERROR });
+    expect(
+      cloudSetupOutcome({ ok: false, code: "forbidden", error: "Not allowed." }, false),
+    ).toEqual({ status: "error", message: CLOUD_LINK_ORG_ERROR });
+  });
+
+  it("is pending while bootstrap is in flight", () => {
+    expect(cloudSetupOutcome(undefined, true)).toEqual({ status: "pending" });
+  });
+});
 
 describe("cloudWorkspaceView", () => {
   it("is needsSetup when there are no workspaces", () => {
@@ -130,6 +167,7 @@ describe("useCloudWorkspace", () => {
   afterEach(() => {
     localStorage.clear();
     authState.user = { id: "user-1" };
+    toastSuccess.mockReset();
     vi.restoreAllMocks();
   });
 
@@ -182,6 +220,7 @@ describe("useCloudWorkspace", () => {
     result.current.setupCloud();
 
     await waitFor(() => expect(result.current.view.kind).toBe("ready"));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
     expect(hasCloudSetupMarker("user-1")).toBe(true);
     expect(invoke.mock.calls.map(([body]) => body.action)).toEqual([
       "bootstrap",

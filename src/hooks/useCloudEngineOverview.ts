@@ -97,6 +97,8 @@ export function useCloudEngineOverview(engineId: string | undefined) {
     selectedWorkspace: workspace.view.kind === "ready" ? workspace.view.workspace : undefined,
     setupCloud: workspace.setupCloud,
     setupPending: workspace.setupPending,
+    setupStatus: workspace.setupStatus,
+    setupMessage: workspace.setupMessage,
     refetch: async () => {
       await workspace.refetch();
       if (workspaceId && engineId) await query.refetch();

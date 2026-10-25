@@ -17,6 +17,12 @@ export const CLOUD_LINK_ORG_MESSAGE =
   "Connect this Hub organization to Elsa Cloud so engines and checkout can use it.";
 export const CLOUD_LINK_ORG_ASK_ADMIN =
   "Ask an organization admin to link Elsa Cloud for this organization.";
+export const CLOUD_LINK_ORG_UPDATING =
+  "Elsa Cloud isn't available for linking yet. Please try again later.";
+export const CLOUD_LINK_ORG_ERROR = "Could not link this organization to Elsa Cloud.";
+export const CLOUD_LINK_ORG_SUCCESS = "This organization is now linked to Elsa Cloud.";
+export const CLOUD_BILLING_NEEDS_LINK = "Link this organization first";
+export const CLOUD_BILLING_UNAVAILABLE = "Billing is temporarily unavailable";
 export const CLOUD_LINK_CHECK_ERROR =
   "Could not check whether this organization is linked to Elsa Cloud.";
 export const CLOUD_PICK_ORG_HEADING = "Choose an organization";

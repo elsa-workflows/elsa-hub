@@ -35,6 +35,8 @@ export default function CloudHome() {
     refetch,
     setupCloud,
     setupPending,
+    setupStatus,
+    setupMessage,
     options,
     atLimit,
     canCreate,
@@ -93,14 +95,17 @@ export default function CloudHome() {
             {orgLink.kind === "error" && (
               <CloudErrorState message={CLOUD_LINK_CHECK_ERROR} onRetry={orgLink.refetch} />
             )}
-            {view.kind === "error" && orgLink.kind !== "error" && (
+            {view.kind === "error" && orgLink.kind !== "error" && orgLink.kind !== "needsLink" && (
               <CloudErrorState message={view.message} onRetry={() => void refetch()} />
             )}
-            {orgLink.kind === "needsLink" && view.kind !== "error" && (
+            {orgLink.kind === "needsLink" && (
               <CloudLinkOrganizationState
                 canLink={orgLink.canLink}
                 onLink={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
+                onRetry={orgLink.canLink ? () => setupCloud(hubOrganizationId) : undefined}
                 pending={setupPending}
+                status={setupStatus === "success" ? "idle" : setupStatus}
+                message={setupMessage}
               />
             )}
             {showConsole && view.kind === "needsSetup" && (

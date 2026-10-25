@@ -195,3 +195,26 @@ Deno.test("createControlFetch never logs or returns the BFF credential", async (
   assertFalse(output.includes(BFF_CREDENTIAL));
   assertFalse(output.includes("client-value"));
 });
+
+Deno.test("createControlFetch logs the Control status class and action", async () => {
+  const lines: string[] = [];
+  const original = console.info;
+  console.info = (...args: unknown[]) => {
+    lines.push(args.map(String).join(" "));
+  };
+  try {
+    const env = {
+      get(key: string) {
+        return key === "ELSA_CONTROL_API_BASE_URL" ? "https://control.example.test" : undefined;
+      },
+    };
+    await createControlFetch(env, async () => new Response(null, { status: 401 }))(
+      { method: "POST", path: "/api/cloud/bootstrap", action: "bootstrap" },
+      "hub-session",
+    );
+  } finally {
+    console.info = original;
+  }
+  assertEquals(lines.includes("control_status=401 action=bootstrap"), true);
+  assertFalse(lines.join("\n").includes("hub-session"));
+});
