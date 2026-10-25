@@ -2,6 +2,7 @@ import { Container, LayoutDashboard, Boxes, type LucideIcon } from "lucide-react
 import runtimeServerArtwork from "@/assets/runtime-server-artwork.png.asset.json";
 import runtimeStudioArtwork from "@/assets/runtime-studio-artwork.png.asset.json";
 import runtimeCombinedArtwork from "@/assets/runtime-combined-artwork.png.asset.json";
+import { RUNTIME_IMAGE_LINE } from "@/data/runtimeImage";
 
 
 export type DockerImageEnvVar = {
@@ -203,7 +204,7 @@ export const dockerImages: DockerImage[] = [
     name: "Elsa Runtime Server",
     tagline: "Backend-only Elsa workflow runtime and management API.",
     description:
-      "The Elsa 3.8 workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with `CShells`, load NuGet packages at startup with `Nuplane`, and supply settings via a mounted `config.json`.",
+      `The Elsa ${RUNTIME_IMAGE_LINE} workflow runtime and management API, packaged as a hardened container built on .NET 10. Use this image when you want to deploy or scale the API independently of Studio. Configure features per shell with \`CShells\`, load NuGet packages at startup with \`Nuplane\`, and supply settings via a mounted \`config.json\`.`,
     image: "ghcr.io/valence-works/runtime-ce-server",
     paidImage: "valenceruntimeimages.azurecr.io/runtime-server",
     icon: Container,

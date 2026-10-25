@@ -1,3 +1,5 @@
+import { RUNTIME_IMAGE_TAG } from "@/data/runtimeImage";
+
 // Canonical Elsa samples shared across the public site.
 // Source of truth: https://github.com/elsa-workflows/elsa-core/tree/3.9.0
 //
@@ -26,10 +28,6 @@ export const COMMUNITY_REGISTRY = "ghcr.io/valence-works";
 export const PAID_REGISTRY = "valenceruntimeimages.azurecr.io";
 
 export const PAID_REGISTRY_LOGIN_COMMAND = `docker login ${PAID_REGISTRY}`;
-
-/** Version placeholders. Studio may track a different Elsa version than the server. */
-export const ELSA_SERVER_VERSION_PLACEHOLDER = "${ELSA_SERVER_VERSION}";
-export const ELSA_STUDIO_VERSION_PLACEHOLDER = "${ELSA_STUDIO_VERSION}";
 
 export const COMMUNITY_IMAGES = {
   server: `${COMMUNITY_REGISTRY}/runtime-ce-server`,
@@ -76,9 +74,8 @@ export const ELSA_DOCKER_STUDIO_RUN_COMMAND = `docker run -it \\
   --name elsa-studio \\
   ${COMMUNITY_IMAGES.studio}:latest`;
 
-// Versioned examples. Server/Combined and Studio use separate placeholders
-// because Studio may ship against a different Elsa version.
-export const ELSA_DOCKER_VERSIONED_EXAMPLE = `docker pull ${COMMUNITY_IMAGES.server}:${ELSA_SERVER_VERSION_PLACEHOLDER}
-docker pull ${COMMUNITY_IMAGES.combined}:${ELSA_SERVER_VERSION_PLACEHOLDER}
-docker pull ${COMMUNITY_IMAGES.studio}:${ELSA_STUDIO_VERSION_PLACEHOLDER}`;
+// Studio and Core both ship RUNTIME_IMAGE_TAG, so one tag covers all three.
+export const ELSA_DOCKER_VERSIONED_EXAMPLE = `docker pull ${COMMUNITY_IMAGES.server}:${RUNTIME_IMAGE_TAG}
+docker pull ${COMMUNITY_IMAGES.studio}:${RUNTIME_IMAGE_TAG}
+docker pull ${COMMUNITY_IMAGES.combined}:${RUNTIME_IMAGE_TAG}`;
 

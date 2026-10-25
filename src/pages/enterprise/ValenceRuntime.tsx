@@ -21,6 +21,7 @@ import {
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { DockerImageCard } from "@/components/docker-images";
 import { dockerImages } from "@/data/dockerImages";
+import { RUNTIME_IMAGE_LINE, RUNTIME_IMAGE_TAG } from "@/data/runtimeImage";
 import { ArrowRight, Boxes, Check, ExternalLink, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -313,7 +314,7 @@ export default function ValenceRuntime() {
           <p className="text-sm text-muted-foreground leading-relaxed">
             Not yet a supported distribution — stable release guarantees are on the roadmap.
             Production hardening, container scanning, and image signing are already in place.
-            The public Community images currently ship Elsa 3.8.x and have no Elsa 3.9 tag yet.
+            The public Community images currently ship Elsa {RUNTIME_IMAGE_LINE}.x.
           </p>
         </div>
       </section>
@@ -423,12 +424,13 @@ docker pull valenceruntimeimages.azurecr.io/runtime-combined:latest`}
             <div className="space-y-3">
               <h4 className="font-semibold">Pinning versions</h4>
               <p className="text-sm text-muted-foreground">
-                Studio may target a different Elsa version than the server, so pin them separately:
+                Studio and Core both ship {RUNTIME_IMAGE_TAG}, so one tag covers server, Studio,
+                and combined:
               </p>
               <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
-{`docker pull ghcr.io/valence-works/runtime-ce-server:\${ELSA_SERVER_VERSION}
-docker pull ghcr.io/valence-works/runtime-ce-combined:\${ELSA_SERVER_VERSION}
-docker pull ghcr.io/valence-works/runtime-ce-studio:\${ELSA_STUDIO_VERSION}`}
+{`docker pull ghcr.io/valence-works/runtime-ce-server:${RUNTIME_IMAGE_TAG}
+docker pull ghcr.io/valence-works/runtime-ce-studio:${RUNTIME_IMAGE_TAG}
+docker pull ghcr.io/valence-works/runtime-ce-combined:${RUNTIME_IMAGE_TAG}`}
               </pre>
             </div>
 
