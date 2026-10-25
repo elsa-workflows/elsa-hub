@@ -713,7 +713,7 @@ export default function ElsaServerAndStudio() {
                     configured under <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">Identity:DefaultAdmin</code>.
                     Elsa {ELSA_VERSION} ships no default admin account: with nothing configured, every
                     sign-in is denied. The localhost SecurityRoot grant was removed —{" "}
-                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
+                    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs break-all">
                       EnableLocalHostPermissionGrantForSecurityRoot()
                     </code>{" "}
                     no longer exists.
@@ -726,10 +726,10 @@ export default function ElsaServerAndStudio() {
             {/* Next Steps */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Next Steps</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button
                   variant="outline"
-                  className="h-auto p-4 justify-start"
+                  className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start"
                   asChild
                 >
                   <a
@@ -749,7 +749,7 @@ export default function ElsaServerAndStudio() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-auto p-4 justify-start"
+                  className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start"
                   asChild
                 >
                   <a

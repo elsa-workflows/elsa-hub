@@ -34,14 +34,14 @@ export function CodeBlock({ code, language, title }: CodeBlockProps) {
   const prismLanguage = languageMap[language] || language;
 
   return (
-    <div className="rounded-lg overflow-hidden border bg-card">
+    <div className="min-w-0 max-w-full rounded-lg overflow-hidden border bg-card">
       {title && (
         <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between">
           <span className="text-sm font-medium">{title}</span>
           <span className="text-xs text-muted-foreground">{language}</span>
         </div>
       )}
-      <div className="relative">
+      <div className="relative min-w-0 max-w-full">
         <Highlight
           theme={themes.oneDark}
           code={code.trim()}
@@ -49,7 +49,7 @@ export function CodeBlock({ code, language, title }: CodeBlockProps) {
         >
           {({ style, tokens, getLineProps, getTokenProps }) => (
             <pre
-              className="p-4 overflow-x-auto text-sm"
+              className="max-w-full p-4 overflow-x-auto text-sm"
               style={{ ...style, margin: 0, borderRadius: 0 }}
             >
               {tokens.map((line, i) => (

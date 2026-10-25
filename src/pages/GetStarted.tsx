@@ -172,7 +172,7 @@ export default function GetStarted() {
               </li>
               <li>
                 <strong className="text-foreground">The localhost SecurityRoot grant is gone.</strong>{" "}
-                <code className="font-mono">EnableLocalHostPermissionGrantForSecurityRoot()</code> was
+                <code className="font-mono break-all">EnableLocalHostPermissionGrantForSecurityRoot()</code> was
                 removed. Localhost requests get no special access. Bootstrap the first admin with{" "}
                 <code className="font-mono">UseDefaultAdmin(...)</code> or an admin API key.
               </li>
@@ -272,7 +272,7 @@ export default function GetStarted() {
             </div>
           </ScrollReveal>
 
-          <div className="grid lg:grid-cols-2 gap-6 max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl">
             <ScrollReveal>
               <div className="space-y-4">
                 <div>
@@ -341,7 +341,7 @@ export default function GetStarted() {
 
 
           <ScrollReveal delay={200}>
-            <div className="mt-10 grid md:grid-cols-3 gap-4 max-w-5xl">
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-5xl">
               <div className="rounded-lg border bg-background p-5">
                 <h4 className="font-semibold mb-2 text-sm">Feature model</h4>
                 <p className="text-xs text-muted-foreground">

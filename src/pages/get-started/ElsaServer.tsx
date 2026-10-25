@@ -239,7 +239,7 @@ cd ElsaServer`}
                 <p>
                   The localhost SecurityRoot grant was removed in Elsa {ELSA_VERSION}. Localhost
                   requests get no special access, and{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs">
+                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs break-all">
                     EnableLocalHostPermissionGrantForSecurityRoot()
                   </code>{" "}
                   no longer exists. Use the default admin bootstrap above.
@@ -280,8 +280,8 @@ cd ElsaServer`}
             {/* Next Steps */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold">Next Steps</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Button variant="outline" className="h-auto p-4 justify-start" asChild>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button variant="outline" className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start" asChild>
                   <a
                     href="https://docs.elsaworkflows.io/application-types/elsa-server"
                     target="_blank"
@@ -297,7 +297,7 @@ cd ElsaServer`}
                     <ExternalLink className="h-4 w-4 ml-auto" />
                   </a>
                 </Button>
-                <Button variant="outline" className="h-auto p-4 justify-start" asChild>
+                <Button variant="outline" className="h-auto min-w-0 w-full whitespace-normal p-4 justify-start" asChild>
                   <a
                     href="https://github.com/elsa-workflows/elsa-samples"
                     target="_blank"
