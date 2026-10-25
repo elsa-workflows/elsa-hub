@@ -20,6 +20,7 @@ import {
 import { PROFILE_ROUTE_TABLE } from "@/lib/authRedirect";
 import { LEGACY_TERMS_PATH } from "@/lib/legalRedirects";
 
+import { RouteFallback } from "@/components/RouteFallback";
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
 
 // Home is eager so the initial route paints instantly
@@ -127,12 +128,6 @@ const BlogHtmlRedirect = () => {
   const { slug } = useParams<{ slug: string }>();
   return <Navigate to={`/blog/${slug ?? ""}`} replace />;
 };
-
-const RouteFallback = () => (
-  <div className="flex min-h-screen items-center justify-center">
-    <div className="animate-pulse text-muted-foreground">Loading…</div>
-  </div>
-);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
