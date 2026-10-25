@@ -70,8 +70,21 @@ describe("org Cloud membership", () => {
     expect(orgCloudMembershipDecision("acme", [], true)).toEqual({ kind: "pending" });
   });
 
+  it("stays on a known membership while organizations refetch", () => {
+    expect(orgCloudMembershipDecision("acme", [{ slug: "acme" }], true)).toEqual({
+      kind: "stay",
+    });
+  });
+
   it("does not redirect the no-org Cloud route", () => {
     expect(orgCloudMembershipDecision(undefined, [], false)).toEqual({ kind: "stay" });
+  });
+
+  it("does not pending-redirect /dashboard/cloud when orgs are already known", () => {
+    expect(dashboardCloudRouteDecision("/dashboard/cloud", [{ slug: "acme" }], true)).toEqual({
+      kind: "redirect",
+      to: "/dashboard/org/acme/cloud",
+    });
   });
 
   it("sends /dashboard/cloud visitors who have a Hub org to that org Cloud route", () => {

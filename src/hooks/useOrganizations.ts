@@ -13,12 +13,13 @@ interface Organization {
 
 export function useOrganizations() {
   const { user } = useAuth();
+  const userId = user?.id;
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchOrganizations = async () => {
-    if (!user) {
+    if (!userId) {
       setOrganizations([]);
       setLoading(false);
       return;
@@ -38,7 +39,7 @@ export function useOrganizations() {
             created_at
           )
         `)
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       if (error) throw error;
 
@@ -61,7 +62,7 @@ export function useOrganizations() {
 
   useEffect(() => {
     fetchOrganizations();
-  }, [user]);
+  }, [userId]);
 
   const createOrganization = async (name: string, slug: string) => {
     if (!user) throw new Error("Not authenticated");

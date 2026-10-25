@@ -40,18 +40,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener BEFORE checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Only react to an actual identity change. Supabase re-emits SIGNED_IN on
-        // tab focus / token refresh; clearing the cache there remounts the page and
-        // closes open dialogs, losing user input.
-        const nextUserId = session?.user?.id ?? null;
+        const nextUser = session?.user ?? null;
+        const nextUserId = nextUser?.id ?? null;
         const previousUserId = currentUserIdRef.current;
         const identityChanged =
           previousUserId !== undefined && previousUserId !== nextUserId;
         currentUserIdRef.current = nextUserId;
+
+        // supabase-js re-emits TOKEN_REFRESHED / SIGNED_IN on visibilitychange.
+        // Keep the same user object when the id is unchanged so hooks that
+        // depend on `user` (useOrganizations, layout guards) do not refetch
+        // and remount the dashboard. Loading stays false after the first
+        // session check.
+        setUser((prev) => (prev?.id && nextUser?.id && prev.id === nextUser.id ? prev : nextUser));
+        setSession((prev) =>
+          prev?.access_token === session?.access_token && prev?.user?.id === session?.user?.id
+            ? prev
+            : session,
+        );
+        setLoading(false);
 
         if (identityChanged && (event === "SIGNED_IN" || event === "SIGNED_OUT")) {
           // Clear ALL cached data to prevent stale user-specific data across account switches
@@ -86,11 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      const nextUser = session?.user ?? null;
       if (currentUserIdRef.current === undefined) {
-        currentUserIdRef.current = session?.user?.id ?? null;
+        currentUserIdRef.current = nextUser?.id ?? null;
       }
-      setSession(session);
-      setUser(session?.user ?? null);
+      setUser((prev) => (prev?.id && nextUser?.id && prev.id === nextUser.id ? prev : nextUser));
+      setSession((prev) =>
+        prev?.access_token === session?.access_token && prev?.user?.id === session?.user?.id
+          ? prev
+          : session,
+      );
       setLoading(false);
     });
 

@@ -185,4 +185,33 @@ describe("AuthContext passwordless methods", () => {
       expect(hasCloudSetupMarker("u1")).toBe(true);
     });
   });
+
+  describe("tab focus / token refresh", () => {
+    it("keeps the same user object and loading=false on TOKEN_REFRESHED", async () => {
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+
+      authStateListeners[0]("SIGNED_IN", { user: { id: "u1" }, access_token: "t1" });
+      await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+      const userRef = result.current.user;
+
+      authStateListeners[0]("TOKEN_REFRESHED", { user: { id: "u1" }, access_token: "t2" });
+      await waitFor(() => expect(result.current.session?.access_token).toBe("t2"));
+      expect(result.current.user).toBe(userRef);
+      expect(result.current.loading).toBe(false);
+    });
+
+    it("keeps the same user object on same-user SIGNED_IN", async () => {
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+
+      authStateListeners[0]("SIGNED_IN", { user: { id: "u1" }, access_token: "t1" });
+      await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+      const userRef = result.current.user;
+
+      authStateListeners[0]("SIGNED_IN", { user: { id: "u1" }, access_token: "t1" });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.user).toBe(userRef);
+    });
+  });
 });

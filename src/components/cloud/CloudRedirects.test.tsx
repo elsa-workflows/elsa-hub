@@ -221,6 +221,27 @@ describe("OrgCloudMembershipGate", () => {
     });
   });
 
+  it("keeps the org Cloud console mounted while organizations refetch", () => {
+    orgState.organizations = [{ id: "org-1", name: "Acme", slug: "acme" }];
+    orgState.loading = true;
+    render(
+      <MemoryRouter initialEntries={["/dashboard/org/acme/cloud"]}>
+        <Routes>
+          <Route
+            path="/dashboard/org/:slug/cloud"
+            element={(
+              <OrgCloudMembershipGate>
+                <p>cloud console</p>
+              </OrgCloudMembershipGate>
+            )}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("cloud console")).toBeInTheDocument();
+    expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+  });
+
   it("sends /dashboard/cloud to the last-used org", () => {
     orgState.organizations = [
       { id: "org-1", name: "Acme", slug: "acme" },
