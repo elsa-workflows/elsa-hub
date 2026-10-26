@@ -420,21 +420,6 @@ export default function ElsaServerAndStudio() {
                   the engine and Studio is not supported.
                 </li>
                 <li>
-                  <strong>Updating the guide:</strong> bump{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                    ELSA_VERSION
-                  </code>{" "}
-                  in{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                    src/data/elsaVersion.ts
-                  </code>
-                  , re-run every guide from a clean directory, and update{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono">
-                    LAST_VERIFIED_ON
-                  </code>
-                  .
-                </li>
-                <li>
                   <strong>Template package:</strong> <code className="px-1.5 py-0.5 rounded bg-muted font-mono">Elsa.Templates</code>{" "}
                   ships on its own cadence, so template version and Elsa runtime version remain two
                   different numbers. The{" "}
