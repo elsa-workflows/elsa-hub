@@ -53,6 +53,12 @@ describe("cloudLegal", () => {
     expect(allText).not.toMatch(/elsacloud\.app/);
   });
 
+  it("names the seller the same way as the Academy terms, with KvK and VAT", () => {
+    expect(allText).toMatch(/Skywalker Digital BV, registered .* KvK 88244520, VAT NL864551484B01/);
+    expect(CLOUD_TERMS_CONTACT.body).toMatch(/Skywalker Digital BV trading as Valence Works/);
+    expect(allText).not.toMatch(/B\.V\./);
+  });
+
   it("states no contractual SLO", () => {
     expect(CLOUD_TERMS_INTRO.caveat).toMatch(/no contractual SLO/);
   });

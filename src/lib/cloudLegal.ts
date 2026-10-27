@@ -53,7 +53,7 @@ export const CLOUD_TERMS_INTRO = {
 export const CLOUD_TERMS_CONTACT = {
   eyebrow: "Questions",
   title: "Questions about these terms",
-  body: "For questions about these terms or the current Preview offering, contact Skywalker Digital B.V. trading as Valence Works.",
+  body: "For questions about these terms or the current Preview offering, contact Skywalker Digital BV trading as Valence Works.",
 } as const;
 
 export const CLOUD_TERMS_SECTIONS: CloudTermsSection[] = [
@@ -64,7 +64,8 @@ export const CLOUD_TERMS_SECTIONS: CloudTermsSection[] = [
     summary: "Who provides Elsa Cloud and which customers these terms cover.",
     points: [
       "Elsa Cloud is an early-access service for business customers. By using the Preview, you confirm that you are acting for a business and have authority to accept these terms.",
-      "The service is provided by Skywalker Digital B.V., registered with the Dutch Chamber of Commerce under KvK 88244520 and trading as Valence Works.",
+      // CHANGED: entity name written "BV" to match the Academy terms; VAT number added.
+      "The service is provided by Skywalker Digital BV, registered with the Dutch Chamber of Commerce under KvK 88244520, VAT NL864551484B01, and trading as Valence Works.",
       "These terms cover the Preview service and do not change the separate licence terms for Elsa Workflows open-source software.",
     ],
   },
