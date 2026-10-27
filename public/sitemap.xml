@@ -96,6 +96,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsaworkflows.io/academy</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://www.elsaworkflows.io/resources</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -109,6 +114,21 @@
     <loc>https://www.elsaworkflows.io/roadmap</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/community/radar</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/legal/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/legal/academy-terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.elsaworkflows.io/login</loc>
