@@ -49,6 +49,7 @@ import { PROFILE_SETTINGS_PATH } from "@/lib/authRedirect";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { shouldShowOrgCloudNav, useOwnedHubProducts } from "@/hooks/useOwnedHubProducts";
 import { dashboardCloudHomePath } from "@/lib/cloudPaths";
+import { ACADEMY_PATH } from "@/lib/academyPaths";
 
 type NavItem = {
   label: string;
@@ -130,7 +131,7 @@ export function DashboardSidebar({
   const orgGroups = (): NavGroup[] => {
     const products: NavItem[] = [];
     if (ownsAcademy) {
-      products.push({ label: "Academy", icon: GraduationCap, to: "/elsa-plus" });
+      products.push({ label: "Academy", icon: GraduationCap, to: ACADEMY_PATH });
     }
     if (shouldShowOrgCloudNav()) {
       products.push({
