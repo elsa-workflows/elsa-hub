@@ -34,9 +34,13 @@ const entries: SitemapEntry[] = [
   { path: "/elsa-plus/cloud-services", changefreq: "monthly", priority: "0.7" },
   { path: "/elsa-plus/training", changefreq: "monthly", priority: "0.7" },
   { path: "/elsa-plus/runtime-builder", changefreq: "weekly", priority: "0.8" },
+  { path: "/academy", changefreq: "weekly", priority: "0.8" },
   { path: "/resources", changefreq: "weekly", priority: "0.8" },
   { path: "/resources/community-content", changefreq: "weekly", priority: "0.7" },
   { path: "/roadmap", changefreq: "weekly", priority: "0.8" },
+  { path: "/community/radar", changefreq: "weekly", priority: "0.6" },
+  { path: "/legal/terms", changefreq: "yearly", priority: "0.3" },
+  { path: "/legal/academy-terms", changefreq: "yearly", priority: "0.3" },
   { path: "/login", changefreq: "yearly", priority: "0.3" },
   { path: "/signup", changefreq: "yearly", priority: "0.4" },
 ];

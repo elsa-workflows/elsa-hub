@@ -73,7 +73,7 @@ export function Footer() {
               <span className="text-lg font-semibold">Elsa Workflows</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              A powerful .NET workflow engine for building workflow-driven applications.
+              The workflow and BPMN engine for .NET.
             </p>
             <div className="flex gap-4 mt-6">
               <a href="https://github.com/elsa-workflows/elsa-core" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors" aria-label="GitHub">

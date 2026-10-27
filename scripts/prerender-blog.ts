@@ -15,11 +15,10 @@ import {
   SITE_OG_IMAGE_WIDTH,
   SITE_TWITTER_CARD,
   SITE_URL,
-  resolveSocialImage,
 } from "../src/lib/site";
-import { injectIntoShell } from "./prerender-shell";
+import { BLOG_UPSTREAM_URL, blogPostSeo } from "../src/lib/blogSeo";
+import { injectIntoShell, prerenderOutputPaths } from "./prerender-shell";
 
-const UPSTREAM = "https://elsa-workflows.github.io/elsa-blog";
 const SITE = SITE_URL;
 const DIST = resolve("dist");
 const SHELL_PATH = resolve(DIST, "index.html");
@@ -37,6 +36,8 @@ interface PostSummary {
   featuredImage?: string;
   canonicalUrl?: string;
   seo?: { title?: string; description?: string; openGraphImage?: string };
+  seoTitle?: string;
+  seoDescription?: string;
 }
 interface Post extends PostSummary { html: string }
 
@@ -44,13 +45,16 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function buildHead(post: Post, canonical: string): string {
-  const seoTitle = post.seo?.title || post.title;
-  const seoDescription = post.seo?.description || post.description || "";
-  const rawImage = post.seo?.openGraphImage || post.featuredImage;
-  const ogImage = resolveSocialImage(rawImage);
-  const usingDefaultImage = !rawImage;
-  const pageTitle = `${seoTitle} — Elsa Workflows`;
+/** JSON for an inline <script>: escape "<" so a value cannot close the tag. */
+export function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+// Tags carry data-rh="true" so react-helmet-async treats them as its own and
+// replaces them when BlogPost.tsx mounts, instead of adding duplicates.
+export function buildHead(post: Post): string {
+  const { canonical, title: seoTitle, description: seoDescription, image: ogImage, usingDefaultImage, pageTitle } =
+    blogPostSeo(post);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -74,35 +78,40 @@ function buildHead(post: Post, canonical: string): string {
   };
 
   return [
-    `<title>${esc(pageTitle)}</title>`,
-    seoDescription ? `<meta name="description" content="${esc(seoDescription)}" />` : "",
-    `<link rel="canonical" href="${esc(canonical)}" />`,
-    `<meta property="og:type" content="article" />`,
-    `<meta property="og:title" content="${esc(seoTitle)}" />`,
-    seoDescription ? `<meta property="og:description" content="${esc(seoDescription)}" />` : "",
-    `<meta property="og:url" content="${esc(canonical)}" />`,
-    `<meta property="og:image" content="${esc(ogImage)}" />`,
-    usingDefaultImage ? `<meta property="og:image:width" content="${SITE_OG_IMAGE_WIDTH}" />` : "",
-    usingDefaultImage ? `<meta property="og:image:height" content="${SITE_OG_IMAGE_HEIGHT}" />` : "",
-    post.publishedAt ? `<meta property="article:published_time" content="${esc(post.publishedAt)}" />` : "",
-    post.updatedAt ? `<meta property="article:modified_time" content="${esc(post.updatedAt)}" />` : "",
-    ...(post.authors || []).map((a) => `<meta property="article:author" content="${esc(a.name)}" />`),
-    post.category ? `<meta property="article:section" content="${esc(post.category)}" />` : "",
-    ...(post.tags || []).map((t) => `<meta property="article:tag" content="${esc(t)}" />`),
-    `<meta name="twitter:card" content="${SITE_TWITTER_CARD}" />`,
-    `<meta name="twitter:title" content="${esc(seoTitle)}" />`,
-    seoDescription ? `<meta name="twitter:description" content="${esc(seoDescription)}" />` : "",
-    `<meta name="twitter:image" content="${esc(ogImage)}" />`,
-    `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`,
-    `<script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>`,
+    `<title data-rh="true">${esc(pageTitle)}</title>`,
+    seoDescription ? `<meta data-rh="true" name="description" content="${esc(seoDescription)}" />` : "",
+    `<link data-rh="true" rel="canonical" href="${esc(canonical)}" />`,
+    `<meta data-rh="true" property="og:type" content="article" />`,
+    `<meta data-rh="true" property="og:title" content="${esc(seoTitle)}" />`,
+    seoDescription ? `<meta data-rh="true" property="og:description" content="${esc(seoDescription)}" />` : "",
+    `<meta data-rh="true" property="og:url" content="${esc(canonical)}" />`,
+    `<meta data-rh="true" property="og:image" content="${esc(ogImage)}" />`,
+    usingDefaultImage ? `<meta data-rh="true" property="og:image:width" content="${SITE_OG_IMAGE_WIDTH}" />` : "",
+    usingDefaultImage ? `<meta data-rh="true" property="og:image:height" content="${SITE_OG_IMAGE_HEIGHT}" />` : "",
+    post.publishedAt ? `<meta data-rh="true" property="article:published_time" content="${esc(post.publishedAt)}" />` : "",
+    post.updatedAt ? `<meta data-rh="true" property="article:modified_time" content="${esc(post.updatedAt)}" />` : "",
+    ...(post.authors || []).map((a) => `<meta data-rh="true" property="article:author" content="${esc(a.name)}" />`),
+    post.category ? `<meta data-rh="true" property="article:section" content="${esc(post.category)}" />` : "",
+    ...(post.tags || []).map((t) => `<meta data-rh="true" property="article:tag" content="${esc(t)}" />`),
+    `<meta data-rh="true" name="twitter:card" content="${SITE_TWITTER_CARD}" />`,
+    `<meta data-rh="true" name="twitter:title" content="${esc(seoTitle)}" />`,
+    seoDescription ? `<meta data-rh="true" name="twitter:description" content="${esc(seoDescription)}" />` : "",
+    `<meta data-rh="true" name="twitter:image" content="${esc(ogImage)}" />`,
+    `<script data-rh="true" type="application/ld+json">${jsonForScript(jsonLd)}</script>`,
+    `<script data-rh="true" type="application/ld+json">${jsonForScript(breadcrumbLd)}</script>`,
   ].filter(Boolean).join("\n    ");
+}
+
+/** Files written for one post: /blog/<slug>.html and /blog/<slug>/index.html. */
+export function blogPrerenderPaths(dist: string, slug: string): string[] {
+  return prerenderOutputPaths(dist, `blog/${slug}`);
 }
 
 function absolutizeAssetUrls(html: string): string {
   if (!html) return html;
   return html.replace(
     /(\b(?:src|href)=")(?:\.\.\/|\.\/)?(assets\/[^"]+)(")/gi,
-    (_m, pre, path, post) => `${pre}${UPSTREAM}/${path}${post}`,
+    (_m, pre, path, post) => `${pre}${BLOG_UPSTREAM_URL}/${path}${post}`,
   );
 }
 
@@ -133,7 +142,7 @@ export async function prerenderBlog(): Promise<void> {
 
   let index: { posts: PostSummary[] };
   try {
-    index = await fetchJson<{ posts: PostSummary[] }>(`${UPSTREAM}/index.json`);
+    index = await fetchJson<{ posts: PostSummary[] }>(`${BLOG_UPSTREAM_URL}/index.json`);
   } catch (e) {
     console.warn(`[prerender-blog] couldn't fetch blog index: ${(e as Error).message}. Skipping.`);
     return;
@@ -145,9 +154,8 @@ export async function prerenderBlog(): Promise<void> {
 
   for (const summary of posts) {
     try {
-      const post = await fetchJson<Post>(`${UPSTREAM}/posts/${encodeURIComponent(summary.slug)}.json`);
-      const canonical = post.canonicalUrl || `${SITE}/blog/${post.slug}`;
-      const headExtras = buildHead(post, canonical);
+      const post = await fetchJson<Post>(`${BLOG_UPSTREAM_URL}/posts/${encodeURIComponent(summary.slug)}.json`);
+      const headExtras = buildHead(post);
       const article = buildArticle(post);
       const html = injectIntoShell(shell, headExtras, article);
 
@@ -156,9 +164,15 @@ export async function prerenderBlog(): Promise<void> {
       // browsers download). The SPA route /blog/<slug> still falls back to
       // index.html for normal users; crawlers and Medium's importer can use
       // the .html URL to get fully-rendered article markup.
-      const outPath = resolve(DIST, "blog", `${post.slug}.html`);
-      mkdirSync(dirname(outPath), { recursive: true });
-      writeFileSync(outPath, html, "utf-8");
+      //
+      // Production (Lovable/Cloudflare) serves /blog/<slug> from
+      // blog/<slug>/index.html when it exists and otherwise falls back to the
+      // SPA shell, whose default title and OG image LinkedIn then shows. So
+      // write the directory index too; it is what shared links resolve to.
+      for (const outPath of blogPrerenderPaths(DIST, post.slug)) {
+        mkdirSync(dirname(outPath), { recursive: true });
+        writeFileSync(outPath, html, "utf-8");
+      }
       ok++;
     } catch (e) {
       failed++;

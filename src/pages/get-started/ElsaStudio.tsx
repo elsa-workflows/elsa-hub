@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -212,12 +213,12 @@ export default function ElsaStudio() {
               <AlertDescription>
                 Elsa Studio requires a running Elsa Server to connect to. If you
                 haven't set one up yet,{" "}
-                <a
-                  href="/get-started/elsa-server"
+                <Link
+                  to="/get-started/elsa-server"
                   className="text-primary underline underline-offset-4"
                 >
                   follow the Elsa Server guide first
-                </a>
+                </Link>
                 .
               </AlertDescription>
             </Alert>

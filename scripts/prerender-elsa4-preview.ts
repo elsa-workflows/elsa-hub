@@ -1,14 +1,16 @@
 // Writes the Elsa 4 preview page as a crawler-readable HTML artifact.
-// The normal /elsa-4 SPA route remains the canonical browser destination.
+// Production serves /elsa-4 from elsa-4/index.html; the React app hydrates
+// over it. elsa-4.html is kept for existing links.
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { buildElsa4PreviewBody, buildElsa4PreviewHead } from "../src/lib/elsa4Preview";
-import { injectIntoShell } from "./prerender-shell";
+import { injectIntoShell, prerenderOutputPaths } from "./prerender-shell";
 
 const DIST = resolve("dist");
 const SHELL_PATH = resolve(DIST, "index.html");
-const OUT_PATH = resolve(DIST, "elsa-4.html");
+/** dist/elsa-4.html and dist/elsa-4/index.html (the one /elsa-4 is served from). */
+export const ELSA4_OUT_PATHS = prerenderOutputPaths(DIST, "elsa-4");
 
 export async function prerenderElsa4Preview(): Promise<void> {
   if (!existsSync(SHELL_PATH)) {
@@ -17,8 +19,11 @@ export async function prerenderElsa4Preview(): Promise<void> {
 
   const shell = readFileSync(SHELL_PATH, "utf-8");
   const html = injectIntoShell(shell, buildElsa4PreviewHead(), buildElsa4PreviewBody());
-  writeFileSync(OUT_PATH, html, "utf-8");
-  console.log(`[prerender-elsa4-preview] wrote ${OUT_PATH}`);
+  for (const outPath of ELSA4_OUT_PATHS) {
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, html, "utf-8");
+    console.log(`[prerender-elsa4-preview] wrote ${outPath}`);
+  }
 }
 
 const isDirectRun = (() => {
