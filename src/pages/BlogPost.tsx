@@ -302,7 +302,7 @@ export default function BlogPost() {
         )}
 
         <div
-          className="prose prose-neutral dark:prose-invert max-w-none [&_pre]:max-w-full max-md:[&_table]:block max-md:[&_table]:overflow-x-auto [&_img]:cursor-zoom-in"
+          className="prose prose-neutral dark:prose-invert max-w-none [&_pre]:max-w-full max-md:[&_table]:block max-md:[&_table]:overflow-x-auto max-md:[&_a]:break-all [&_img]:cursor-zoom-in"
           onClick={handleArticleClick}
           dangerouslySetInnerHTML={{ __html: post.html }}
         />
