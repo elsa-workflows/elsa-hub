@@ -112,7 +112,7 @@ describe("DashboardSidebar org regroup", () => {
     expect(screen.queryByRole("link", { name: "Subscription" })).not.toBeInTheDocument();
   });
 
-  it("links Academy to /elsa-plus until /academy ships", () => {
+  it("links Academy to /academy when the org owns Academy", () => {
     dashboardState.contextType = "org";
     dashboardState.slug = "acme";
     dashboardState.isAdminContext = false;
@@ -120,7 +120,7 @@ describe("DashboardSidebar org regroup", () => {
     ownedState.ownsAcademy = true;
     renderSidebar();
 
-    expect(screen.getByRole("link", { name: "Academy" })).toHaveAttribute("href", "/elsa-plus");
+    expect(screen.getByRole("link", { name: "Academy" })).toHaveAttribute("href", "/academy");
     expect(screen.queryByRole("link", { name: "Explore products" })).not.toBeInTheDocument();
   });
 
