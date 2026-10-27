@@ -1,6 +1,6 @@
 # Elsa Workflows
 
-> Elsa is an open-source workflow engine for .NET. Build workflow-driven applications with a visual designer, C# code, and scale from small apps to enterprise systems. Elsa+ adds commercial Docker images, expert services, training, and managed cloud hosting from independent providers.
+> Elsa is the workflow and BPMN engine for .NET. Author workflows with a visual designer, C#, or BPMN, and scale from small apps to enterprise systems. Elsa+ adds commercial Docker images, expert services, training, and managed cloud hosting from independent providers.
 
 ## Pages
 
