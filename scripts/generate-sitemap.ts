@@ -41,6 +41,7 @@ const entries: SitemapEntry[] = [
   { path: "/community/radar", changefreq: "weekly", priority: "0.6" },
   { path: "/legal/terms", changefreq: "yearly", priority: "0.3" },
   { path: "/legal/academy-terms", changefreq: "yearly", priority: "0.3" },
+  { path: "/legal/cloud-terms", changefreq: "yearly", priority: "0.3" },
   { path: "/login", changefreq: "yearly", priority: "0.3" },
   { path: "/signup", changefreq: "yearly", priority: "0.4" },
 ];

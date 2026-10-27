@@ -131,6 +131,11 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://www.elsaworkflows.io/legal/cloud-terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
     <loc>https://www.elsaworkflows.io/login</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
