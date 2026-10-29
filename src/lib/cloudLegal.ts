@@ -9,6 +9,8 @@
  * approval; it is customer-facing legal copy.
  */
 
+import { CLOUD_SUBPROCESSORS_PATH } from "./cloudDpa";
+
 export const CLOUD_TERMS_PATH = "/legal/cloud-terms";
 export const CLOUD_TERMS_TITLE = "Elsa Cloud Early Access Terms";
 export const CLOUD_TERMS_DESCRIPTION =
@@ -18,12 +20,19 @@ export const CLOUD_TERMS_CONTACT_EMAIL = "hello@valence.works";
 /** CHANGED: the Hub has no privacy page yet; link the published Elsa Cloud notice. */
 export const CLOUD_PRIVACY_NOTICE_URL = "https://elsacloud.app/privacy";
 
+export interface CloudTermsLink {
+  label: string;
+  href: string;
+}
+
 export interface CloudTermsSection {
   id: string;
   number: string;
   title: string;
   summary: string;
   points: string[];
+  /** Optional links shown under the section's points. */
+  links?: CloudTermsLink[];
 }
 
 export const CLOUD_TERMS_HERO = {
@@ -104,6 +113,11 @@ export const CLOUD_TERMS_SECTIONS: CloudTermsSection[] = [
       "For Hosted, customer workloads run in Microsoft Azure West Europe in the EU/EEA during Preview. Supporting account, billing and delivery services may process other data as described in the Privacy Notice and Subprocessors page. We do not promise multi-region availability.",
       "For BYO, you choose and operate the relevant Azure foundation. The location and configuration of that environment are your responsibility.",
       "Support is provided during business hours through the support path made available to your business. Business-hours support is not a contractual response-time or uptime commitment.",
+    ],
+    // CHANGED: the Subprocessors page now lives on the Hub (was the elsacloud.app Subprocessors page).
+    links: [
+      { label: "Privacy Notice", href: CLOUD_PRIVACY_NOTICE_URL },
+      { label: "Subprocessors page", href: CLOUD_SUBPROCESSORS_PATH },
     ],
   },
   {

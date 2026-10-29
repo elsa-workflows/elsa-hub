@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
 import {
@@ -63,6 +64,21 @@ export default function CloudTerms() {
                 <li key={point}>{point}</li>
               ))}
             </ol>
+            {section.links && (
+              <div className="flex flex-wrap gap-4 text-sm mt-3">
+                {section.links.map((link) =>
+                  link.href.startsWith("/") ? (
+                    <Link key={link.href} to={link.href} className="text-primary hover:underline">
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a key={link.href} href={link.href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                      {link.label}
+                    </a>
+                  ),
+                )}
+              </div>
+            )}
           </section>
         ))}
 
