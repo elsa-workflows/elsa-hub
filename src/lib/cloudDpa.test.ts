@@ -52,6 +52,21 @@ describe("cloudDpa", () => {
     expect(annex?.body).not.toMatch(/No agent holds Azure sign-in credentials/);
   });
 
+  it("states the approved Annex II section 9 access wording", () => {
+    const annex = CLOUD_DPA_ANNEXES.find((a) => a.id === "annex-ii");
+    expect(annex?.body).toMatch(
+      /Our AI agents have no standing access to customer environments\. Changes they prepare reach production only through our deployment pipeline, after a named person approves the release\./,
+    );
+    expect(annex?.body).not.toMatch(/no standing credentials, roles or network paths/);
+  });
+
+  it("keeps the independent-controller position and says the DPA covers Hosted workflow data", () => {
+    expect(CLOUD_SUBPROCESSORS_PART_B).toMatch(/for which we act as an independent controller/);
+    expect(CLOUD_SUBPROCESSORS_PART_B).toMatch(
+      /The workflow data in your Hosted environment is Customer Personal Data, which this DPA covers \(Part A\)\./,
+    );
+  });
+
   it("builds Annex III from the same text as the sub-processor page", () => {
     const annex = CLOUD_DPA_ANNEXES.find((a) => a.id === "annex-iii");
     expect(annex?.body).toBe(

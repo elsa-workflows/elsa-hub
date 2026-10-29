@@ -202,7 +202,7 @@ No other provider processes Customer Personal Data in the Hosted environment. Th
 /** Annex III Part B: controller-side providers, listed for information. */
 export const CLOUD_SUBPROCESSORS_PART_B = `**Part B: Service providers for accounts, sign-in and billing (for information)**
 
-We use these providers to run Elsa Hub accounts and billing for Elsa Cloud. We act as a controller for this data under our Privacy Notice, not as your processor. This includes organisation membership and invitation data that you manage through Elsa Hub, for which we act as an independent controller. We list them here for transparency.
+We use these providers to run Elsa Hub accounts and billing for Elsa Cloud. We act as a controller for this data under our Privacy Notice, not as your processor. This includes organisation membership and invitation data that you manage through Elsa Hub, for which we act as an independent controller. We list them here for transparency. The workflow data in your Hosted environment is Customer Personal Data, which this DPA covers (Part A).
 
 | Provider | Purpose | Personal data | Location | Transfer mechanism |
 |---|---|---|---|---|
@@ -279,7 +279,7 @@ export const CLOUD_DPA_ANNEXES: CloudDpaSection[] = [
 
 **9. Automated and AI-assisted operations**
 - We use AI-assisted coding and deployment agents to develop, test, build and deploy the control plane. These agents work only on the control plane: its source code, build pipelines and the control plane's own metadata.
-- The agents have no standing credentials, roles or network paths that give them access to Hosted environments, including their databases, secret stores, logs, backups and engine user interfaces, or to the Azure subscriptions in which Hosted environments run. Our deployment pipelines sign in to Azure with short-lived federated identities, not stored passwords or keys, and our agents' working environments are not given Azure sign-in credentials. The agents do not receive Customer Personal Data, so the providers of these AI tools are not Sub-processors.
+- Our AI agents have no standing access to customer environments. Changes they prepare reach production only through our deployment pipeline, after a named person approves the release. Our deployment pipelines sign in to Azure with short-lived federated identities, not stored passwords or keys, and our agents' working environments are not given Azure sign-in credentials. The agents do not receive Customer Personal Data, so the providers of these AI tools are not Sub-processors.
 - Changes to the production control plane are deployed only through automated pipelines from the main branch, and each production deployment must be approved by a named person. The person who starts a deployment cannot approve it, and administrators cannot bypass the approval.
 - Any change to these restrictions that would give an AI provider access to Customer Personal Data would be a new Sub-processor and is subject to section 6.`,
   },
