@@ -46,6 +46,12 @@ describe("cloudDpa", () => {
     expect(allText).toMatch(/https:\/\/www\.elsaworkflows\.io\/legal\/subprocessors/);
   });
 
+  it("describes Azure sign-in in Annex II section 9 without claiming no agent holds credentials", () => {
+    const annex = CLOUD_DPA_ANNEXES.find((a) => a.id === "annex-ii");
+    expect(annex?.body).toMatch(/short-lived federated identities, not stored passwords or keys/);
+    expect(annex?.body).not.toMatch(/No agent holds Azure sign-in credentials/);
+  });
+
   it("builds Annex III from the same text as the sub-processor page", () => {
     const annex = CLOUD_DPA_ANNEXES.find((a) => a.id === "annex-iii");
     expect(annex?.body).toBe(

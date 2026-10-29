@@ -279,7 +279,7 @@ export const CLOUD_DPA_ANNEXES: CloudDpaSection[] = [
 
 **9. Automated and AI-assisted operations**
 - We use AI-assisted coding and deployment agents to develop, test, build and deploy the control plane. These agents work only on the control plane: its source code, build pipelines and the control plane's own metadata.
-- The agents have no standing credentials, roles or network paths that give them access to Hosted environments, including their databases, secret stores, logs, backups and engine user interfaces, or to the Azure subscriptions in which Hosted environments run. No agent holds Azure sign-in credentials. The agents do not receive Customer Personal Data, so the providers of these AI tools are not Sub-processors.
+- The agents have no standing credentials, roles or network paths that give them access to Hosted environments, including their databases, secret stores, logs, backups and engine user interfaces, or to the Azure subscriptions in which Hosted environments run. Our deployment pipelines sign in to Azure with short-lived federated identities, not stored passwords or keys, and our agents' working environments are not given Azure sign-in credentials. The agents do not receive Customer Personal Data, so the providers of these AI tools are not Sub-processors.
 - Changes to the production control plane are deployed only through automated pipelines from the main branch, and each production deployment must be approved by a named person. The person who starts a deployment cannot approve it, and administrators cannot bypass the approval.
 - Any change to these restrictions that would give an AI provider access to Customer Personal Data would be a new Sub-processor and is subject to section 6.`,
   },
