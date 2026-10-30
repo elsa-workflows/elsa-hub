@@ -67,6 +67,6 @@ export async function writeActionsAllowed(
     action: "compatibility",
   }, accessToken);
   const compatible = result.ok && isCompatibleControl(result.body);
-  cache.set(compatible);
+  if (compatible) cache.set(true);
   return compatible;
 }

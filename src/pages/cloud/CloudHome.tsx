@@ -107,7 +107,15 @@ export default function CloudHome() {
 
             {orgLink.kind === "pending" && <CloudLoadingState />}
             {showConsole && view.kind === "loading" && <CloudLoadingState />}
-            {showConsole && showUpdateBanner && <CloudUpdatingState message={updateMessage} />}
+            {showConsole && showUpdateBanner && (
+              <CloudUpdatingState
+                message={updateMessage}
+                onRetry={() => {
+                  void compatibility.refetch();
+                  void refetch();
+                }}
+              />
+            )}
             {orgLink.kind === "error" && (
               <CloudErrorState message={CLOUD_LINK_CHECK_ERROR} onRetry={orgLink.refetch} />
             )}

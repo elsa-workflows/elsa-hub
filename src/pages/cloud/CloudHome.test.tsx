@@ -18,6 +18,7 @@ import {
   CLOUD_SETUP_ACTION,
   CLOUD_UPDATING_HEADING,
   CLOUD_UPDATING_MESSAGE,
+  CLOUD_UPDATING_RETRY,
   type CloudOnboardingOptions,
 } from "@/lib/cloudClient";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
@@ -280,6 +281,9 @@ describe("CloudHome", () => {
     expect(screen.getByText("Production")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeDisabled();
     expect(viewState.createEngine).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_UPDATING_RETRY }));
+    expect(compatibilityState.refetch).toHaveBeenCalled();
+    expect(viewState.refetch).toHaveBeenCalled();
   });
 
   it("recovers create after the next successful compatibility read", () => {

@@ -18,6 +18,7 @@ import {
   CLOUD_STRUCTURED_LOGS,
   CLOUD_UPDATING_HEADING,
   CLOUD_UPDATING_MESSAGE,
+  CLOUD_UPDATING_RETRY,
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
@@ -237,6 +238,9 @@ describe("CloudEngineOverview", () => {
     expect(lifecycle.applyRelease).not.toHaveBeenCalled();
     expect(lifecycle.deleteEngine).not.toHaveBeenCalled();
     expect(lifecycle.openStudio).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_UPDATING_RETRY }));
+    expect(compatibilityState.refetch).toHaveBeenCalled();
+    expect(viewState.refetch).toHaveBeenCalled();
   });
 
   it("recovers mutation controls after the next successful compatibility read", () => {
