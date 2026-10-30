@@ -206,6 +206,10 @@ describe("CloudHome", () => {
       "href",
       "/dashboard/org/acme/cloud/billing",
     );
+    expect(screen.getByRole("link", { name: /link an existing elsa cloud account/i })).toHaveAttribute(
+      "href",
+      "/dashboard/org/acme/cloud/link",
+    );
   });
 
   it("hides Create engine at the plan limit and does not start create", async () => {

@@ -18,6 +18,7 @@ import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { isHubOrgAdmin } from "@/lib/cloud";
 import {
+  CLOUD_ACCOUNT_LINK_HELP,
   CLOUD_ENGINES_INTRO,
   CLOUD_LIMIT_MESSAGE,
   CLOUD_LINK_CHECK_ERROR,
@@ -52,7 +53,7 @@ export default function CloudHome() {
   const compatibility = useCloudCompatibility();
   const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
   const billing = useCloudBilling();
-  const { home } = useCloudConsolePaths();
+  const { home, link } = useCloudConsolePaths();
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
   const mutationsPaused = compatibility.updating;
@@ -151,6 +152,15 @@ export default function CloudHome() {
             )}
             {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}
             {showConsole && view.kind === "list" && <CloudEngineList engines={view.engines} />}
+
+            {showConsole && (
+              <p className="text-sm text-muted-foreground break-words">
+                {CLOUD_ACCOUNT_LINK_HELP}{" "}
+                <Link to={link} className="underline underline-offset-4">
+                  Link an existing Elsa Cloud account
+                </Link>
+              </p>
+            )}
 
             <Button variant="outline" asChild className="min-h-11">
               <Link to={`${home}/billing`}>Billing details</Link>

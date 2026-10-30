@@ -1,4 +1,17 @@
 export {
+  CLOUD_ACCOUNT_LINK_ALREADY,
+  CLOUD_ACCOUNT_LINK_CLOUD_MISSING,
+  CLOUD_ACCOUNT_LINK_CLOUD_MISSING_CODE,
+  CLOUD_ACCOUNT_LINK_CONFLICT,
+  CLOUD_ACCOUNT_LINK_CONFLICT_CODE,
+  CLOUD_ACCOUNT_LINK_HAS_ENGINES,
+  CLOUD_ACCOUNT_LINK_HAS_ENGINES_CODE,
+  CLOUD_ACCOUNT_LINK_HAS_STATE,
+  CLOUD_ACCOUNT_LINK_HAS_STATE_CODE,
+  CLOUD_ACCOUNT_LINK_REAUTH,
+  CLOUD_ACCOUNT_LINK_REAUTH_CODE,
+  CLOUD_ACCOUNT_LINK_SESSIONS,
+  CLOUD_ACCOUNT_LINK_SESSIONS_CODE,
   CLOUD_BFF_ACTIONS,
   CLOUD_BFF_CONTROL_ENDPOINTS,
   CLOUD_BFF_FUNCTION,
@@ -64,8 +77,11 @@ export type {
   EngineActivityResponse,
   EngineOverviewRequest,
   EngineOverviewResponse,
+  CloudAccountLinkStaleSession,
   IssueStudioHandoffRequest,
   IssueStudioHandoffResponse,
+  LinkCloudAccountRequest,
+  LinkCloudAccountResponse,
   ListEnginesRequest,
   ListEnginesResponse,
   ListWorkspacesRequest,
@@ -80,6 +96,12 @@ export type {
   SelectWorkspaceResponse,
 } from "./actions";
 
+export {
+  ACCOUNT_LINK_AUTO_RETRY_KEY,
+  accountLinkResultView,
+  reauthMessage,
+  startHubReauth,
+} from "./accountLink";
 export { cloudOrganizationLinkView, isHubOrgAdmin } from "./organizationLink";
 export type { CloudOrganizationLinkView } from "./organizationLink";
 export { buildCreateEngineIntent, onboardingChoices, slugifyEngineName } from "./intent";

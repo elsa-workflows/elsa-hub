@@ -30,6 +30,7 @@ export const CLOUD_BFF_ACTIONS = [
   "deleteEngine",
   "deleteOperationStatus",
   "issueStudioHandoff",
+  "linkCloudAccount",
 ] as const;
 
 export type CloudBffAction = (typeof CLOUD_BFF_ACTIONS)[number];
@@ -84,6 +85,7 @@ export const CLOUD_BFF_CONTROL_ENDPOINTS = {
     path: "/api/workspaces/{workspaceId}/instances/{engineId}/delete-operations/{operationId}",
   },
   issueStudioHandoff: { method: "POST", path: "/api/managed-elsa/handoff/issue" },
+  linkCloudAccount: { method: "POST", path: "/api/cloud/account-links" },
 } as const;
 
 export const CLOUD_REQUIRED_READ_CAPABILITIES = [
@@ -113,6 +115,7 @@ export const CLOUD_WRITE_ACTIONS = [
   "confirmDelete",
   "deleteEngine",
   "issueStudioHandoff",
+  "linkCloudAccount",
 ] as const;
 
 export const CLOUD_SUPPORTED_CONTRACT_VERSION = 1;
@@ -133,6 +136,29 @@ export const CLOUD_ORG_LINK_CONFLICT =
 
 export const CLOUD_ORG_LINK_FORBIDDEN =
   "Only an organization admin can set up Elsa Cloud for this organization.";
+
+export const CLOUD_ACCOUNT_LINK_SESSIONS_CODE = "sessions_required" as const;
+export const CLOUD_ACCOUNT_LINK_REAUTH_CODE = "reauthentication_required" as const;
+export const CLOUD_ACCOUNT_LINK_CLOUD_MISSING_CODE = "cloud_account_missing" as const;
+export const CLOUD_ACCOUNT_LINK_CONFLICT_CODE = "account_already_linked" as const;
+export const CLOUD_ACCOUNT_LINK_HAS_ENGINES_CODE = "hub_account_has_engines" as const;
+export const CLOUD_ACCOUNT_LINK_HAS_STATE_CODE = "hub_account_has_state" as const;
+
+export const CLOUD_ACCOUNT_LINK_ALREADY =
+  "This Hub account is already linked to this Elsa Cloud account.";
+export const CLOUD_ACCOUNT_LINK_SESSIONS =
+  "Sign in to Elsa Cloud and the Hub to link them.";
+export const CLOUD_ACCOUNT_LINK_REAUTH = "Sign in again to continue linking.";
+export const CLOUD_ACCOUNT_LINK_CLOUD_MISSING =
+  "That Elsa Cloud sign-in is not connected to an existing Cloud account.";
+export const CLOUD_ACCOUNT_LINK_CONFLICT =
+  "This Elsa Cloud account is already linked to a different Hub account.";
+export const CLOUD_ACCOUNT_LINK_HAS_ENGINES =
+  "This Hub account already has its own Elsa Cloud engines.";
+export const CLOUD_ACCOUNT_LINK_HAS_STATE =
+  "This Hub account already has Elsa Cloud organization or subscription state.";
+
+export type CloudAccountLinkStaleSession = "hub" | "cloud" | "both";
 
 export type CompatibilityRequest = { action: "compatibility" };
 export type BootstrapRequest = { action: "bootstrap"; hubOrganizationId?: string };
@@ -210,6 +236,10 @@ export type IssueStudioHandoffRequest = {
   redirectUri: string;
   codeChallenge: string;
 };
+export type LinkCloudAccountRequest = {
+  action: "linkCloudAccount";
+  cloudAccessToken: string;
+};
 
 export type CloudBffRequest =
   | CompatibilityRequest
@@ -228,7 +258,8 @@ export type CloudBffRequest =
   | ConfirmDeleteRequest
   | DeleteEngineRequest
   | DeleteOperationStatusRequest
-  | IssueStudioHandoffRequest;
+  | IssueStudioHandoffRequest
+  | LinkCloudAccountRequest;
 
 export type CloudUpdatingState = {
   ok: false;
@@ -245,7 +276,13 @@ export type CloudBffErrorCode =
   | "forbidden"
   | "not_found"
   | typeof CLOUD_LIMIT_CODE
-  | typeof CLOUD_ORG_LINK_CONFLICT_CODE;
+  | typeof CLOUD_ORG_LINK_CONFLICT_CODE
+  | typeof CLOUD_ACCOUNT_LINK_SESSIONS_CODE
+  | typeof CLOUD_ACCOUNT_LINK_REAUTH_CODE
+  | typeof CLOUD_ACCOUNT_LINK_CLOUD_MISSING_CODE
+  | typeof CLOUD_ACCOUNT_LINK_CONFLICT_CODE
+  | typeof CLOUD_ACCOUNT_LINK_HAS_ENGINES_CODE
+  | typeof CLOUD_ACCOUNT_LINK_HAS_STATE_CODE;
 
 export type CloudBffClientError = {
   ok: false;
@@ -253,6 +290,7 @@ export type CloudBffClientError = {
   error: string;
   currentInstances?: number;
   maxInstances?: number;
+  staleSession?: CloudAccountLinkStaleSession;
 };
 
 export type CloudWorkspace = {
@@ -530,6 +568,12 @@ export type IssueStudioHandoffResponse = {
   handoff: CloudStudioHandoff;
 };
 
+export type LinkCloudAccountResponse = {
+  ok: true;
+  state: "linked" | "already_linked";
+  accountId: string;
+};
+
 export type CloudBffSuccessResponse =
   | CompatibilityResponse
   | BootstrapResponse
@@ -547,7 +591,8 @@ export type CloudBffSuccessResponse =
   | ConfirmDeleteResponse
   | DeleteEngineResponse
   | DeleteOperationStatusResponse
-  | IssueStudioHandoffResponse;
+  | IssueStudioHandoffResponse
+  | LinkCloudAccountResponse;
 
 export type CloudBffResponse =
   | CloudBffSuccessResponse

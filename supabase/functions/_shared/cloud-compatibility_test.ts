@@ -8,6 +8,7 @@ import {
 Deno.test("isCloudWriteAction lists only Hub mutation actions", () => {
   assertEquals(isCloudWriteAction("createEngine"), true);
   assertEquals(isCloudWriteAction("issueStudioHandoff"), true);
+  assertEquals(isCloudWriteAction("linkCloudAccount"), true);
   assertEquals(isCloudWriteAction("listEngines"), false);
   assertEquals(isCloudWriteAction("compatibility"), false);
   assertEquals(isCloudWriteAction("bootstrap"), false);

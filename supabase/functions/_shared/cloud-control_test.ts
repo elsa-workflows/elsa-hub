@@ -256,3 +256,23 @@ Deno.test("isCompatibleControl requires the contract version and both capability
     true,
   );
 });
+
+Deno.test("createControlFetch keeps account-link 401 codes for the Hub mapper", async () => {
+  const env = {
+    get(key: string) {
+      return key === "ELSA_CONTROL_API_BASE_URL" ? "https://control.example.test" : undefined;
+    },
+  };
+  const result = await createControlFetch(env, async () =>
+    new Response(JSON.stringify({
+      code: "cloud.account-link.reauthentication-required",
+      staleSession: "hub",
+      title: "stack at Control.Foo",
+    }), { status: 401 }))({ method: "POST", path: "/api/cloud/account-links" }, "hub-session");
+  assertEquals(result, {
+    ok: false,
+    kind: "unauthorized",
+    code: "cloud.account-link.reauthentication-required",
+    staleSession: "hub",
+  });
+});

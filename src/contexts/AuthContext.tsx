@@ -8,6 +8,7 @@ import {
   getAuthConfirmUrl,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
+import { signOutCloudAccount } from "@/lib/cloud/cloudAccountAuth";
 import { clearCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 
 export type OAuthSignInProvider = "github" | "google";
@@ -84,6 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         setLoading(false);
 
+        if (event === "SIGNED_OUT") {
+          // Cloud lives in this tab's sessionStorage. Hub SIGNED_OUT covers
+          // expiry, another-tab sign-out, startHubReauth, and user sign-out.
+          void signOutCloudAccount();
+        }
+
         if (identityChanged && (event === "SIGNED_IN" || event === "SIGNED_OUT")) {
           // Clear ALL cached data to prevent stale user-specific data across account switches
           queryClient.clear();
@@ -92,6 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem("selected_organization");
           if (event === "SIGNED_OUT" && previousUserId) {
             clearCloudSetupMarker(previousUserId);
+          }
+          if (event === "SIGNED_IN" && previousUserId && nextUserId && previousUserId !== nextUserId) {
+            void signOutCloudAccount();
           }
         }
 
@@ -179,7 +189,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signOut(options);
     // Only forget the cloud setup once this session is really gone. "others" leaves
     // this session signed in, and a failed sign-out leaves the user signed in too.
-    if (id && !error && options?.scope !== "others") clearCloudSetupMarker(id);
+    if (id && !error && options?.scope !== "others") {
+      clearCloudSetupMarker(id);
+      // Cloud is cleared by the SIGNED_OUT listener, not here, so an
+      // explicit Hub sign-out does not call signOutCloudAccount twice.
+    }
     return { error };
   };
 

@@ -40,8 +40,9 @@ export type ControlResult = {
   etag?: string;
 } | {
   ok: false;
-  kind: "updating" | "forbidden" | "not_found" | "invalid" | "limit";
+  kind: "updating" | "forbidden" | "not_found" | "invalid" | "limit" | "unauthorized";
   code?: string;
+  staleSession?: "hub" | "cloud" | "both";
   currentInstances?: number;
   maxInstances?: number;
 };
@@ -81,7 +82,19 @@ export function createControlFetch(
           return { ok: false, kind: "updating" };
         }
       }
-      if (res.status === 401 || res.status === 503 || res.status >= 500) {
+      if (res.status === 401) {
+        const problem = problemFrom(parsed);
+        if (problem?.code?.startsWith("cloud.account-link.")) {
+          return {
+            ok: false,
+            kind: "unauthorized",
+            code: problem.code,
+            staleSession: problem.staleSession,
+          };
+        }
+        return { ok: false, kind: "updating" };
+      }
+      if (res.status === 503 || res.status >= 500) {
         return { ok: false, kind: "updating" };
       }
       if (res.status === 403) return { ok: false, kind: "forbidden" };
@@ -156,13 +169,18 @@ function asNumber(value: unknown): number | undefined {
 
 function problemFrom(body: unknown): {
   code?: string;
+  staleSession?: "hub" | "cloud" | "both";
   currentInstances?: number;
   maxInstances?: number;
 } | null {
   const record = asRecord(body);
   if (!record) return null;
+  const extensions = asRecord(record.extensions);
+  const code = asString(record.code) ?? asString(extensions?.code) ?? undefined;
+  const stale = asString(record.staleSession) ?? asString(extensions?.staleSession);
   return {
-    code: asString(record.code) ?? undefined,
+    code,
+    staleSession: stale === "hub" || stale === "cloud" || stale === "both" ? stale : undefined,
     currentInstances: asNumber(record.currentInstances),
     maxInstances: asNumber(record.maxInstances),
   };

@@ -22,7 +22,8 @@ describe("cloud-bff contract via @/lib/cloud", () => {
     expect(CLOUD_BFF_ACTIONS).toContain("listEngines");
     expect(CLOUD_BFF_ACTIONS).toContain("createEngine");
     expect(CLOUD_BFF_ACTIONS).toContain("deleteEngine");
-    expect(CLOUD_BFF_ACTIONS).toHaveLength(17);
+    expect(CLOUD_BFF_ACTIONS).toContain("linkCloudAccount");
+    expect(CLOUD_BFF_ACTIONS).toHaveLength(18);
   });
 
   it("uses the sanitized updating envelope from #53", () => {

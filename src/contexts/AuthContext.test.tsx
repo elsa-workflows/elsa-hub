@@ -3,6 +3,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+const signOutCloudAccount = vi.hoisted(() => vi.fn(async () => undefined));
+
+vi.mock("@/lib/cloud/cloudAccountAuth", () => ({
+  signOutCloudAccount,
+}));
+
 const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
@@ -49,6 +55,7 @@ describe("AuthContext passwordless methods", () => {
     signUp.mockClear();
     refreshSession.mockClear();
     signOut.mockClear();
+    signOutCloudAccount.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
     localStorage.clear();
@@ -145,6 +152,47 @@ describe("AuthContext passwordless methods", () => {
 
     await result.current.signOut();
     expect(hasCloudSetupMarker("u1")).toBe(false);
+    expect(signOutCloudAccount).not.toHaveBeenCalled();
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalledTimes(1));
+  });
+
+  it("clears the Cloud session on Hub SIGNED_OUT from expiry", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    signOutCloudAccount.mockClear();
+
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalled());
+  });
+
+  it("clears the Cloud session on Hub SIGNED_OUT from another tab", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    signOutCloudAccount.mockClear();
+
+    // supabase-js surfaces another-tab Hub sign-out as SIGNED_OUT here.
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalled());
+  });
+
+  it("clears the Cloud session on the local SIGNED_OUT that startHubReauth uses", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    signOutCloudAccount.mockClear();
+
+    await result.current.signOut({ scope: "local" });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(signOutCloudAccount).not.toHaveBeenCalled();
+
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalledTimes(1));
   });
 
   it("forwards the sign-out scope and returns the sign-out error", async () => {

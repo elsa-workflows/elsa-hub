@@ -1,3 +1,4 @@
+import { accountLinkFailure, normalizeAccountLink } from "./cloud-account-link.ts";
 import {
   defaultCloudCompatibilityCache,
   isCloudWriteAction,
@@ -150,6 +151,9 @@ export function parseCloudBffRequest(payload: unknown): ParsedRequest {
   }
   if (action === "bootstrap" && record.hubOrganizationId !== undefined && !isGuid(record.hubOrganizationId)) {
     return invalid("A Hub organization id is required.");
+  }
+  if (action === "linkCloudAccount" && !isNonEmptyString(record.cloudAccessToken)) {
+    return invalid("An Elsa Cloud access token is required.");
   }
   if (action === "issueStudioHandoff") {
     if (!isGuid(record.organizationId)) {
@@ -323,6 +327,16 @@ async function callControl(
           codeChallenge: request.codeChallenge,
         },
       });
+    case "linkCloudAccount":
+      return await call({
+        method: "POST",
+        path: "/api/cloud/account-links",
+        headers: {
+          "X-Elsa-Hub-Authorization": `Bearer ${ctx.accessToken}`,
+          "X-Elsa-Cloud-Authorization": `Bearer ${request.cloudAccessToken}`,
+        },
+        body: {},
+      });
   }
 }
 
@@ -340,7 +354,10 @@ export async function dispatchCloudAction(
   }
 
   const result = await callControl(ctx, request.action, request);
-  if (!result.ok) return failedControl(result);
+  if (!result.ok) {
+    if (request.action === "linkCloudAccount") return accountLinkFailure(result);
+    return failedControl(result);
+  }
 
   switch (request.action) {
     case "compatibility": {
@@ -506,6 +523,15 @@ export async function dispatchCloudAction(
       const handoff = normalizeStudioHandoff(result.body);
       if (!handoff) return jsonResponse(503, updatingBody());
       return jsonResponse(200, { ok: true, state: "ready", handoff });
+    }
+    case "linkCloudAccount": {
+      const linked = normalizeAccountLink(result.body);
+      if (!linked) return jsonResponse(503, updatingBody());
+      return jsonResponse(200, {
+        ok: true,
+        state: linked.alreadyLinked ? "already_linked" : "linked",
+        accountId: linked.accountId,
+      });
     }
   }
 }

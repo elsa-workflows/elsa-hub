@@ -14,6 +14,19 @@ import {
   CLOUD_LIMIT_MESSAGE,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_ORG_LINK_CONFLICT_CODE,
+  CLOUD_ACCOUNT_LINK_ALREADY,
+  CLOUD_ACCOUNT_LINK_CLOUD_MISSING,
+  CLOUD_ACCOUNT_LINK_CLOUD_MISSING_CODE,
+  CLOUD_ACCOUNT_LINK_CONFLICT,
+  CLOUD_ACCOUNT_LINK_CONFLICT_CODE,
+  CLOUD_ACCOUNT_LINK_HAS_ENGINES,
+  CLOUD_ACCOUNT_LINK_HAS_ENGINES_CODE,
+  CLOUD_ACCOUNT_LINK_HAS_STATE,
+  CLOUD_ACCOUNT_LINK_HAS_STATE_CODE,
+  CLOUD_ACCOUNT_LINK_REAUTH,
+  CLOUD_ACCOUNT_LINK_REAUTH_CODE,
+  CLOUD_ACCOUNT_LINK_SESSIONS,
+  CLOUD_ACCOUNT_LINK_SESSIONS_CODE,
   CLOUD_ORG_LINK_FORBIDDEN,
   CLOUD_REQUIRED_CAPABILITIES,
   CLOUD_REQUIRED_READ_CAPABILITIES,
@@ -909,6 +922,10 @@ const WRITE_REQUESTS: Record<(typeof CLOUD_WRITE_ACTIONS)[number], unknown> = {
     redirectUri: "https://studio.example/handoff",
     codeChallenge: "challenge",
   },
+  linkCloudAccount: {
+    action: "linkCloudAccount",
+    cloudAccessToken: "cloud-session-token",
+  },
 };
 
 async function writeGateResponse(
@@ -1079,4 +1096,163 @@ Deno.test("compatibility reads for writes are cached per isolate for at most 60s
   assertEquals((await run()).status, 202);
   assertEquals(calls.filter((call) => call.includes("/api/cloud/compatibility")).length, 2);
   assertEquals(calls.filter((call) => call.endsWith("/restart")).length, 3);
+});
+
+const CLOUD_TOKEN = "cloud-session-token";
+const ACCOUNT_ID = "77777777-7777-4777-8777-777777777777";
+
+Deno.test("linkCloudAccount attaches both sessions and returns linked", async () => {
+  resetCloudCompatibilityCache();
+  let seenCloud = "";
+  let seenHub = "";
+  let seenAuth = "";
+  let seenBody: unknown;
+  const response = await handleCloudBff(request({
+    action: "linkCloudAccount",
+    cloudAccessToken: CLOUD_TOKEN,
+  }), {
+    resolveHubUser: signedInResolver(USER),
+    controlFetch: async (call, accessToken) => {
+      assertEquals(accessToken, USER.accessToken);
+      if (call.path === "/api/cloud/compatibility") {
+        return { ok: true, status: 200, body: COMPATIBLE };
+      }
+      assertEquals(call.method, "POST");
+      assertEquals(call.path, "/api/cloud/account-links");
+      seenAuth = `Bearer ${accessToken}`;
+      seenHub = call.headers?.["X-Elsa-Hub-Authorization"] ?? "";
+      seenCloud = call.headers?.["X-Elsa-Cloud-Authorization"] ?? "";
+      seenBody = call.body;
+      return {
+        ok: true,
+        status: 200,
+        body: { accountId: ACCOUNT_ID, alreadyLinked: false },
+      };
+    },
+  });
+  assertEquals(seenHub, `Bearer ${USER.accessToken}`);
+  assertEquals(seenCloud, `Bearer ${CLOUD_TOKEN}`);
+  assertEquals(seenAuth, `Bearer ${USER.accessToken}`);
+  assertEquals(seenBody, {});
+  assertEquals(response.status, 200);
+  assertEquals(await readJson(response), {
+    ok: true,
+    state: "linked",
+    accountId: ACCOUNT_ID,
+  });
+});
+
+Deno.test("linkCloudAccount already linked is a readable no-op", async () => {
+  const response = await signedIn({
+    action: "linkCloudAccount",
+    cloudAccessToken: CLOUD_TOKEN,
+  }, {
+    "POST /api/cloud/account-links": {
+      ok: true,
+      status: 200,
+      body: { accountId: ACCOUNT_ID, alreadyLinked: true },
+    },
+  });
+  assertEquals(response.status, 200);
+  assertEquals(await readJson(response), {
+    ok: true,
+    state: "already_linked",
+    accountId: ACCOUNT_ID,
+  });
+  assertEquals(CLOUD_ACCOUNT_LINK_ALREADY.length > 0, true);
+});
+
+Deno.test("linkCloudAccount maps Control conflicts without changing anything", async () => {
+  const cases = [
+    {
+      code: "cloud.account-link.cloud-account-missing",
+      expected: CLOUD_ACCOUNT_LINK_CLOUD_MISSING_CODE,
+      error: CLOUD_ACCOUNT_LINK_CLOUD_MISSING,
+    },
+    {
+      code: "cloud.account-link.account-already-linked",
+      expected: CLOUD_ACCOUNT_LINK_CONFLICT_CODE,
+      error: CLOUD_ACCOUNT_LINK_CONFLICT,
+    },
+    {
+      code: "cloud.account-link.hub-account-has-engines",
+      expected: CLOUD_ACCOUNT_LINK_HAS_ENGINES_CODE,
+      error: CLOUD_ACCOUNT_LINK_HAS_ENGINES,
+    },
+    {
+      code: "cloud.account-link.hub-account-has-state",
+      expected: CLOUD_ACCOUNT_LINK_HAS_STATE_CODE,
+      error: CLOUD_ACCOUNT_LINK_HAS_STATE,
+    },
+  ];
+  for (const item of cases) {
+    const response = await signedIn({
+      action: "linkCloudAccount",
+      cloudAccessToken: CLOUD_TOKEN,
+    }, {
+      "POST /api/cloud/account-links": { ok: false, kind: "invalid", code: item.code },
+    });
+    const body = await readJson(response);
+    assertEquals(response.status, 409, item.code);
+    assertEquals(body, { ok: false, code: item.expected, error: item.error });
+    assertFalse(JSON.stringify(body).includes("cloud.account-link"));
+    assertFalse(JSON.stringify(body).includes(CLOUD_TOKEN));
+  }
+});
+
+Deno.test("linkCloudAccount maps reauthentication-required including staleSession", async () => {
+  for (const staleSession of ["hub", "cloud", "both"] as const) {
+    const response = await signedIn({
+      action: "linkCloudAccount",
+      cloudAccessToken: CLOUD_TOKEN,
+    }, {
+      "POST /api/cloud/account-links": {
+        ok: false,
+        kind: "unauthorized",
+        code: "cloud.account-link.reauthentication-required",
+        staleSession,
+      },
+    });
+    const body = await readJson(response);
+    assertEquals(response.status, 401);
+    assertEquals(body, {
+      ok: false,
+      code: CLOUD_ACCOUNT_LINK_REAUTH_CODE,
+      error: CLOUD_ACCOUNT_LINK_REAUTH,
+      staleSession,
+    });
+    assertFalse(JSON.stringify(body).includes("WWW-Authenticate"));
+    assertFalse(JSON.stringify(body).includes(CLOUD_TOKEN));
+  }
+
+  const sessions = await signedIn({
+    action: "linkCloudAccount",
+    cloudAccessToken: CLOUD_TOKEN,
+  }, {
+    "POST /api/cloud/account-links": {
+      ok: false,
+      kind: "unauthorized",
+      code: "cloud.account-link.sessions-required",
+    },
+  });
+  assertEquals(sessions.status, 401);
+  assertEquals(await readJson(sessions), {
+    ok: false,
+    code: CLOUD_ACCOUNT_LINK_SESSIONS_CODE,
+    error: CLOUD_ACCOUNT_LINK_SESSIONS,
+  });
+});
+
+Deno.test("linkCloudAccount refuses a missing Cloud token and never calls Control", async () => {
+  let calls = 0;
+  const missing = await handleCloudBff(request({ action: "linkCloudAccount" }), {
+    resolveHubUser: signedInResolver(USER),
+    controlFetch: async () => {
+      calls += 1;
+      return { ok: false, kind: "updating" };
+    },
+  });
+  assertEquals(missing.status, 400);
+  assertEquals((await readJson(missing)).code, "invalid_request");
+  assertEquals(calls, 0);
 });
