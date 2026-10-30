@@ -96,7 +96,12 @@ export type {
   SelectWorkspaceResponse,
 } from "./actions";
 
-export { accountLinkResultView, reauthMessage } from "./accountLink";
+export {
+  ACCOUNT_LINK_AUTO_RETRY_KEY,
+  accountLinkResultView,
+  reauthMessage,
+  startHubReauth,
+} from "./accountLink";
 export { cloudOrganizationLinkView, isHubOrgAdmin } from "./organizationLink";
 export type { CloudOrganizationLinkView } from "./organizationLink";
 export { buildCreateEngineIntent, onboardingChoices, slugifyEngineName } from "./intent";

@@ -8,6 +8,7 @@ import {
   getAuthConfirmUrl,
   sanitizeAuthRedirect,
 } from "@/lib/authRedirect";
+import { signOutCloudAccount } from "@/lib/cloud/cloudAccountAuth";
 import { clearCloudSetupMarker } from "@/lib/cloudClient/setupMarker";
 
 export type OAuthSignInProvider = "github" | "google";
@@ -92,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem("selected_organization");
           if (event === "SIGNED_OUT" && previousUserId) {
             clearCloudSetupMarker(previousUserId);
+          }
+          if (event === "SIGNED_IN" && previousUserId && nextUserId && previousUserId !== nextUserId) {
+            void signOutCloudAccount();
           }
         }
 
@@ -179,7 +183,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { error } = await supabase.auth.signOut(options);
     // Only forget the cloud setup once this session is really gone. "others" leaves
     // this session signed in, and a failed sign-out leaves the user signed in too.
-    if (id && !error && options?.scope !== "others") clearCloudSetupMarker(id);
+    if (id && !error && options?.scope !== "others") {
+      clearCloudSetupMarker(id);
+      await signOutCloudAccount();
+    }
     return { error };
   };
 

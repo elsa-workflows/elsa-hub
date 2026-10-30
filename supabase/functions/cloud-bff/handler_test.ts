@@ -922,6 +922,10 @@ const WRITE_REQUESTS: Record<(typeof CLOUD_WRITE_ACTIONS)[number], unknown> = {
     redirectUri: "https://studio.example/handoff",
     codeChallenge: "challenge",
   },
+  linkCloudAccount: {
+    action: "linkCloudAccount",
+    cloudAccessToken: "cloud-session-token",
+  },
 };
 
 async function writeGateResponse(
@@ -1098,6 +1102,7 @@ const CLOUD_TOKEN = "cloud-session-token";
 const ACCOUNT_ID = "77777777-7777-4777-8777-777777777777";
 
 Deno.test("linkCloudAccount attaches both sessions and returns linked", async () => {
+  resetCloudCompatibilityCache();
   let seenCloud = "";
   let seenHub = "";
   let seenAuth = "";
@@ -1109,6 +1114,9 @@ Deno.test("linkCloudAccount attaches both sessions and returns linked", async ()
     resolveHubUser: signedInResolver(USER),
     controlFetch: async (call, accessToken) => {
       assertEquals(accessToken, USER.accessToken);
+      if (call.path === "/api/cloud/compatibility") {
+        return { ok: true, status: 200, body: COMPATIBLE };
+      }
       assertEquals(call.method, "POST");
       assertEquals(call.path, "/api/cloud/account-links");
       seenAuth = `Bearer ${accessToken}`;
@@ -1178,12 +1186,11 @@ Deno.test("linkCloudAccount maps Control conflicts without changing anything", a
     },
   ];
   for (const item of cases) {
-    const response = await handleCloudBff(request({
+    const response = await signedIn({
       action: "linkCloudAccount",
       cloudAccessToken: CLOUD_TOKEN,
-    }), {
-      resolveHubUser: signedInResolver(USER),
-      controlFetch: async () => ({ ok: false, kind: "invalid", code: item.code }),
+    }, {
+      "POST /api/cloud/account-links": { ok: false, kind: "invalid", code: item.code },
     });
     const body = await readJson(response);
     assertEquals(response.status, 409, item.code);
@@ -1195,17 +1202,16 @@ Deno.test("linkCloudAccount maps Control conflicts without changing anything", a
 
 Deno.test("linkCloudAccount maps reauthentication-required including staleSession", async () => {
   for (const staleSession of ["hub", "cloud", "both"] as const) {
-    const response = await handleCloudBff(request({
+    const response = await signedIn({
       action: "linkCloudAccount",
       cloudAccessToken: CLOUD_TOKEN,
-    }), {
-      resolveHubUser: signedInResolver(USER),
-      controlFetch: async () => ({
+    }, {
+      "POST /api/cloud/account-links": {
         ok: false,
         kind: "unauthorized",
         code: "cloud.account-link.reauthentication-required",
         staleSession,
-      }),
+      },
     });
     const body = await readJson(response);
     assertEquals(response.status, 401);
@@ -1219,16 +1225,15 @@ Deno.test("linkCloudAccount maps reauthentication-required including staleSessio
     assertFalse(JSON.stringify(body).includes(CLOUD_TOKEN));
   }
 
-  const sessions = await handleCloudBff(request({
+  const sessions = await signedIn({
     action: "linkCloudAccount",
     cloudAccessToken: CLOUD_TOKEN,
-  }), {
-    resolveHubUser: signedInResolver(USER),
-    controlFetch: async () => ({
+  }, {
+    "POST /api/cloud/account-links": {
       ok: false,
       kind: "unauthorized",
       code: "cloud.account-link.sessions-required",
-    }),
+    },
   });
   assertEquals(sessions.status, 401);
   assertEquals(await readJson(sessions), {

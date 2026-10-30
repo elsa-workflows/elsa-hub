@@ -81,6 +81,7 @@ describe("cloud-bff action contract", () => {
       "confirmDelete",
       "deleteEngine",
       "issueStudioHandoff",
+      "linkCloudAccount",
     ]);
   });
 

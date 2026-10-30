@@ -29,12 +29,13 @@ export default function CloudLinkAccount() {
   const { home } = useCloudConsolePaths();
   const inDashboard = pathname.startsWith("/dashboard");
   const link = useCloudAccountLink();
+  const { refreshCloudSession } = link;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
-    void link.refreshCloudSession();
-  }, [link.refreshCloudSession]);
+    void refreshCloudSession();
+  }, [refreshCloudSession]);
 
   useEffect(() => {
     if (link.view.kind === "linked") {

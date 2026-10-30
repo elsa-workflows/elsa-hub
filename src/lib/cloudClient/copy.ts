@@ -47,6 +47,8 @@ export const CLOUD_ACCOUNT_LINK_CLOUD_EMAIL = "Sign in to Elsa Cloud with email"
 export const CLOUD_ACCOUNT_LINK_CONFIRM = "Confirm and link";
 export const CLOUD_ACCOUNT_LINK_UNAVAILABLE =
   "Elsa Cloud sign-in is not configured in this environment.";
+export const CLOUD_ACCOUNT_LINK_SIGNIN_FAILED =
+  "Elsa Cloud sign-in failed. Check your details and try again.";
 export const CLOUD_CREATE_ENGINE = "Create engine";
 export const CLOUD_ENGINE_NAME_LABEL = "Engine name";
 export const CLOUD_OPEN_STUDIO = "Open Studio";

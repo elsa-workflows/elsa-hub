@@ -1,3 +1,6 @@
+import { rememberAuthRedirect } from "@/lib/authRedirect";
+import { cloudLoginRedirect } from "@/lib/cloudPaths";
+import { supabase } from "@/integrations/supabase/client";
 import {
   CLOUD_ACCOUNT_LINK_CLOUD_MISSING,
   CLOUD_ACCOUNT_LINK_CONFLICT,
@@ -48,6 +51,15 @@ export function accountLinkResultView(response: CloudBffResponse):
     return { kind: "error", message: response.error };
   }
   return { kind: "error", message: CLOUD_ACCOUNT_LINK_REAUTH };
+}
+
+export const ACCOUNT_LINK_AUTO_RETRY_KEY = "elsa.cloud.account-link.auto-retry";
+
+export async function startHubReauth(returnPath: string): Promise<void> {
+  sessionStorage.setItem(ACCOUNT_LINK_AUTO_RETRY_KEY, "1");
+  rememberAuthRedirect(returnPath);
+  await supabase.auth.signOut();
+  window.location.assign(cloudLoginRedirect(returnPath));
 }
 
 export function reauthMessage(staleSession: CloudAccountLinkStaleSession): string {

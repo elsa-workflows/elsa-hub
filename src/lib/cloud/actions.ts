@@ -115,6 +115,7 @@ export const CLOUD_WRITE_ACTIONS = [
   "confirmDelete",
   "deleteEngine",
   "issueStudioHandoff",
+  "linkCloudAccount",
 ] as const;
 
 export const CLOUD_SUPPORTED_CONTRACT_VERSION = 1;

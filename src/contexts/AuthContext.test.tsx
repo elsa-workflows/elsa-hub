@@ -3,6 +3,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+const signOutCloudAccount = vi.hoisted(() => vi.fn(async () => undefined));
+
+vi.mock("@/lib/cloud/cloudAccountAuth", () => ({
+  signOutCloudAccount,
+}));
+
 const signInWithOAuth = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signInWithOtp = vi.fn(async (_args?: unknown) => ({ error: null }));
 const signUp = vi.fn(async (_args?: unknown) => ({ error: null }));
@@ -49,6 +55,7 @@ describe("AuthContext passwordless methods", () => {
     signUp.mockClear();
     refreshSession.mockClear();
     signOut.mockClear();
+    signOutCloudAccount.mockClear();
     authStateListeners.length = 0;
     sessionStorage.clear();
     localStorage.clear();
@@ -145,6 +152,7 @@ describe("AuthContext passwordless methods", () => {
 
     await result.current.signOut();
     expect(hasCloudSetupMarker("u1")).toBe(false);
+    expect(signOutCloudAccount).toHaveBeenCalled();
   });
 
   it("forwards the sign-out scope and returns the sign-out error", async () => {
