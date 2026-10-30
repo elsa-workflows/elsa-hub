@@ -58,7 +58,7 @@ export const ACCOUNT_LINK_AUTO_RETRY_KEY = "elsa.cloud.account-link.auto-retry";
 export async function startHubReauth(returnPath: string): Promise<void> {
   sessionStorage.setItem(ACCOUNT_LINK_AUTO_RETRY_KEY, "1");
   rememberAuthRedirect(returnPath);
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   window.location.assign(cloudLoginRedirect(returnPath));
 }
 

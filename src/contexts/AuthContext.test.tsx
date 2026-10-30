@@ -155,6 +155,44 @@ describe("AuthContext passwordless methods", () => {
     expect(signOutCloudAccount).toHaveBeenCalled();
   });
 
+  it("clears the Cloud session on Hub SIGNED_OUT from expiry", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    signOutCloudAccount.mockClear();
+
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalled());
+  });
+
+  it("clears the Cloud session on Hub SIGNED_OUT from another tab", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    signOutCloudAccount.mockClear();
+
+    // supabase-js surfaces another-tab Hub sign-out as SIGNED_OUT here.
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalled());
+  });
+
+  it("clears the Cloud session on the local SIGNED_OUT that startHubReauth uses", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(authStateListeners.length).toBeGreaterThan(0));
+    authStateListeners[0]("SIGNED_IN", { user: { id: "u1" } });
+    await waitFor(() => expect(result.current.user?.id).toBe("u1"));
+    signOutCloudAccount.mockClear();
+
+    await result.current.signOut({ scope: "local" });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(signOutCloudAccount).toHaveBeenCalled();
+
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount.mock.calls.length).toBeGreaterThanOrEqual(2));
+  });
+
   it("forwards the sign-out scope and returns the sign-out error", async () => {
     const failure = new Error("network down");
     signOut.mockResolvedValueOnce({ error: failure });

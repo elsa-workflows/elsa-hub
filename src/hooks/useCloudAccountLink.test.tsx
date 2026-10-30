@@ -88,6 +88,7 @@ describe("useCloudAccountLink", () => {
   });
 
   it("shows readable conflict messages and does not treat them as linked", async () => {
+    sessionStorage.setItem("elsa.cloud.account-link.retry", "1");
     vi.spyOn(cloudClient, "invoke").mockResolvedValue({
       ok: false,
       code: "hub_account_has_engines",
@@ -102,7 +103,25 @@ describe("useCloudAccountLink", () => {
       message: CLOUD_ACCOUNT_LINK_HAS_ENGINES,
     });
     expect(auth.signOut).toHaveBeenCalled();
+    expect(sessionStorage.getItem("elsa.cloud.account-link.retry")).toBeNull();
     expect(CLOUD_ACCOUNT_LINK_CONFLICT.length).toBeGreaterThan(0);
+  });
+
+  it("resets the retry-once flag on a non-reauth error outcome", async () => {
+    sessionStorage.setItem("elsa.cloud.account-link.retry", "1");
+    sessionStorage.setItem(ACCOUNT_LINK_AUTO_RETRY_KEY, "1");
+    vi.spyOn(cloudClient, "invoke").mockResolvedValue({
+      ok: false,
+      code: "sessions_required",
+      error: "Sign in to Elsa Cloud and the Hub, then try again.",
+    });
+    const { result } = renderHook(() => useCloudAccountLink(), { wrapper });
+    await act(async () => {
+      await result.current.linkAccount();
+    });
+    expect(result.current.view.kind).toBe("error");
+    expect(sessionStorage.getItem("elsa.cloud.account-link.retry")).toBeNull();
+    expect(sessionStorage.getItem(ACCOUNT_LINK_AUTO_RETRY_KEY)).toBeNull();
   });
 
   it("maps a stale Cloud session and retries the link once after Cloud sign-in", async () => {
@@ -188,6 +207,7 @@ describe("useCloudAccountLink", () => {
       kind: "error",
       message: CLOUD_ACCOUNT_LINK_SIGNIN_FAILED,
     });
+    expect(auth.signInEmail).toHaveBeenCalledWith("user@example.com", "wrong", "hub-user-1");
 
     auth.signInOAuth.mockRejectedValueOnce(new Error("provider disabled"));
     await act(async () => {
@@ -197,5 +217,6 @@ describe("useCloudAccountLink", () => {
       kind: "error",
       message: CLOUD_ACCOUNT_LINK_SIGNIN_FAILED,
     });
+    expect(auth.signInOAuth).toHaveBeenCalledWith("azure", "hub-user-1");
   });
 });

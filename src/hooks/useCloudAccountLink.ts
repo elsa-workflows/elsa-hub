@@ -80,6 +80,8 @@ export function useCloudAccountLink() {
       }
       return result;
     }
+    sessionStorage.removeItem(RETRY_KEY);
+    sessionStorage.removeItem(ACCOUNT_LINK_AUTO_RETRY_KEY);
     if (result.kind === "conflict") {
       await clearCloudSession();
     }
@@ -104,16 +106,24 @@ export function useCloudAccountLink() {
   }, [runLink, user?.id]);
 
   async function signInOAuth(provider: CloudAccountOAuthProvider) {
+    if (!user?.id) {
+      setView({ kind: "error", message: CLOUD_ACCOUNT_LINK_SIGNIN_FAILED });
+      return;
+    }
     try {
-      await signInCloudAccountOAuth(provider);
+      await signInCloudAccountOAuth(provider, user.id);
     } catch {
       setView({ kind: "error", message: CLOUD_ACCOUNT_LINK_SIGNIN_FAILED });
     }
   }
 
   async function signInEmail(email: string, password: string) {
+    if (!user?.id) {
+      setView({ kind: "error", message: CLOUD_ACCOUNT_LINK_SIGNIN_FAILED });
+      return;
+    }
     try {
-      await signInCloudAccountEmail(email, password);
+      await signInCloudAccountEmail(email, password, user.id);
       await refreshCloudSession();
     } catch {
       setView({ kind: "error", message: CLOUD_ACCOUNT_LINK_SIGNIN_FAILED });

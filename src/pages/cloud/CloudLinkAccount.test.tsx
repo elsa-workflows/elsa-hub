@@ -9,6 +9,8 @@ import {
 import {
   CLOUD_ACCOUNT_LINK_ALREADY_HEADING,
   CLOUD_ACCOUNT_LINK_CLOUD_MICROSOFT,
+  CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD,
+  CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN,
   CLOUD_ACCOUNT_LINK_CONFIRM,
   CLOUD_ACCOUNT_LINK_TITLE,
 } from "@/lib/cloudClient";
@@ -69,6 +71,8 @@ describe("CloudLinkAccount", () => {
     expect(linkState.signInOAuth).toHaveBeenCalledWith("azure");
     fireEvent.click(screen.getByRole("button", { name: CLOUD_ACCOUNT_LINK_CONFIRM }));
     expect(linkState.linkAccount).toHaveBeenCalled();
+    expect(screen.getByLabelText(CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN })).toBeInTheDocument();
   });
 
   it("shows already linked when revisiting after a successful link", () => {

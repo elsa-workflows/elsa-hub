@@ -85,6 +85,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
         setLoading(false);
 
+        if (event === "SIGNED_OUT") {
+          // Cloud lives in this tab's sessionStorage. Hub SIGNED_OUT covers
+          // expiry, another-tab sign-out, startHubReauth, and user sign-out.
+          void signOutCloudAccount();
+        }
+
         if (identityChanged && (event === "SIGNED_IN" || event === "SIGNED_OUT")) {
           // Clear ALL cached data to prevent stale user-specific data across account switches
           queryClient.clear();

@@ -64,7 +64,7 @@ describe("startHubReauth", () => {
     await startHubReauth("/dashboard/org/acme/cloud/link");
     expect(sessionStorage.getItem(ACCOUNT_LINK_AUTO_RETRY_KEY)).toBe("1");
     expect(sessionStorage.getItem("authRedirect")).toBe("/dashboard/org/acme/cloud/link");
-    expect(signOut).toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(assign).toHaveBeenCalledWith("/login?redirect=%2Fdashboard%2Forg%2Facme%2Fcloud%2Flink");
   });
 });

@@ -14,6 +14,8 @@ import {
   CLOUD_ACCOUNT_LINK_CLOUD_EMAIL,
   CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE,
   CLOUD_ACCOUNT_LINK_CLOUD_MICROSOFT,
+  CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD,
+  CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN,
   CLOUD_ACCOUNT_LINK_CONFIRM,
   CLOUD_ACCOUNT_LINK_DONE_HEADING,
   CLOUD_ACCOUNT_LINK_INTRO,
@@ -116,6 +118,7 @@ export default function CloudLinkAccount() {
                       onChange={(event) => setEmail(event.target.value)}
                       className="min-h-11"
                     />
+                    <Label htmlFor="cloud-account-password">{CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD}</Label>
                     <Input
                       id="cloud-account-password"
                       type="password"
@@ -126,7 +129,7 @@ export default function CloudLinkAccount() {
                     />
                   </div>
                   <Button type="submit" variant="outline" className="min-h-11">
-                    {CLOUD_ACCOUNT_LINK_CLOUD_EMAIL}
+                    {CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN}
                   </Button>
                 </form>
                 <Button

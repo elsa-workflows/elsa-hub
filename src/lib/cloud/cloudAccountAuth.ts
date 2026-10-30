@@ -34,10 +34,15 @@ export function cloudAccountClient(): SupabaseClient | null {
         detectSessionInUrl: true,
         flowType: "pkce",
         storageKey: CLOUD_ACCOUNT_STORAGE_KEY,
+        storage: window.sessionStorage,
       },
     });
   }
   return client;
+}
+
+export function resetCloudAccountClient(): void {
+  client = null;
 }
 
 export function bindCloudAccountToHubUser(hubUserId: string): void {
@@ -48,26 +53,31 @@ export function cloudAccountHubOwner(): string | null {
   return sessionStorage.getItem(CLOUD_ACCOUNT_HUB_OWNER_KEY);
 }
 
+function clearCloudAccountOwner(): void {
+  sessionStorage.removeItem(CLOUD_ACCOUNT_HUB_OWNER_KEY);
+}
+
 export async function getCloudAccountAccessToken(hubUserId?: string | null): Promise<string | null> {
   const auth = cloudAccountClient();
   if (!auth) return null;
   const { data } = await auth.auth.getSession();
   const token = data.session?.access_token ?? null;
   if (!token) return null;
-  if (hubUserId) {
-    const owner = cloudAccountHubOwner();
-    if (owner && owner !== hubUserId) {
-      await signOutCloudAccount();
-      return null;
-    }
-    if (!owner) bindCloudAccountToHubUser(hubUserId);
+  const owner = cloudAccountHubOwner();
+  if (!owner || (hubUserId && owner !== hubUserId)) {
+    await signOutCloudAccount();
+    return null;
   }
   return token;
 }
 
-export async function signInCloudAccountOAuth(provider: CloudAccountOAuthProvider): Promise<void> {
+export async function signInCloudAccountOAuth(
+  provider: CloudAccountOAuthProvider,
+  hubUserId: string,
+): Promise<void> {
   const auth = cloudAccountClient();
   if (!auth) throw new Error("Elsa Cloud sign-in is not configured.");
+  bindCloudAccountToHubUser(hubUserId);
   const { error } = await auth.auth.signInWithOAuth({
     provider,
     options: {
@@ -75,18 +85,29 @@ export async function signInCloudAccountOAuth(provider: CloudAccountOAuthProvide
       ...(provider === "azure" ? { scopes: "email" } : {}),
     },
   });
-  if (error) throw error;
+  if (error) {
+    clearCloudAccountOwner();
+    throw error;
+  }
 }
 
-export async function signInCloudAccountEmail(email: string, password: string): Promise<void> {
+export async function signInCloudAccountEmail(
+  email: string,
+  password: string,
+  hubUserId: string,
+): Promise<void> {
   const auth = cloudAccountClient();
   if (!auth) throw new Error("Elsa Cloud sign-in is not configured.");
+  bindCloudAccountToHubUser(hubUserId);
   const { error } = await auth.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  if (error) {
+    clearCloudAccountOwner();
+    throw error;
+  }
 }
 
 export async function signOutCloudAccount(): Promise<void> {
-  sessionStorage.removeItem(CLOUD_ACCOUNT_HUB_OWNER_KEY);
+  clearCloudAccountOwner();
   const auth = cloudAccountClient();
   if (!auth) return;
   await auth.auth.signOut();

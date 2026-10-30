@@ -44,6 +44,8 @@ export const CLOUD_ACCOUNT_LINK_HELP =
 export const CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE = "Sign in to Elsa Cloud with Google";
 export const CLOUD_ACCOUNT_LINK_CLOUD_MICROSOFT = "Sign in to Elsa Cloud with Microsoft";
 export const CLOUD_ACCOUNT_LINK_CLOUD_EMAIL = "Sign in to Elsa Cloud with email";
+export const CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD = "Password";
+export const CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN = "Sign in";
 export const CLOUD_ACCOUNT_LINK_CONFIRM = "Confirm and link";
 export const CLOUD_ACCOUNT_LINK_UNAVAILABLE =
   "Elsa Cloud sign-in is not configured in this environment.";

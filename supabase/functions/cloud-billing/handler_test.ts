@@ -117,7 +117,7 @@ Deno.test("status reads Control entitlement and Stripe subscriptions in parallel
     },
   });
 
-  let timer: number | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error("Control was awaited before Stripe")), 250);
   });
