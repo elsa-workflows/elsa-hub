@@ -6,6 +6,7 @@ import {
   ACADEMY_TERMS_PATH,
   ACADEMY_TERMS_TITLE,
 } from "@/lib/academyLegal";
+import { CLOUD_DPA_PATH, CLOUD_DPA_TITLE, CLOUD_SUBPROCESSORS_PATH, CLOUD_SUBPROCESSORS_TITLE } from "@/lib/cloudDpa";
 import { CLOUD_TERMS_PATH, CLOUD_TERMS_TITLE } from "@/lib/cloudLegal";
 
 export default function TermsIndex() {
@@ -37,6 +38,18 @@ export default function TermsIndex() {
               </Link>
             </h2>
             <p className="text-sm text-muted-foreground">{CLOUD_TERMS_TITLE}.</p>
+            <ul className="mt-2 space-y-1 text-sm">
+              <li>
+                <Link to={CLOUD_DPA_PATH} className="text-primary hover:underline">
+                  {CLOUD_DPA_TITLE}
+                </Link>
+              </li>
+              <li>
+                <Link to={CLOUD_SUBPROCESSORS_PATH} className="text-primary hover:underline">
+                  {CLOUD_SUBPROCESSORS_TITLE}
+                </Link>
+              </li>
+            </ul>
           </li>
         </ul>
       </div>
