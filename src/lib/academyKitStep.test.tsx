@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ACADEMY_KIT_STEP_PATTERN, academyLessonMentionsKitDownload } from "./academyKitStep";
+import { render, screen } from "@testing-library/react";
+import { AcademyMarkdown } from "@/components/academy/AcademyMarkdown";
+import { ACADEMY_KIT_STEP_PATTERN } from "./academyKitStep";
 
 // Lines copied from the prod lesson bodies (Core, Complete, Advanced) on 30 Oct 2026.
 const kitStepLines = [
@@ -18,18 +20,27 @@ const otherKitLines = [
   "## After download",
 ];
 
+// Through the real render path (AcademyMarkdown + rehypeAcademyKitStep), not a markdown regex.
+function rendersKitStep(markdown: string) {
+  const { unmount } = render(
+    <AcademyMarkdown markdown={markdown} kitStep={<span data-testid="kit-step-probe">kit</span>} />,
+  );
+  const found = screen.queryAllByTestId("kit-step-probe").length;
+  unmount();
+  return found;
+}
+
 describe("academy kit step detection", () => {
-  it.each(kitStepLines)("matches the prod kit sentence: %s", (line) => {
-    expect(academyLessonMentionsKitDownload(line)).toBe(true);
+  it.each(kitStepLines)("places the kit step for the prod kit sentence: %s", (line) => {
+    expect(rendersKitStep(line)).toBe(1);
   });
 
   it.each(otherKitLines)("ignores other kit lines: %s", (line) => {
-    expect(academyLessonMentionsKitDownload(line)).toBe(false);
+    expect(rendersKitStep(line)).toBe(0);
   });
 
   it("treats an empty body as no kit sentence", () => {
-    expect(academyLessonMentionsKitDownload(null)).toBe(false);
-    expect(academyLessonMentionsKitDownload("")).toBe(false);
+    expect(rendersKitStep("")).toBe(0);
     expect(ACADEMY_KIT_STEP_PATTERN.test("Download the kit")).toBe(true);
   });
 });

@@ -1,18 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
+import type { ReactNode } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAcademyBuy, type AcademyBuyAction } from "@/hooks/useAcademyBuy";
+import { ACADEMY_TEAM_LICENCES_URL } from "@/lib/academy";
 import {
-  ACADEMY_ALREADY_OWNED,
-  ACADEMY_TEAM_LICENCES_URL,
-  handleBuyCourse,
-  isAcademyAlreadyOwnedError,
-  type AcademyBuyOutcome,
-} from "@/lib/academy";
-import {
-  ACADEMY_CHECKOUT_FAILED_LINE,
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
   ACADEMY_PAYMENT_PENDING_LINE,
@@ -52,7 +44,7 @@ type AcademySoloCtaProps = {
    * stays disabled to avoid a second checkout session. Any other rejection shows an error toast
    * and re-enables Buy.
    */
-  onBuyCourse?: () => void | Promise<AcademyBuyOutcome>;
+  onBuyCourse?: AcademyBuyAction;
 };
 
 export function AcademyPaymentSuccessNote() {
@@ -65,60 +57,32 @@ export function AcademyPaymentSuccessNote() {
   );
 }
 
+/** Shown instead of Buy once the visitor is known to own the Solo Bundle. */
+export function AcademySoloOwnedNote() {
+  return (
+    <p className="text-sm">
+      {ACADEMY_SOLO_OWNED_NOTE}{" "}
+      <a href="#my-courses" className="text-primary hover:underline">
+        {ACADEMY_SOLO_OWNED_LINK}
+      </a>
+    </p>
+  );
+}
+
 export function AcademySoloCta({
   id,
   locked = false,
   ownership = "none",
-  onBuyCourse = handleBuyCourse,
+  onBuyCourse,
 }: AcademySoloCtaProps) {
-  const { user } = useAuth();
-  const { pathname, search } = useLocation();
-  const [params] = useSearchParams();
-  const paymentSuccess = isAcademyPaymentSuccess(params.toString());
-  const signedIn = Boolean(user);
+  const { buy, buying, checkoutSaysOwned, paymentSuccess, signedIn, loginHref } =
+    useAcademyBuy(onBuyCourse);
   const showIncluded = !locked;
   const showGumroadClaim = locked && signedIn && ACADEMY_GUMROAD_CLAIM_LIVE;
-  const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${search}`)}`;
-  const [checkoutSaysOwned, setCheckoutSaysOwned] = useState(false);
-  const [buying, setBuying] = useState(false);
-  const buyingRef = useRef(false);
-  const setBuyingState = (value: boolean) => {
-    buyingRef.current = value;
-    setBuying(value);
-  };
-  // Back from Stripe can restore this page from the back/forward cache with Buy still disabled.
-  useEffect(() => {
-    const onPageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) setBuyingState(false);
-    };
-    window.addEventListener("pageshow", onPageShow);
-    return () => window.removeEventListener("pageshow", onPageShow);
-  }, []);
-  const buy = async () => {
-    if (buyingRef.current) return;
-    setBuyingState(true);
-    try {
-      if ((await onBuyCourse()) === ACADEMY_ALREADY_OWNED) setCheckoutSaysOwned(true);
-      // Otherwise the redirect to Stripe has started: keep Buy disabled until the page unloads.
-    } catch (error) {
-      if (await isAcademyAlreadyOwnedError(error)) setCheckoutSaysOwned(true);
-      else {
-        toast.error(ACADEMY_CHECKOUT_FAILED_LINE);
-        setBuyingState(false);
-      }
-    }
-  };
 
   let purchaseArea: ReactNode = null;
   if (ownership === "owned" || checkoutSaysOwned) {
-    purchaseArea = (
-      <p className="text-sm">
-        {ACADEMY_SOLO_OWNED_NOTE}{" "}
-        <a href="#my-courses" className="text-primary hover:underline">
-          {ACADEMY_SOLO_OWNED_LINK}
-        </a>
-      </p>
-    );
+    purchaseArea = <AcademySoloOwnedNote />;
   } else if (ownership === "failed" && signedIn) {
     purchaseArea = (
       <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE}</p>

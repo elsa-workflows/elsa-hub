@@ -37,7 +37,7 @@ export default function AcademyLesson() {
     lesson,
     bodyMd,
     assets,
-    kitAssets = [],
+    kitAssets,
     hasAccess,
     isPreview,
     canRead,
@@ -140,6 +140,9 @@ export default function AcademyLesson() {
         {canRead ? (
           <>
             {bodyMd ? (
+              // The kit step lands after the first paragraph or list item whose text matches
+              // ACADEMY_KIT_STEP_PATTERN (rehypeAcademyKitStep), so its placement depends on the
+              // lesson wording: rewording that sentence moves or removes the button.
               <AcademyMarkdown
                 markdown={bodyMd}
                 kitStep={

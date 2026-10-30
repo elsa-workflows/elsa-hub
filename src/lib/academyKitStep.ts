@@ -11,6 +11,8 @@ export function academyLabKitAssets(assets: AcademyAsset[]): AcademyAsset[] {
  * "from the lab kit download on this course page" (kit-setup, start-here, security-overview)
  * and "Download and unzip the lab kit" / "download and unzip kit" (overview lessons).
  * Matched against rendered text, so markdown emphasis does not get in the way.
+ * The kit button placement depends on this wording: a lesson whose sentence no longer matches
+ * gets no button, so update this pattern (and its tests) when the lesson copy changes.
  */
 export const ACADEMY_KIT_STEP_PATTERN =
   /\blab kit download\b|\bdownload and unzip (?:the )?(?:lab )?kit\b|\bdownload the (?:lab )?kit\b/i;
@@ -19,11 +21,6 @@ export const ACADEMY_KIT_STEP_PATTERN =
 export const ACADEMY_KIT_STEP_PROP = "dataAcademyKitStep";
 /** Set on an empty marker at the top of the body when no block can host the step. */
 export const ACADEMY_KIT_STEP_TOP_PROP = "dataAcademyKitStepTop";
-
-export function academyLessonMentionsKitDownload(markdown: string | null | undefined): boolean {
-  if (!markdown) return false;
-  return ACADEMY_KIT_STEP_PATTERN.test(markdown.replace(/[*_`]/g, ""));
-}
 
 function textOf(node: Root | RootContent | ElementContent): string {
   if (node.type === "text") return node.value;

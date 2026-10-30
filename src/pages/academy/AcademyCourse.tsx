@@ -26,7 +26,11 @@ import {
   academyCourseJsonLd,
   academyCourseTitle,
 } from "@/lib/academySeo";
+import { academyLabKitAssets } from "@/lib/academyKitStep";
 import { SITE_URL } from "@/lib/site";
+
+/** The Solo CTA on the course page; the kit step's Buy links here so there is one checkout. */
+const ACADEMY_COURSE_BUY_ID = "academy-course-buy";
 
 export default function AcademyCourse() {
   const { courseSlug } = useParams<{ courseSlug: string }>();
@@ -70,6 +74,9 @@ export default function AcademyCourse() {
   }
 
   const path = coursePath(course.slug);
+  // The lab kit already sits at the top as "Download the kit"; list only the other files here.
+  const labKit = academyLabKitAssets(kitAssets);
+  const otherDownloads = kitAssets.filter((asset) => !labKit.includes(asset));
 
   return (
     <Layout>
@@ -108,6 +115,7 @@ export default function AcademyCourse() {
             hasAccess={hasAccess}
             kitAssets={kitAssets}
             onBuyCourse={() => handleBuyCourse(course.id)}
+            buyHref={`#${ACADEMY_COURSE_BUY_ID}`}
             testId="academy-kit-step-top"
           />
         </header>
@@ -124,9 +132,17 @@ export default function AcademyCourse() {
           )}
         </div>
 
-        {hasAccess && <AcademyKitDownload assets={kitAssets} title="Downloads" />}
+        {hasAccess && otherDownloads.length > 0 && (
+          <AcademyKitDownload assets={otherDownloads} title="Downloads" />
+        )}
 
-        {!hasAccess && <AcademySoloCta locked onBuyCourse={() => handleBuyCourse(course.id)} />}
+        {!hasAccess && (
+          <AcademySoloCta
+            id={ACADEMY_COURSE_BUY_ID}
+            locked
+            onBuyCourse={() => handleBuyCourse(course.id)}
+          />
+        )}
       </section>
     </Layout>
   );

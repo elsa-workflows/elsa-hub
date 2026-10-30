@@ -45,6 +45,7 @@ import {
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_KIT_BUY_NOTE,
   ACADEMY_KIT_DOWNLOAD_LABEL,
+  ACADEMY_KIT_PENDING_NOTE,
   ACADEMY_SOLO_BUY_LABEL,
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
@@ -376,6 +377,28 @@ describe("Academy lesson page", () => {
         screen.getByText("login?redirect=%2Facademy%2Felsa-3-solo-bundle%2Fwelcome"),
       ).toBeInTheDocument();
       useAuth.mockReturnValue({ user: { id: "user-1" } });
+    });
+
+    it("hides the kit step Buy on payment=success before access is granted", () => {
+      handleBuyCourse.mockClear();
+      useAcademyLesson.mockReturnValue({
+        ...base,
+        lesson: previewLesson,
+        bodyMd: `Get the workshop kit running locally.\n\n${kitSentence}`,
+        kitAssets: [],
+        hasAccess: false,
+        isPreview: true,
+        canRead: true,
+        user: { id: "user-1" },
+      });
+
+      renderLesson("/academy/elsa-3-solo-bundle/welcome?payment=success");
+
+      const step = screen.getByTestId("academy-kit-step");
+      expect(within(step).getByTestId("academy-kit-pending")).toHaveTextContent(ACADEMY_KIT_PENDING_NOTE);
+      expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+      expect(screen.queryByText(ACADEMY_KIT_BUY_NOTE)).not.toBeInTheDocument();
+      expect(handleBuyCourse).not.toHaveBeenCalled();
     });
 
     it("shows no kit step in a lesson without the kit sentence", () => {
