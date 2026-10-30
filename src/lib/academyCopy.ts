@@ -71,6 +71,10 @@ export const ACADEMY_TEAM_LINE = `${ACADEMY_TEAM_LINE_BEFORE}${ACADEMY_TEAM_LINE
 export const ACADEMY_PAYMENT_SUCCESS_LINE =
   "You're in. Start with the first lesson, or download the lab kit and unzip it.";
 
+/** Shown on a payment=success return before the entitlement is visible (webhook still landing, or no purchase). */
+export const ACADEMY_PAYMENT_PENDING_LINE =
+  "Thanks for your order. Your access appears here as soon as the payment is confirmed. Refresh in a minute if it doesn't.";
+
 const SOLO_BODY_LEAD = `Every self-paced course in the Academy, with the Elsa ${ELSA_VERSION} lab kit to download and unzip.`;
 
 export function academySoloBundleBody(

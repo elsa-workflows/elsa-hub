@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH, ACADEMY_SOLO_BUNDLE_ID } from "./academyPaths";
 import type { PersonalAcademyGrant } from "./academyOwnership";
 
@@ -69,6 +68,7 @@ type AcademyClient = {
   from: (table: string) => {
     select: (columns: string) => {
       eq: (column: string, value: string | boolean) => AcademyFilter;
+      or: (filters: string) => AcademyFilter;
       order: (column: string, options: { ascending: boolean }) => Promise<AcademyResult<unknown>>;
     };
   };
@@ -170,13 +170,32 @@ export async function isAcademyAlreadyOwnedError(error: unknown): Promise<boolea
   }
 }
 
+/** Sends the browser to a Stripe Checkout URL. Split out so tests can stub navigation. */
+export const academyNavigate = {
+  assign(url: string): void {
+    window.location.assign(url);
+  },
+};
+
 /**
- * Placeholder until Stripe checkout lands. Always buys the Solo Bundle.
+ * Starts Solo Bundle checkout through academy-checkout (main, #86). Every published course
+ * sells the Solo Bundle, so any published course id buys it; without one, the first published
+ * course is used. Rejects with the invoke error so the CTA can map 409 already_owned to the
+ * owned note and show the failure toast for anything else.
  */
-export function handleBuyCourse(): void {
-  toast.message("Checkout is coming soon", {
-    description: "Stripe checkout for the Solo Bundle will land in a follow-up.",
+export async function handleBuyCourse(courseId?: string): Promise<AcademyBuyOutcome> {
+  const id = courseId ?? (await listPublishedCourses())[0]?.id;
+  if (!id) throw new Error("No published Academy course to buy");
+  const { data, error } = await supabase.functions.invoke("academy-checkout", {
+    body: academyCheckoutFields(id),
   });
+  if (error) throw error;
+  const checkoutUrl = (data as { checkoutUrl?: unknown } | null)?.checkoutUrl;
+  if (typeof checkoutUrl !== "string" || !checkoutUrl.startsWith("https://")) {
+    throw new Error("academy-checkout returned no checkout URL");
+  }
+  academyNavigate.assign(checkoutUrl);
+  return undefined;
 }
 
 type AcademyStubModule = typeof import("./academyStub");
@@ -325,18 +344,26 @@ export async function mapCourseAccess(courseIds: string[]): Promise<Record<strin
   return Object.fromEntries(entries);
 }
 
+/** Storage prefix of the shared lab kit. One asset row owns it (UNIQUE storage_path), every course shows it. */
+export const ACADEMY_SHARED_KIT_PREFIX = "kits/";
+
 export async function listCourseKitAssets(courseId: string): Promise<AcademyAsset[]> {
   const { data, error } = await academyClient
     .from("academy_assets")
     .select(ACADEMY_ASSET_COLUMNS)
-    .eq("course_id", courseId)
+    .or(`course_id.eq.${courseId},storage_path.like.${ACADEMY_SHARED_KIT_PREFIX}*`)
     .is("lesson_id", null)
     .order("label", { ascending: true });
 
   if (error) {
     return onMissingAcademyRelation(
       error,
-      (stub) => stub.ACADEMY_STUB_ASSETS.filter((asset) => asset.course_id === courseId && asset.lesson_id === null),
+      (stub) =>
+        stub.ACADEMY_STUB_ASSETS.filter(
+          (asset) =>
+            asset.lesson_id === null &&
+            (asset.course_id === courseId || asset.storage_path.startsWith(ACADEMY_SHARED_KIT_PREFIX)),
+        ),
       [],
     );
   }

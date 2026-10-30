@@ -119,7 +119,7 @@ export default function AcademyCourse() {
 
         {hasAccess && <AcademyKitDownload assets={kitAssets} title="Downloads" />}
 
-        {!hasAccess && <AcademySoloCta locked onBuyCourse={handleBuyCourse} />}
+        {!hasAccess && <AcademySoloCta locked onBuyCourse={() => handleBuyCourse(course.id)} />}
       </section>
     </Layout>
   );

@@ -5,21 +5,25 @@ const {
   maybeSingle,
   order,
   eq,
+  or,
   is,
   select,
   from,
   rpc,
   createSignedUrl,
+  invoke,
 } = vi.hoisted(() => ({
   toast: { message: vi.fn(), error: vi.fn() },
   maybeSingle: vi.fn(),
   order: vi.fn(),
   eq: vi.fn(),
+  or: vi.fn(),
   is: vi.fn(),
   select: vi.fn(),
   from: vi.fn(),
   rpc: vi.fn(),
   createSignedUrl: vi.fn(),
+  invoke: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -30,6 +34,9 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (...args: unknown[]) => from(...args),
     rpc: (...args: unknown[]) => rpc(...args),
+    functions: {
+      invoke: (...args: unknown[]) => invoke(...args),
+    },
     storage: {
       from: () => ({
         createSignedUrl: (...args: unknown[]) => createSignedUrl(...args),
@@ -50,6 +57,7 @@ import {
   createAcademyKitSignedUrl,
   fetchLessonBody,
   getLessonPageMeta,
+  academyNavigate,
   handleBuyCourse,
   hasAcademyAccess,
   isAcademyAlreadyOwnedError,
@@ -94,6 +102,7 @@ const outlineRows = [
 function mockQuery() {
   const query = {
     select,
+    or,
     eq,
     is,
     order,
@@ -101,6 +110,7 @@ function mockQuery() {
   };
   select.mockReturnValue(query);
   eq.mockReturnValue(query);
+  or.mockReturnValue(query);
   is.mockReturnValue(query);
   order.mockReturnValue(query);
   from.mockReturnValue(query);
@@ -175,8 +185,36 @@ describe("academy data layer", () => {
     expect(academyCheckoutFields("course-1")).not.toHaveProperty("organizationId");
     expect(academyCheckoutFields("course-1")).not.toHaveProperty("productCode");
     expect(ACADEMY_SOLO_PRODUCT_CODE).toBe("solo_bundle");
-    handleBuyCourse();
-    expect(toast.message).toHaveBeenCalled();
+  });
+
+  it("starts Solo checkout through academy-checkout and redirects to Stripe", async () => {
+    const assign = vi.spyOn(academyNavigate, "assign").mockImplementation(() => {});
+    invoke.mockResolvedValueOnce({
+      data: { checkoutUrl: "https://checkout.stripe.com/c/pay/cs_live_x", sessionId: "cs_live_x" },
+      error: null,
+    });
+    await expect(handleBuyCourse("course-1")).resolves.toBeUndefined();
+    expect(invoke).toHaveBeenCalledWith("academy-checkout", { body: { courseId: "course-1" } });
+    expect(assign).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/cs_live_x");
+    expect(toast.message).not.toHaveBeenCalled();
+    assign.mockRestore();
+  });
+
+  it("rejects with the invoke error so the CTA can handle 409 already_owned", async () => {
+    const assign = vi.spyOn(academyNavigate, "assign").mockImplementation(() => {});
+    const failure = { context: new Response(JSON.stringify({ error: ACADEMY_ALREADY_OWNED }), { status: 409 }) };
+    invoke.mockResolvedValueOnce({ data: null, error: failure });
+    await expect(handleBuyCourse("course-1")).rejects.toBe(failure);
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
+  });
+
+  it("refuses a checkout response without an https URL", async () => {
+    const assign = vi.spyOn(academyNavigate, "assign").mockImplementation(() => {});
+    invoke.mockResolvedValueOnce({ data: {}, error: null });
+    await expect(handleBuyCourse("course-1")).rejects.toThrow("no checkout URL");
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
   });
 
   it("detects missing-relation errors from codes only", () => {
@@ -193,6 +231,7 @@ describe("academy data layer", () => {
     await listCourseKitAssets("course-1");
 
     expect(from).toHaveBeenCalledWith("academy_assets");
+    expect(or).toHaveBeenCalledWith("course_id.eq.course-1,storage_path.like.kits/*");
     expect(is).toHaveBeenCalledWith("lesson_id", null);
   });
 

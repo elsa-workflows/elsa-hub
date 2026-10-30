@@ -15,6 +15,7 @@ import {
   ACADEMY_CHECKOUT_FAILED_LINE,
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
+  ACADEMY_PAYMENT_PENDING_LINE,
   ACADEMY_PAYMENT_SUCCESS_LINE,
   ACADEMY_SOLO_BUY_LABEL,
   ACADEMY_SOLO_HEADING,
@@ -126,7 +127,12 @@ export function AcademySoloCta({
         <CardDescription>{academySoloBundleBody()}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {paymentSuccess && <AcademyPaymentSuccessNote />}
+        {paymentSuccess && (ownership === "owned" || checkoutSaysOwned) && <AcademyPaymentSuccessNote />}
+        {paymentSuccess && ownership !== "owned" && !checkoutSaysOwned && (
+          <p data-testid="academy-payment-pending" className="text-sm text-muted-foreground">
+            {ACADEMY_PAYMENT_PENDING_LINE}
+          </p>
+        )}
 
         {showIncluded && (
           <ul className="list-disc pl-5 text-sm space-y-1">
