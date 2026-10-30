@@ -110,5 +110,5 @@ export async function signOutCloudAccount(): Promise<void> {
   clearCloudAccountOwner();
   const auth = cloudAccountClient();
   if (!auth) return;
-  await auth.auth.signOut();
+  await auth.auth.signOut({ scope: "local" });
 }

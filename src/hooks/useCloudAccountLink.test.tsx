@@ -169,6 +169,10 @@ describe("useCloudAccountLink", () => {
       await result.current.linkAccount();
     });
     expect(result.current.view.kind).toBe("reauth");
+    expect(result.current.view).toMatchObject({
+      kind: "reauth",
+      message: expect.stringMatching(/hub and elsa cloud/i),
+    });
     expect(startHubReauth).toHaveBeenCalledWith("/dashboard/org/acme/cloud/link");
     expect(auth.signOut).not.toHaveBeenCalled();
     expect(invoke).toHaveBeenCalledTimes(1);

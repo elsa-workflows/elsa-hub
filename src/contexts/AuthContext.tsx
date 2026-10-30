@@ -191,7 +191,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // this session signed in, and a failed sign-out leaves the user signed in too.
     if (id && !error && options?.scope !== "others") {
       clearCloudSetupMarker(id);
-      await signOutCloudAccount();
+      // Cloud is cleared by the SIGNED_OUT listener, not here, so an
+      // explicit Hub sign-out does not call signOutCloudAccount twice.
     }
     return { error };
   };

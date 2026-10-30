@@ -152,7 +152,9 @@ describe("AuthContext passwordless methods", () => {
 
     await result.current.signOut();
     expect(hasCloudSetupMarker("u1")).toBe(false);
-    expect(signOutCloudAccount).toHaveBeenCalled();
+    expect(signOutCloudAccount).not.toHaveBeenCalled();
+    authStateListeners[0]("SIGNED_OUT", null);
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalledTimes(1));
   });
 
   it("clears the Cloud session on Hub SIGNED_OUT from expiry", async () => {
@@ -187,10 +189,10 @@ describe("AuthContext passwordless methods", () => {
 
     await result.current.signOut({ scope: "local" });
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
-    expect(signOutCloudAccount).toHaveBeenCalled();
+    expect(signOutCloudAccount).not.toHaveBeenCalled();
 
     authStateListeners[0]("SIGNED_OUT", null);
-    await waitFor(() => expect(signOutCloudAccount.mock.calls.length).toBeGreaterThanOrEqual(2));
+    await waitFor(() => expect(signOutCloudAccount).toHaveBeenCalledTimes(1));
   });
 
   it("forwards the sign-out scope and returns the sign-out error", async () => {

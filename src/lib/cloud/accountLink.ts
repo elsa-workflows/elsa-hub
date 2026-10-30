@@ -63,7 +63,6 @@ export async function startHubReauth(returnPath: string): Promise<void> {
 }
 
 export function reauthMessage(staleSession: CloudAccountLinkStaleSession): string {
-  if (staleSession === "hub") return "Sign in to the Hub again, then retry the link.";
   if (staleSession === "cloud") return "Sign in to Elsa Cloud again, then retry the link.";
   return "Sign in to the Hub and Elsa Cloud again, then retry the link.";
 }

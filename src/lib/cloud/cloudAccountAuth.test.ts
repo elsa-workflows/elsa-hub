@@ -98,14 +98,14 @@ describe("cloudAccountAuth", () => {
     stubCloudEnv();
     sessionStorage.setItem(CLOUD_ACCOUNT_HUB_OWNER_KEY, "hub-user-a");
     await expect(getCloudAccountAccessToken("hub-user-b")).resolves.toBeNull();
-    expect(signOut).toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(sessionStorage.getItem(CLOUD_ACCOUNT_HUB_OWNER_KEY)).toBeNull();
   });
 
   it("refuses an unowned Cloud session, as in a new tab or after a browser reopen", async () => {
     stubCloudEnv();
     await expect(getCloudAccountAccessToken("hub-user-b")).resolves.toBeNull();
-    expect(signOut).toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(sessionStorage.getItem(CLOUD_ACCOUNT_HUB_OWNER_KEY)).toBeNull();
   });
 
@@ -115,6 +115,14 @@ describe("cloudAccountAuth", () => {
     await expect(getCloudAccountAccessToken("hub-user-a")).resolves.toBe("cloud-session-token");
     expect(signOut).not.toHaveBeenCalled();
     await signOutCloudAccount();
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
     expect(sessionStorage.getItem(CLOUD_ACCOUNT_HUB_OWNER_KEY)).toBeNull();
+  });
+
+  it("signs the Cloud client out locally so other Elsa Cloud sessions stay signed in", async () => {
+    stubCloudEnv();
+    await signOutCloudAccount();
+    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 });

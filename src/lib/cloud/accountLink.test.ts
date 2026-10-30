@@ -46,8 +46,9 @@ describe("accountLinkResultView", () => {
       error: CLOUD_ACCOUNT_LINK_REAUTH,
       staleSession: "cloud",
     })).toEqual({ kind: "reauth", staleSession: "cloud" });
-    expect(reauthMessage("hub")).toMatch(/hub/i);
+    expect(reauthMessage("hub")).toMatch(/hub and elsa cloud/i);
     expect(reauthMessage("both")).toMatch(/hub and elsa cloud/i);
+    expect(reauthMessage("cloud")).toMatch(/elsa cloud/i);
   });
 });
 
