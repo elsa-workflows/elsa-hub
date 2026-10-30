@@ -7,9 +7,15 @@ import { toast } from "sonner";
 export function AcademyKitDownload({
   assets,
   title = "Downloads",
+  buttonLabel,
+  testId = "academy-kit-downloads",
 }: {
   assets: AcademyAsset[];
-  title?: string;
+  /** null renders no heading, for a download placed inside other content. */
+  title?: string | null;
+  /** Replaces each asset label on its button. */
+  buttonLabel?: string;
+  testId?: string;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -28,8 +34,8 @@ export function AcademyKitDownload({
   };
 
   return (
-    <div className="space-y-3" data-testid="academy-kit-downloads">
-      <h2 className="text-lg font-semibold">{title}</h2>
+    <div className="space-y-3" data-testid={testId}>
+      {title !== null && <h2 className="text-lg font-semibold">{title}</h2>}
       <ul className="space-y-2">
         {assets.map((asset) => (
           <li key={asset.id}>
@@ -40,7 +46,7 @@ export function AcademyKitDownload({
               disabled={busyId === asset.id}
             >
               <Download className="h-4 w-4" />
-              {busyId === asset.id ? "Preparing link..." : asset.label}
+              {busyId === asset.id ? "Preparing link..." : (buttonLabel ?? asset.label)}
             </Button>
           </li>
         ))}

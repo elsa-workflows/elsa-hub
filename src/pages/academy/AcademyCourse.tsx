@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
+import { AcademyKitStep } from "@/components/academy/AcademyKitStep";
 import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyLessonList } from "@/components/academy/AcademyLessonList";
 import {
@@ -103,6 +104,12 @@ export default function AcademyCourse() {
           {course.summary && <p className="text-lg text-muted-foreground">{course.summary}</p>}
           {hasAccess && <p className="text-sm text-primary">You have access to this course.</p>}
           {hasAccess && <AcademyPaymentSuccessNote />}
+          <AcademyKitStep
+            hasAccess={hasAccess}
+            kitAssets={kitAssets}
+            onBuyCourse={() => handleBuyCourse(course.id)}
+            testId="academy-kit-step-top"
+          />
         </header>
 
         <div className="space-y-4">

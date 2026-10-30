@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
-const { handleBuyCourse, useAcademyLesson, useAuth } = vi.hoisted(() => ({
+const { createAcademyKitSignedUrl, handleBuyCourse, useAcademyLesson, useAuth } = vi.hoisted(() => ({
+  createAcademyKitSignedUrl: vi.fn(() => new Promise<string>(() => {})),
   handleBuyCourse: vi.fn(),
   useAcademyLesson: vi.fn(),
   useAuth: vi.fn(() => ({ user: { id: "user-1" } })),
@@ -34,6 +35,7 @@ vi.mock("@/lib/academy", async () => {
   const actual = await vi.importActual<typeof import("@/lib/academy")>("@/lib/academy");
   return {
     ...actual,
+    createAcademyKitSignedUrl,
     handleBuyCourse,
   };
 });
@@ -41,6 +43,8 @@ vi.mock("@/lib/academy", async () => {
 import AcademyLesson from "./AcademyLesson";
 import {
   ACADEMY_GUMROAD_CLAIM_LINE,
+  ACADEMY_KIT_BUY_NOTE,
+  ACADEMY_KIT_DOWNLOAD_LABEL,
   ACADEMY_SOLO_BUY_LABEL,
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
@@ -262,5 +266,136 @@ describe("Academy lesson page", () => {
 
     expect(screen.getByRole("heading", { name: "No content yet" })).toBeInTheDocument();
     expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
+  });
+
+  describe("kit step", () => {
+    const kitSentence =
+      "**Download:** get `elsa-fundamentals-workshop-kit.zip` from the lab kit download on this course page (workshop host, Studio, labs).";
+    const kitAssets = [
+      {
+        id: "offline-core",
+        course_id: "course-1",
+        lesson_id: null,
+        label: "Course lessons, offline copy (Core)",
+        storage_path: "courses/elsa-3.9.0/fundamentals-core-self-paced.zip",
+      },
+      {
+        id: "lab-kit",
+        course_id: "other-course",
+        lesson_id: null,
+        label: "Lab kit (Elsa 3.9.0)",
+        storage_path: "kits/solo-bundle-20261013/elsa-fundamentals-workshop-kit.zip",
+      },
+    ];
+    const base = {
+      course,
+      assets: [],
+      authLoading: false,
+      notFound: false,
+      isLoading: false,
+      isError: false,
+      error: null,
+    };
+
+    it("shows Download the kit right after the kit sentence for an entitled user", () => {
+      useAcademyLesson.mockReturnValue({
+        ...base,
+        lesson: paidLesson,
+        bodyMd: `Intro paragraph.\n\n${kitSentence}\n\n## After download\n\nUnzip it.`,
+        kitAssets,
+        hasAccess: true,
+        isPreview: false,
+        canRead: true,
+        user: { id: "user-1" },
+      });
+
+      renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");
+
+      const body = screen.getByTestId("academy-lesson-body");
+      const step = within(body).getByTestId("academy-kit-step");
+      const sentence = within(body).getByText(/from the lab kit download on this course page/);
+      expect(sentence.closest("p")?.nextElementSibling).toContainElement(step);
+      expect(screen.getAllByTestId("academy-kit-step")).toHaveLength(1);
+      const download = within(step).getByRole("button", { name: ACADEMY_KIT_DOWNLOAD_LABEL });
+      expect(within(step).queryByText("Course lessons, offline copy (Core)")).not.toBeInTheDocument();
+      expect(screen.queryByText(ACADEMY_KIT_BUY_NOTE)).not.toBeInTheDocument();
+      fireEvent.click(download);
+      expect(createAcademyKitSignedUrl).toHaveBeenCalledWith(
+        "kits/solo-bundle-20261013/elsa-fundamentals-workshop-kit.zip",
+      );
+    });
+
+    it("shows the buy note with Buy on a free preview lesson for a signed-in user without access", () => {
+      handleBuyCourse.mockClear();
+      useAcademyLesson.mockReturnValue({
+        ...base,
+        lesson: previewLesson,
+        bodyMd:
+          "1. Download and unzip the kit (`elsa-fundamentals-workshop-kit.zip` from the lab kit download on this course page) and open the root **README**.\n2. Run the host.",
+        kitAssets: [],
+        hasAccess: false,
+        isPreview: true,
+        canRead: true,
+        user: { id: "user-1" },
+      });
+
+      renderLesson("/academy/elsa-3-solo-bundle/welcome");
+
+      const step = screen.getByTestId("academy-kit-step");
+      expect(step.closest("li")).toHaveTextContent("Download and unzip the kit");
+      expect(within(step).getByText(ACADEMY_KIT_BUY_NOTE)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: ACADEMY_KIT_DOWNLOAD_LABEL })).not.toBeInTheDocument();
+      const buy = within(step).getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL });
+      fireEvent.click(buy);
+      fireEvent.click(buy);
+      expect(handleBuyCourse).toHaveBeenCalledTimes(1);
+      expect(handleBuyCourse).toHaveBeenCalledWith("course-1");
+    });
+
+    it("shows the buy note on a free preview lesson for a signed-out visitor, and Buy goes to sign in", () => {
+      handleBuyCourse.mockClear();
+      useAcademyLesson.mockReturnValue({
+        ...base,
+        lesson: previewLesson,
+        bodyMd: `Get the workshop kit running locally.\n\n${kitSentence}`,
+        kitAssets: [],
+        hasAccess: false,
+        isPreview: true,
+        canRead: true,
+        user: null,
+      });
+      useAuth.mockReturnValue({ user: null } as never);
+
+      renderLesson("/academy/elsa-3-solo-bundle/welcome");
+
+      const step = screen.getByTestId("academy-kit-step");
+      expect(within(step).getByText(ACADEMY_KIT_BUY_NOTE)).toBeInTheDocument();
+      fireEvent.click(within(step).getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
+      expect(handleBuyCourse).not.toHaveBeenCalled();
+      expect(
+        screen.getByText("login?redirect=%2Facademy%2Felsa-3-solo-bundle%2Fwelcome"),
+      ).toBeInTheDocument();
+      useAuth.mockReturnValue({ user: { id: "user-1" } });
+    });
+
+    it("shows no kit step in a lesson without the kit sentence", () => {
+      useAcademyLesson.mockReturnValue({
+        ...base,
+        lesson: paidLesson,
+        bodyMd:
+          "| **Kit** | Host `:5000` |\n|---|---|\n\nFollow kit `labs/LabA/README.md`.\n\n- Kit downloaded and unzipped\n\n```bash\nunzip elsa-fundamentals-workshop-kit.zip\n```",
+        kitAssets,
+        hasAccess: true,
+        isPreview: false,
+        canRead: true,
+        user: { id: "user-1" },
+      });
+
+      renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");
+
+      expect(screen.getByText(/Follow kit/)).toBeInTheDocument();
+      expect(screen.queryByTestId("academy-kit-step")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: ACADEMY_KIT_DOWNLOAD_LABEL })).not.toBeInTheDocument();
+    });
   });
 });

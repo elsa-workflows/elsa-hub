@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 
@@ -26,7 +26,14 @@ vi.mock("@/contexts/AuthContext", () => ({
 }));
 
 import AcademyCourse from "./AcademyCourse";
-import { ACADEMY_SOLO_INCLUDED, ACADEMY_SOLO_LOCKED_HEADING, ACADEMY_SOLO_SIGN_IN_LABEL } from "@/lib/academyCopy";
+import {
+  ACADEMY_KIT_BUY_NOTE,
+  ACADEMY_KIT_DOWNLOAD_LABEL,
+  ACADEMY_SOLO_BUY_LABEL,
+  ACADEMY_SOLO_INCLUDED,
+  ACADEMY_SOLO_LOCKED_HEADING,
+  ACADEMY_SOLO_SIGN_IN_LABEL,
+} from "@/lib/academyCopy";
 
 const course = {
   id: "course-1",
@@ -129,5 +136,64 @@ describe("Academy course page", () => {
     expect(screen.getByTestId("academy-kit-downloads")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Downloads" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Solo Bundle lab kit" })).toBeInTheDocument();
+  });
+
+  it("shows Download the kit near the top of the course page for an entitled user", () => {
+    useAcademyCourse.mockReturnValue({
+      course,
+      lessons,
+      kitAssets: [
+        {
+          id: "offline-core",
+          course_id: "course-1",
+          lesson_id: null,
+          label: "Course lessons, offline copy (Core)",
+          storage_path: "courses/elsa-3.9.0/fundamentals-core-self-paced.zip",
+        },
+        {
+          id: "lab-kit",
+          course_id: "other-course",
+          lesson_id: null,
+          label: "Lab kit (Elsa 3.9.0)",
+          storage_path: "kits/solo-bundle-20261013/elsa-fundamentals-workshop-kit.zip",
+        },
+      ],
+      hasAccess: true,
+      notFound: false,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    renderCourse();
+
+    const top = screen.getByTestId("academy-kit-step-top");
+    expect(top.closest("header")).toContainElement(screen.getByRole("heading", { level: 1, name: course.title }));
+    expect(within(top).getByRole("button", { name: ACADEMY_KIT_DOWNLOAD_LABEL })).toBeInTheDocument();
+    expect(within(top).queryByText("Course lessons, offline copy (Core)")).not.toBeInTheDocument();
+    // The full Downloads list stays lower down.
+    expect(screen.getByRole("button", { name: "Lab kit (Elsa 3.9.0)" })).toBeInTheDocument();
+    expect(screen.queryByText(ACADEMY_KIT_BUY_NOTE)).not.toBeInTheDocument();
+  });
+
+  it("shows the buy note with Buy near the top of the course page without access", () => {
+    useAcademyCourse.mockReturnValue({
+      course,
+      lessons,
+      kitAssets: [],
+      hasAccess: false,
+      notFound: false,
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    renderCourse();
+
+    const top = screen.getByTestId("academy-kit-step-top");
+    expect(top.closest("header")).not.toBeNull();
+    expect(within(top).getByText(ACADEMY_KIT_BUY_NOTE)).toBeInTheDocument();
+    expect(within(top).getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_KIT_DOWNLOAD_LABEL })).not.toBeInTheDocument();
   });
 });

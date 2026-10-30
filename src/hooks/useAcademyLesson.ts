@@ -6,6 +6,7 @@ import {
   fetchLessonBody,
   getLessonPageMeta,
   hasAcademyAccess,
+  listCourseKitAssets,
   listLessonAssets,
 } from "@/lib/academy";
 
@@ -46,11 +47,19 @@ export function useAcademyLesson(courseSlug: string | undefined, lessonSlug: str
     enabled: Boolean(course?.id && lesson?.id && hasAccess),
   });
 
+  // Same query as the course page, so the lab kit comes from one cached, entitlement-gated read.
+  const kitsQuery = useQuery({
+    queryKey: ["academy-course-kits", course?.id],
+    queryFn: () => listCourseKitAssets(course!.id),
+    enabled: Boolean(course?.id && hasAccess),
+  });
+
   return {
     course,
     lesson,
     bodyMd: canRead ? (bodyQuery.data ?? null) : null,
     assets: hasAccess ? (assetsQuery.data ?? []) : [],
+    kitAssets: hasAccess ? (kitsQuery.data ?? []) : [],
     hasAccess,
     isPreview,
     canRead,
