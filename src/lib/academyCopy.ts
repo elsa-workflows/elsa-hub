@@ -68,6 +68,11 @@ export const ACADEMY_TEAM_LINE_LINK = "Training page";
 export const ACADEMY_TEAM_LINE_AFTER = ".";
 export const ACADEMY_TEAM_LINE = `${ACADEMY_TEAM_LINE_BEFORE}${ACADEMY_TEAM_LINE_LINK}${ACADEMY_TEAM_LINE_AFTER}`;
 
+export const ACADEMY_KIT_DOWNLOAD_LABEL = "Download the kit";
+export const ACADEMY_KIT_BUY_NOTE = "Buy the course to download the kit";
+export const ACADEMY_KIT_PENDING_NOTE =
+  "Your kit download appears here as soon as the payment is confirmed.";
+
 export const ACADEMY_PAYMENT_SUCCESS_LINE =
   "You're in. Start with the first lesson, or download the lab kit and unzip it.";
 

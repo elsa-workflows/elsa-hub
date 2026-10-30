@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
+import { AcademyKitStep } from "@/components/academy/AcademyKitStep";
 import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyLessonList } from "@/components/academy/AcademyLessonList";
 import {
@@ -25,7 +26,11 @@ import {
   academyCourseJsonLd,
   academyCourseTitle,
 } from "@/lib/academySeo";
+import { academyLabKitAssets } from "@/lib/academyKitStep";
 import { SITE_URL } from "@/lib/site";
+
+/** The Solo CTA on the course page; the kit step's Buy links here so there is one checkout. */
+const ACADEMY_COURSE_BUY_ID = "academy-course-buy";
 
 export default function AcademyCourse() {
   const { courseSlug } = useParams<{ courseSlug: string }>();
@@ -69,6 +74,9 @@ export default function AcademyCourse() {
   }
 
   const path = coursePath(course.slug);
+  // The lab kit already sits at the top as "Download the kit"; list only the other files here.
+  const labKit = academyLabKitAssets(kitAssets);
+  const otherDownloads = kitAssets.filter((asset) => !labKit.includes(asset));
 
   return (
     <Layout>
@@ -103,6 +111,13 @@ export default function AcademyCourse() {
           {course.summary && <p className="text-lg text-muted-foreground">{course.summary}</p>}
           {hasAccess && <p className="text-sm text-primary">You have access to this course.</p>}
           {hasAccess && <AcademyPaymentSuccessNote />}
+          <AcademyKitStep
+            hasAccess={hasAccess}
+            kitAssets={kitAssets}
+            onBuyCourse={() => handleBuyCourse(course.id)}
+            buyHref={`#${ACADEMY_COURSE_BUY_ID}`}
+            testId="academy-kit-step-top"
+          />
         </header>
 
         <div className="space-y-4">
@@ -117,9 +132,17 @@ export default function AcademyCourse() {
           )}
         </div>
 
-        {hasAccess && <AcademyKitDownload assets={kitAssets} title="Downloads" />}
+        {hasAccess && otherDownloads.length > 0 && (
+          <AcademyKitDownload assets={otherDownloads} title="Downloads" />
+        )}
 
-        {!hasAccess && <AcademySoloCta locked onBuyCourse={() => handleBuyCourse(course.id)} />}
+        {!hasAccess && (
+          <AcademySoloCta
+            id={ACADEMY_COURSE_BUY_ID}
+            locked
+            onBuyCourse={() => handleBuyCourse(course.id)}
+          />
+        )}
       </section>
     </Layout>
   );

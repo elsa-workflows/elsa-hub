@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
+import { AcademyKitStep } from "@/components/academy/AcademyKitStep";
 import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyMarkdown } from "@/components/academy/AcademyMarkdown";
 import {
@@ -36,6 +37,7 @@ export default function AcademyLesson() {
     lesson,
     bodyMd,
     assets,
+    kitAssets,
     hasAccess,
     isPreview,
     canRead,
@@ -138,7 +140,19 @@ export default function AcademyLesson() {
         {canRead ? (
           <>
             {bodyMd ? (
-              <AcademyMarkdown markdown={bodyMd} />
+              // The kit step lands after the first paragraph or list item whose text matches
+              // ACADEMY_KIT_STEP_PATTERN (rehypeAcademyKitStep), so its placement depends on the
+              // lesson wording: rewording that sentence moves or removes the button.
+              <AcademyMarkdown
+                markdown={bodyMd}
+                kitStep={
+                  <AcademyKitStep
+                    hasAccess={hasAccess}
+                    kitAssets={kitAssets}
+                    onBuyCourse={() => handleBuyCourse(course.id)}
+                  />
+                }
+              />
             ) : (
               <AcademyEmptyState
                 title="No content yet"
