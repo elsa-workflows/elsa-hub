@@ -45,6 +45,8 @@ const CloudServices = lazy(() => import("./pages/enterprise/CloudServices"));
 const CloudHome = lazy(() => import("./pages/cloud/CloudHome"));
 const CloudEngineOverview = lazy(() => import("./pages/cloud/CloudEngineOverview"));
 const CloudBilling = lazy(() => import("./pages/cloud/CloudBilling"));
+const CloudLinkAccount = lazy(() => import("./pages/cloud/CloudLinkAccount"));
+const CloudLinkCallback = lazy(() => import("./pages/cloud/CloudLinkCallback"));
 const LegacyCloudRedirect = lazy(() =>
   import("@/components/cloud/CloudRedirects").then((m) => ({ default: m.LegacyCloudRedirect }))
 );
@@ -214,6 +216,7 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/cloud-callback" element={<CloudLinkCallback />} />
               <Route path="/auth/confirm" element={<AuthConfirm />} />
               <Route path="/invite/:token" element={<AcceptInvitation />} />
               <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
@@ -238,10 +241,12 @@ const App = () => (
                 <Route path="settings/notifications" element={<NotificationSettings />} />
                 <Route path="cloud" element={<CloudHome />} />
                 <Route path="cloud/billing" element={<CloudBilling />} />
+                <Route path="cloud/link" element={<CloudLinkAccount />} />
                 <Route path="cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug" element={<OrgOverview />} />
                 <Route path="org/:slug/cloud" element={<CloudHome />} />
                 <Route path="org/:slug/cloud/billing" element={<CloudBilling />} />
+                <Route path="org/:slug/cloud/link" element={<CloudLinkAccount />} />
                 <Route path="org/:slug/cloud/engines/:engineId" element={<CloudEngineOverview />} />
                 <Route path="org/:slug/orders" element={<OrgOrders />} />
                 <Route path="org/:slug/credits" element={<OrgCredits />} />

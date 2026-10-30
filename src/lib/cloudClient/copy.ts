@@ -33,6 +33,20 @@ export const CLOUD_LINK_CHECK_ERROR =
 export const CLOUD_PICK_ORG_HEADING = "Choose an organization";
 export const CLOUD_PICK_ORG_MESSAGE =
   "Pick which Hub organization to open in Elsa Cloud.";
+export const CLOUD_ACCOUNT_LINK_TITLE = "Bring your Elsa Cloud account";
+export const CLOUD_ACCOUNT_LINK_INTRO =
+  "Sign in to Elsa Cloud in this step, then confirm. Microsoft, Google, or email Cloud accounts all work here. The Hub keeps GitHub, Google, and email sign-in.";
+export const CLOUD_ACCOUNT_LINK_ACTION = "Link Elsa Cloud account";
+export const CLOUD_ACCOUNT_LINK_ALREADY_HEADING = "Already linked";
+export const CLOUD_ACCOUNT_LINK_DONE_HEADING = "Accounts linked";
+export const CLOUD_ACCOUNT_LINK_HELP =
+  "Can't find your engines? Link an existing Elsa Cloud account.";
+export const CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE = "Sign in to Elsa Cloud with Google";
+export const CLOUD_ACCOUNT_LINK_CLOUD_MICROSOFT = "Sign in to Elsa Cloud with Microsoft";
+export const CLOUD_ACCOUNT_LINK_CLOUD_EMAIL = "Sign in to Elsa Cloud with email";
+export const CLOUD_ACCOUNT_LINK_CONFIRM = "Confirm and link";
+export const CLOUD_ACCOUNT_LINK_UNAVAILABLE =
+  "Elsa Cloud sign-in is not configured in this environment.";
 export const CLOUD_CREATE_ENGINE = "Create engine";
 export const CLOUD_ENGINE_NAME_LABEL = "Engine name";
 export const CLOUD_OPEN_STUDIO = "Open Studio";

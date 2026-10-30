@@ -43,6 +43,7 @@ describe("cloud-bff action contract", () => {
       "deleteEngine",
       "deleteOperationStatus",
       "issueStudioHandoff",
+      "linkCloudAccount",
     ]);
   });
 
@@ -222,6 +223,10 @@ describe("cloud-bff action contract", () => {
         audience: "https://studio.example",
         redirectUri: "https://studio.example/handoff",
         codeChallenge: "challenge",
+      },
+      {
+        action: "linkCloudAccount",
+        cloudAccessToken: "cloud-session-token",
       },
     ];
     expect(requests.filter((request) => request.action === "bootstrap")).toHaveLength(2);

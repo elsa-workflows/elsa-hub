@@ -142,5 +142,6 @@ export function useCloudConsolePaths() {
   return {
     home,
     engine: (engineId: string) => `${home}/engines/${engineId}`,
+    link: `${home}/link`,
   };
 }
