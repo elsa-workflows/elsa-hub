@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
 import { AcademyKitStep } from "@/components/academy/AcademyKitStep";
+import { AcademyLessonFrame } from "@/components/academy/AcademyLessonFrame";
 import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { AcademyMarkdown } from "@/components/academy/AcademyMarkdown";
 import {
@@ -35,6 +36,7 @@ export default function AcademyLesson() {
   const {
     course,
     lesson,
+    lessons,
     bodyMd,
     assets,
     kitAssets,
@@ -128,43 +130,51 @@ export default function AcademyLesson() {
         </div>
       </section>
 
-      <article className="container max-w-3xl pb-20 space-y-8">
-        <header className="space-y-2">
-          <h1 className="text-4xl font-bold">{lesson.title}</h1>
-          {isPreview && (
-            <p className="text-sm text-muted-foreground">Free preview lesson.</p>
-          )}
-          {hasAccess && <AcademyPaymentSuccessNote />}
-        </header>
-
-        {canRead ? (
-          <>
-            {bodyMd ? (
-              // The kit step lands after the first paragraph or list item whose text matches
-              // ACADEMY_KIT_STEP_PATTERN (rehypeAcademyKitStep), so its placement depends on the
-              // lesson wording: rewording that sentence moves or removes the button.
-              <AcademyMarkdown
-                markdown={bodyMd}
-                kitStep={
-                  <AcademyKitStep
-                    hasAccess={hasAccess}
-                    kitAssets={kitAssets}
-                    onBuyCourse={() => handleBuyCourse(course.id)}
-                  />
-                }
-              />
-            ) : (
-              <AcademyEmptyState
-                title="No content yet"
-                message="This lesson has no content yet. Check back soon."
-              />
+      <AcademyLessonFrame
+        course={course}
+        lesson={lesson}
+        lessons={lessons}
+        hasAccess={hasAccess}
+        canRead={canRead}
+      >
+        <article className="container max-w-3xl pb-20 space-y-8">
+          <header className="space-y-2">
+            <h1 className="text-4xl font-bold">{lesson.title}</h1>
+            {isPreview && (
+              <p className="text-sm text-muted-foreground">Free preview lesson.</p>
             )}
-            {hasAccess && <AcademyKitDownload assets={assets} title="Lesson files" />}
-          </>
-        ) : (
-          <AcademySoloCta locked onBuyCourse={() => handleBuyCourse(course.id)} />
-        )}
-      </article>
+            {hasAccess && <AcademyPaymentSuccessNote />}
+          </header>
+
+          {canRead ? (
+            <>
+              {bodyMd ? (
+                // The kit step lands after the first paragraph or list item whose text matches
+                // ACADEMY_KIT_STEP_PATTERN (rehypeAcademyKitStep), so its placement depends on the
+                // lesson wording: rewording that sentence moves or removes the button.
+                <AcademyMarkdown
+                  markdown={bodyMd}
+                  kitStep={
+                    <AcademyKitStep
+                      hasAccess={hasAccess}
+                      kitAssets={kitAssets}
+                      onBuyCourse={() => handleBuyCourse(course.id)}
+                    />
+                  }
+                />
+              ) : (
+                <AcademyEmptyState
+                  title="No content yet"
+                  message="This lesson has no content yet. Check back soon."
+                />
+              )}
+              {hasAccess && <AcademyKitDownload assets={assets} title="Lesson files" />}
+            </>
+          ) : (
+            <AcademySoloCta locked onBuyCourse={() => handleBuyCourse(course.id)} />
+          )}
+        </article>
+      </AcademyLessonFrame>
     </Layout>
   );
 }

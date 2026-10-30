@@ -379,6 +379,33 @@ describe("Academy lesson page", () => {
       useAuth.mockReturnValue({ user: { id: "user-1" } });
     });
 
+    it("keeps the kit step inside the lesson nav frame, with the outline and Next", () => {
+      useAcademyLesson.mockReturnValue({
+        ...base,
+        lesson: previewLesson,
+        lessons: [previewLesson, paidLesson],
+        bodyMd: `Get the workshop kit running locally.\n\n${kitSentence}`,
+        kitAssets: [],
+        hasAccess: false,
+        isPreview: true,
+        canRead: true,
+        user: { id: "user-1" },
+      });
+
+      renderLesson("/academy/elsa-3-solo-bundle/welcome?payment=success");
+
+      expect(screen.getByText("Lesson 1 of 2")).toBeInTheDocument();
+      expect(screen.getAllByTestId("academy-outline-lesson")).toHaveLength(2);
+      expect(screen.getByTestId("academy-nav-next")).toHaveTextContent(paidLesson.title);
+      expect(screen.getByRole("link", { name: "Back to course" })).toHaveAttribute(
+        "href",
+        "/academy/elsa-3-solo-bundle",
+      );
+      const step = screen.getByTestId("academy-kit-step");
+      expect(within(step).getByTestId("academy-kit-pending")).toHaveTextContent(ACADEMY_KIT_PENDING_NOTE);
+      expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+    });
+
     it("hides the kit step Buy on payment=success before access is granted", () => {
       handleBuyCourse.mockClear();
       useAcademyLesson.mockReturnValue({

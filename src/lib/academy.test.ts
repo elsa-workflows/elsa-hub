@@ -141,6 +141,7 @@ describe("academy data layer", () => {
     await expect(getLessonPageMeta("fundamentals-core", "hosting")).resolves.toEqual({
       course: publishedCourse,
       lesson: { ...outlineRows[1], course_id: "course-1" },
+      lessons: outlineRows.map((row) => ({ ...row, course_id: "course-1" })),
     });
     expect(from).toHaveBeenCalledWith("academy_courses");
     expect(from).not.toHaveBeenCalledWith("academy_lessons");

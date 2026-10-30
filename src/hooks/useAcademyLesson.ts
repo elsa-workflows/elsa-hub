@@ -22,6 +22,7 @@ export function useAcademyLesson(courseSlug: string | undefined, lessonSlug: str
 
   const course = metaQuery.data?.course ?? null;
   const lesson = metaQuery.data?.lesson ?? null;
+  const lessons = metaQuery.data?.lessons ?? [];
   const isPreview = lesson?.is_preview === true;
 
   const accessQuery = useQuery({
@@ -57,6 +58,7 @@ export function useAcademyLesson(courseSlug: string | undefined, lessonSlug: str
   return {
     course,
     lesson,
+    lessons,
     bodyMd: canRead ? (bodyQuery.data ?? null) : null,
     assets: hasAccess ? (assetsQuery.data ?? []) : [],
     kitAssets: hasAccess ? (kitsQuery.data ?? []) : [],
