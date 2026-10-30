@@ -95,3 +95,30 @@ export function isAcademyPaymentSuccess(search: string): boolean {
   const query = search.startsWith("?") ? search.slice(1) : search;
   return new URLSearchParams(query).get("payment") === "success";
 }
+
+/* Lesson navigation and progress (course outline, Previous / Next, Mark complete). */
+export const ACADEMY_NAV_PREVIOUS_LABEL = "Previous";
+export const ACADEMY_NAV_NEXT_LABEL = "Next";
+export const ACADEMY_NAV_BACK_TO_COURSE = "Back to course";
+export const ACADEMY_NAV_OUTLINE_HEADING = "Course outline";
+export const ACADEMY_NAV_SHOW_OUTLINE = "Show course outline";
+export const ACADEMY_NAV_HIDE_OUTLINE = "Hide course outline";
+export const ACADEMY_NAV_LOCKED_LABEL = "Locked";
+export const ACADEMY_NAV_PREVIEW_LABEL = "Preview";
+export const ACADEMY_NAV_DONE_LABEL = "Done";
+export const ACADEMY_NAV_CURRENT_LABEL = "Current lesson";
+export const ACADEMY_NAV_UPCOMING_LABEL = "Up next";
+export const ACADEMY_NAV_MARK_COMPLETE = "Mark complete";
+export const ACADEMY_NAV_MARK_INCOMPLETE = "Mark as not done";
+export const ACADEMY_NAV_COMPLETED_NOTE = "You completed this lesson.";
+export const ACADEMY_NAV_PROGRESS_SIGNED_OUT =
+  "Sign in to keep track of the lessons you finish.";
+export const ACADEMY_NAV_PROGRESS_DEVICE_NOTE = "Progress is saved in this browser.";
+
+export function academyLessonPositionLabel(position: number, total: number): string {
+  return `Lesson ${position} of ${total}`;
+}
+
+export function academyProgressLabel(done: number, total: number): string {
+  return `${done} of ${total} done`;
+}

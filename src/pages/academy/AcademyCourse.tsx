@@ -12,7 +12,7 @@ import {
 import { AcademyKitDownload } from "@/components/academy/AcademyKitDownload";
 import { AcademyKitStep } from "@/components/academy/AcademyKitStep";
 import { AcademyPaymentSuccessNote, AcademySoloCta } from "@/components/academy/AcademySoloCta";
-import { AcademyLessonList } from "@/components/academy/AcademyLessonList";
+import { AcademyCourseProgress } from "@/components/academy/AcademyCourseProgress";
 import {
   AcademyEmptyState,
   AcademyErrorState,
@@ -128,7 +128,7 @@ export default function AcademyCourse() {
               message="Lessons for this course will appear here when they are published."
             />
           ) : (
-            <AcademyLessonList course={course} lessons={lessons} hasAccess={hasAccess} />
+            <AcademyCourseProgress course={course} lessons={lessons} hasAccess={hasAccess} />
           )}
         </div>
 

@@ -62,6 +62,8 @@ export type AcademyAsset = {
 export type LessonPageMeta = {
   course: Course;
   lesson: LessonSummary;
+  /** The full course outline in course order, from the same academy_course_outline call. */
+  lessons: LessonSummary[];
 };
 
 type AcademyClient = {
@@ -280,7 +282,7 @@ export async function getLessonPageMeta(
   const lessons = await listCourseLessons(course.id);
   const lesson = lessons.find((row) => row.slug === lessonSlug);
   if (!lesson) return null;
-  return { course, lesson };
+  return { course, lesson, lessons };
 }
 
 export async function fetchLessonBody(lessonId: string): Promise<string | null> {
