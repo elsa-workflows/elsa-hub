@@ -1,5 +1,10 @@
 import { assertEquals, assertFalse } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { createControlFetch } from "./cloud-control.ts";
+import { createControlFetch, isCompatibleControl } from "./cloud-control.ts";
+import {
+  CLOUD_REQUIRED_CAPABILITIES,
+  CLOUD_REQUIRED_READ_CAPABILITIES,
+  CLOUD_REQUIRED_WRITE_CAPABILITIES,
+} from "./cloud-types.ts";
 
 Deno.test("createControlFetch maps outages and non-JSON to updating without the upstream body", async () => {
   const env = {
@@ -217,4 +222,37 @@ Deno.test("createControlFetch logs the Control status class and action", async (
   }
   assertEquals(lines.includes("control_status=401 action=bootstrap"), true);
   assertFalse(lines.join("\n").includes("hub-session"));
+});
+
+Deno.test("isCompatibleControl requires the contract version and both capability sets", () => {
+  const compatible = {
+    contractVersion: 1,
+    capabilities: [...CLOUD_REQUIRED_CAPABILITIES],
+  };
+  assertEquals(isCompatibleControl(compatible), true);
+  assertEquals(
+    isCompatibleControl({ contractVersion: 0, capabilities: compatible.capabilities }),
+    false,
+  );
+  assertEquals(
+    isCompatibleControl({
+      contractVersion: 1,
+      capabilities: [...CLOUD_REQUIRED_READ_CAPABILITIES],
+    }),
+    false,
+  );
+  assertEquals(
+    isCompatibleControl({
+      contractVersion: 1,
+      capabilities: [...CLOUD_REQUIRED_WRITE_CAPABILITIES],
+    }),
+    false,
+  );
+  assertEquals(
+    isCompatibleControl({
+      contractVersion: 1,
+      capabilities: [...CLOUD_REQUIRED_READ_CAPABILITIES],
+    }, CLOUD_REQUIRED_READ_CAPABILITIES),
+    true,
+  );
 });

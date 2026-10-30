@@ -8,7 +8,10 @@ import {
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_ORG_LINK_CONFLICT_CODE,
   CLOUD_REQUIRED_CAPABILITIES,
+  CLOUD_REQUIRED_READ_CAPABILITIES,
+  CLOUD_REQUIRED_WRITE_CAPABILITIES,
   CLOUD_SUPPORTED_CONTRACT_VERSION,
+  CLOUD_WRITE_ACTIONS,
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
   isCloudBffError,
@@ -51,18 +54,32 @@ describe("cloud-bff action contract", () => {
     }
   });
 
-  it("keeps the Hub-required compatibility floor", () => {
+  it("keeps the Hub-required compatibility floor as read and write sets", () => {
     expect(CLOUD_SUPPORTED_CONTRACT_VERSION).toBe(1);
-    expect([...CLOUD_REQUIRED_CAPABILITIES]).toEqual([
+    expect([...CLOUD_REQUIRED_READ_CAPABILITIES]).toEqual([
       "cloud.bootstrap.v1",
       "hosted.instances.list.v1",
-      "hosted.instances.create.v1",
       "hosted.instances.status.v1",
       "hosted.instances.provisioning-progress.v1",
       "hosted.instances.overview.v1",
-      "hosted.studio.handoff.issue.v1",
       "hosted.instances.quota-problem.v1",
+    ]);
+    expect([...CLOUD_REQUIRED_WRITE_CAPABILITIES]).toEqual([
+      "hosted.instances.create.v1",
+      "hosted.studio.handoff.issue.v1",
       "hosted.instances.confirmed-delete.v1",
+    ]);
+    expect([...CLOUD_REQUIRED_CAPABILITIES]).toEqual([
+      ...CLOUD_REQUIRED_READ_CAPABILITIES,
+      ...CLOUD_REQUIRED_WRITE_CAPABILITIES,
+    ]);
+    expect([...CLOUD_WRITE_ACTIONS]).toEqual([
+      "createEngine",
+      "restartEngine",
+      "applyRelease",
+      "confirmDelete",
+      "deleteEngine",
+      "issueStudioHandoff",
     ]);
   });
 

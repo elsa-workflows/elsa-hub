@@ -5,6 +5,7 @@ export const CLOUD_EMPTY_MESSAGE = "No engines yet";
 export const CLOUD_OPEN_LINK = "Open Elsa Cloud";
 export const CLOUD_WORKSPACE_LABEL = "Workspace:";
 export const CLOUD_UPDATING_HEADING = "Elsa Cloud is being updated";
+export const CLOUD_UPDATING_RETRY = "Check again";
 export const CLOUD_ERROR_HEADING = "Could not load Elsa Cloud";
 export const CLOUD_ERROR_RETRY = "Try again";
 export const CLOUD_SETUP_HEADING = "Set up Elsa Cloud";

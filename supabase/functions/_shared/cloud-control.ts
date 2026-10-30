@@ -186,11 +186,14 @@ export function normalizeCompatibility(body: unknown): {
   return { contractVersion, capabilities };
 }
 
-export function isCompatibleControl(body: unknown): boolean {
+export function isCompatibleControl(
+  body: unknown,
+  required: readonly string[] = CLOUD_REQUIRED_CAPABILITIES,
+): boolean {
   const normalized = normalizeCompatibility(body);
   if (!normalized) return false;
   if (normalized.contractVersion !== CLOUD_SUPPORTED_CONTRACT_VERSION) return false;
-  return CLOUD_REQUIRED_CAPABILITIES.every((capability) =>
+  return required.every((capability) =>
     normalized.capabilities.includes(capability)
   );
 }

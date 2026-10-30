@@ -18,6 +18,7 @@ import {
   CLOUD_STRUCTURED_LOGS,
   CLOUD_UPDATING_HEADING,
   CLOUD_UPDATING_MESSAGE,
+  CLOUD_UPDATING_RETRY,
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
@@ -92,6 +93,24 @@ vi.mock("@/hooks/useCloudEngineLifecycle", () => ({
   useCloudEngineLifecycle: () => lifecycle,
 }));
 
+const compatibilityState = vi.hoisted(() => ({
+  updating: false,
+  message: undefined as string | undefined,
+  refetch: vi.fn(),
+}));
+
+vi.mock("@/hooks/useCloudCompatibility", () => ({
+  useCloudCompatibility: () => ({
+    updating: compatibilityState.updating,
+    compatible: !compatibilityState.updating,
+    message: compatibilityState.message,
+    view: compatibilityState.updating
+      ? { kind: "updating" as const, message: compatibilityState.message ?? CLOUD_UPDATING_MESSAGE }
+      : { kind: "compatible" as const },
+    refetch: compatibilityState.refetch,
+  }),
+}));
+
 const HUB_ORG_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 const orgState = vi.hoisted(() => ({
@@ -152,6 +171,9 @@ describe("CloudEngineOverview", () => {
     orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
     orgLinkState.current = { kind: "idle" };
     orgLinkState.refetch.mockReset();
+    compatibilityState.updating = false;
+    compatibilityState.message = undefined;
+    compatibilityState.refetch.mockReset();
   });
 
   it("shows overview actions for a Ready engine", () => {
@@ -199,6 +221,54 @@ describe("CloudEngineOverview", () => {
     expect(lifecycle.restart).not.toHaveBeenCalled();
     expect(lifecycle.applyRelease).not.toHaveBeenCalled();
     expect(lifecycle.deleteEngine).not.toHaveBeenCalled();
+  });
+
+  it("keeps the overview visible and disables mutations when compatibility is updating", () => {
+    viewState.current = { kind: "ready", engine };
+    compatibilityState.updating = true;
+    compatibilityState.message = CLOUD_UPDATING_MESSAGE;
+    renderOverview();
+    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText("Production")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CLOUD_OPEN_STUDIO })).toBeDisabled();
+    expect(screen.getByRole("button", { name: CLOUD_RESTART })).toBeDisabled();
+    expect(screen.getByRole("button", { name: CLOUD_APPLY_RELEASE })).toBeDisabled();
+    expect(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE })).toBeDisabled();
+    expect(lifecycle.restart).not.toHaveBeenCalled();
+    expect(lifecycle.applyRelease).not.toHaveBeenCalled();
+    expect(lifecycle.deleteEngine).not.toHaveBeenCalled();
+    expect(lifecycle.openStudio).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_UPDATING_RETRY }));
+    expect(compatibilityState.refetch).toHaveBeenCalled();
+    expect(viewState.refetch).toHaveBeenCalled();
+  });
+
+  it("recovers mutation controls after the next successful compatibility read", () => {
+    viewState.current = { kind: "ready", engine };
+    compatibilityState.updating = true;
+    compatibilityState.message = CLOUD_UPDATING_MESSAGE;
+    const { rerender } = renderOverview();
+    expect(screen.getByRole("button", { name: CLOUD_RESTART })).toBeDisabled();
+
+    compatibilityState.updating = false;
+    compatibilityState.message = undefined;
+    rerender(
+      <HelmetProvider>
+        <MemoryRouter
+          initialEntries={["/dashboard/org/acme/cloud/engines/11111111-1111-4111-8111-111111111111"]}
+        >
+          <Routes>
+            <Route
+              path="/dashboard/org/:slug/cloud/engines/:engineId"
+              element={<CloudEngineOverviewPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(screen.getByRole("button", { name: CLOUD_RESTART })).toBeEnabled();
+    expect(screen.getByRole("button", { name: CLOUD_OPEN_STUDIO })).toBeEnabled();
+    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
   });
 
   it("shows the updating state and is noindex", async () => {

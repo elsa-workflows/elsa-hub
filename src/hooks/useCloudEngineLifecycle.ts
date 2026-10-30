@@ -22,9 +22,11 @@ export function useCloudEngineLifecycle(
   engineId: string | undefined,
   status: string | undefined,
   updating: boolean,
+  mutationsPaused = false,
 ) {
   const queryClient = useQueryClient();
   const enabled = Boolean(workspaceId && engineId && !updating);
+  const writesPaused = updating || mutationsPaused;
   const poll = enabled && Boolean(status && isBusyStatus(status));
 
   const progressQuery = useQuery({
@@ -81,7 +83,7 @@ export function useCloudEngineLifecycle(
 
   const restart = useMutation({
     mutationFn: (input: { idempotencyKey: string; ifMatch: string }) => {
-      if (updating) return Promise.resolve(updatingResponse());
+      if (writesPaused) return Promise.resolve(updatingResponse());
       return cloudClient.invoke({
         action: "restartEngine",
         workspaceId: workspaceId!,
@@ -94,7 +96,7 @@ export function useCloudEngineLifecycle(
 
   const applyRelease = useMutation({
     mutationFn: (input: { version: string; idempotencyKey: string; ifMatch: string }) => {
-      if (updating) return Promise.resolve(updatingResponse());
+      if (writesPaused) return Promise.resolve(updatingResponse());
       return cloudClient.invoke({
         action: "applyRelease",
         workspaceId: workspaceId!,
@@ -107,7 +109,7 @@ export function useCloudEngineLifecycle(
 
   const confirmDelete = useMutation({
     mutationFn: () => {
-      if (updating) return Promise.resolve(updatingResponse());
+      if (writesPaused) return Promise.resolve(updatingResponse());
       return cloudClient.invoke({
         action: "confirmDelete",
         workspaceId: workspaceId!,
@@ -122,7 +124,7 @@ export function useCloudEngineLifecycle(
       idempotencyKey: string;
       ifMatch: string;
     }) => {
-      if (updating) return Promise.resolve(updatingResponse());
+      if (writesPaused) return Promise.resolve(updatingResponse());
       return cloudClient.invoke({
         action: "deleteEngine",
         workspaceId: workspaceId!,
@@ -139,7 +141,7 @@ export function useCloudEngineLifecycle(
       redirectUri: string;
       codeChallenge: string;
     }) => {
-      if (updating) return Promise.resolve(updatingResponse());
+      if (writesPaused) return Promise.resolve(updatingResponse());
       return cloudClient.invoke({
         action: "issueStudioHandoff",
         engineId: engineId!,

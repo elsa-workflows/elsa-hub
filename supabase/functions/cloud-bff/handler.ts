@@ -3,6 +3,7 @@ import {
   parseCloudBffRequest,
   type PersistValidatedBootstrapLink,
 } from "../_shared/cloud-actions.ts";
+import type { CompatibilityCache } from "../_shared/cloud-compatibility.ts";
 import { createControlFetch, type ControlFetch } from "../_shared/cloud-control.ts";
 import {
   createHubUserResolver,
@@ -18,6 +19,7 @@ export type CloudBffDeps = {
   persistLinkFromValidatedBootstrap?: PersistValidatedBootstrapLink;
   userClient?: OrgAdminClient;
   serviceClient?: unknown;
+  compatibilityCache?: CompatibilityCache;
 };
 
 async function createLinkClients(
@@ -99,6 +101,7 @@ export async function handleCloudBff(
       persistLink: deps.persistLinkFromValidatedBootstrap,
       userClient,
       serviceClient,
+      compatibilityCache: deps.compatibilityCache,
     }, parsed.request);
   } catch {
     return jsonResponse(503, updatingBody());
