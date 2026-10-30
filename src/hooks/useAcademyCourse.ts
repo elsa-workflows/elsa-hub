@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAcademyPaymentPoll } from "@/hooks/useAcademyPaymentPoll";
 import {
   getPublishedCourseBySlug,
   hasAcademyAccess,
@@ -9,6 +10,7 @@ import {
 
 export function useAcademyCourse(courseSlug: string | undefined) {
   const { user, loading: authLoading } = useAuth();
+  const paymentPoll = useAcademyPaymentPoll();
 
   const courseQuery = useQuery({
     queryKey: ["academy-course", courseSlug],
@@ -28,6 +30,8 @@ export function useAcademyCourse(courseSlug: string | undefined) {
     queryKey: ["academy-access", course?.id, user?.id],
     queryFn: () => hasAcademyAccess(course!.id),
     enabled: Boolean(course?.id && user),
+    // Back from Stripe: the webhook may not have granted access yet.
+    refetchInterval: (query) => paymentPoll(query.state.data === true),
   });
 
   const hasAccess = accessQuery.data === true;
