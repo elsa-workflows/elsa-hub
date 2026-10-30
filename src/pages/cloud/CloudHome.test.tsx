@@ -106,6 +106,18 @@ vi.mock("@/hooks/useCloudOrganizationLink", () => ({
   }),
 }));
 
+const billingState = vi.hoisted(() => ({
+  snapshot: { entitlement: null as { planName?: string; status?: string } | null },
+}));
+
+vi.mock("@/hooks/useCloudBilling", () => ({
+  useCloudBilling: () => ({
+    snapshot: billingState.snapshot,
+    organizationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    isLoading: false,
+  }),
+}));
+
 const { toastSuccess } = vi.hoisted(() => ({ toastSuccess: vi.fn() }));
 
 vi.mock("sonner", () => ({ toast: { success: toastSuccess, message: vi.fn(), error: vi.fn() } }));
@@ -149,6 +161,7 @@ describe("CloudHome", () => {
     orgState.loading = false;
     orgLinkState.current = { kind: "idle" };
     orgLinkState.refetch.mockReset();
+    billingState.snapshot = { entitlement: null };
     localStorage.clear();
   });
 
@@ -442,13 +455,33 @@ describe("CloudHome", () => {
     });
   });
 
-  it("points a returning checkout at Cloud billing instead of promising a plan here", async () => {
+  it("tells a returning checkout that the plan appears once Elsa Cloud confirms it", async () => {
     renderHome("/dashboard/org/acme/cloud?payment=success");
 
     await waitFor(() =>
       expect(toastSuccess).toHaveBeenCalledWith("Checkout complete", {
-        description: "Manage your plan under Cloud billing.",
+        description: "Your plan appears here once Elsa Cloud confirms it.",
       }),
     );
+  });
+
+  it("shows the plan on /cloud once Control reports the entitlement", () => {
+    viewState.current = { kind: "empty" };
+    billingState.snapshot = { entitlement: { planName: "Elsa Cloud", status: "active" } };
+    renderHome();
+    expect(screen.getByRole("region", { name: "Cloud plan" })).toHaveTextContent("Elsa Cloud");
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /billing details/i })[0]).toHaveAttribute(
+      "href",
+      "/dashboard/org/acme/cloud/billing",
+    );
+  });
+
+  it("does not show a plan on /cloud before Control reports the entitlement", () => {
+    viewState.current = { kind: "empty" };
+    billingState.snapshot = { entitlement: null };
+    renderHome();
+    expect(screen.queryByRole("region", { name: "Cloud plan" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /billing details/i })).toBeInTheDocument();
   });
 });

@@ -42,7 +42,7 @@ export type CloudBillingSnapshot = {
   controlOrganizationId: string | null;
   canManage: boolean;
   subscriptions: CloudSubscriptionStatus[];
-  entitlement: { planName?: string; status?: string } | null;
+  entitlement: { planName?: string; status?: string; source?: string | null } | null;
 };
 
 type FunctionPayload = Record<string, unknown> & { error?: string; code?: string; state?: string };

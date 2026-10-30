@@ -5,12 +5,17 @@ import {
   classifyStripeEvent,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
+  CLOUD_PLAN_NAME,
   cloudOrganizationIdFromBody,
   cloudPortalReturnPath,
   isCloudRequest,
   isCloudStripeEvent,
+  normalizeControlEntitlement,
   orgHasBlockingCloudSubscription,
+  readControlEntitlement,
 } from "./cloud-billing.ts";
+import type { ControlCall, ControlFetch } from "./cloud-control.ts";
+import { CONTROL_ORG, HUB_ORG } from "./cloud-billing_test_support.ts";
 
 Deno.test("a Cloud request is recognized by productType or kind; Hub bodies are not", () => {
   assertEquals(isCloudRequest({ productType: "cloud" }), true);
@@ -91,6 +96,80 @@ Deno.test("any Cloud subscription that has not ended blocks a second checkout", 
   );
 });
 
+Deno.test("Control hosted-subscription Active/Trial become a plan; ended and empty bodies do not", () => {
+  assertEquals(normalizeControlEntitlement({ subscriptionState: "Active", source: "hub" }), {
+    planName: CLOUD_PLAN_NAME,
+    status: "active",
+    source: "hub",
+  });
+  assertEquals(normalizeControlEntitlement({ SubscriptionState: "Trial", Source: "control" }), {
+    planName: CLOUD_PLAN_NAME,
+    status: "trialing",
+    source: "control",
+  });
+  assertEquals(normalizeControlEntitlement({ subscriptionState: "PastDue" })?.status, "past_due");
+  assertEquals(normalizeControlEntitlement({ subscriptionState: "Constrained" })?.status, "constrained");
+  assertEquals(normalizeControlEntitlement({ subscriptionState: "Suspended" })?.status, "paused");
+  assertEquals(normalizeControlEntitlement({ subscriptionState: "Retained" }), null);
+  assertEquals(normalizeControlEntitlement({ subscriptionState: "Deleted" }), null);
+  assertEquals(normalizeControlEntitlement({ subscriptionState: null, billingLinked: true }), null);
+  assertEquals(normalizeControlEntitlement(null), null);
+  assertEquals(normalizeControlEntitlement("Active"), null);
+});
+
+Deno.test("readControlEntitlement calls Control with the Control org id and returns null on failure", async () => {
+  const calls: ControlCall[] = [];
+  const tokens: string[] = [];
+  const ok: ControlFetch = async (call, token) => {
+    calls.push(call);
+    tokens.push(token);
+    return { ok: true, status: 200, body: { subscriptionState: "Active", source: "hub" } };
+  };
+
+  assertEquals(
+    await readControlEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: ok,
+    }),
+    { planName: CLOUD_PLAN_NAME, status: "active", source: "hub" },
+  );
+  assertEquals(calls[0].method, "GET");
+  assertEquals(calls[0].path, `/api/organizations/${CONTROL_ORG}/billing/hosted-subscription`);
+  assertEquals(calls[0].path.includes(HUB_ORG), false);
+  assertEquals(tokens, ["hub-session"]);
+
+  assertEquals(
+    await readControlEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: async () => ({ ok: false, kind: "not_found" }),
+    }),
+    null,
+  );
+  assertEquals(
+    await readControlEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: async () => ({ ok: false, kind: "updating" }),
+    }),
+    null,
+  );
+  assertEquals(
+    await readControlEntitlement({ controlOrganizationId: CONTROL_ORG, controlFetch: ok }),
+    null,
+  );
+  assertEquals(
+    await readControlEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: "not-a-guid",
+      controlFetch: ok,
+    }),
+    null,
+  );
+  assertEquals(calls.length, 1);
+});
+
 Deno.test("Cloud checkout, portal and status use #57's helper and never list customers by email", () => {
   const read = (path: string) => Deno.readTextFileSync(new URL(path, import.meta.url));
   const checkout = read("../create-checkout-session/cloud.ts");
@@ -106,4 +185,12 @@ Deno.test("Cloud checkout, portal and status use #57's helper and never list cus
   assertEquals(status.includes("getStoredStripeCustomerId("), true);
   assertEquals(portal.includes("getOrCreateStripeCustomer"), false);
   assertEquals(status.includes("getOrCreateStripeCustomer"), false);
+  assertEquals(status.includes("readControlEntitlement("), true);
+});
+
+Deno.test("cloud-billing status sends the Hub session to Control hosted-subscription", () => {
+  const index = Deno.readTextFileSync(new URL("../cloud-billing/index.ts", import.meta.url));
+  assertEquals(index.includes('from "../_shared/cloud-control.ts"'), true);
+  assertEquals(index.includes("createControlFetch()"), true);
+  assertEquals(index.includes("accessToken: token"), true);
 });

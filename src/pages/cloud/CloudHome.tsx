@@ -8,8 +8,10 @@ import { CloudEngineList } from "@/components/cloud/CloudEngineList";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
 import { CloudLoadingState } from "@/components/cloud/CloudLoadingState";
 import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
+import { CloudPlanBanner } from "@/components/cloud/CloudPlanBanner";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
+import { useCloudBilling } from "@/hooks/useCloudBilling";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
@@ -47,6 +49,7 @@ export default function CloudHome() {
     selectedWorkspace,
   } = useCloudEngines();
   const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
+  const billing = useCloudBilling();
   const { home } = useCloudConsolePaths();
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
@@ -62,7 +65,11 @@ export default function CloudHome() {
     )
     : null;
 
-  usePaymentReturnToast("success", "Checkout complete", "Manage your plan under Cloud billing.");
+  usePaymentReturnToast(
+    "success",
+    "Checkout complete",
+    "Your plan appears here once Elsa Cloud confirms it.",
+  );
 
   return (
     <OrgCloudMembershipGate>
@@ -111,6 +118,13 @@ export default function CloudHome() {
               <CloudSetupState
                 onSetup={() => setupCloud(hubOrganizationId)}
                 pending={setupPending}
+              />
+            )}
+            {showConsole && (
+              <CloudPlanBanner
+                planName={billing.snapshot?.entitlement?.planName ?? null}
+                planStatus={billing.snapshot?.entitlement?.status ?? null}
+                billingHref={`${home}/billing`}
               />
             )}
             {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}

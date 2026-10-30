@@ -239,6 +239,27 @@ describe("useCloudBilling", () => {
     );
   });
 
+  it("shows Control's entitlement as the plan even when Stripe has no Cloud subscription yet", async () => {
+    invoke.mockResolvedValue({
+      data: {
+        ...emptySnapshot,
+        entitlement: { planName: "Elsa Cloud", status: "active", source: "hub" },
+      },
+      error: null,
+    });
+
+    const result = await renderBilling();
+
+    expect(result.current.planName).toBe("Elsa Cloud");
+    expect(result.current.planStatus).toBe("active");
+    expect(result.current.subscription).toBeNull();
+    expect(result.current.snapshot?.entitlement).toEqual({
+      planName: "Elsa Cloud",
+      status: "active",
+      source: "hub",
+    });
+  });
+
   it("shows the first subscription that has not ended, whatever its status", async () => {
     invoke.mockResolvedValue({
       data: {

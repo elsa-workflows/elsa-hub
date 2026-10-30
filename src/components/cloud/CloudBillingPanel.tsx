@@ -7,16 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { CloudSubscriptionStatus } from "@/hooks/useCloudBilling";
 import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
+import { cloudPlanStatusLabel } from "@/lib/cloud/billingDisplay";
 import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_NOT_AVAILABLE_YET, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
-
-function statusLabel(status: string | null, cancelAtPeriodEnd: boolean): string {
-  if (!status) return "No subscription";
-  if (cancelAtPeriodEnd) return "Cancels at period end";
-  if (status === "active" || status === "trialing") return "Active";
-  if (status === "past_due") return "Past due";
-  if (status === "paused") return "Paused";
-  return status;
-}
 
 export function CloudBillingPanel({
   isLoading,
@@ -117,7 +109,7 @@ export function CloudBillingPanel({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold">{planName}</h3>
               <Badge variant={subscription?.cancelAtPeriodEnd ? "outline" : "default"}>
-                {statusLabel(planStatus, subscription?.cancelAtPeriodEnd ?? false)}
+                {cloudPlanStatusLabel(planStatus, subscription?.cancelAtPeriodEnd ?? false)}
               </Badge>
             </div>
             {periodEnd && (

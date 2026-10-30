@@ -1,6 +1,7 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudBillingStatus } from "./handler.ts";
-import { CLOUD_BILLING_UNAVAILABLE_CODE } from "../_shared/cloud-billing.ts";
+import { CLOUD_BILLING_UNAVAILABLE_CODE, CLOUD_PLAN_NAME } from "../_shared/cloud-billing.ts";
+import type { ControlCall, ControlFetch } from "../_shared/cloud-control.ts";
 import {
   ADMIN,
   assertNoStoreWithCors,
@@ -26,6 +27,8 @@ function status(setup: {
   failTables?: string[];
   subscriptions?: FakeSubscription[];
   env?: Record<string, string | undefined>;
+  accessToken?: string;
+  controlFetch?: ControlFetch;
 } = {}) {
   const serviceClient = fakeSupabase({
     tables: {
@@ -44,11 +47,69 @@ function status(setup: {
       body: "body" in setup ? setup.body : { organizationId: HUB_ORG },
       env: testEnv(setup.env),
       stripe: () => stripe as never,
+      accessToken: setup.accessToken,
+      controlFetch: setup.controlFetch,
     });
     return { response, payload: await response.json() };
   };
   return { run, calls, serviceClient };
 }
+
+function recordingControlFetch(
+  body: unknown,
+  result: { ok: true } | { ok: false; kind: "not_found" | "updating" | "forbidden" } = { ok: true },
+): { fetch: ControlFetch; calls: ControlCall[]; tokens: string[] } {
+  const calls: ControlCall[] = [];
+  const tokens: string[] = [];
+  return {
+    calls,
+    tokens,
+    fetch: async (call, token) => {
+      calls.push(call);
+      tokens.push(token);
+      if (!result.ok) return { ok: false, kind: result.kind };
+      return { ok: true, status: 200, body };
+    },
+  };
+}
+
+Deno.test("status reports Control entitlement when hosted-subscription is live", async () => {
+  const control = recordingControlFetch({ subscriptionState: "Active", source: "hub" });
+  const { run } = status({
+    accessToken: "hub-session",
+    controlFetch: control.fetch,
+    subscriptions: [{ id: "sub_cloud", status: "active", metadata: { kind: "cloud" } }],
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "active", source: "hub" });
+  assertEquals(control.calls[0].path, `/api/organizations/${CONTROL_ORG}/billing/hosted-subscription`);
+  assertEquals(control.calls[0].path.includes(HUB_ORG), false);
+  assertEquals(control.tokens, ["hub-session"]);
+});
+
+Deno.test("a Control outage or missing Hosted subscription leaves entitlement null and status 200", async () => {
+  for (const result of [{ ok: false, kind: "updating" as const }, { ok: false, kind: "not_found" as const }]) {
+    const control = recordingControlFetch(null, result);
+    const { run } = status({ accessToken: "hub-session", controlFetch: control.fetch });
+    const { response, payload } = await run();
+    assertEquals(response.status, 200);
+    assertEquals(payload.entitlement, null);
+  }
+});
+
+Deno.test("status does not call Control without a validated link", async () => {
+  const control = recordingControlFetch({ subscriptionState: "Active" });
+  const { run } = status({ links: [], accessToken: "hub-session", controlFetch: control.fetch });
+
+  const { payload } = await run();
+
+  assertEquals(payload.controlOrganizationId, null);
+  assertEquals(payload.entitlement, null);
+  assertEquals(control.calls, []);
+});
 
 Deno.test("status reports the org's stored customer, link and Cloud subscriptions only", async () => {
   const { run, calls } = status({
@@ -69,6 +130,7 @@ Deno.test("status reports the org's stored customer, link and Cloud subscription
   assertEquals(payload.canManage, true);
   assertEquals(payload.subscriptions.map((sub: { id: string }) => sub.id), ["sub_cloud"]);
   assertEquals(payload.subscriptions[0].planName, "Elsa Cloud");
+  assertEquals(payload.entitlement, null);
   assertEquals(calls.subscriptionLists, [{ customer: "cus_org_a", limit: 100 }]);
 });
 
