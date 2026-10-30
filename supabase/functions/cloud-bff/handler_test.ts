@@ -4,6 +4,10 @@ import {
   assertFalse,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudBff, type CloudBffDeps } from "./handler.ts";
+import {
+  createCompatibilityCache,
+  resetCloudCompatibilityCache,
+} from "../_shared/cloud-compatibility.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
   CLOUD_LIMIT_CODE,
@@ -11,8 +15,12 @@ import {
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_ORG_LINK_CONFLICT_CODE,
   CLOUD_ORG_LINK_FORBIDDEN,
+  CLOUD_REQUIRED_CAPABILITIES,
+  CLOUD_REQUIRED_READ_CAPABILITIES,
+  CLOUD_REQUIRED_WRITE_CAPABILITIES,
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
+  CLOUD_WRITE_ACTIONS,
 } from "../_shared/cloud-types.ts";
 import type { ControlCall, ControlResult } from "../_shared/cloud-control.ts";
 import { signedInResolver, type HubUser } from "../_shared/cloud-hub-auth.ts";
@@ -38,17 +46,11 @@ const WORKSPACE = {
 
 const COMPATIBLE = {
   contractVersion: 1,
-  capabilities: [
-    "cloud.bootstrap.v1",
-    "hosted.instances.list.v1",
-    "hosted.instances.create.v1",
-    "hosted.instances.status.v1",
-    "hosted.instances.provisioning-progress.v1",
-    "hosted.instances.overview.v1",
-    "hosted.studio.handoff.issue.v1",
-    "hosted.instances.quota-problem.v1",
-    "hosted.instances.confirmed-delete.v1",
-  ],
+  capabilities: [...CLOUD_REQUIRED_CAPABILITIES],
+};
+
+const COMPATIBLE_ROUTE = {
+  "GET /api/cloud/compatibility": { ok: true as const, status: 200, body: COMPATIBLE },
 };
 
 function request(body: unknown, headers?: HeadersInit): Request {
@@ -82,9 +84,10 @@ async function signedIn(
   routes: Record<string, ControlResult>,
   extra: Partial<CloudBffDeps> = {},
 ): Promise<Response> {
+  resetCloudCompatibilityCache();
   return await handleCloudBff(request(body), {
     resolveHubUser: signedInResolver(USER),
-    controlFetch: controlMap(routes),
+    controlFetch: extra.controlFetch ?? controlMap({ ...COMPATIBLE_ROUTE, ...routes }),
     ...extra,
   });
 }
@@ -605,9 +608,34 @@ Deno.test("lifecycle actions map to one Control endpoint and return normalized s
   });
   const statusBody = await readJson(status);
   assertEquals((statusBody.operation as { state: string }).state, "Succeeded");
+
+  const handoff = await signedIn({
+    action: "issueStudioHandoff",
+    organizationId: ORGANIZATION_ID,
+    engineId: ENGINE_ID,
+    audience: "https://studio.example",
+    redirectUri: "https://studio.example/handoff",
+    codeChallenge: "challenge",
+  }, {
+    "POST /api/managed-elsa/handoff/issue": {
+      ok: true,
+      status: 200,
+      body: {
+        token: "handoff-token",
+        tokenType: "Bearer",
+        audience: "https://studio.example",
+        redirectUri: "https://studio.example/handoff",
+        issuedAt: "2026-10-15T00:00:00Z",
+        expiresAt: "2026-10-15T00:05:00Z",
+      },
+    },
+  });
+  assertEquals(handoff.status, 200);
+  assertEquals((await readJson(handoff)).state, "ready");
 });
 
 Deno.test("a create at the plan limit is sanitized and does not forward the Control body", async () => {
+  resetCloudCompatibilityCache();
   const response = await handleCloudBff(request({
     action: "createEngine",
     workspaceId: WORKSPACE_ID,
@@ -617,13 +645,18 @@ Deno.test("a create at the plan limit is sanitized and does not forward the Cont
     idempotencyKey: IDEMPOTENCY_KEY,
   }), {
     resolveHubUser: signedInResolver(USER),
-    controlFetch: async () => ({
-      ok: false,
-      kind: "limit",
-      code: CLOUD_LIMIT_CODE,
-      currentInstances: 1,
-      maxInstances: 1,
-    }),
+    controlFetch: async (call) => {
+      if (call.path === "/api/cloud/compatibility") {
+        return { ok: true, status: 200, body: COMPATIBLE };
+      }
+      return {
+        ok: false,
+        kind: "limit",
+        code: CLOUD_LIMIT_CODE,
+        currentInstances: 1,
+        maxInstances: 1,
+      };
+    },
   });
   const body = await readJson(response);
   assertEquals(response.status, 422);
@@ -829,4 +862,221 @@ Deno.test("bootstrap persist forbidden is a clear admin-only error", async () =>
     code: "forbidden",
     error: CLOUD_ORG_LINK_FORBIDDEN,
   });
+});
+
+const WRITE_REQUESTS: Record<(typeof CLOUD_WRITE_ACTIONS)[number], unknown> = {
+  createEngine: {
+    action: "createEngine",
+    workspaceId: WORKSPACE_ID,
+    name: "Prod",
+    slug: "prod",
+    intent: INTENT,
+    idempotencyKey: IDEMPOTENCY_KEY,
+  },
+  restartEngine: {
+    action: "restartEngine",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    ifMatch: '"1"',
+  },
+  applyRelease: {
+    action: "applyRelease",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    version: "3.8.5",
+    idempotencyKey: IDEMPOTENCY_KEY,
+    ifMatch: '"1"',
+  },
+  confirmDelete: {
+    action: "confirmDelete",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+  },
+  deleteEngine: {
+    action: "deleteEngine",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    deleteConfirmationId: CONFIRMATION_ID,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    ifMatch: '"1"',
+  },
+  issueStudioHandoff: {
+    action: "issueStudioHandoff",
+    organizationId: ORGANIZATION_ID,
+    engineId: ENGINE_ID,
+    audience: "https://studio.example",
+    redirectUri: "https://studio.example/handoff",
+    codeChallenge: "challenge",
+  },
+};
+
+async function writeGateResponse(
+  body: unknown,
+  compatibility: ControlResult,
+): Promise<{ status: number; json: Record<string, unknown>; calls: string[] }> {
+  resetCloudCompatibilityCache();
+  const calls: string[] = [];
+  const response = await handleCloudBff(request(body), {
+    resolveHubUser: signedInResolver(USER),
+    controlFetch: async (call) => {
+      calls.push(`${call.method} ${call.path}`);
+      if (call.path === "/api/cloud/compatibility") return compatibility;
+      throw new Error(`unexpected Control write ${call.method} ${call.path}`);
+    },
+  });
+  return { status: response.status, json: await readJson(response), calls };
+}
+
+Deno.test("insufficient or unreadable contracts block every write without a Control write call", async () => {
+  const blocked: ControlResult[] = [
+    {
+      ok: true,
+      status: 200,
+      body: {
+        contractVersion: 1,
+        capabilities: [...CLOUD_REQUIRED_READ_CAPABILITIES],
+      },
+    },
+    {
+      ok: true,
+      status: 200,
+      body: {
+        contractVersion: 1,
+        capabilities: [
+          ...CLOUD_REQUIRED_READ_CAPABILITIES.filter((item) => item !== "hosted.instances.list.v1"),
+          ...CLOUD_REQUIRED_WRITE_CAPABILITIES,
+        ],
+      },
+    },
+    {
+      ok: true,
+      status: 200,
+      body: { contractVersion: 0, capabilities: [...CLOUD_REQUIRED_CAPABILITIES] },
+    },
+    { ok: false, kind: "updating" },
+  ];
+
+  for (const compatibility of blocked) {
+    for (const action of CLOUD_WRITE_ACTIONS) {
+      const result = await writeGateResponse(WRITE_REQUESTS[action], compatibility);
+      assertEquals(result.status, 503, action);
+      assertEquals(result.json.code, CLOUD_UPDATING_CODE, action);
+      assertEquals(result.json.error, CLOUD_UPDATING_MESSAGE, action);
+      assertEquals(result.calls, ["GET /api/cloud/compatibility"], action);
+      assertFalse(JSON.stringify(result.json).includes("contractVersion"));
+    }
+  }
+});
+
+Deno.test("a compatible contract forwards write actions unchanged", async () => {
+  resetCloudCompatibilityCache();
+  const calls: string[] = [];
+  const created = await handleCloudBff(request(WRITE_REQUESTS.createEngine), {
+    resolveHubUser: signedInResolver(USER),
+    controlFetch: async (call) => {
+      calls.push(`${call.method} ${call.path}`);
+      if (call.path === "/api/cloud/compatibility") {
+        return { ok: true, status: 200, body: COMPATIBLE };
+      }
+      assertEquals(call.method, "POST");
+      assertEquals(call.path, `/api/workspaces/${WORKSPACE_ID}/instances`);
+      return {
+        ok: true,
+        status: 202,
+        body: {
+          instance: {
+            instanceId: ENGINE_ID,
+            name: "Prod",
+            slug: "prod",
+            observedLifecycle: "Provisioning",
+          },
+          operation: { id: OPERATION_ID, action: "Create", state: "Accepted" },
+        },
+      };
+    },
+  });
+  assertEquals(created.status, 202);
+  assertEquals((await readJson(created)).state, "accepted");
+  assertEquals(calls, [
+    "GET /api/cloud/compatibility",
+    `POST /api/workspaces/${WORKSPACE_ID}/instances`,
+  ]);
+});
+
+Deno.test("read actions stay available when only a write capability is missing", async () => {
+  resetCloudCompatibilityCache();
+  const calls: string[] = [];
+  const missingWrite = {
+    contractVersion: 1,
+    capabilities: [...CLOUD_REQUIRED_READ_CAPABILITIES],
+  };
+  const list = await handleCloudBff(request({
+    action: "listEngines",
+    workspaceId: WORKSPACE_ID,
+  }), {
+    resolveHubUser: signedInResolver(USER),
+    controlFetch: async (call) => {
+      calls.push(`${call.method} ${call.path}`);
+      if (call.path === "/api/cloud/compatibility") {
+        return { ok: true, status: 200, body: missingWrite };
+      }
+      assertEquals(call.path, `/api/workspaces/${WORKSPACE_ID}/instances`);
+      return {
+        ok: true,
+        status: 200,
+        body: {
+          items: [{
+            instanceId: ENGINE_ID,
+            name: "Prod",
+            slug: "prod",
+            observedLifecycle: "Ready",
+          }],
+        },
+      };
+    },
+  });
+  assertEquals(list.status, 200);
+  assertEquals((await readJson(list)).state, "ready");
+  assertEquals(calls, [`GET /api/workspaces/${WORKSPACE_ID}/instances`]);
+
+  const blocked = await writeGateResponse(WRITE_REQUESTS.createEngine, {
+    ok: true,
+    status: 200,
+    body: missingWrite,
+  });
+  assertEquals(blocked.status, 503);
+  assertEquals(blocked.calls, ["GET /api/cloud/compatibility"]);
+});
+
+Deno.test("compatibility reads for writes are cached per isolate for at most 60s", async () => {
+  let now = 1_000;
+  const cache = createCompatibilityCache({ ttlMs: 60_000, now: () => now });
+  const calls: string[] = [];
+  const run = () =>
+    handleCloudBff(request(WRITE_REQUESTS.restartEngine), {
+      resolveHubUser: signedInResolver(USER),
+      compatibilityCache: cache,
+      controlFetch: async (call) => {
+        calls.push(`${call.method} ${call.path}`);
+        if (call.path === "/api/cloud/compatibility") {
+          return { ok: true, status: 200, body: COMPATIBLE };
+        }
+        return {
+          ok: true,
+          status: 202,
+          body: { operationId: OPERATION_ID, action: "Restart", state: "Accepted" },
+        };
+      },
+    });
+
+  assertEquals((await run()).status, 202);
+  assertEquals((await run()).status, 202);
+  assertEquals(calls.filter((call) => call.includes("/api/cloud/compatibility")).length, 1);
+  assertEquals(calls.filter((call) => call.endsWith("/restart")).length, 2);
+
+  now = 61_000;
+  assertEquals((await run()).status, 202);
+  assertEquals(calls.filter((call) => call.includes("/api/cloud/compatibility")).length, 2);
+  assertEquals(calls.filter((call) => call.endsWith("/restart")).length, 3);
 });

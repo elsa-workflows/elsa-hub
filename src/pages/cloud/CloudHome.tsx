@@ -12,6 +12,7 @@ import { CloudPlanBanner } from "@/components/cloud/CloudPlanBanner";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { useCloudBilling } from "@/hooks/useCloudBilling";
+import { useCloudCompatibility } from "@/hooks/useCloudCompatibility";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
@@ -48,17 +49,25 @@ export default function CloudHome() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngines();
+  const compatibility = useCloudCompatibility();
   const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
   const billing = useCloudBilling();
   const { home } = useCloudConsolePaths();
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
+  const mutationsPaused = compatibility.updating;
+  const showUpdateBanner = updating || mutationsPaused;
+  const updateMessage = mutationsPaused
+    ? compatibility.message
+    : view.kind === "updating"
+    ? view.message
+    : undefined;
   const showConsole = orgLink.kind === "idle" || orgLink.kind === "linked";
   const createAction = showConsole && canCreate && options
     ? (
       <CloudCreateEngineDialog
         options={options}
-        disabled={updating}
+        disabled={updating || mutationsPaused}
         creating={creating}
         onCreate={createEngine}
       />
@@ -98,12 +107,18 @@ export default function CloudHome() {
 
             {orgLink.kind === "pending" && <CloudLoadingState />}
             {showConsole && view.kind === "loading" && <CloudLoadingState />}
-            {showConsole && view.kind === "updating" && <CloudUpdatingState message={view.message} />}
+            {showConsole && showUpdateBanner && <CloudUpdatingState message={updateMessage} />}
             {orgLink.kind === "error" && (
               <CloudErrorState message={CLOUD_LINK_CHECK_ERROR} onRetry={orgLink.refetch} />
             )}
             {view.kind === "error" && orgLink.kind !== "error" && orgLink.kind !== "needsLink" && (
-              <CloudErrorState message={view.message} onRetry={() => void refetch()} />
+              <CloudErrorState
+                message={view.message}
+                onRetry={() => {
+                  void refetch();
+                  void compatibility.refetch();
+                }}
+              />
             )}
             {orgLink.kind === "needsLink" && (
               <CloudLinkOrganizationState

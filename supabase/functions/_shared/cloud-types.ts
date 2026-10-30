@@ -25,16 +25,33 @@ export const CLOUD_BFF_ACTIONS = [
 
 export type CloudBffAction = (typeof CLOUD_BFF_ACTIONS)[number];
 
-export const CLOUD_REQUIRED_CAPABILITIES = [
+export const CLOUD_REQUIRED_READ_CAPABILITIES = [
   "cloud.bootstrap.v1",
   "hosted.instances.list.v1",
-  "hosted.instances.create.v1",
   "hosted.instances.status.v1",
   "hosted.instances.provisioning-progress.v1",
   "hosted.instances.overview.v1",
-  "hosted.studio.handoff.issue.v1",
   "hosted.instances.quota-problem.v1",
+] as const;
+
+export const CLOUD_REQUIRED_WRITE_CAPABILITIES = [
+  "hosted.instances.create.v1",
+  "hosted.studio.handoff.issue.v1",
   "hosted.instances.confirmed-delete.v1",
+] as const;
+
+export const CLOUD_REQUIRED_CAPABILITIES = [
+  ...CLOUD_REQUIRED_READ_CAPABILITIES,
+  ...CLOUD_REQUIRED_WRITE_CAPABILITIES,
+] as const;
+
+export const CLOUD_WRITE_ACTIONS = [
+  "createEngine",
+  "restartEngine",
+  "applyRelease",
+  "confirmDelete",
+  "deleteEngine",
+  "issueStudioHandoff",
 ] as const;
 
 export const CLOUD_SUPPORTED_CONTRACT_VERSION = 1;

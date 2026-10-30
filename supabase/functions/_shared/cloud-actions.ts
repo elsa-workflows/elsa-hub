@@ -1,3 +1,9 @@
+import {
+  defaultCloudCompatibilityCache,
+  isCloudWriteAction,
+  writeActionsAllowed,
+  type CompatibilityCache,
+} from "./cloud-compatibility.ts";
 import { jsonResponse } from "./cloud-http.ts";
 import type { ControlCall, ControlFetch, ControlResult } from "./cloud-control.ts";
 import {
@@ -43,6 +49,7 @@ export type CloudActionContext = {
   userClient?: OrgAdminClient;
   serviceClient?: unknown;
   persistLink?: PersistValidatedBootstrapLink;
+  compatibilityCache?: CompatibilityCache;
 };
 
 type ParsedRequest =
@@ -323,6 +330,15 @@ export async function dispatchCloudAction(
   ctx: CloudActionContext,
   request: CloudBffRequest,
 ): Promise<Response> {
+  if (isCloudWriteAction(request.action)) {
+    const allowed = await writeActionsAllowed(
+      ctx.controlFetch,
+      ctx.accessToken,
+      ctx.compatibilityCache ?? defaultCloudCompatibilityCache(),
+    );
+    if (!allowed) return jsonResponse(503, updatingBody());
+  }
+
   const result = await callControl(ctx, request.action, request);
   if (!result.ok) return failedControl(result);
 

@@ -80,6 +80,24 @@ vi.mock("@/hooks/useCloudEngines", () => ({
   }),
 }));
 
+const compatibilityState = vi.hoisted(() => ({
+  updating: false,
+  message: undefined as string | undefined,
+  refetch: vi.fn(),
+}));
+
+vi.mock("@/hooks/useCloudCompatibility", () => ({
+  useCloudCompatibility: () => ({
+    updating: compatibilityState.updating,
+    compatible: !compatibilityState.updating,
+    message: compatibilityState.message,
+    view: compatibilityState.updating
+      ? { kind: "updating" as const, message: compatibilityState.message ?? CLOUD_UPDATING_MESSAGE }
+      : { kind: "compatible" as const },
+    refetch: compatibilityState.refetch,
+  }),
+}));
+
 const HUB_ORG_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 const orgState = vi.hoisted(() => ({
@@ -162,6 +180,9 @@ describe("CloudHome", () => {
     orgLinkState.current = { kind: "idle" };
     orgLinkState.refetch.mockReset();
     billingState.snapshot = { entitlement: null };
+    compatibilityState.updating = false;
+    compatibilityState.message = undefined;
+    compatibilityState.refetch.mockReset();
     localStorage.clear();
   });
 
@@ -237,6 +258,52 @@ describe("CloudHome", () => {
     expect(screen.getByText(CLOUD_UPDATING_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_CREATE_ENGINE })).not.toBeInTheDocument();
     expect(viewState.createEngine).not.toHaveBeenCalled();
+  });
+
+  it("keeps the engine list visible and disables create when compatibility is updating", () => {
+    viewState.current = {
+      kind: "list",
+      engines: [{
+        id: "11111111-1111-4111-8111-111111111111",
+        name: "Production",
+        slug: "production",
+        status: "Ready",
+        release: "3.8.4",
+      }],
+    };
+    viewState.options = options;
+    viewState.canCreate = true;
+    compatibilityState.updating = true;
+    compatibilityState.message = CLOUD_UPDATING_MESSAGE;
+    renderHome();
+    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText("Production")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeDisabled();
+    expect(viewState.createEngine).not.toHaveBeenCalled();
+  });
+
+  it("recovers create after the next successful compatibility read", () => {
+    viewState.current = { kind: "empty" };
+    viewState.options = options;
+    viewState.canCreate = true;
+    compatibilityState.updating = true;
+    compatibilityState.message = CLOUD_UPDATING_MESSAGE;
+    const { rerender } = renderHome();
+    expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeDisabled();
+
+    compatibilityState.updating = false;
+    compatibilityState.message = undefined;
+    rerender(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={["/dashboard/org/acme/cloud"]}>
+          <Routes>
+            <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeEnabled();
+    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
   });
 
   it("shows a separate error state with retry", () => {

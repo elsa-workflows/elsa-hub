@@ -14,6 +14,7 @@ import { CloudProvisioningTimeline } from "@/components/cloud/CloudProvisioningT
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import { useCloudCompatibility } from "@/hooks/useCloudCompatibility";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
@@ -42,17 +43,26 @@ export default function CloudEngineOverviewPage() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngineOverview(engineId);
+  const compatibility = useCloudCompatibility();
   const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
   const showConsole = orgLink.kind === "idle" || orgLink.kind === "linked";
   const titleName = view.kind === "ready" ? view.engine.name : "Engine";
   const inDashboard = pathname.startsWith("/dashboard");
   const updating = view.kind === "updating";
+  const mutationsPaused = compatibility.updating;
+  const showUpdateBanner = updating || mutationsPaused;
+  const updateMessage = mutationsPaused
+    ? compatibility.message
+    : view.kind === "updating"
+    ? view.message
+    : undefined;
   const engine = view.kind === "ready" ? view.engine : undefined;
   const lifecycle = useCloudEngineLifecycle(
     workspaceId,
     engineId,
     engine?.status,
     updating,
+    mutationsPaused,
   );
 
   async function handleDelete(
@@ -95,12 +105,18 @@ export default function CloudEngineOverviewPage() {
 
             {orgLink.kind === "pending" && <CloudLoadingState />}
             {showConsole && view.kind === "loading" && <CloudLoadingState />}
-            {showConsole && view.kind === "updating" && <CloudUpdatingState message={view.message} />}
+            {showConsole && showUpdateBanner && <CloudUpdatingState message={updateMessage} />}
             {orgLink.kind === "error" && (
               <CloudErrorState message={CLOUD_LINK_CHECK_ERROR} onRetry={orgLink.refetch} />
             )}
             {view.kind === "error" && orgLink.kind !== "error" && orgLink.kind !== "needsLink" && (
-              <CloudErrorState message={view.message} onRetry={() => void refetch()} />
+              <CloudErrorState
+                message={view.message}
+                onRetry={() => {
+                  void refetch();
+                  void compatibility.refetch();
+                }}
+              />
             )}
             {orgLink.kind === "needsLink" && (
               <CloudLinkOrganizationState
@@ -154,7 +170,7 @@ export default function CloudEngineOverviewPage() {
                 <CloudEngineActions
                   engine={view.engine}
                   releases={lifecycle.releases}
-                  disabled={updating}
+                  disabled={updating || mutationsPaused}
                   restarting={lifecycle.restarting}
                   applying={lifecycle.applying}
                   deleting={lifecycle.deleting}

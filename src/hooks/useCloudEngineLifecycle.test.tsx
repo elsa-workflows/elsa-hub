@@ -18,6 +18,32 @@ describe("useCloudEngineLifecycle", () => {
     vi.restoreAllMocks();
   });
 
+  it("pauses writes when compatibility is updating without stopping reads", async () => {
+    const invoke = vi.spyOn(cloudClient, "invoke").mockImplementation(async (body) => {
+      if (body.action === "availableReleases") {
+        return {
+          ok: true,
+          state: "ready",
+          workspaceId,
+          engineId,
+          releases: [{ releaseLine: "3.8", version: "3.8.5", channel: "stable", changeKind: "patch" }],
+        };
+      }
+      return { ok: false, code: "unknown_action", error: "unexpected" };
+    });
+    const { result } = renderHook(
+      () => useCloudEngineLifecycle(workspaceId, engineId, "Ready", false, true),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.releases).toHaveLength(1));
+    const restart = await result.current.restart({
+      idempotencyKey: "44444444-4444-4444-4444-444444444444",
+      ifMatch: '"1"',
+    });
+    expect(restart).toMatchObject({ state: "updating" });
+    expect(invoke.mock.calls.map(([body]) => body.action)).not.toContain("restartEngine");
+  });
+
   it("does not retry mutations while Control is updating", async () => {
     const invoke = vi.spyOn(cloudClient, "invoke");
     const { result } = renderHook(
