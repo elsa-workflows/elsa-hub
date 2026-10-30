@@ -186,6 +186,7 @@ Deno.test("Cloud checkout, portal and status use #57's helper and never list cus
   assertEquals(portal.includes("getOrCreateStripeCustomer"), false);
   assertEquals(status.includes("getOrCreateStripeCustomer"), false);
   assertEquals(status.includes("readControlEntitlement("), true);
+  assertEquals(status.includes("Promise.all("), true);
 });
 
 Deno.test("cloud-billing status sends the Hub session to Control hosted-subscription", () => {

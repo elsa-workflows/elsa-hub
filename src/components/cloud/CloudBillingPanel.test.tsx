@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import {
   CLOUD_BILLING_NEEDS_LINK,
+  CLOUD_BILLING_NO_CUSTOMER,
   CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_ERROR_RETRY,
@@ -174,6 +175,24 @@ describe("CloudBillingPanel", () => {
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
     expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /manage or cancel billing/i })).toBeInTheDocument();
+  });
+
+  it("hides the portal for a Control-sourced plan with no stored customer", () => {
+    renderPanel({
+      billingAccount: "missing",
+      subscription: null,
+    });
+
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /manage or cancel billing/i })).not.toBeInTheDocument();
+    expect(screen.getByText(CLOUD_BILLING_NO_CUSTOMER)).toBeInTheDocument();
+  });
+
+  it("still opens the portal when a Control-sourced plan has a stored customer", () => {
+    renderPanel();
+
+    expect(screen.getByRole("button", { name: /manage or cancel billing/i })).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_BILLING_NO_CUSTOMER)).not.toBeInTheDocument();
   });
 
   it("explains that Cloud billing needs an organization instead of an admin-only notice", () => {
