@@ -12,10 +12,12 @@ import {
   CLOUD_BILLING_UNAVAILABLE_CODE,
   CLOUD_LINK_READ_FAILED,
   CLOUD_ORGANIZATION_REQUIRED,
+  CLOUD_PLAN_NAME,
   cloudLinkFromControlOrganizationId,
   cloudOrganizationIdFromBody,
   readControlEntitlement,
 } from "../_shared/cloud-billing.ts";
+import type { ControlFetch } from "../_shared/cloud-control.ts";
 import { jsonResponse, noStoreHeaders } from "../_shared/cloud-http.ts";
 import { readValidatedControlOrganizationId } from "../_shared/cloud-organization-link.ts";
 
@@ -32,10 +34,9 @@ export type CloudBillingStatusContext = {
   body: unknown;
   env: EnvReader;
   stripe: () => CloudBillingStripe;
+  accessToken?: string;
+  controlFetch?: ControlFetch;
 };
-
-/** Cloud has one plan; its label is fixed until Control reports the entitlement. */
-const CLOUD_PLAN_NAME = "Elsa Cloud";
 
 function cloudSubscriptionView(sub: Stripe.Subscription) {
   const periodEnd = sub.items?.data?.[0]?.current_period_end ??
@@ -71,7 +72,7 @@ async function listCloudSubscriptions(
  * Failures return generic messages; the detail is logged.
  */
 export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): Promise<Response> {
-  const { user, userClient, serviceClient, env } = ctx;
+  const { userClient, serviceClient, env } = ctx;
 
   const organizationId = cloudOrganizationIdFromBody(ctx.body);
   if (!organizationId) return jsonResponse(400, { error: CLOUD_ORGANIZATION_REQUIRED });
@@ -112,8 +113,9 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
   }
 
   const entitlement = await readControlEntitlement({
-    hubUserId: user.id,
-    hubOrganizationId: organizationId,
+    accessToken: ctx.accessToken,
+    controlOrganizationId,
+    controlFetch: ctx.controlFetch,
   });
 
   const subscriptions = customerId

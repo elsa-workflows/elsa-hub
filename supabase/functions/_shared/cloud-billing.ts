@@ -16,6 +16,8 @@
  * for that org, never from the Hub org id or the client.
  */
 
+import type { ControlFetch } from "./cloud-control.ts";
+import { isGuid } from "./cloud-types.ts";
 import { type EnvReader, stripeKeyMode } from "./stripe-customer.ts";
 
 export const CLOUD_KIND = "cloud";
@@ -46,6 +48,8 @@ export const CLOUD_ORGANIZATION_REQUIRED = "Cloud billing requires an organizati
 export const CLOUD_LINK_READ_FAILED =
   "We couldn't check this organization's Elsa Cloud link. Please try again later.";
 export const CLOUD_CHECKOUT_FAILED = "We couldn't start Cloud checkout. Please try again later.";
+/** Plan label until Control reports a more specific Hosted product name. */
+export const CLOUD_PLAN_NAME = "Elsa Cloud";
 
 /** A Cloud checkout or portal request, as opposed to the Hub's own billing. */
 export function isCloudRequest(body: unknown): boolean {
@@ -256,12 +260,94 @@ export function orgHasBlockingCloudSubscription(
 }
 
 /**
- * Control entitlement adapter (elsa-hub#44 / elsa-control#825).
- * Returns null until cloud-bff reports Hosted entitlement for this Hub subject.
+ * Control Hosted subscription states that still entitle the organization
+ * (`OrganizationSubscriptionLifecycle.IsLive` on valence-works/elsa-control#825).
+ * Mapped to the Hub billing page's Stripe-style status strings.
  */
-export async function readControlEntitlement(_input: {
-  hubUserId: string;
-  hubOrganizationId: string;
-}): Promise<null> {
+const CONTROL_LIVE_SUBSCRIPTION_STATUS: Record<string, string> = {
+  trial: "trialing",
+  trialing: "trialing",
+  active: "active",
+  pastdue: "past_due",
+  constrained: "constrained",
+  suspended: "paused",
+};
+
+export type CloudControlEntitlement = {
+  planName: string;
+  status: string;
+  source: "hub" | "control" | null;
+};
+
+export type ReadControlEntitlementInput = {
+  accessToken?: string;
+  controlOrganizationId: string | null;
+  controlFetch?: ControlFetch;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function readStringField(record: Record<string, unknown>, ...names: string[]): string | null {
+  for (const name of names) {
+    const value = record[name];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
   return null;
+}
+
+function hubStatusFromControlState(state: string): string | null {
+  return CONTROL_LIVE_SUBSCRIPTION_STATUS[state.toLowerCase()] ?? null;
+}
+
+function entitlementSource(value: string | null): CloudControlEntitlement["source"] {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  if (normalized === "hub" || normalized === "control") return normalized;
+  return null;
+}
+
+/**
+ * The plan Hub shows once Control reports a live Hosted subscription
+ * (`GET /api/organizations/{id}/billing/hosted-subscription`, elsa-control#825).
+ * Retained/Deleted/missing states, and any unrecognised body, are not a plan.
+ */
+export function normalizeControlEntitlement(body: unknown): CloudControlEntitlement | null {
+  const record = asRecord(body);
+  if (!record) return null;
+  const status = hubStatusFromControlState(
+    readStringField(record, "subscriptionState", "SubscriptionState") ?? "",
+  );
+  if (!status) return null;
+  return {
+    planName: CLOUD_PLAN_NAME,
+    status,
+    source: entitlementSource(readStringField(record, "source", "Source")),
+  };
+}
+
+/**
+ * Hub read of Control's Hosted subscription for the linked Control organization.
+ * Failures (outage, 404, forbidden, unrecognised body) return null so Stripe
+ * status on `/cloud/billing` still loads. The Control org id comes from the
+ * validated link, never from the client.
+ */
+export async function readControlEntitlement(
+  input: ReadControlEntitlementInput,
+): Promise<CloudControlEntitlement | null> {
+  const { accessToken, controlOrganizationId, controlFetch } = input;
+  if (!accessToken || !controlFetch || !controlOrganizationId || !isGuid(controlOrganizationId)) {
+    return null;
+  }
+
+  const result = await controlFetch({
+    method: "GET",
+    path: `/api/organizations/${controlOrganizationId}/billing/hosted-subscription`,
+    action: "hostedSubscription",
+  }, accessToken);
+  if (!result.ok) return null;
+  return normalizeControlEntitlement(result.body);
 }
