@@ -471,7 +471,8 @@ describe("CloudHome", () => {
     renderHome();
     expect(screen.getByRole("region", { name: "Cloud plan" })).toHaveTextContent("Elsa Cloud");
     expect(screen.getByText("Active")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /billing details/i })[0]).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: /billing details/i })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: /billing details/i })).toHaveAttribute(
       "href",
       "/dashboard/org/acme/cloud/billing",
     );

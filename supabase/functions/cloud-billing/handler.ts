@@ -112,15 +112,20 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
     return jsonResponse(500, { error: CLOUD_LINK_READ_FAILED });
   }
 
-  const entitlement = await readControlEntitlement({
-    accessToken: ctx.accessToken,
-    controlOrganizationId,
-    controlFetch: ctx.controlFetch,
-  });
-
-  const subscriptions = customerId
-    ? (await listCloudSubscriptions(ctx.stripe(), customerId)).map(cloudSubscriptionView)
-    : [];
+  // Control hosted-subscription can sit on its 15s timeout. Read Stripe in
+  // parallel so /cloud/billing still returns the stored customer's status.
+  const [entitlement, subscriptions] = await Promise.all([
+    readControlEntitlement({
+      accessToken: ctx.accessToken,
+      controlOrganizationId,
+      controlFetch: ctx.controlFetch,
+    }),
+    customerId
+      ? listCloudSubscriptions(ctx.stripe(), customerId).then((subs) =>
+        subs.map(cloudSubscriptionView)
+      )
+      : Promise.resolve([]),
+  ]);
 
   return jsonResponse(200, {
     billingAccount: customerId ? "linked" : "missing",

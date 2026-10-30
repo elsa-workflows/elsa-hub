@@ -90,6 +90,62 @@ Deno.test("status reports Control entitlement when hosted-subscription is live",
   assertEquals(control.tokens, ["hub-session"]);
 });
 
+Deno.test("status reads Control entitlement and Stripe subscriptions in parallel", async () => {
+  let releaseControl!: () => void;
+  const controlBlocked = new Promise<void>((resolve) => {
+    releaseControl = resolve;
+  });
+  const control = recordingControlFetch({ subscriptionState: "Active", source: "hub" });
+  const blockedFetch: ControlFetch = async (call, token) => {
+    await controlBlocked;
+    return control.fetch(call, token);
+  };
+
+  const { stripe, calls } = fakeStripe([
+    { id: "sub_cloud", status: "active", metadata: { kind: "cloud" } },
+  ]);
+  const list = stripe.subscriptions.list;
+  stripe.subscriptions.list = (params) => {
+    releaseControl();
+    return list(params);
+  };
+
+  const serviceClient = fakeSupabase({
+    tables: {
+      org_stripe_customers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+      cloud_organization_links: [validatedLink()],
+    },
+  });
+
+  let timer: number | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("Control was awaited before Stripe")), 250);
+  });
+
+  try {
+    const response = await Promise.race([
+      handleCloudBillingStatus({
+        user: { id: ADMIN },
+        userClient: fakeUserClient() as never,
+        serviceClient: serviceClient as never,
+        body: { organizationId: HUB_ORG },
+        env: testEnv(),
+        stripe: () => stripe as never,
+        accessToken: "hub-session",
+        controlFetch: blockedFetch,
+      }),
+      timeout,
+    ]);
+    const payload = await response.json();
+    assertEquals(response.status, 200);
+    assertEquals(payload.subscriptions.map((sub: { id: string }) => sub.id), ["sub_cloud"]);
+    assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "active", source: "hub" });
+    assertEquals(calls.subscriptionLists[0].customer, "cus_org_a");
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+});
+
 Deno.test("a Control outage or missing Hosted subscription leaves entitlement null and status 200", async () => {
   for (const result of [{ ok: false, kind: "updating" as const }, { ok: false, kind: "not_found" as const }]) {
     const control = recordingControlFetch(null, result);

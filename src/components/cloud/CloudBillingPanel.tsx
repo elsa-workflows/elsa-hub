@@ -8,7 +8,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { CloudSubscriptionStatus } from "@/hooks/useCloudBilling";
 import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
 import { cloudPlanStatusLabel } from "@/lib/cloud/billingDisplay";
-import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_NOT_AVAILABLE_YET, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
+import {
+  CLOUD_BILLING_NEEDS_LINK,
+  CLOUD_BILLING_NO_CUSTOMER,
+  CLOUD_BILLING_NOT_AVAILABLE_YET,
+  CLOUD_ERROR_RETRY,
+} from "@/lib/cloudClient";
 
 export function CloudBillingPanel({
   isLoading,
@@ -135,7 +140,7 @@ export function CloudBillingPanel({
                 Subscribe to Elsa Cloud
               </Button>
             )}
-            {(hasPlan || hasStoredCustomer) && (
+            {hasStoredCustomer && (
               <Button
                 type="button"
                 variant="outline"
@@ -146,6 +151,9 @@ export function CloudBillingPanel({
                 {portalPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Manage or cancel billing
               </Button>
+            )}
+            {hasPlan && !hasStoredCustomer && (
+              <p className="text-sm text-muted-foreground">{CLOUD_BILLING_NO_CUSTOMER}</p>
             )}
           </div>
         ) : canManage && hasOrganization && !isLoading && !error && needsLink ? (

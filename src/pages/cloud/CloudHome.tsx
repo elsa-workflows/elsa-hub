@@ -124,7 +124,6 @@ export default function CloudHome() {
               <CloudPlanBanner
                 planName={billing.snapshot?.entitlement?.planName ?? null}
                 planStatus={billing.snapshot?.entitlement?.status ?? null}
-                billingHref={`${home}/billing`}
               />
             )}
             {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}

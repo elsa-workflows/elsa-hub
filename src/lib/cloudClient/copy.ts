@@ -25,6 +25,8 @@ export const CLOUD_BILLING_NEEDS_LINK = "Link this organization first";
 export const CLOUD_BILLING_UNAVAILABLE = "Billing is temporarily unavailable";
 export const CLOUD_BILLING_NOT_AVAILABLE_YET =
   "Elsa Cloud billing isn't available yet. We'll let you know when you can subscribe.";
+export const CLOUD_BILLING_NO_CUSTOMER =
+  "Hub has no billing customer for this organization, so the billing portal cannot be opened.";
 export const CLOUD_LINK_CHECK_ERROR =
   "Could not check whether this organization is linked to Elsa Cloud.";
 export const CLOUD_PICK_ORG_HEADING = "Choose an organization";
