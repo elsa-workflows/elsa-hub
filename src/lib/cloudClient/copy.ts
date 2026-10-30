@@ -36,6 +36,9 @@ export const CLOUD_PICK_ORG_MESSAGE =
 export const CLOUD_ACCOUNT_LINK_TITLE = "Bring your Elsa Cloud account";
 export const CLOUD_ACCOUNT_LINK_INTRO =
   "Sign in to Elsa Cloud in this step, then confirm. Microsoft, Google, or email Cloud accounts all work here. The Hub keeps GitHub, Google, and email sign-in.";
+/** Intro while Google sign-in to Elsa Cloud is switched off on the link page. */
+export const CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE =
+  "Sign in to Elsa Cloud in this step, then confirm. Microsoft and email Cloud accounts work here. Google sign-in for Elsa Cloud isn't available here yet. The Hub keeps GitHub, Google, and email sign-in.";
 export const CLOUD_ACCOUNT_LINK_ACTION = "Link Elsa Cloud account";
 export const CLOUD_ACCOUNT_LINK_ALREADY_HEADING = "Already linked";
 export const CLOUD_ACCOUNT_LINK_DONE_HEADING = "Accounts linked";
