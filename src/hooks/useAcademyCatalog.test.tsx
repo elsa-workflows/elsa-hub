@@ -115,4 +115,28 @@ describe("useAcademyCatalog", () => {
     expect(result.current.isError).toBe(false);
     await waitFor(() => expect(result.current.soloOwnership).toBe("failed"));
   });
+
+  it("rechecks Solo ownership after ?payment=success until the grant shows up, then stops", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    window.history.pushState({}, "", "/academy?payment=success");
+    try {
+      signedIn();
+      listPersonalAcademyGrants
+        .mockResolvedValueOnce([])
+        .mockResolvedValue([{ course_id: null, product_code: "solo_bundle" }]);
+
+      const { result } = renderHook(() => useAcademyCatalog(), { wrapper });
+
+      await waitFor(() => expect(result.current.soloOwnership).toBe("none"));
+      await vi.advanceTimersByTimeAsync(3_000);
+      await waitFor(() => expect(result.current.soloOwnership).toBe("owned"));
+      const calls = listPersonalAcademyGrants.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(9_000);
+      expect(listPersonalAcademyGrants).toHaveBeenCalledTimes(calls);
+    } finally {
+      window.history.pushState({}, "", "/");
+      vi.useRealTimers();
+    }
+  });
 });

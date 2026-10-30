@@ -105,4 +105,45 @@ describe("useAcademyCourse", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.hasAccess).toBe(true);
   });
+
+  it("rechecks access after ?payment=success until the entitlement shows up", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    window.history.pushState({}, "", "/academy/solo?payment=success");
+    try {
+      useAuth.mockReturnValue({ user: { id: "user-1" }, loading: false });
+      hasAcademyAccess.mockResolvedValueOnce(false).mockResolvedValue(true);
+
+      const { result } = renderHook(() => useAcademyCourse("solo"), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.hasAccess).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(3_000);
+      await waitFor(() => expect(result.current.hasAccess).toBe(true));
+      const calls = hasAcademyAccess.mock.calls.length;
+
+      await vi.advanceTimersByTimeAsync(9_000);
+      expect(hasAcademyAccess).toHaveBeenCalledTimes(calls);
+    } finally {
+      window.history.pushState({}, "", "/");
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not poll access without ?payment=success", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      useAuth.mockReturnValue({ user: { id: "user-1" }, loading: false });
+      hasAcademyAccess.mockResolvedValue(false);
+
+      const { result } = renderHook(() => useAcademyCourse("solo"), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      const calls = hasAcademyAccess.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(9_000);
+      expect(hasAcademyAccess).toHaveBeenCalledTimes(calls);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

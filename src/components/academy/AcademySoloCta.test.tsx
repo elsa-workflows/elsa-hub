@@ -129,7 +129,7 @@ describe("AcademySoloCta", () => {
     expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
   });
 
-  it("keeps Buy when checkout reports nothing", async () => {
+  it("keeps Buy disabled once the redirect to Stripe has started", async () => {
     useAuth.mockReturnValue({ user: { id: "user-1" } });
     handleBuyCourse.mockResolvedValueOnce(undefined);
     renderCta("/academy");
@@ -138,8 +138,43 @@ describe("AcademySoloCta", () => {
       fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
     });
     expect(handleBuyCourse).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByText(ACADEMY_SOLO_OWNED_NOTE)).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect(handleBuyCourse).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a second click while checkout is still starting", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    handleBuyCourse.mockReturnValue(new Promise<void>(() => {}));
+    renderCta("/academy");
+
+    const button = screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL });
+    await act(async () => {
+      fireEvent.click(button);
+      fireEvent.click(button);
+    });
+    expect(handleBuyCourse).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-enables Buy when the page comes back from the back/forward cache", async () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    handleBuyCourse.mockResolvedValueOnce(undefined);
+    renderCta("/academy");
+
+    await clickBuy();
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeDisabled();
+
+    const restored = Object.assign(new Event("pageshow"), { persisted: true });
+    await act(async () => {
+      window.dispatchEvent(restored);
+    });
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeEnabled();
   });
 
   const clickBuy = () =>
@@ -172,7 +207,7 @@ describe("AcademySoloCta", () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it("disables Buy while checkout is starting", async () => {
+  it("disables Buy while checkout is starting and keeps it disabled after the redirect", async () => {
     useAuth.mockReturnValue({ user: { id: "user-1" } });
     let finish: () => void = () => {};
     handleBuyCourse.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)));
@@ -182,7 +217,7 @@ describe("AcademySoloCta", () => {
     expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeDisabled();
 
     await act(async () => finish());
-    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeEnabled();
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeDisabled();
   });
 
   it("hides Buy and says so when ownership could not be checked", () => {
@@ -199,6 +234,20 @@ describe("AcademySoloCta", () => {
     renderCta("/academy", false, "unknown");
 
     expect(screen.queryByText(ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+  });
+
+  it("offers sign-in next to the pending line when a buyer comes back signed out", () => {
+    useAuth.mockReturnValue({ user: null });
+    renderCta("/academy?payment=success");
+
+    expect(screen.getByTestId("academy-payment-pending")).toHaveTextContent(ACADEMY_PAYMENT_PENDING_LINE);
+    expect(screen.getByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).toHaveAttribute(
+      "href",
+      "/login?redirect=%2Facademy%3Fpayment%3Dsuccess",
+    );
+    expect(screen.queryByText(ACADEMY_SOLO_SIGNED_OUT_NOTE)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("academy-payment-success")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
   });
 

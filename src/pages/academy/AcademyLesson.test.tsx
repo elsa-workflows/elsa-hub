@@ -177,6 +177,7 @@ describe("Academy lesson page", () => {
     expect(screen.getByRole("link", { name: "Training page" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
     expect(handleBuyCourse).toHaveBeenCalledTimes(1);
+    expect(handleBuyCourse).toHaveBeenCalledWith("course-1");
     expect(screen.queryByText("Host Elsa 3.9.0")).not.toBeInTheDocument();
     expect(screen.queryByTestId("academy-kit-downloads")).not.toBeInTheDocument();
   });

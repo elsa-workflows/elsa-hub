@@ -200,6 +200,39 @@ describe("academy data layer", () => {
     assign.mockRestore();
   });
 
+  it("buys through the first published course when no course id is passed", async () => {
+    const assign = vi.spyOn(academyNavigate, "assign").mockImplementation(() => {});
+    order.mockResolvedValueOnce({
+      data: [
+        { ...publishedCourse, id: "course-first" },
+        { ...publishedCourse, id: "course-second", slug: "second" },
+      ],
+      error: null,
+    });
+    invoke.mockResolvedValueOnce({
+      data: { checkoutUrl: "https://checkout.stripe.com/c/pay/cs_live_y", sessionId: "cs_live_y" },
+      error: null,
+    });
+
+    await expect(handleBuyCourse()).resolves.toBeUndefined();
+    expect(from).toHaveBeenCalledWith("academy_courses");
+    expect(eq).toHaveBeenCalledWith("is_published", true);
+    expect(order).toHaveBeenCalledWith("sort_order", { ascending: true });
+    expect(invoke).toHaveBeenCalledWith("academy-checkout", { body: { courseId: "course-first" } });
+    expect(assign).toHaveBeenCalledWith("https://checkout.stripe.com/c/pay/cs_live_y");
+    assign.mockRestore();
+  });
+
+  it("refuses to start checkout when no course id is passed and none is published", async () => {
+    const assign = vi.spyOn(academyNavigate, "assign").mockImplementation(() => {});
+    order.mockResolvedValueOnce({ data: [], error: null });
+
+    await expect(handleBuyCourse()).rejects.toThrow("No published Academy course to buy");
+    expect(invoke).not.toHaveBeenCalled();
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
+  });
+
   it("rejects with the invoke error so the CTA can handle 409 already_owned", async () => {
     const assign = vi.spyOn(academyNavigate, "assign").mockImplementation(() => {});
     const failure = { context: new Response(JSON.stringify({ error: ACADEMY_ALREADY_OWNED }), { status: 409 }) };

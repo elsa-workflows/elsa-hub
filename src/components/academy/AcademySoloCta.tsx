@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,9 @@ type AcademySoloCtaProps = {
   ownership?: AcademySoloOwnership;
   /**
    * Resolving to ACADEMY_ALREADY_OWNED, or rejecting with checkout's 409 already_owned, swaps Buy
-   * for the owned note. Any other rejection shows an error toast and re-enables Buy.
+   * for the owned note. Any other resolution means the browser is on its way to Stripe, so Buy
+   * stays disabled to avoid a second checkout session. Any other rejection shows an error toast
+   * and re-enables Buy.
    */
   onBuyCourse?: () => void | Promise<AcademyBuyOutcome>;
 };
@@ -79,15 +81,31 @@ export function AcademySoloCta({
   const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${search}`)}`;
   const [checkoutSaysOwned, setCheckoutSaysOwned] = useState(false);
   const [buying, setBuying] = useState(false);
+  const buyingRef = useRef(false);
+  const setBuyingState = (value: boolean) => {
+    buyingRef.current = value;
+    setBuying(value);
+  };
+  // Back from Stripe can restore this page from the back/forward cache with Buy still disabled.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setBuyingState(false);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
   const buy = async () => {
-    setBuying(true);
+    if (buyingRef.current) return;
+    setBuyingState(true);
     try {
       if ((await onBuyCourse()) === ACADEMY_ALREADY_OWNED) setCheckoutSaysOwned(true);
+      // Otherwise the redirect to Stripe has started: keep Buy disabled until the page unloads.
     } catch (error) {
       if (await isAcademyAlreadyOwnedError(error)) setCheckoutSaysOwned(true);
-      else toast.error(ACADEMY_CHECKOUT_FAILED_LINE);
-    } finally {
-      setBuying(false);
+      else {
+        toast.error(ACADEMY_CHECKOUT_FAILED_LINE);
+        setBuyingState(false);
+      }
     }
   };
 
@@ -105,18 +123,23 @@ export function AcademySoloCta({
     purchaseArea = (
       <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE}</p>
     );
-  } else if (ownership === "none" && !paymentSuccess) {
-    purchaseArea = signedIn ? (
-      <Button type="button" onClick={buy} disabled={buying}>
-        {ACADEMY_SOLO_BUY_LABEL}
-      </Button>
-    ) : (
+  } else if (ownership === "none" && !signedIn) {
+    // A buyer back from Stripe signed out sees the pending line, so give them a way to sign in.
+    purchaseArea = (
       <div className="space-y-2">
         <Button asChild>
           <Link to={loginHref}>{ACADEMY_SOLO_SIGN_IN_LABEL}</Link>
         </Button>
-        <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_SIGNED_OUT_NOTE}</p>
+        {!paymentSuccess && (
+          <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_SIGNED_OUT_NOTE}</p>
+        )}
       </div>
+    );
+  } else if (ownership === "none" && !paymentSuccess) {
+    purchaseArea = (
+      <Button type="button" onClick={buy} disabled={buying} aria-busy={buying}>
+        {ACADEMY_SOLO_BUY_LABEL}
+      </Button>
     );
   }
 
