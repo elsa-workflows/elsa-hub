@@ -42,13 +42,18 @@ export function LeaveOrganizationDialog({
     setIsLeaving(true);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("organization_members")
         .delete()
         .eq("organization_id", organizationId)
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .select("id");
 
       if (error) throw error;
+      // RLS turns a disallowed delete into a no-op, so check a row went.
+      if (!data || data.length === 0) {
+        throw new Error("Could not leave the organization");
+      }
 
       toast({
         title: "Left organization",

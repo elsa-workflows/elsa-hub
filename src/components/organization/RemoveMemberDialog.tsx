@@ -36,12 +36,17 @@ export function RemoveMemberDialog({
     setIsRemoving(true);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("organization_members")
         .delete()
-        .eq("id", memberId);
+        .eq("id", memberId)
+        .select("id");
 
       if (error) throw error;
+      // RLS turns a disallowed delete into a no-op, so check a row went.
+      if (!data || data.length === 0) {
+        throw new Error("You don't have permission to remove this member");
+      }
 
       toast({
         title: "Member removed",
