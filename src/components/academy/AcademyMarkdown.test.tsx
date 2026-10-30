@@ -84,3 +84,29 @@ describe("AcademyMarkdown kit step", () => {
     expect(screen.queryByTestId("kit-step-probe")).not.toBeInTheDocument();
   });
 });
+
+describe("AcademyMarkdown inline code", () => {
+  const line =
+    "2. **Download and unzip** the lab kit, then follow [Lab kit access and run](/academy/fundamentals-core/kit-setup) to get host `:5000` + Studio `:5001` running (`workshop` / `elsa-class`).";
+
+  it("renders inline code spans as <code> without literal backticks, next to bold and link text", () => {
+    const { container } = render(<AcademyMarkdown markdown={line} />);
+    const codes = Array.from(container.querySelectorAll("li code")).map((el) => el.textContent);
+    expect(codes).toEqual([":5000", ":5001", "workshop", "elsa-class"]);
+    expect(container.querySelector("li strong")?.textContent).toBe("Download and unzip");
+    expect(container.querySelector("li a")?.getAttribute("href")).toBe("/academy/fundamentals-core/kit-setup");
+    expect(container.querySelector("li")?.textContent).not.toContain("`");
+  });
+
+  it("turns off the typography backtick pseudo-elements so copied and visible text match", () => {
+    render(<AcademyMarkdown markdown={"Password: `elsa-class`"} />);
+    const body = screen.getByTestId("academy-lesson-body");
+    expect(body).toHaveClass("prose-code:before:content-none", "prose-code:after:content-none");
+    expect(screen.getByText("elsa-class").tagName).toBe("CODE");
+  });
+
+  it("leaves fenced code blocks as pre > code", () => {
+    const { container } = render(<AcademyMarkdown markdown={"```bash\n./smoke.sh\n```"} />);
+    expect(container.querySelector("pre > code")?.textContent).toBe("./smoke.sh\n");
+  });
+});

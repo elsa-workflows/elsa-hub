@@ -70,7 +70,7 @@ export function AcademyMarkdown({ markdown, kitStep }: { markdown: string; kitSt
   return (
     <article
       data-testid="academy-lesson-body"
-      className="prose prose-sm md:prose-base max-w-none dark:prose-invert prose-headings:tracking-tight prose-a:text-primary"
+      className="prose prose-sm md:prose-base max-w-none dark:prose-invert prose-headings:tracking-tight prose-a:text-primary prose-code:before:content-none prose-code:after:content-none"
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
