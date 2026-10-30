@@ -28,6 +28,7 @@ import { ACADEMY_ALREADY_OWNED } from "@/lib/academy";
 import {
   ACADEMY_CHECKOUT_FAILED_LINE,
   ACADEMY_GUMROAD_CLAIM_LINE,
+  ACADEMY_PAYMENT_PENDING_LINE,
   ACADEMY_PAYMENT_SUCCESS_LINE,
   ACADEMY_SOLO_BUY_LABEL,
   ACADEMY_SOLO_HEADING,
@@ -100,11 +101,21 @@ describe("AcademySoloCta", () => {
     expect(screen.queryByText(ACADEMY_GUMROAD_CLAIM_LINE)).not.toBeInTheDocument();
   });
 
-  it("shows the payment success line and hides the buy CTA", () => {
+  it("shows the payment success line only when the entitlement is there", () => {
+    useAuth.mockReturnValue({ user: { id: "user-1" } });
+    renderCta("/academy?payment=success", false, "owned");
+
+    expect(screen.getByTestId("academy-payment-success")).toHaveTextContent(ACADEMY_PAYMENT_SUCCESS_LINE);
+    expect(screen.queryByTestId("academy-payment-pending")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
+  });
+
+  it("does not say You're in from payment=success alone", () => {
     useAuth.mockReturnValue({ user: { id: "user-1" } });
     renderCta("/academy?payment=success");
 
-    expect(screen.getByTestId("academy-payment-success")).toHaveTextContent(ACADEMY_PAYMENT_SUCCESS_LINE);
+    expect(screen.queryByTestId("academy-payment-success")).not.toBeInTheDocument();
+    expect(screen.getByTestId("academy-payment-pending")).toHaveTextContent(ACADEMY_PAYMENT_PENDING_LINE);
     expect(screen.queryByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).not.toBeInTheDocument();
   });
 
