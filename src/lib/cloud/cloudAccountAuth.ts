@@ -6,6 +6,14 @@ export const CLOUD_ACCOUNT_HUB_OWNER_KEY = "elsa.cloud.account-link.hub-user";
 
 export type CloudAccountOAuthProvider = "google" | "azure";
 
+/**
+ * Google sign-in to Elsa Cloud from the Hub is off for now: the Cloud
+ * project's native Google OAuth client isn't set up for this redirect
+ * (production Cloud signs in with Google through the Lovable broker).
+ * Set to true once the Cloud project has its own Google client.
+ */
+export const CLOUD_ACCOUNT_GOOGLE_SIGN_IN_ENABLED = false;
+
 export function cloudAccountAuthConfig(): { url: string; anonKey: string } | null {
   const url = (import.meta.env.VITE_ELSA_CLOUD_SUPABASE_URL as string | undefined)?.trim();
   const anonKey = (import.meta.env.VITE_ELSA_CLOUD_SUPABASE_ANON_KEY as string | undefined)?.trim();

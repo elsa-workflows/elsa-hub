@@ -8,6 +8,7 @@ import {
 } from "@/lib/cloud";
 import {
   CLOUD_ACCOUNT_LINK_ALREADY_HEADING,
+  CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE,
   CLOUD_ACCOUNT_LINK_CLOUD_MICROSOFT,
   CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD,
   CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN,
@@ -73,6 +74,12 @@ describe("CloudLinkAccount", () => {
     expect(linkState.linkAccount).toHaveBeenCalled();
     expect(screen.getByLabelText(CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN })).toBeInTheDocument();
+  });
+
+  it("hides Google Cloud sign-in while it is switched off", () => {
+    renderLink();
+    expect(screen.queryByRole("button", { name: CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE })).not.toBeInTheDocument();
+    expect(screen.getByText(/Google sign-in for Elsa Cloud isn't available here yet/)).toBeInTheDocument();
   });
 
   it("shows already linked when revisiting after a successful link", () => {

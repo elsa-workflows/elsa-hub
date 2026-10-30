@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCloudAccountLink } from "@/hooks/useCloudAccountLink";
 import { CLOUD_ACCOUNT_LINK_ALREADY } from "@/lib/cloud";
+import { CLOUD_ACCOUNT_GOOGLE_SIGN_IN_ENABLED } from "@/lib/cloud/cloudAccountAuth";
 import {
   CLOUD_ACCOUNT_LINK_ACTION,
   CLOUD_ACCOUNT_LINK_ALREADY_HEADING,
@@ -19,6 +20,7 @@ import {
   CLOUD_ACCOUNT_LINK_CONFIRM,
   CLOUD_ACCOUNT_LINK_DONE_HEADING,
   CLOUD_ACCOUNT_LINK_INTRO,
+  CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
   CLOUD_ACCOUNT_LINK_TITLE,
   CLOUD_ACCOUNT_LINK_UNAVAILABLE,
   CLOUD_PAGE_TITLE,
@@ -59,7 +61,9 @@ export default function CloudLinkAccount() {
             <CloudPageHeader workspaces={[]} onSelectWorkspace={() => undefined} />
             <div className="space-y-2">
               <h1 className="text-2xl font-semibold break-words">{CLOUD_ACCOUNT_LINK_TITLE}</h1>
-              <p className="text-sm text-muted-foreground break-words">{CLOUD_ACCOUNT_LINK_INTRO}</p>
+              <p className="text-sm text-muted-foreground break-words">
+                {CLOUD_ACCOUNT_GOOGLE_SIGN_IN_ENABLED ? CLOUD_ACCOUNT_LINK_INTRO : CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE}
+              </p>
             </div>
 
             {link.view.kind === "unavailable" && (
@@ -84,14 +88,16 @@ export default function CloudLinkAccount() {
             {link.view.kind !== "already_linked" && link.view.kind !== "unavailable" && (
               <div className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-11"
-                    onClick={() => void link.signInOAuth("google")}
-                  >
-                    {CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE}
-                  </Button>
+                  {CLOUD_ACCOUNT_GOOGLE_SIGN_IN_ENABLED && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11"
+                      onClick={() => void link.signInOAuth("google")}
+                    >
+                      {CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
