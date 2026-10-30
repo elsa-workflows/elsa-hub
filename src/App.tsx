@@ -10,6 +10,7 @@ import { ThemePreferencesProvider } from "@/contexts/ThemePreferencesContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { ACADEMY_TERMS_INDEX_PATH } from "@/lib/academyLegal";
+import { ACADEMY_COURSES_ALIAS_PATH, ACADEMY_PATH } from "@/lib/academyPaths";
 import { LEGACY_CLOUD_PATH } from "@/lib/cloudPaths";
 import {
   ELSA_RUNTIME_PATH,
@@ -197,9 +198,12 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
-              <Route path="/academy" element={<AcademyCatalog />} />
-              <Route path="/academy/:courseSlug" element={<AcademyCourse />} />
-              <Route path="/academy/:courseSlug/:lessonSlug" element={<AcademyLesson />} />
+              <Route path={ACADEMY_PATH} element={<AcademyCatalog />} />
+              {/* /academy/courses isn't a course: send it to the catalogue
+                  instead of rendering "Course not found". */}
+              <Route path={ACADEMY_COURSES_ALIAS_PATH} element={<Navigate to={ACADEMY_PATH} replace />} />
+              <Route path={`${ACADEMY_PATH}/:courseSlug`} element={<AcademyCourse />} />
+              <Route path={`${ACADEMY_PATH}/:courseSlug/:lessonSlug`} element={<AcademyLesson />} />
               {/* The .html variant is a prerendered download/import target for
                   crawlers and Medium. If a real browser lands on it, send the
                   user to the clean SPA route so React Router doesn't 404. */}
