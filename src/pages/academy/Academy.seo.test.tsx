@@ -78,8 +78,6 @@ vi.mock("@/hooks/useAcademyLesson", () => ({
     hasAccess: false,
     isPreview: true,
     canRead: true,
-    authLoading: false,
-    user: null,
     notFound: false,
     isLoading: false,
     isError: false,

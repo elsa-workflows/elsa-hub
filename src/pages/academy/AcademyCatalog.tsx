@@ -12,22 +12,25 @@ import {
 import { AcademySoloCta } from "@/components/academy/AcademySoloCta";
 import { useAcademyCatalog } from "@/hooks/useAcademyCatalog";
 import {
+  ACADEMY_MY_COURSES_ID,
   ACADEMY_PATH,
   ACADEMY_SOLO_BUNDLE_ID,
   handleBuyCourse,
-  scrollAcademySoloBundleIntoView,
+  scrollAcademyCatalogAnchorIntoView,
 } from "@/lib/academy";
 import { ACADEMY_DESCRIPTION, ACADEMY_TITLE, academyCatalogJsonLd } from "@/lib/academySeo";
 import { SITE_URL } from "@/lib/site";
 
 export default function AcademyCatalog() {
-  const { hash } = useLocation();
+  // key changes on every navigation, so a repeat click on the same hash scrolls again.
+  const { hash, key } = useLocation();
   const { courses, myCourses, accessByCourseId, soloOwnership, isLoading, isError, error } =
     useAcademyCatalog();
 
   useLayoutEffect(() => {
-    scrollAcademySoloBundleIntoView(hash);
-  }, [hash, isLoading, isError, courses.length]);
+    // My courses and the Solo card render after data loads, so ScrollToTop alone can miss them.
+    scrollAcademyCatalogAnchorIntoView(hash);
+  }, [hash, key, isLoading, isError, courses.length, myCourses.length]);
 
   return (
     <Layout>
@@ -62,7 +65,7 @@ export default function AcademyCatalog() {
             ) : (
               <>
                 {myCourses.length > 0 && (
-                  <div id="my-courses" className="space-y-4">
+                  <div id={ACADEMY_MY_COURSES_ID} className="scroll-mt-24 space-y-4">
                     <h2 className="text-2xl font-bold">My courses</h2>
                     <div className="grid gap-6 sm:grid-cols-2">
                       {myCourses.map((course) => (

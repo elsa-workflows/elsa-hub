@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAcademyBuy, type AcademyBuyAction } from "@/hooks/useAcademyBuy";
-import { ACADEMY_TEAM_LICENCES_URL } from "@/lib/academy";
+import { ACADEMY_MY_COURSES_HASH, ACADEMY_PATH, ACADEMY_TEAM_LICENCES_URL } from "@/lib/academy";
 import {
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
@@ -72,9 +72,9 @@ export function AcademySoloOwnedNote() {
   return (
     <p className="text-sm">
       {ACADEMY_SOLO_OWNED_NOTE}{" "}
-      <a href="#my-courses" className="text-primary hover:underline">
+      <Link to={`${ACADEMY_PATH}${ACADEMY_MY_COURSES_HASH}`} className="text-primary hover:underline">
         {ACADEMY_SOLO_OWNED_LINK}
-      </a>
+      </Link>
     </p>
   );
 }

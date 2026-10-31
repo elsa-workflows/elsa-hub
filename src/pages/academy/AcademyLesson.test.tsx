@@ -116,8 +116,6 @@ describe("Academy lesson page", () => {
       hasAccess: false,
       isPreview: false,
       canRead: false,
-      authLoading: false,
-      user: null,
       notFound: false,
       isLoading: false,
       isError: false,
@@ -162,8 +160,6 @@ describe("Academy lesson page", () => {
       hasAccess: false,
       isPreview: true,
       canRead: true,
-      authLoading: false,
-      user: null,
       notFound: false,
       isLoading: false,
       isError: false,
@@ -193,8 +189,6 @@ describe("Academy lesson page", () => {
       hasAccess: false,
       isPreview: false,
       canRead: false,
-      authLoading: false,
-      user: { id: "user-1" },
       notFound: false,
       isLoading: false,
       isError: false,
@@ -235,8 +229,6 @@ describe("Academy lesson page", () => {
       hasAccess: true,
       isPreview: false,
       canRead: true,
-      authLoading: false,
-      user: { id: "user-1" },
       notFound: false,
       isLoading: false,
       isError: false,
@@ -262,8 +254,6 @@ describe("Academy lesson page", () => {
       hasAccess: true,
       isPreview: false,
       canRead: true,
-      authLoading: false,
-      user: { id: "user-1" },
       notFound: false,
       isLoading: false,
       isError: false,
@@ -286,8 +276,6 @@ describe("Academy lesson page", () => {
       hasAccess: false,
       isPreview: true,
       canRead: true,
-      authLoading: false,
-      user: null,
       notFound: false,
       isLoading: false,
       isError: false,
@@ -322,7 +310,6 @@ describe("Academy lesson page", () => {
     const base = {
       course,
       assets: [],
-      authLoading: false,
       notFound: false,
       isLoading: false,
       isError: false,
@@ -338,7 +325,6 @@ describe("Academy lesson page", () => {
         hasAccess: true,
         isPreview: false,
         canRead: true,
-        user: { id: "user-1" },
       });
 
       renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");
@@ -368,7 +354,6 @@ describe("Academy lesson page", () => {
         hasAccess: false,
         isPreview: true,
         canRead: true,
-        user: { id: "user-1" },
       });
 
       renderLesson("/academy/elsa-3-solo-bundle/welcome");
@@ -394,7 +379,6 @@ describe("Academy lesson page", () => {
         hasAccess: false,
         isPreview: true,
         canRead: true,
-        user: null,
       });
       useAuth.mockReturnValue({ user: null } as never);
 
@@ -420,7 +404,6 @@ describe("Academy lesson page", () => {
         hasAccess: false,
         isPreview: true,
         canRead: true,
-        user: { id: "user-1" },
       });
 
       renderLesson("/academy/elsa-3-solo-bundle/welcome?payment=success");
@@ -447,7 +430,6 @@ describe("Academy lesson page", () => {
         hasAccess: false,
         isPreview: true,
         canRead: true,
-        user: { id: "user-1" },
       });
 
       renderLesson("/academy/elsa-3-solo-bundle/welcome?payment=success");
@@ -469,7 +451,6 @@ describe("Academy lesson page", () => {
         hasAccess: true,
         isPreview: false,
         canRead: true,
-        user: { id: "user-1" },
       });
 
       renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");

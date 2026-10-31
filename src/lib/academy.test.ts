@@ -67,6 +67,7 @@ import {
   listCourseLessons,
   listPersonalAcademyGrants,
   listPublishedCourses,
+  scrollAcademyCatalogAnchorIntoView,
   scrollAcademySoloBundleIntoView,
 } from "./academy";
 import { ACADEMY_STUB_COURSES } from "./academyStub";
@@ -178,6 +179,18 @@ describe("academy data layer", () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
     expect(scrollAcademySoloBundleIntoView("#solo-bundle", () => null)).toBe(false);
     expect(scrollAcademySoloBundleIntoView("#solo-bundle", () => ({ scrollIntoView }))).toBe(true);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it("scrolls catalogue sections only for their own hash", () => {
+    const scrollIntoView = vi.fn();
+    const find = vi.fn(() => ({ scrollIntoView }));
+    expect(scrollAcademyCatalogAnchorIntoView("#other", find)).toBe(false);
+    expect(find).not.toHaveBeenCalled();
+    expect(scrollAcademyCatalogAnchorIntoView("#my-courses", () => null)).toBe(false);
+    expect(scrollAcademyCatalogAnchorIntoView("#my-courses", find)).toBe(true);
+    expect(find).toHaveBeenCalledWith("my-courses");
+    expect(scrollAcademySoloBundleIntoView("#my-courses", find)).toBe(false);
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
 
