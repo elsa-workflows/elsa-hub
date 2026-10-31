@@ -102,6 +102,9 @@ describe("Academy course page", () => {
     expect(screen.getByLabelText("Locked")).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).not.toHaveAttribute("id", "solo-bundle");
+    // The Buy anchor target clears the fixed h-16 header when #academy-course-buy is followed.
+    expect(screen.getByTestId("academy-solo-cta")).toHaveAttribute("id", "academy-course-buy");
+    expect(screen.getByTestId("academy-solo-cta")).toHaveClass("scroll-mt-24");
     expect(screen.getByRole("heading", { name: ACADEMY_SOLO_LOCKED_HEADING })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: ACADEMY_SOLO_SIGN_IN_LABEL })).toBeInTheDocument();
     expect(screen.queryByText(ACADEMY_SOLO_INCLUDED[0])).not.toBeInTheDocument();
