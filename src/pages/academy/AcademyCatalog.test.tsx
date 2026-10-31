@@ -209,6 +209,54 @@ describe("Academy catalog", () => {
     }
   });
 
+  it("scrolls to #my-courses once it renders, and again on a repeat click", () => {
+    const scrolled: string[] = [];
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = vi.fn(function (this: HTMLElement) {
+      scrolled.push(this.id);
+    });
+
+    try {
+      // Loading: the section is not there yet, so nothing scrolls.
+      useAcademyCatalog.mockReturnValue({ ...loadedCatalog(), courses: [], isLoading: true });
+      const { rerender } = renderCatalog("/academy#my-courses");
+      expect(document.getElementById("my-courses")).toBeNull();
+      expect(scrolled).toEqual([]);
+
+      // Loaded with owned courses: exactly one scroll, on My courses.
+      arrangeSignedInCatalog({
+        courses: [course, second],
+        myCourses: [course, second],
+        accessByCourseId: { [course.id]: true, [second.id]: true },
+        soloOwnership: "owned",
+      });
+      rerender(catalogTree("/academy#my-courses"));
+      expect(scrolled).toEqual(["my-courses"]);
+
+      // Clicking "My courses" again while already on /academy#my-courses scrolls again.
+      fireEvent.click(screen.getByRole("link", { name: ACADEMY_SOLO_OWNED_LINK }));
+      expect(scrolled).toEqual(["my-courses", "my-courses"]);
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
+  it("renders #my-courses safely with no owned courses or signed out", () => {
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      useAcademyCatalog.mockReturnValue(loadedCatalog());
+      renderCatalog("/academy#my-courses");
+      expect(screen.getByTestId("academy-solo-cta")).toBeInTheDocument();
+      expect(document.getElementById("my-courses")).toBeNull();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
   it("calls handleBuyCourse from the Solo Bundle Buy CTA", () => {
     arrangeSignedInCatalog();
 

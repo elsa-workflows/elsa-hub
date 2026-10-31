@@ -6,6 +6,8 @@
 export const ACADEMY_PATH = "/academy";
 export const ACADEMY_SOLO_BUNDLE_ID = "solo-bundle";
 export const ACADEMY_SOLO_BUNDLE_HASH = `#${ACADEMY_SOLO_BUNDLE_ID}`;
+export const ACADEMY_MY_COURSES_ID = "my-courses";
+export const ACADEMY_MY_COURSES_HASH = `#${ACADEMY_MY_COURSES_ID}`;
 /**
  * /academy/courses looks like a catalogue URL, but the router would read
  * "courses" as a course slug and show "Course not found". It redirects to the

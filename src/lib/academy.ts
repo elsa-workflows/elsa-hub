@@ -1,8 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
-import { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH, ACADEMY_SOLO_BUNDLE_ID } from "./academyPaths";
+import {
+  ACADEMY_MY_COURSES_HASH,
+  ACADEMY_MY_COURSES_ID,
+  ACADEMY_PATH,
+  ACADEMY_SOLO_BUNDLE_HASH,
+  ACADEMY_SOLO_BUNDLE_ID,
+} from "./academyPaths";
 import type { PersonalAcademyGrant } from "./academyOwnership";
 
-export { ACADEMY_PATH, ACADEMY_SOLO_BUNDLE_HASH, ACADEMY_SOLO_BUNDLE_ID };
+export {
+  ACADEMY_MY_COURSES_HASH,
+  ACADEMY_MY_COURSES_ID,
+  ACADEMY_PATH,
+  ACADEMY_SOLO_BUNDLE_HASH,
+  ACADEMY_SOLO_BUNDLE_ID,
+};
 export const ACADEMY_KITS_BUCKET = "academy-kits";
 export const ACADEMY_KIT_SIGNED_URL_TTL_SECONDS = 600;
 
@@ -125,16 +137,36 @@ export const ACADEMY_SOLO_PRODUCT_CODE = "solo_bundle";
 /** Team packs are sold from the Training page. */
 export const ACADEMY_TEAM_LICENCES_URL = "/elsa-plus/training";
 
-export function scrollAcademySoloBundleIntoView(
+type FindAcademyAnchor = (id: string) => { scrollIntoView: () => void } | null;
+
+const findAcademyAnchor: FindAcademyAnchor = (id) =>
+  typeof document === "undefined" ? null : document.getElementById(id);
+
+/** Catalogue sections that render late (after data loads), keyed by URL hash. */
+const ACADEMY_CATALOG_ANCHORS: Record<string, string> = {
+  [ACADEMY_SOLO_BUNDLE_HASH]: ACADEMY_SOLO_BUNDLE_ID,
+  [ACADEMY_MY_COURSES_HASH]: ACADEMY_MY_COURSES_ID,
+};
+
+/** Scrolls a catalogue section named by the hash into view once it exists. */
+export function scrollAcademyCatalogAnchorIntoView(
   hash: string,
-  findElement: (id: string) => { scrollIntoView: () => void } | null = (id) =>
-    typeof document === "undefined" ? null : document.getElementById(id),
+  findElement: FindAcademyAnchor = findAcademyAnchor,
 ): boolean {
-  if (hash !== ACADEMY_SOLO_BUNDLE_HASH) return false;
-  const target = findElement(ACADEMY_SOLO_BUNDLE_ID);
+  const id = ACADEMY_CATALOG_ANCHORS[hash];
+  if (!id) return false;
+  const target = findElement(id);
   if (!target) return false;
   target.scrollIntoView();
   return true;
+}
+
+export function scrollAcademySoloBundleIntoView(
+  hash: string,
+  findElement: FindAcademyAnchor = findAcademyAnchor,
+): boolean {
+  if (hash !== ACADEMY_SOLO_BUNDLE_HASH) return false;
+  return scrollAcademyCatalogAnchorIntoView(hash, findElement);
 }
 
 /**
