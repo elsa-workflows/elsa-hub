@@ -1,10 +1,10 @@
--- Price switch for one product code, e.g. the 1 Nov Solo Bundle move.
+-- Price switch for one product code, e.g. the 1 Dec Solo Bundle move.
 -- Sets academy_courses.price_cents and stripe_price_id on EVERY row whose
 -- product_code matches, in one transaction. Idempotent: a second run with the
 -- same values updates zero rows. A product code that matches no row is an error.
 --
 -- Usage (no quotes around the values):
---   Solo, 1 Nov (defaults: product_code solo_bundle, price_cents 3900):
+--   Solo, 1 Dec (defaults: product_code solo_bundle, price_cents 3900):
 --     psql "$DATABASE_URL" -v stripe_price_id=price_... \
 --       -f scripts/academy-price-switch.sql
 --   Any other product, price_cents required:
@@ -13,7 +13,7 @@
 -- A refused value exits non-zero (the script sets ON_ERROR_STOP itself).
 --
 -- Do not run against production from this repo's CI. Apply by hand after
--- the 1 Nov routine, with Elsa Control Lead told first.
+-- the 1 Dec routine, with Elsa Control Lead told first.
 -- Equivalent Node entry:
 --   npx tsx scripts/academy-import.ts --price-switch --stripe-price-id price_... \
 --     [--product <code> --price-cents <n>] --apply

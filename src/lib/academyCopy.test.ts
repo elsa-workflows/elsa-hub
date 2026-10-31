@@ -50,8 +50,8 @@ describe("isAcademySoloLaunchPriceActive", () => {
   });
 
   it("ends at midnight Amsterdam time after 30 Nov, not at midnight UTC", () => {
-    // 30 Nov 23:59 CET is 22:59 UTC; 1 Dec 00:00 CET is 30 Nov 23:00 UTC.
-    expect(isAcademySoloLaunchPriceActive(new Date("2026-11-30T23:59:00+01:00"))).toBe(true);
+    // 30 Nov 23:59:59 CET is 22:59:59 UTC; 1 Dec 00:00 CET is 30 Nov 23:00 UTC.
+    expect(isAcademySoloLaunchPriceActive(new Date("2026-11-30T23:59:59+01:00"))).toBe(true);
     expect(isAcademySoloLaunchPriceActive(new Date("2026-12-01T00:00:00+01:00"))).toBe(false);
     expect(isAcademySoloLaunchPriceActive(new Date("2026-11-30T23:30:00Z"))).toBe(false);
     expect(isAcademySoloLaunchPriceActive(new Date("2026-11-30T22:30:00Z"))).toBe(true);

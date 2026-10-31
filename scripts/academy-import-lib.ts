@@ -1658,7 +1658,7 @@ export type PriceSwitchStore = {
 
 // The only way the tooling changes a product's price: every catalog row with the
 // given product_code moves to the new price and Stripe id, in one statement.
-// Defaults are the 1 Nov Solo switch (the catalog SKU at the mapping's
+// Defaults are the 1 Dec Solo switch (the catalog SKU at the mapping's
 // post-launch price); any other product code must say its price. Dry-run by
 // default; the store is only opened (and the service role only read) under
 // --apply. The id written is the validated, trimmed one. A product code that
@@ -1831,7 +1831,7 @@ that product exists does it take the mapping's launch price and the
 STRIPE_PRICE_ID_* variable (needed under --apply).
 
 --price-switch moves every row of a product_code to --price-cents and
---stripe-price-id in one statement. With no --product it is the 1 Nov Solo
+--stripe-price-id in one statement. With no --product it is the 1 Dec Solo
 switch: solo_bundle at the mapping's post-launch price. Any other --product also
 needs --price-cents. A product code with no rows is refused.
 
