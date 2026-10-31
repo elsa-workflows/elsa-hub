@@ -58,6 +58,8 @@ export const ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE =
 export const ACADEMY_SOLO_BUY_LABEL = "Buy the Solo Bundle";
 export const ACADEMY_SOLO_SIGN_IN_LABEL = "Sign in to buy";
 export const ACADEMY_SOLO_SIGNED_OUT_NOTE = "New here? Creating an Elsa Hub account is free.";
+export const ACADEMY_SOLO_LOCKED_SIGN_IN_BEFORE = "Already bought it? ";
+export const ACADEMY_SOLO_LOCKED_SIGN_IN_LINK = "Sign in";
 export const ACADEMY_CHECKOUT_FAILED_LINE = "Could not start checkout. Try again.";
 
 export const ACADEMY_GUMROAD_CLAIM_LINE =
