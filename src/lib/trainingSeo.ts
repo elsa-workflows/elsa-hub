@@ -20,8 +20,11 @@ export const TRAINING_CANONICAL_URL = `${SITE_URL}${TRAINING_PATH}`;
 
 export const TRAINING_LAUNCH_PRICE_EUR = 29;
 export const TRAINING_POST_LAUNCH_PRICE_EUR = 39;
-/** Last calendar day of the launch Solo Bundle price. Regular price starts the next day (1 Nov 2026). */
-export const TRAINING_PRICE_VALID_UNTIL = "2026-10-31";
+/**
+ * Last calendar day of the launch Solo Bundle price (extended through November).
+ * Regular price starts the next day (1 Dec 2026, 00:00 Europe/Amsterdam).
+ */
+export const TRAINING_PRICE_VALID_UNTIL = "2026-11-30";
 export const TRAINING_REGULAR_PRICE_VALID_FROM = nextUtcDay(TRAINING_PRICE_VALID_UNTIL);
 export const TRAINING_OFFER_PRICE = String(TRAINING_LAUNCH_PRICE_EUR);
 export const TRAINING_OFFER_CURRENCY = "EUR";

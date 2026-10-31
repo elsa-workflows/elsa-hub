@@ -44,7 +44,7 @@ describe("academyLegal", () => {
 
   it("shows Solo prices including VAT and Team prices excluding VAT", () => {
     const prices = ACADEMY_TERMS_SECTIONS.find((s) => s.id === "prices")!.body;
-    expect(prices).toContain("€29 including VAT until 31 Oct 2026");
+    expect(prices).toContain("€29 including VAT until 30 Nov 2026");
     expect(prices).toContain("€39 including VAT");
     expect(prices).toContain("€349 excluding VAT");
     expect(prices).toContain("€599 excluding VAT");
