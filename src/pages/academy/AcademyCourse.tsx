@@ -139,6 +139,8 @@ export default function AcademyCourse() {
         {!hasAccess && (
           <AcademySoloCta
             id={ACADEMY_COURSE_BUY_ID}
+            // The fixed header is h-16; keep the card heading clear of it when #academy-course-buy is followed.
+            className="scroll-mt-24"
             locked
             onBuyCourse={() => handleBuyCourse(course.id)}
           />

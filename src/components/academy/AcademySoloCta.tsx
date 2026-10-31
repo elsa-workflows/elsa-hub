@@ -29,6 +29,8 @@ export type AcademySoloOwnership = "owned" | "unknown" | "failed" | "none";
 
 type AcademySoloCtaProps = {
   id?: string;
+  /** Extra classes on the card, e.g. scroll-mt-* when it is an in-page anchor target. */
+  className?: string;
   locked?: boolean;
   /**
    * "owned": the visitor's personal grants cover every published course, so show a note instead
@@ -71,6 +73,7 @@ export function AcademySoloOwnedNote() {
 
 export function AcademySoloCta({
   id,
+  className,
   locked = false,
   ownership = "none",
   onBuyCourse,
@@ -108,7 +111,7 @@ export function AcademySoloCta({
   }
 
   return (
-    <Card id={id} data-testid="academy-solo-cta">
+    <Card id={id} className={className} data-testid="academy-solo-cta">
       <CardHeader>
         <CardTitle>{locked ? ACADEMY_SOLO_LOCKED_HEADING : ACADEMY_SOLO_HEADING}</CardTitle>
         <CardDescription>{academySoloBundleBody()}</CardDescription>
