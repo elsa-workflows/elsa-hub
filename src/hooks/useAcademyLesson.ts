@@ -65,8 +65,6 @@ export function useAcademyLesson(courseSlug: string | undefined, lessonSlug: str
     hasAccess,
     isPreview,
     canRead,
-    authLoading,
-    user,
     notFound: metaQuery.isSuccess && metaQuery.data === null,
     isLoading:
       authLoading ||

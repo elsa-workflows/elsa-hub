@@ -113,6 +113,9 @@ export function AcademySoloCta({
             {ACADEMY_SOLO_LOCKED_SIGN_IN_LINK}
           </Link>
         </p>
+        {!paymentSuccess && (
+          <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_SIGNED_OUT_NOTE}</p>
+        )}
       </div>
     );
   } else if (ownership === "none" && !signedIn) {

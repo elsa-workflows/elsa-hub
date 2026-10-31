@@ -50,6 +50,7 @@ import {
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
   ACADEMY_SOLO_LOCKED_SIGN_IN_LINK,
+  ACADEMY_SOLO_SIGNED_OUT_NOTE,
 } from "@/lib/academyCopy";
 
 const course = {
@@ -136,6 +137,7 @@ describe("Academy lesson page", () => {
         "href",
         "/login?redirect=%2Facademy%2Felsa-3-solo-bundle%2Fhost-elsa-in-aspnet-core",
       );
+      expect(within(cta).getByText(ACADEMY_SOLO_SIGNED_OUT_NOTE)).toBeInTheDocument();
       expect(screen.queryByTestId("academy-kit-downloads")).not.toBeInTheDocument();
 
       // Buy signs them in first (and back to this lesson) rather than starting checkout.
