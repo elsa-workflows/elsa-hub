@@ -97,6 +97,7 @@ export default function AcademyCatalog() {
 
           <AcademySoloCta
             id={ACADEMY_SOLO_BUNDLE_ID}
+            className="scroll-mt-24"
             ownership={soloOwnership}
             onBuyCourse={handleBuyCourse}
           />

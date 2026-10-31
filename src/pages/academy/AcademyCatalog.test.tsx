@@ -146,6 +146,7 @@ describe("Academy catalog", () => {
 
     expect(screen.getByRole("heading", { name: "Academy" })).toBeInTheDocument();
     expect(screen.getByTestId("academy-solo-cta")).toHaveAttribute("id", "solo-bundle");
+    expect(screen.getByTestId("academy-solo-cta")).toHaveClass("scroll-mt-24");
     expect(screen.getByRole("heading", { name: "Solo Bundle" })).toBeInTheDocument();
     expect(screen.getByText(academySoloBundleBody())).toBeInTheDocument();
     for (const item of ACADEMY_SOLO_INCLUDED) {
