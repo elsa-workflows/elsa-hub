@@ -13,6 +13,8 @@ import {
   ACADEMY_SOLO_HEADING,
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
+  ACADEMY_SOLO_LOCKED_SIGN_IN_BEFORE,
+  ACADEMY_SOLO_LOCKED_SIGN_IN_LINK,
   ACADEMY_SOLO_OWNED_LINK,
   ACADEMY_SOLO_OWNED_NOTE,
   ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE,
@@ -38,6 +40,12 @@ type AcademySoloCtaProps = {
    * Default "none".
    */
   ownership?: AcademySoloOwnership;
+  /**
+   * Signed out: show Buy (useAcademyBuy sends the visitor to sign in and back) plus a "Sign in"
+   * link for people who already bought, instead of the single "Sign in to buy" button. Used on a
+   * locked lesson, where a signed-out visitor arrives straight from a shared lesson link.
+   */
+  signedOutBuy?: boolean;
   /**
    * Resolving to ACADEMY_ALREADY_OWNED, or rejecting with checkout's 409 already_owned, swaps Buy
    * for the owned note. Any other resolution means the browser is on its way to Stripe, so Buy
@@ -73,6 +81,7 @@ export function AcademySoloCta({
   id,
   locked = false,
   ownership = "none",
+  signedOutBuy = false,
   onBuyCourse,
 }: AcademySoloCtaProps) {
   const { buy, buying, checkoutSaysOwned, paymentSuccess, signedIn, loginHref } =
@@ -86,6 +95,22 @@ export function AcademySoloCta({
   } else if (ownership === "failed" && signedIn) {
     purchaseArea = (
       <p className="text-sm text-muted-foreground">{ACADEMY_SOLO_OWNERSHIP_CHECK_FAILED_LINE}</p>
+    );
+  } else if (ownership === "none" && !signedIn && signedOutBuy) {
+    purchaseArea = (
+      <div className="space-y-2">
+        {!paymentSuccess && (
+          <Button type="button" onClick={buy} disabled={buying} aria-busy={buying}>
+            {ACADEMY_SOLO_BUY_LABEL}
+          </Button>
+        )}
+        <p className="text-sm text-muted-foreground">
+          {ACADEMY_SOLO_LOCKED_SIGN_IN_BEFORE}
+          <Link to={loginHref} className="text-primary hover:underline">
+            {ACADEMY_SOLO_LOCKED_SIGN_IN_LINK}
+          </Link>
+        </p>
+      </div>
     );
   } else if (ownership === "none" && !signedIn) {
     // A buyer back from Stripe signed out sees the pending line, so give them a way to sign in.

@@ -87,7 +87,7 @@ function renderPaidLesson() {
 }
 
 describe("Academy lesson pages against RLS-shaped mocks", () => {
-  it("sends a signed-out visitor on a paid lesson to login when the table hides the row", async () => {
+  it("keeps a signed-out visitor on a paid lesson, with the locked Solo CTA, when the table hides the row", async () => {
     useAuth.mockReturnValue({ user: null, loading: false });
     getLessonPageMeta.mockImplementation(async () => {
       const tableRow = null;
@@ -100,12 +100,11 @@ describe("Academy lesson pages against RLS-shaped mocks", () => {
     renderPaidLesson();
 
     await waitFor(() => {
-      expect(
-        screen.getByText(
-          "login?redirect=%2Facademy%2Ffundamentals-core%2Fhost-elsa-in-aspnet-core",
-        ),
-      ).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: ACADEMY_SOLO_LOCKED_HEADING })).toBeInTheDocument();
     });
+    expect(screen.queryByText(/^login\?/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: paidLesson.title })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toBeInTheDocument();
     expect(fetchLessonBody).not.toHaveBeenCalled();
     expect(screen.queryByText("Lesson not found")).not.toBeInTheDocument();
   });

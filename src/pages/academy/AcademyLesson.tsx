@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Seo } from "@/components/Seo";
 import {
@@ -32,7 +31,6 @@ import { academyLessonDescription, academyLessonTitle } from "@/lib/academySeo";
 
 export default function AcademyLesson() {
   const { courseSlug, lessonSlug } = useParams<{ courseSlug: string; lessonSlug: string }>();
-  const navigate = useNavigate();
   const {
     course,
     lesson,
@@ -43,8 +41,6 @@ export default function AcademyLesson() {
     hasAccess,
     isPreview,
     canRead,
-    authLoading,
-    user,
     notFound,
     isLoading,
     isError,
@@ -54,14 +50,9 @@ export default function AcademyLesson() {
   const currentPath =
     courseSlug && lessonSlug ? lessonPath(courseSlug, lessonSlug) : ACADEMY_PATH;
 
-  useEffect(() => {
-    if (authLoading || !lesson || isPreview) return;
-    if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(currentPath)}`, { replace: true });
-    }
-  }, [authLoading, lesson, isPreview, user, navigate, currentPath]);
-
-  if (isLoading || (lesson && !isPreview && !user)) {
+  // A signed-out visitor on a locked lesson stays here and gets the locked Solo CTA (Buy plus
+  // Sign in). The lesson body is never fetched for them: canRead is false, and RLS gates it anyway.
+  if (isLoading) {
     return (
       <Layout>
         <AcademyLoadingState label="Loading lesson..." />
@@ -171,7 +162,11 @@ export default function AcademyLesson() {
               {hasAccess && <AcademyKitDownload assets={assets} title="Lesson files" />}
             </>
           ) : (
-            <AcademySoloCta locked onBuyCourse={() => handleBuyCourse(course.id)} />
+            <AcademySoloCta
+              locked
+              signedOutBuy
+              onBuyCourse={() => handleBuyCourse(course.id)}
+            />
           )}
         </article>
       </AcademyLessonFrame>

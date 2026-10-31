@@ -49,6 +49,7 @@ import {
   ACADEMY_SOLO_BUY_LABEL,
   ACADEMY_SOLO_INCLUDED,
   ACADEMY_SOLO_LOCKED_HEADING,
+  ACADEMY_SOLO_LOCKED_SIGN_IN_LINK,
 } from "@/lib/academyCopy";
 
 const course = {
@@ -101,12 +102,16 @@ function renderLesson(path: string) {
 }
 
 describe("Academy lesson page", () => {
-  it("sends an anonymous visitor on a paid lesson to login with a return path", () => {
+  it("shows a signed-out visitor on a locked lesson the locked Solo CTA instead of sending them to login", () => {
+    handleBuyCourse.mockClear();
+    useAuth.mockReturnValue({ user: null } as never);
     useAcademyLesson.mockReturnValue({
       course,
       lesson: paidLesson,
+      lessons: [previewLesson, paidLesson],
       bodyMd: null,
       assets: [],
+      kitAssets: [],
       hasAccess: false,
       isPreview: false,
       canRead: false,
@@ -118,14 +123,32 @@ describe("Academy lesson page", () => {
       error: null,
     });
 
-    renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");
+    try {
+      renderLesson("/academy/elsa-3-solo-bundle/host-elsa-in-aspnet-core");
 
-    expect(
-      screen.getByText(
-        "login?redirect=%2Facademy%2Felsa-3-solo-bundle%2Fhost-elsa-in-aspnet-core",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
+      // Stays on the lesson: title, locked heading, one Buy and a Sign in link back to this lesson.
+      expect(screen.queryByText(/^login\?/)).not.toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: paidLesson.title })).toBeInTheDocument();
+      const cta = screen.getByTestId("academy-solo-cta");
+      expect(within(cta).getByText(ACADEMY_SOLO_LOCKED_HEADING)).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: ACADEMY_SOLO_BUY_LABEL })).toHaveLength(1);
+      expect(within(cta).getByRole("link", { name: ACADEMY_SOLO_LOCKED_SIGN_IN_LINK })).toHaveAttribute(
+        "href",
+        "/login?redirect=%2Facademy%2Felsa-3-solo-bundle%2Fhost-elsa-in-aspnet-core",
+      );
+      expect(screen.queryByTestId("academy-kit-downloads")).not.toBeInTheDocument();
+
+      // Buy signs them in first (and back to this lesson) rather than starting checkout.
+      fireEvent.click(within(cta).getByRole("button", { name: ACADEMY_SOLO_BUY_LABEL }));
+      expect(handleBuyCourse).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(
+          "login?redirect=%2Facademy%2Felsa-3-solo-bundle%2Fhost-elsa-in-aspnet-core",
+        ),
+      ).toBeInTheDocument();
+    } finally {
+      useAuth.mockReturnValue({ user: { id: "user-1" } });
+    }
   });
 
   it("renders a preview lesson body for an anonymous visitor", () => {
@@ -145,8 +168,14 @@ describe("Academy lesson page", () => {
       error: null,
     });
 
-    renderLesson("/academy/elsa-3-solo-bundle/welcome");
+    useAuth.mockReturnValue({ user: null } as never);
+    try {
+      renderLesson("/academy/elsa-3-solo-bundle/welcome");
+    } finally {
+      useAuth.mockReturnValue({ user: { id: "user-1" } });
+    }
 
+    expect(screen.queryByText(/^login\?/)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: previewLesson.title })).toBeInTheDocument();
     expect(screen.getByText("This preview lesson is free.")).toBeInTheDocument();
     expect(screen.queryByTestId("academy-solo-cta")).not.toBeInTheDocument();
