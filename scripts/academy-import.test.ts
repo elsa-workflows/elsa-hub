@@ -907,7 +907,7 @@ function twoCourseRoot(): string {
   return root;
 }
 
-// The live catalog after the 1 Nov switch: Solo on demo-core and on a legacy
+// The live catalog after the 1 Dec switch: Solo on demo-core and on a legacy
 // course that no manifest lists, both at NOV1_SOLO, plus a Team 5 row at its own price.
 function liveAfterSwitch() {
   const first = planImport({ manifest: boxManifest(), mapping, sourceRoot: simpleRoot(), env: SOLO_ENV });

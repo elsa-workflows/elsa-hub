@@ -59,12 +59,12 @@ Under `--apply`, a `STRIPE_PRICE_ID_*` variable is needed only for a new row who
 
 Uploads take their content type from the file extension (`zip`, `pdf`, `txt`, `md`, `json`, `png`, `jpg`, `jpeg`; anything else is `application/octet-stream`).
 
-## Price switch (the 1 Nov Solo move, or any product)
+## Price switch (the 1 Dec Solo move, or any product)
 
 The only way the tooling changes a product's price. It moves every `academy_courses` row with a given `product_code`, including rows no manifest lists, to a new `price_cents` and Stripe price id (`^price_[A-Za-z0-9_]+$`; surrounding whitespace is trimmed), in one statement. Dry-run by default, idempotent, and a product code that matches no row is refused.
 
 ```sh
-# 1 Nov: solo_bundle at the mapping's post-launch price (3900)
+# 1 Dec: solo_bundle at the mapping's post-launch price (3900)
 npm run academy:price-switch -- --stripe-price-id price_...            # dry-run
 npm run academy:price-switch -- --stripe-price-id price_... --apply    # writes
 # any other product names its price
