@@ -25,8 +25,8 @@ function amsterdamDay(now: Date): string | null {
 
 /**
  * The launch price runs through the last calendar day in Amsterdam
- * (ACADEMY_SOLO_LAUNCH_VALID_UNTIL, 31 Oct 2026), so it ends at 00:00 CET on
- * 1 Nov, the same moment the Stripe price on the course rows must switch.
+ * (ACADEMY_SOLO_LAUNCH_VALID_UNTIL, 30 Nov 2026), so it ends at 00:00 CET on
+ * 1 Dec, the same moment the Stripe price on the course rows must switch.
  * Only if the runtime has no Europe/Amsterdam zone data does it fall back to
  * the UTC date, which is off by at most the Amsterdam offset.
  */

@@ -226,13 +226,13 @@ describe("Training page", () => {
     renderTraining();
 
     expect(screen.getByText(/solo bundle/i, { selector: "strong" })).toBeInTheDocument();
-    expect(screen.getByText(/incl\. VAT at launch \(until 31 oct, then €39 incl\. VAT\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/incl\. VAT at launch \(until 30 nov, then €39 incl\. VAT\)/i)).toBeInTheDocument();
     expect(screen.getAllByText("€29").length).toBeGreaterThanOrEqual(1);
     expect(
       screen.getByText("Solo prices include VAT. Team packs and private workshops exclude VAT."),
     ).toBeInTheDocument();
-    expect(screen.getByText(/€29 incl\. VAT at launch until 31 oct, then €39 incl\. VAT\./i)).toBeInTheDocument();
-    expect(screen.getByText(/launch price incl\. VAT until 31 oct, then €39 incl\. VAT · elsa 3\.9\.0/i)).toBeInTheDocument();
+    expect(screen.getByText(/€29 incl\. VAT at launch until 30 nov, then €39 incl\. VAT\./i)).toBeInTheDocument();
+    expect(screen.getByText(/launch price incl\. VAT until 30 nov, then €39 incl\. VAT · elsa 3\.9\.0/i)).toBeInTheDocument();
     expect(screen.queryByText(/replaces fundamentals core/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/instead of core/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/an independent elsa\+ offering/i)).not.toBeInTheDocument();
