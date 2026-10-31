@@ -258,8 +258,9 @@ describe("Academy catalog", () => {
     expect(screen.getByText(ACADEMY_SOLO_OWNED_NOTE)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: ACADEMY_SOLO_OWNED_LINK })).toHaveAttribute(
       "href",
-      "#my-courses",
+      "/academy#my-courses",
     );
+    expect(document.getElementById("my-courses")).toHaveClass("scroll-mt-24");
   });
 
   it("keeps the Buy button when the visitor has access to only some published courses", () => {

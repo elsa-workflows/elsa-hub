@@ -72,9 +72,9 @@ export function AcademySoloOwnedNote() {
   return (
     <p className="text-sm">
       {ACADEMY_SOLO_OWNED_NOTE}{" "}
-      <a href="#my-courses" className="text-primary hover:underline">
+      <Link to="/academy#my-courses" className="text-primary hover:underline">
         {ACADEMY_SOLO_OWNED_LINK}
-      </a>
+      </Link>
     </p>
   );
 }

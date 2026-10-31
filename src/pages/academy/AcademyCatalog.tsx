@@ -27,7 +27,9 @@ export default function AcademyCatalog() {
 
   useLayoutEffect(() => {
     scrollAcademySoloBundleIntoView(hash);
-  }, [hash, isLoading, isError, courses.length]);
+    // My courses renders only once access has loaded, after ScrollToTop has already tried.
+    if (hash === "#my-courses") document.getElementById("my-courses")?.scrollIntoView();
+  }, [hash, isLoading, isError, courses.length, myCourses.length]);
 
   return (
     <Layout>
@@ -62,7 +64,7 @@ export default function AcademyCatalog() {
             ) : (
               <>
                 {myCourses.length > 0 && (
-                  <div id="my-courses" className="space-y-4">
+                  <div id="my-courses" className="scroll-mt-24 space-y-4">
                     <h2 className="text-2xl font-bold">My courses</h2>
                     <div className="grid gap-6 sm:grid-cols-2">
                       {myCourses.map((course) => (
