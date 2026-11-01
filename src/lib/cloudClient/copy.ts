@@ -16,6 +16,8 @@ export const CLOUD_LINK_ORG_HEADING = "Link this organization";
 export const CLOUD_LINK_ORG_ACTION = "Link this organization";
 export const CLOUD_LINK_ORG_MESSAGE =
   "Connect this Hub organization to Elsa Cloud so engines and checkout can use it.";
+export const CLOUD_LINK_ORG_NOT_CONNECTED =
+  "Elsa Cloud isn't connected to this Hub organization yet.";
 export const CLOUD_LINK_ORG_UPDATING =
   "Elsa Cloud isn't available for linking yet. Please try again later.";
 export const CLOUD_LINK_ORG_ERROR = "Could not link this organization to Elsa Cloud.";

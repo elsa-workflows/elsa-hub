@@ -10,6 +10,7 @@ import {
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ERROR,
   CLOUD_LINK_ORG_MESSAGE,
+  CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_LINK_ORG_UPDATING,
   CLOUD_OPEN_STUDIO,
   CLOUD_PAGE_TITLE,
@@ -324,11 +325,12 @@ describe("CloudEngineOverview", () => {
     expect(viewState.setupCloud).toHaveBeenCalledWith(HUB_ORG_ID);
   });
 
-  it("asks a member to wait for an admin when the org is unlinked", () => {
+  it("tells a non-admin the org is not connected, with no button", () => {
     orgLinkState.current = { kind: "needsLink", canLink: false };
     viewState.current = { kind: "ready", engine };
     renderOverview();
-    expect(screen.getByText(CLOUD_LINK_ORG_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_ORG_NOT_CONNECTED)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_LINK_ORG_MESSAGE)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
     expect(viewState.setupCloud).not.toHaveBeenCalled();
   });

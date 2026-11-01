@@ -3,6 +3,7 @@ import {
   CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
   CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_EMPTY_MESSAGE,
+  CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_PREVIEW_ONE_USER,
   cloudEngineCountLabel,
 } from "./copy";
@@ -27,5 +28,11 @@ describe("cloudEngineCountLabel", () => {
       "Use Microsoft or email to sign in to Elsa Cloud.",
     );
     expect(CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE).not.toMatch(/isn't available here yet/);
+  });
+
+  it("pins the signed non-admin disconnected line", () => {
+    expect(CLOUD_LINK_ORG_NOT_CONNECTED).toBe(
+      "Elsa Cloud isn't connected to this Hub organization yet.",
+    );
   });
 });

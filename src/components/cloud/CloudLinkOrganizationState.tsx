@@ -8,6 +8,7 @@ import {
   CLOUD_LINK_ORG_ERROR,
   CLOUD_LINK_ORG_HEADING,
   CLOUD_LINK_ORG_MESSAGE,
+  CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_LINK_ORG_UPDATING,
 } from "@/lib/cloudClient";
 
@@ -35,7 +36,7 @@ export function CloudLinkOrganizationState({
       <Cloud className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-50" />
       <h2 className="text-lg font-semibold">{CLOUD_LINK_ORG_HEADING}</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        {CLOUD_LINK_ORG_MESSAGE}
+        {canLink ? CLOUD_LINK_ORG_MESSAGE : CLOUD_LINK_ORG_NOT_CONNECTED}
       </p>
       {updating && (
         <p className="mt-3 text-sm text-muted-foreground" role="status">
