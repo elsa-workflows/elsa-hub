@@ -16,18 +16,19 @@ export const CLOUD_LINK_ORG_HEADING = "Link this organization";
 export const CLOUD_LINK_ORG_ACTION = "Link this organization";
 export const CLOUD_LINK_ORG_MESSAGE =
   "Connect this Hub organization to Elsa Cloud so engines and checkout can use it.";
-export const CLOUD_LINK_ORG_ASK_ADMIN =
-  "Ask an organization admin to link Elsa Cloud for this organization.";
+export const CLOUD_LINK_ORG_NOT_CONNECTED =
+  "Elsa Cloud isn't connected to this Hub organization yet.";
 export const CLOUD_LINK_ORG_UPDATING =
   "Elsa Cloud isn't available for linking yet. Please try again later.";
 export const CLOUD_LINK_ORG_ERROR = "Could not link this organization to Elsa Cloud.";
 export const CLOUD_LINK_ORG_SUCCESS = "This organization is now linked to Elsa Cloud.";
 export const CLOUD_BILLING_NEEDS_LINK = "Link this organization first";
 export const CLOUD_BILLING_UNAVAILABLE = "Billing is temporarily unavailable";
-export const CLOUD_BILLING_NOT_AVAILABLE_YET =
-  "Elsa Cloud billing isn't available yet. We'll let you know when you can subscribe.";
 export const CLOUD_BILLING_NO_CUSTOMER =
   "Hub has no billing customer for this organization, so the billing portal cannot be opened.";
+export const CLOUD_PREVIEW_LIMITS_HEADING = "Preview limits";
+export const CLOUD_PREVIEW_ONE_USER =
+  "During Preview, each organization has one Elsa Cloud user.";
 export const CLOUD_LINK_CHECK_ERROR =
   "Could not check whether this organization is linked to Elsa Cloud.";
 export const CLOUD_PICK_ORG_HEADING = "Choose an organization";
@@ -38,7 +39,7 @@ export const CLOUD_ACCOUNT_LINK_INTRO =
   "Sign in to Elsa Cloud in this step, then confirm. Microsoft, Google, or email Cloud accounts all work here. The Hub keeps GitHub, Google, and email sign-in.";
 /** Intro while Google sign-in to Elsa Cloud is switched off on the link page. */
 export const CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE =
-  "Sign in to Elsa Cloud in this step, then confirm. Microsoft and email Cloud accounts work here. Google sign-in for Elsa Cloud isn't available here yet. The Hub keeps GitHub, Google, and email sign-in.";
+  "Sign in to Elsa Cloud in this step, then confirm. Microsoft and email Cloud accounts work here. Use Microsoft or email to sign in to Elsa Cloud. The Hub keeps GitHub, Google, and email sign-in.";
 export const CLOUD_ACCOUNT_LINK_ACTION = "Link Elsa Cloud account";
 export const CLOUD_ACCOUNT_LINK_ALREADY_HEADING = "Already linked";
 export const CLOUD_ACCOUNT_LINK_DONE_HEADING = "Accounts linked";

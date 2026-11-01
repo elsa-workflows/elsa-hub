@@ -4,11 +4,26 @@ import {
   CLOUD_ERROR_RETRY,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_HEADING,
   CLOUD_LINK_ORG_UPDATING,
+  CLOUD_PAGE_TITLE,
 } from "@/lib/cloudClient";
 import { CloudLinkOrganizationState } from "./CloudLinkOrganizationState";
 
 describe("CloudLinkOrganizationState", () => {
+  it("keeps Link this organization as the heading for admins", () => {
+    render(<CloudLinkOrganizationState canLink onLink={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: CLOUD_LINK_ORG_HEADING })).toBeInTheDocument();
+    expect(CLOUD_LINK_ORG_HEADING).toBe("Link this organization");
+  });
+
+  it("uses Elsa Cloud as the heading for non-admins", () => {
+    render(<CloudLinkOrganizationState canLink={false} />);
+    expect(screen.getByRole("heading", { name: CLOUD_PAGE_TITLE })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: CLOUD_LINK_ORG_HEADING })).not.toBeInTheDocument();
+    expect(CLOUD_PAGE_TITLE).toBe("Elsa Cloud");
+  });
+
   it("shows a spinner and disables the link button while pending", () => {
     render(
       <CloudLinkOrganizationState

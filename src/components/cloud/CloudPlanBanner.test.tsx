@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { CLOUD_PREVIEW_LIMITS_HEADING, CLOUD_PREVIEW_ONE_USER } from "@/lib/cloudClient";
 import { CloudPlanBanner } from "./CloudPlanBanner";
 
 describe("CloudPlanBanner", () => {
@@ -13,6 +14,8 @@ describe("CloudPlanBanner", () => {
 
     expect(screen.getByRole("region", { name: "Cloud plan" })).toHaveTextContent("Elsa Cloud");
     expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_PREVIEW_LIMITS_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_PREVIEW_ONE_USER)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /billing details/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /pricing/i })).not.toBeInTheDocument();
   });

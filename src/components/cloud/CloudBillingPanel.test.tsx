@@ -5,10 +5,11 @@ import { MemoryRouter } from "react-router-dom";
 import {
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
-  CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_ERROR_RETRY,
   CLOUD_LINK_CHECK_ERROR,
+  CLOUD_PREVIEW_LIMITS_HEADING,
+  CLOUD_PREVIEW_ONE_USER,
 } from "@/lib/cloudClient";
 import { CloudBillingPanel } from "./CloudBillingPanel";
 
@@ -59,9 +60,7 @@ describe("CloudBillingPanel", () => {
 
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /manage or cancel billing/i })).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/only organization admins can start checkout or open the billing portal/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/only organization admins can start checkout or open the billing portal/i)).not.toBeInTheDocument();
   });
 
   it("lets an admin subscribe when there is no plan", () => {
@@ -132,7 +131,7 @@ describe("CloudBillingPanel", () => {
     expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
   });
 
-  it("shows a neutral unavailable notice and the link CTA when the org is unlinked", () => {
+  it("keeps the link CTA when billing is gated and the org is unlinked", () => {
     renderPanel({
       ...noPlan,
       billingAccount: "missing",
@@ -142,9 +141,6 @@ describe("CloudBillingPanel", () => {
       cloudHomeHref: "/dashboard/org/acme/cloud",
     });
 
-    const notice = screen.getByText(CLOUD_BILLING_NOT_AVAILABLE_YET).closest("[role='alert']");
-    expect(notice).toBeInTheDocument();
-    expect(notice).not.toHaveClass("text-destructive");
     expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: CLOUD_BILLING_NEEDS_LINK })).toHaveAttribute(
@@ -153,7 +149,7 @@ describe("CloudBillingPanel", () => {
     );
   });
 
-  it("shows only the neutral unavailable notice when the org is linked", () => {
+  it("hides checkout copy when billing is gated and the org is linked", () => {
     renderPanel({
       ...noPlan,
       billingAccount: "missing",
@@ -163,10 +159,21 @@ describe("CloudBillingPanel", () => {
       cloudHomeHref: "/dashboard/org/acme/cloud",
     });
 
-    expect(screen.getByText(CLOUD_BILLING_NOT_AVAILABLE_YET)).toBeInTheDocument();
     expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
     expect(screen.queryByText(/not linked to elsa cloud/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
+  });
+
+  it("renders no alert when the gate message is empty", () => {
+    renderPanel({
+      ...noPlan,
+      billingAccount: "missing",
+      cloudLink: "missing",
+      unavailable: true,
+      error: new Error(""),
+    });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("lets an admin open the portal when a Cloud subscription exists without a Control link", () => {
@@ -207,5 +214,12 @@ describe("CloudBillingPanel", () => {
     expect(screen.getByText(/cloud billing belongs to an organization/i)).toBeInTheDocument();
     expect(screen.queryByText(/only organization admins/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("lists the Preview one-user limit on the plan", () => {
+    renderPanel();
+
+    expect(screen.getByText(CLOUD_PREVIEW_LIMITS_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_PREVIEW_ONE_USER)).toBeInTheDocument();
   });
 });
