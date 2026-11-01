@@ -71,32 +71,44 @@ describe("deletion history copy", () => {
     expect(PREVIOUS_DELETIONS_HEADING).toBe("Previous deletions");
   });
 
-  it("maps unfinished delete states onto signed labels", () => {
+  it("maps each Control delete state onto the signed label", () => {
     expect(DELETING_THIS_ENGINE_HEADING).toBe("Deleting this engine");
     expect(UNFINISHED_DELETE_STATE_DELETING).toBe("Deleting");
     expect(UNFINISHED_DELETE_STATE_NEEDS_ATTENTION).toBe("Needs attention");
     expect(UNFINISHED_DELETE_STATE_CANCELLED).toBe("Deletion cancelled");
     expect(UNFINISHED_DELETE_STATE_UNAVAILABLE).toBe("Status unavailable");
-    expect(unfinishedDeleteStateLabel("Pending")).toBe("Deleting");
-    expect(unfinishedDeleteStateLabel("InProgress")).toBe("Deleting");
+
     expect(unfinishedDeleteStateLabel("Accepted")).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel("WaitingForPriorOperation")).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel("Queued")).toBe("Deleting");
     expect(unfinishedDeleteStateLabel("Running")).toBe("Deleting");
+
+    expect(unfinishedDeleteStateLabel("EntitlementHeld")).toBe("Needs attention");
     expect(unfinishedDeleteStateLabel("Failed")).toBe("Needs attention");
     expect(unfinishedDeleteStateLabel("RecoveryRequired")).toBe("Needs attention");
+    expect(unfinishedDeleteStateLabel("EntitlementHeld")).not.toBe("Deleting");
+    expect(unfinishedDeleteStateLabel("Failed")).not.toBe("Failed");
+    expect(unfinishedDeleteStateLabel("RecoveryRequired")).not.toBe("Failed");
+
     expect(unfinishedDeleteStateLabel("Cancelled")).toBe("Deletion cancelled");
-    expect(unfinishedDeleteStateLabel("Canceled")).toBe("Status unavailable");
-    expect(unfinishedDeleteStateLabel("Canceled")).not.toBe("Deletion cancelled");
+    expect(unfinishedDeleteStateLabel("Cancelled")).not.toBe("Deleting");
+
+    expect(succeededDeletionSentence("Prod", deletionRecordClock(record()))).toBe(
+      `Prod deleted on ${whenLabel}`,
+    );
+
     expect(unfinishedDeleteStateLabel("Unknown")).toBe("Status unavailable");
     expect(unfinishedDeleteStateLabel("")).toBe("Status unavailable");
     expect(unfinishedDeleteStateLabel(null)).toBe("Status unavailable");
     expect(unfinishedDeleteStateLabel(undefined)).toBe("Status unavailable");
+    expect(unfinishedDeleteStateLabel("Pending")).toBe("Status unavailable");
+    expect(unfinishedDeleteStateLabel("InProgress")).toBe("Status unavailable");
+    expect(unfinishedDeleteStateLabel("Canceled")).toBe("Status unavailable");
+    expect(unfinishedDeleteStateLabel("Canceled")).not.toBe("Deletion cancelled");
     expect(unfinishedDeleteStateLabel(undefined, "submitting")).toBe("Deleting");
     expect(unfinishedDeleteStateLabel(null, "submitting")).toBe("Deleting");
     expect(unfinishedDeleteStateLabel("", "submitting")).toBe("Deleting");
     expect(unfinishedDeleteStateLabel(undefined, "tracking")).toBe("Status unavailable");
-    expect(unfinishedDeleteStateLabel("Failed")).not.toBe("Failed");
-    expect(unfinishedDeleteStateLabel("Cancelled")).not.toBe("Deleting");
-    expect(unfinishedDeleteStateLabel("RecoveryRequired")).not.toBe("Failed");
   });
 
   it("uses a Succeeded Delete completedAt only, never Create or Restart", () => {

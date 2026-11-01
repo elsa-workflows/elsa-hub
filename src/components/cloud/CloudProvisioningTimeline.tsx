@@ -32,6 +32,10 @@ function isActiveDelete(engine?: CloudEngineOverview): boolean {
   return engine?.activeOperation?.action === "Delete" || engine?.status === "Deleting";
 }
 
+function isEntitlementHeldDelete(operation?: CloudEngineOverview["activeOperation"]): boolean {
+  return operation?.action === "Delete" && operation.state === "EntitlementHeld";
+}
+
 function toManagedProgress(progress: CloudProvisioningProgress): ManagedProvisioningProgress {
   return {
     state: progress.state,
@@ -67,8 +71,11 @@ export function CloudProvisioningTimeline({
   engine?: CloudEngineOverview;
   onRefresh?: () => void;
 }) {
-  const parkedDelete = isParkedCustomerDelete(engine?.activeOperation);
-  const parked = engine ? isParkedEngine(engine.status, engine.activeOperation) : false;
+  const parkedDelete = isParkedCustomerDelete(engine?.activeOperation)
+    || isEntitlementHeldDelete(engine?.activeOperation);
+  const parked = engine
+    ? isParkedEngine(engine.status, engine.activeOperation) || parkedDelete
+    : false;
   const activeDelete = isActiveDelete(engine);
   const hideProvisioning = parkedDelete || activeDelete;
   if (!progress) {
