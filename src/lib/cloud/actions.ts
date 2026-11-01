@@ -455,6 +455,7 @@ export type CloudOperation = {
   state: string;
   acceptedAt?: string | null;
   startedAt?: string | null;
+  completedAt?: string | null;
   requiresHumanAt?: string | null;
   progress?: CloudOperationProgress | null;
 };

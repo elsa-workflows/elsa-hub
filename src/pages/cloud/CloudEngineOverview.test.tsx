@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_ENGINE,
+  CLOUD_DELETE_START_ERROR,
   CLOUD_ERROR_HEADING,
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
@@ -365,7 +366,8 @@ describe("CloudEngineOverview", () => {
     const confirm = screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1);
     fireEvent.click(confirm!);
     await waitFor(() => expect(lifecycle.deleteEngine).toHaveBeenCalled());
-    expect(screen.getByText("Delete failed.")).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_DELETE_START_ERROR)).toBeInTheDocument();
+    expect(screen.queryByText("Delete failed.")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /delete this engine/i })).toBeInTheDocument();
   });
 

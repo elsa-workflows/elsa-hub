@@ -5,6 +5,7 @@ import {
   deletionEngineDisplayName,
   deletionRecordClock,
   partitionDeletionRecords,
+  deletionRowText,
   succeededDeletionSentence,
   type DeletionHistoryRecord,
 } from "./managedEngineDeletionHistory";
@@ -25,15 +26,23 @@ function record(overrides: Partial<DeletionHistoryRecord> = {}): DeletionHistory
 describe("deletion history copy", () => {
   it("uses the signed succeeded sentences", () => {
     const completed = deletionRecordClock(record());
-    expect(completed.label.startsWith("Deleted on ")).toBe(true);
-    expect(succeededDeletionSentence("Prod", completed)).toMatch(/^Prod deleted on /);
+    expect(succeededDeletionSentence("Prod", completed, record())).toBe("Prod deleted.");
 
-    const accepted = deletionRecordClock(record({ completedAt: null, acceptedAt: when }));
-    expect(succeededDeletionSentence("Prod", accepted)).toMatch(/^Prod deleted\. Request accepted /);
+    const withAccepted = record({ acceptedAt: when });
+    expect(succeededDeletionSentence("Prod", deletionRecordClock(withAccepted), withAccepted))
+      .toMatch(/^Prod deleted\. Request accepted /);
 
-    const unknown = deletionRecordClock(record({ completedAt: null, acceptedAt: null, requestedAt: null }));
-    expect(unknown.label).toBe("Completion time unavailable");
-    expect(succeededDeletionSentence("Prod", unknown)).toBe("Prod deleted.");
+    const unknown = record({ completedAt: null, acceptedAt: null, requestedAt: null });
+    expect(succeededDeletionSentence("Prod", deletionRecordClock(unknown), unknown)).toBe("Prod");
+    expect(succeededDeletionSentence("Prod", deletionRecordClock(unknown), unknown)).not.toMatch(/deleted/);
+  });
+
+  it("omits the word deleted when Control sent no completedAt", () => {
+    const unfinished = record({ completedAt: null, acceptedAt: when, state: "Failed" });
+    const text = deletionRowText("Prod", unfinished);
+    expect(text).not.toMatch(/deleted/i);
+    expect(text).toMatch(/Failed/);
+    expect(text).toMatch(/Request accepted /);
   });
 
   it("names unnamed rows Previous engine or Unnamed engine", () => {

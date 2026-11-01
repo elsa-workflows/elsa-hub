@@ -92,7 +92,7 @@ describe("#605 console fixture", () => {
       </>,
     );
 
-    expect(screen.getByText(/Old prod deleted on /)).toBeInTheDocument();
+    expect(screen.getByText("Old prod deleted.")).toBeInTheDocument();
     expect(screen.getByText("Deploying Elsa runtime")).toBeInTheDocument();
     expect(screen.getByText("Step 4 of 7")).toBeInTheDocument();
     expect(screen.getByText(/Attempt 2 · elapsed /)).toBeInTheDocument();
