@@ -100,6 +100,27 @@ describe("CloudDeletionHistory", () => {
     expect(screen.queryByText(/deleted\.$/i)).not.toBeInTheDocument();
   });
 
+  it("shows Deleting on a submitting row that has no state yet", () => {
+    render(
+      <CloudDeletionHistory
+        records={[
+          record({
+            phase: "submitting",
+            completedAt: null,
+            acceptedAt: null,
+            requestedAt: when,
+            state: undefined,
+          }),
+        ]}
+        liveInstances={[]}
+      />,
+    );
+    expect(screen.getByText("Prod")).toBeInTheDocument();
+    expect(screen.getByText(UNFINISHED_DELETE_STATE_DELETING)).toBeInTheDocument();
+    expect(screen.queryByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).not.toBeInTheDocument();
+    expect(screen.queryByText("Failed")).not.toBeInTheDocument();
+  });
+
   it("does not render a date when a Succeeded row's last operation is not a Delete", () => {
     const createCompleted = "2026-10-01T00:00:00.000Z";
     render(

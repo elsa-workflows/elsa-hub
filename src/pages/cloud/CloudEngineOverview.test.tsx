@@ -400,6 +400,35 @@ describe("CloudEngineOverview", () => {
     expect(lifecycle.pollDeleteOperation).toHaveBeenCalled();
   });
 
+  it("does not show the delete-start error when polling fails after Control accepts the delete", async () => {
+    viewState.current = { kind: "ready", engine };
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    lifecycle.deleteEngine.mockResolvedValue({
+      ok: true,
+      operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Accepted" },
+    });
+    lifecycle.pollDeleteOperation.mockResolvedValue({
+      ok: false,
+      code: "invalid_request",
+      error: "Delete did not reach a terminal state.",
+    });
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await waitFor(() => expect(lifecycle.confirmDelete).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    await waitFor(() => expect(lifecycle.pollDeleteOperation).toHaveBeenCalled());
+    expect(screen.queryByText(CLOUD_DELETE_START_ERROR)).not.toBeInTheDocument();
+    expect(screen.queryByText("Delete did not reach a terminal state.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /delete this engine/i })).not.toBeInTheDocument();
+  });
+
   it("does not stamp a deletion row with a prior Create or Restart completedAt", async () => {
     viewState.current = {
       kind: "ready",
