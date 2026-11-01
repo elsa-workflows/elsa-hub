@@ -67,7 +67,7 @@ function DeletionRow({
     liveName,
     record,
   });
-  const clock = deletionRecordClock(record);
+  const clock = deletionRecordClock(record, record.lastOperation);
 
   if (isSucceededDeletion(record)) {
     return (

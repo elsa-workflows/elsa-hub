@@ -443,6 +443,55 @@ describe("CloudEngineOverview", () => {
     ]);
   });
 
+  it("stamps deleted-on from the Succeeded Delete completedAt, not a prior Create", async () => {
+    const deleteCompleted = "2026-10-20T16:00:00.000Z";
+    viewState.current = {
+      kind: "ready",
+      engine: {
+        ...engine,
+        lastOperation: {
+          action: "Create",
+          state: "Succeeded",
+          completedAt: "2026-09-01T00:00:00.000Z",
+          failureCode: null,
+        },
+      },
+    };
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    lifecycle.deleteEngine.mockResolvedValue({
+      ok: true,
+      operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Accepted" },
+    });
+    lifecycle.pollDeleteOperation.mockResolvedValue({
+      ok: true,
+      operation: {
+        id: "55555555-5555-5555-5555-555555555555",
+        action: "Delete",
+        state: "Succeeded",
+        completedAt: deleteCompleted,
+      },
+    });
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await waitFor(() => expect(lifecycle.confirmDelete).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    await waitFor(() => expect(lifecycle.pollDeleteOperation).toHaveBeenCalled());
+    expect(readDeletionHistory(viewState.workspaceId)).toEqual([
+      expect.objectContaining({
+        instanceId: engine.id,
+        completedAt: deleteCompleted,
+        state: "Succeeded",
+      }),
+    ]);
+  });
+
   it("shows Control unavailableReason only on the timeline", () => {
     viewState.current = {
       kind: "ready",
@@ -461,5 +510,6 @@ describe("CloudEngineOverview", () => {
     renderOverview();
     expect(screen.getByText("Deletion of this engine is in progress.")).toBeInTheDocument();
     expect(screen.getAllByText("Deletion of this engine is in progress.")).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "Deleting this engine" })).toBeInTheDocument();
   });
 });

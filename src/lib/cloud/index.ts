@@ -137,8 +137,13 @@ export {
   shouldAdoptManagedProvisioningProgress,
 } from "./provisioningProgress";
 export {
+  DELETING_THIS_ENGINE_HEADING,
   MANAGED_DELETION_HISTORY_LIMIT,
   PREVIOUS_DELETIONS_HEADING,
+  UNFINISHED_DELETE_STATE_CANCELLED,
+  UNFINISHED_DELETE_STATE_DELETING,
+  UNFINISHED_DELETE_STATE_NEEDS_ATTENTION,
+  UNFINISHED_DELETE_STATE_UNAVAILABLE,
   deletionCompletedAt,
   deletionEngineDisplayName,
   deletionRecordClock,
