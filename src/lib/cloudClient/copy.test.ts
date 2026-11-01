@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
+  CLOUD_BILLING_NOT_CONNECTED,
+  CLOUD_BILLING_UNAVAILABLE,
   CLOUD_EMPTY_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_PREVIEW_ONE_USER,
@@ -30,6 +32,15 @@ describe("cloudEngineCountLabel", () => {
   it("pins the signed non-admin disconnected line", () => {
     expect(CLOUD_LINK_ORG_NOT_CONNECTED).toBe(
       "Elsa Cloud isn't connected to this Hub organization yet.",
+    );
+  });
+});
+
+describe("cloud billing copy", () => {
+  it("pins the load-failure and disconnected-checkout sentences", () => {
+    expect(CLOUD_BILLING_UNAVAILABLE).toBe("We couldn't load billing. Please try again.");
+    expect(CLOUD_BILLING_NOT_CONNECTED).toBe(
+      "This organization isn't connected to Elsa Cloud, so checkout isn't available.",
     );
   });
 });
