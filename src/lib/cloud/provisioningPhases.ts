@@ -24,6 +24,22 @@ export const CONTROL_PHASE_TO_STAGE = {
 } as const satisfies Record<string, ManagedProvisioningStageCode>;
 
 export const STATUS_UNAVAILABLE_LABEL = "status unavailable";
+export const STAGE_STATUS_COMPLETE = "complete";
+export const STAGE_STATUS_IN_PROGRESS = "in progress";
+export const STAGE_STATUS_NEEDS_ATTENTION = "needs attention";
+export const STAGE_STATUS_UP_NEXT = "up next";
+
+const STAGE_STATUS_LABELS: Record<string, string> = {
+  completed: STAGE_STATUS_COMPLETE,
+  complete: STAGE_STATUS_COMPLETE,
+  current: STAGE_STATUS_IN_PROGRESS,
+  "in progress": STAGE_STATUS_IN_PROGRESS,
+  blocked: STAGE_STATUS_NEEDS_ATTENTION,
+  "needs attention": STAGE_STATUS_NEEDS_ATTENTION,
+  pending: STAGE_STATUS_UP_NEXT,
+  "up next": STAGE_STATUS_UP_NEXT,
+  unknown: STATUS_UNAVAILABLE_LABEL,
+};
 
 export function mapControlPhaseToStage(
   phase?: string | null,
@@ -48,6 +64,6 @@ export function mapControlPhaseToStage(
 }
 
 export function stageStatusLabel(status: string | undefined): string {
-  if (!status || status === "unknown") return STATUS_UNAVAILABLE_LABEL;
-  return status;
+  if (!status) return STATUS_UNAVAILABLE_LABEL;
+  return STAGE_STATUS_LABELS[status.trim().toLowerCase()] ?? STATUS_UNAVAILABLE_LABEL;
 }

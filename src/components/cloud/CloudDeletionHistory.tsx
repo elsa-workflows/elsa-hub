@@ -1,8 +1,11 @@
 import {
+  PREVIOUS_DELETIONS_HEADING,
   deletionEngineDisplayName,
-  deletionRowText,
+  deletionRecordClock,
   isSucceededDeletion,
   partitionDeletionRecords,
+  succeededDeletionSentence,
+  unfinishedDeleteStateLabel,
   type DeletionHistoryInstance,
   type DeletionHistoryRecord,
 } from "@/lib/cloud/managedEngineDeletionHistory";
@@ -34,15 +37,18 @@ export function CloudDeletionHistory({
         </ul>
       )}
       {historyRows.length > 0 && (
-        <ul className="space-y-2">
-          {historyRows.map((record) => (
-            <DeletionRow
-              key={`${record.instanceId}-${record.completedAt ?? record.acceptedAt ?? "history"}`}
-              record={record}
-              liveInstances={liveInstances}
-            />
-          ))}
-        </ul>
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold">{PREVIOUS_DELETIONS_HEADING}</h2>
+          <ul className="space-y-2">
+            {historyRows.map((record) => (
+              <DeletionRow
+                key={`${record.instanceId}-${record.completedAt ?? record.acceptedAt ?? "history"}`}
+                record={record}
+                liveInstances={liveInstances}
+              />
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );
@@ -61,10 +67,23 @@ function DeletionRow({
     liveName,
     record,
   });
+  const clock = deletionRecordClock(record);
+
+  if (isSucceededDeletion(record)) {
+    return (
+      <li className="rounded-lg border px-3 py-3 text-sm">
+        <p>{succeededDeletionSentence(name, clock)}</p>
+      </li>
+    );
+  }
+
+  const state = unfinishedDeleteStateLabel(record.state);
 
   return (
-    <li className="rounded-lg border px-3 py-3 text-sm">
-      <p>{deletionRowText(name, record)}</p>
+    <li className="rounded-lg border px-3 py-3 text-sm space-y-1">
+      <p>{name}</p>
+      <p>{clock.label}</p>
+      {state && <p>{state}</p>}
     </li>
   );
 }

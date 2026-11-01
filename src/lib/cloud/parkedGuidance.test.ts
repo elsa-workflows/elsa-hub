@@ -58,9 +58,15 @@ describe("parkedGuidance", () => {
 
   it("uses parked engine copy for Create, Restart, Reconcile, Recover, and unknown actions", () => {
     const expected = formatParkedEngineGuidance(OPERATION_ID);
-    for (const action of ["Create", "Restart", "Reconcile", "Recover", "Unknown", undefined]) {
+    for (const action of ["Create", "Restart", "Reconcile", "Recover", "Unknown", undefined] as const) {
+      const operation = {
+        action,
+        state: "RecoveryRequired",
+        requiresHumanAt: "2026-10-20T00:00:00.000Z",
+      };
+      expect(isParkedCustomerDelete(operation)).toBe(false);
+      expect(isParkedEngine("RecoveryRequired", operation)).toBe(true);
       expect(parkedEngineGuidance(null, null, OPERATION_ID)).toBe(expected);
-      expect(action === "Create" || action !== "Create").toBe(true);
     }
     expect(parkedDeleteGuidance(null, null, OPERATION_ID)).toBe(
       formatParkedDeleteGuidance(OPERATION_ID),
