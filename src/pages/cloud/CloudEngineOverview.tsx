@@ -14,7 +14,11 @@ import { CloudProvisioningTimeline } from "@/components/cloud/CloudProvisioningT
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
-import { upsertDeletionHistoryRecord } from "@/lib/cloud/deletionHistoryStore";
+import {
+  removeDeletionHistoryRecord,
+  upsertDeletionHistoryRecord,
+  upsertSubmittingDeletionRecord,
+} from "@/lib/cloud/deletionHistoryStore";
 import { useCloudCompatibility } from "@/hooks/useCloudCompatibility";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
@@ -69,8 +73,15 @@ export default function CloudEngineOverviewPage() {
   async function handleDelete(
     input: { deleteConfirmationId: string; idempotencyKey: string; ifMatch: string },
   ) {
+    if (workspaceId && engine) {
+      upsertSubmittingDeletionRecord(workspaceId, {
+        instanceId: engine.id,
+        instanceName: engine.name,
+      });
+    }
     const accepted = await lifecycle.deleteEngine(input);
     if (isCloudUpdating(accepted) || !accepted.ok || !("operation" in accepted)) {
+      if (workspaceId && engine) removeDeletionHistoryRecord(workspaceId, engine.id);
       return accepted;
     }
     if (workspaceId && engine) {

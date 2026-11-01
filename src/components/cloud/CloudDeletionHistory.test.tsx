@@ -84,17 +84,23 @@ describe("CloudDeletionHistory", () => {
             acceptedAt: when,
             state: undefined,
           }),
+          record({
+            instanceId: "10101010-1010-4101-8101-101010101010",
+            completedAt: null,
+            acceptedAt: when,
+            state: "Canceled",
+          }),
         ]}
         liveInstances={[]}
       />,
     );
-    expect(screen.getAllByText("Prod")).toHaveLength(7);
-    expect(screen.getAllByText(`Request accepted ${whenLabel}`)).toHaveLength(6);
+    expect(screen.getAllByText("Prod")).toHaveLength(8);
+    expect(screen.getAllByText(`Request accepted ${whenLabel}`)).toHaveLength(7);
     expect(screen.getByText(`Requested ${whenLabel}`)).toBeInTheDocument();
     expect(screen.getAllByText(UNFINISHED_DELETE_STATE_NEEDS_ATTENTION)).toHaveLength(2);
     expect(screen.getAllByText(UNFINISHED_DELETE_STATE_DELETING)).toHaveLength(2);
     expect(screen.getByText(UNFINISHED_DELETE_STATE_CANCELLED)).toBeInTheDocument();
-    expect(screen.getAllByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).toHaveLength(2);
+    expect(screen.getAllByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).toHaveLength(3);
     expect(screen.queryByText("Failed")).not.toBeInTheDocument();
     expect(screen.queryByText(/deleted on/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/deleted\.$/i)).not.toBeInTheDocument();

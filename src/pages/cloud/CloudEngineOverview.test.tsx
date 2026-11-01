@@ -23,7 +23,7 @@ import {
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
-import { readDeletionHistory } from "@/lib/cloud/deletionHistoryStore";
+import { readDeletionHistory, resetDeletionHistoryStore } from "@/lib/cloud/deletionHistoryStore";
 import type { CloudEngineOverviewView } from "@/hooks/useCloudEngineOverview";
 
 const engine: CloudEngineOverview = {
@@ -176,6 +176,7 @@ describe("CloudEngineOverview", () => {
     compatibilityState.updating = false;
     compatibilityState.message = undefined;
     compatibilityState.refetch.mockReset();
+    resetDeletionHistoryStore();
     localStorage.clear();
   });
 
@@ -371,6 +372,46 @@ describe("CloudEngineOverview", () => {
     expect(screen.getByText(CLOUD_DELETE_START_ERROR)).toBeInTheDocument();
     expect(screen.queryByText("Delete failed.")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /delete this engine/i })).toBeInTheDocument();
+    expect(readDeletionHistory(viewState.workspaceId)).toEqual([]);
+  });
+
+  it("removes the submitting row and shows the signed delete-start error when start fails", async () => {
+    viewState.current = { kind: "ready", engine };
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    let finishStart!: (value: unknown) => void;
+    lifecycle.deleteEngine.mockImplementation(
+      () => new Promise((resolve) => {
+        finishStart = resolve;
+      }),
+    );
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await screen.findByText("notice");
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    await waitFor(() => {
+      expect(readDeletionHistory(viewState.workspaceId)).toEqual([
+        expect.objectContaining({
+          phase: "submitting",
+          instanceId: engine.id,
+          instanceName: engine.name,
+        }),
+      ]);
+    });
+    finishStart({
+      ok: false,
+      code: "invalid_request",
+      error: "Delete failed.",
+    });
+    await waitFor(() => expect(readDeletionHistory(viewState.workspaceId)).toEqual([]));
+    expect(screen.getByText(CLOUD_DELETE_START_ERROR)).toBeInTheDocument();
+    expect(screen.queryByText("Delete failed.")).not.toBeInTheDocument();
   });
 
   it("runs confirmed delete through to a terminal operation", async () => {
