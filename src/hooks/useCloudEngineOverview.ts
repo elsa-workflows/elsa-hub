@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { shouldPollCloudEngine } from "@/components/cloud/engineStatus";
 import {
   cloudClient,
   isCloudBffError,
@@ -74,9 +75,8 @@ export function useCloudEngineOverview(engineId: string | undefined) {
     staleTime: 15_000,
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (!data || !data.ok || !("engine" in data)) return false;
-      const status = data.engine.status;
-      if (status === "Provisioning" || status === "Updating" || status === "Deleting") {
+      if (!data || !data.ok || !("engine" in data) || !("health" in data.engine)) return false;
+      if (shouldPollCloudEngine(data.engine.status, data.engine.activeOperation?.state)) {
         return 5_000;
       }
       return false;

@@ -13,13 +13,18 @@ import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
 import { CloudProvisioningTimeline } from "@/components/cloud/CloudProvisioningTimeline";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
-import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import {
+  removeDeletionHistoryRecord,
+  upsertDeletionHistoryRecord,
+  upsertSubmittingDeletionRecord,
+} from "@/lib/cloud/deletionHistoryStore";
 import { useCloudCompatibility } from "@/hooks/useCloudCompatibility";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
-import { isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
+import { deletionCompletedAt, isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
 import { CLOUD_LINK_CHECK_ERROR, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 
@@ -64,19 +69,63 @@ export default function CloudEngineOverviewPage() {
     updating,
     mutationsPaused,
   );
+  const showTimeline = Boolean(engine && (
+    engine.status === "Provisioning"
+    || engine.status === "Deleting"
+    || engine.status === "RecoveryRequired"
+    || engine.activeOperation?.action === "Delete"
+    || engine.activeOperation?.state === "RecoveryRequired"
+    || lifecycle.progress
+  ));
+  const overviewReason = engine
+    && !showTimeline
+    && engine.unavailableReason
+    && engine.unavailableReasonCode !== "not-authorized"
+    ? engine.unavailableReason
+    : null;
 
   async function handleDelete(
     input: { deleteConfirmationId: string; idempotencyKey: string; ifMatch: string },
   ) {
+    if (workspaceId && engine) {
+      upsertSubmittingDeletionRecord(workspaceId, {
+        instanceId: engine.id,
+        instanceName: engine.name,
+      });
+    }
     const accepted = await lifecycle.deleteEngine(input);
     if (isCloudUpdating(accepted) || !accepted.ok || !("operation" in accepted)) {
+      if (workspaceId && engine) removeDeletionHistoryRecord(workspaceId, engine.id);
       return accepted;
     }
-    const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
-    if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
-      navigate(home);
+    if (workspaceId && engine) {
+      upsertDeletionHistoryRecord(workspaceId, {
+        phase: "tracking",
+        instanceId: engine.id,
+        instanceName: engine.name,
+        acceptedAt: accepted.operation.acceptedAt,
+        completedAt: deletionCompletedAt(accepted.operation, engine.lastOperation),
+        state: accepted.operation.state,
+        lastOperation: accepted.operation,
+      });
     }
-    return terminal;
+    const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
+    if (workspaceId && engine && terminal.ok && "operation" in terminal) {
+      upsertDeletionHistoryRecord(workspaceId, {
+        phase: "tracking",
+        instanceId: engine.id,
+        instanceName: engine.name,
+        acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
+        completedAt: deletionCompletedAt(terminal.operation, engine.lastOperation),
+        state: terminal.operation.state,
+        lastOperation: terminal.operation,
+      });
+    }
+    if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
+      if (terminal.operation.state === "Succeeded") navigate(home);
+    }
+    // After Control accepts the delete, polling failures are not start failures.
+    return terminal.ok ? terminal : accepted;
   }
 
   return (
@@ -150,15 +199,17 @@ export default function CloudEngineOverviewPage() {
                   <CardHeader>
                     <CardTitle className="flex flex-wrap items-center gap-3">
                       <span>{view.engine.name}</span>
-                      <Badge variant={cloudEngineStatusVariant(view.engine.status)}>
-                        {view.engine.status}
+                      <Badge variant={cloudEngineStatusVariant(view.engine.status, view.engine.activeOperation?.state)}>
+                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state)}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="grid gap-4 sm:grid-cols-2 text-sm">
                     <div>
                       <p className="text-muted-foreground">Status</p>
-                      <p className="font-medium">{view.engine.status}</p>
+                      <p className="font-medium" role="status" aria-live="polite">
+                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Release</p>
@@ -190,8 +241,15 @@ export default function CloudEngineOverviewPage() {
                   onOpenStudio={lifecycle.openStudio}
                 />
 
-                {(view.engine.status === "Provisioning" || lifecycle.progress) && (
-                  <CloudProvisioningTimeline progress={lifecycle.progress} />
+                {overviewReason && <p className="text-sm">{overviewReason}</p>}
+                {showTimeline && (
+                  <CloudProvisioningTimeline
+                    progress={lifecycle.progress}
+                    engine={view.engine}
+                    onRefresh={() => {
+                      void refetch();
+                    }}
+                  />
                 )}
 
                 <CloudActivityLog items={lifecycle.activity} />

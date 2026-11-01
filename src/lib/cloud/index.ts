@@ -54,9 +54,12 @@ export type {
   CloudEngineCreateIntent,
   CloudEngineOverview,
   CloudEngineSummary,
+  CloudLastOperation,
   CloudLaunchProfile,
   CloudOnboardingOptions,
   CloudOperation,
+  CloudOperationProgress,
+  CloudProvisioningActivity,
   CloudProvisioningProgress,
   CloudProvisioningStage,
   CloudReleaseOption,
@@ -106,3 +109,44 @@ export { cloudOrganizationLinkView, isHubOrgAdmin } from "./organizationLink";
 export type { CloudOrganizationLinkView } from "./organizationLink";
 export { buildCreateEngineIntent, onboardingChoices, slugifyEngineName } from "./intent";
 export { createCloudPkcePair, submitStudioHandoff } from "./studio";
+export {
+  EMPTY_OPERATION_ID,
+  PARKED_DELETE_GUIDANCE_WITH_REFERENCE,
+  PARKED_DELETE_GUIDANCE_WITHOUT_REFERENCE,
+  PARKED_ENGINE_GUIDANCE_WITH_REFERENCE,
+  PARKED_ENGINE_GUIDANCE_WITHOUT_REFERENCE,
+  controlReasonOrFallback,
+  formatParkedDeleteGuidance,
+  formatParkedEngineGuidance,
+  isParkedCustomerDelete,
+  isParkedEngine,
+  isParkedLifecycle,
+  parkedDeleteGuidance,
+  parkedEngineGuidance,
+} from "./parkedGuidance";
+export {
+  provisioningActivityLabels,
+  provisioningStageDescriptions,
+  provisioningStageLabels,
+} from "./provisioningLabels";
+export {
+  MANAGED_PROVISIONING_STAGE_CODES,
+  UNKNOWN_ATTEMPT_CLOCK_LABEL,
+  isUnmappedProvisioningSnapshot,
+  presentProvisioningAttemptClock,
+  shouldAdoptManagedProvisioningProgress,
+} from "./provisioningProgress";
+export {
+  DELETING_THIS_ENGINE_HEADING,
+  MANAGED_DELETION_HISTORY_LIMIT,
+  PREVIOUS_DELETIONS_HEADING,
+  UNFINISHED_DELETE_STATE_CANCELLED,
+  UNFINISHED_DELETE_STATE_DELETING,
+  UNFINISHED_DELETE_STATE_NEEDS_ATTENTION,
+  UNFINISHED_DELETE_STATE_UNAVAILABLE,
+  deletionCompletedAt,
+  deletionEngineDisplayName,
+  deletionRecordClock,
+  succeededDeletionSentence,
+  unfinishedDeleteStateLabel,
+} from "./managedEngineDeletionHistory";

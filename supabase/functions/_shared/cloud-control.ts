@@ -8,9 +8,12 @@ import {
   type CloudEngineActionDecision,
   type CloudEngineOverview,
   type CloudEngineSummary,
+  type CloudLastOperation,
   type CloudLaunchProfile,
   type CloudOnboardingOptions,
   type CloudOperation,
+  type CloudOperationProgress,
+  type CloudProvisioningActivity,
   type CloudProvisioningProgress,
   type CloudProvisioningStage,
   type CloudReleaseOption,
@@ -341,12 +344,58 @@ export function normalizeEngineOverview(
     organizationId: asString(summarySource.organizationId) ?? asString(record.organizationId),
     audience: asString(summarySource.audience) ?? asString(record.audience),
     redirectUri: asString(summarySource.redirectUri) ?? asString(record.redirectUri),
+    unavailableReason: asString(summarySource.unavailableReason) ?? asString(record.unavailableReason),
+    unavailableReasonCode: asString(summarySource.unavailableReasonCode)
+      ?? asString(record.unavailableReasonCode),
+    activeOperation: normalizeOverviewOperation(record.activeOperation),
+    lastOperation: normalizeLastOperation(record.lastOperation),
     allowedActions: {
       restart: actionDecision(allowed?.restart ?? allowed?.Restart),
       applyRelease: actionDecision(allowed?.applyRelease ?? allowed?.ApplyRelease),
       open: actionDecision(allowed?.open ?? allowed?.Open),
       delete: actionDecision(allowed?.delete ?? allowed?.Delete),
     },
+  };
+}
+
+function normalizeOperationProgress(value: unknown): CloudOperationProgress | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const attemptNumber = asNumber(record.attemptNumber);
+  return {
+    phase: asString(record.phase),
+    attemptedStep: asString(record.attemptedStep),
+    attemptNumber: attemptNumber ?? null,
+    attemptStartedAt: asString(record.attemptStartedAt),
+  };
+}
+
+function normalizeOverviewOperation(value: unknown): CloudOperation | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const base = normalizeOperation(record);
+  if (!base) return null;
+  return {
+    ...base,
+    acceptedAt: asString(record.acceptedAt),
+    startedAt: asString(record.startedAt),
+    completedAt: asString(record.completedAt),
+    requiresHumanAt: asString(record.requiresHumanAt),
+    progress: normalizeOperationProgress(record.progress),
+  };
+}
+
+function normalizeLastOperation(value: unknown): CloudLastOperation | null {
+  const record = asRecord(value);
+  if (!record) return null;
+  const action = asString(record.action);
+  const state = asString(record.state);
+  if (!action || !state) return null;
+  return {
+    action,
+    state,
+    completedAt: asString(record.completedAt),
+    failureCode: asString(record.failureCode),
   };
 }
 
@@ -435,10 +484,14 @@ export function normalizeOperation(value: unknown): CloudOperation | null {
   const id = asString(record.id) ?? asString(record.operationId);
   const state = asString(record.state);
   if (!isGuid(id) || !state) return null;
+  const acceptedAt = asString(record.acceptedAt);
+  const completedAt = asString(record.completedAt);
   return {
     id,
     action: asString(record.action) ?? "Unknown",
     state,
+    ...(acceptedAt ? { acceptedAt } : {}),
+    ...(completedAt ? { completedAt } : {}),
   };
 }
 
@@ -463,6 +516,22 @@ export function normalizeProvisioningProgress(body: unknown): CloudProvisioningP
       });
     }
   }
+  const activity: CloudProvisioningActivity[] = [];
+  if (Array.isArray(record.activity)) {
+    for (const item of record.activity) {
+      const row = asRecord(item);
+      if (!row) continue;
+      const sequence = typeof row.sequence === "number" && Number.isInteger(row.sequence)
+        ? row.sequence
+        : null;
+      if (sequence === null) continue;
+      activity.push({
+        sequence,
+        messageCode: asString(row.messageCode),
+      });
+    }
+  }
+  const attemptNumber = asNumber(record.attemptNumber);
   return {
     state,
     currentStage: asString(record.currentStage),
@@ -470,7 +539,12 @@ export function normalizeProvisioningProgress(body: unknown): CloudProvisioningP
     lastUpdatedAt: asString(record.lastUpdatedAt),
     completedAt: asString(record.completedAt),
     diagnosticCode: asString(record.diagnosticCode),
+    phase: asString(record.phase),
+    attemptedStep: asString(record.attemptedStep),
+    attemptNumber: attemptNumber ?? null,
+    attemptStartedAt: asString(record.attemptStartedAt),
     stages,
+    activity,
   };
 }
 

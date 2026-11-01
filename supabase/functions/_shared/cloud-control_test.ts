@@ -1,5 +1,10 @@
 import { assertEquals, assertFalse } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { createControlFetch, isCompatibleControl } from "./cloud-control.ts";
+import {
+  createControlFetch,
+  isCompatibleControl,
+  normalizeEngineOverview,
+  normalizeProvisioningProgress,
+} from "./cloud-control.ts";
 import {
   CLOUD_REQUIRED_CAPABILITIES,
   CLOUD_REQUIRED_READ_CAPABILITIES,
@@ -276,3 +281,94 @@ Deno.test("createControlFetch keeps account-link 401 codes for the Hub mapper", 
     staleSession: "hub",
   });
 });
+
+const OVERVIEW_ID = "11111111-1111-4111-8111-111111111111";
+const OPERATION_ID = "22222222-2222-4222-8222-222222222222";
+
+Deno.test("normalizeEngineOverview allowlists overview fields and drops extras", () => {
+  const engine = normalizeEngineOverview({
+    summary: {
+      instanceId: OVERVIEW_ID,
+      name: "Prod",
+      slug: "prod",
+      observedLifecycle: "RecoveryRequired",
+      unavailableReason: "Control wrote this sentence.",
+      unavailableReasonCode: "provider-timeout",
+      secretNote: "drop-me",
+    },
+    health: { status: "Unknown" },
+    activeOperation: {
+      id: OPERATION_ID,
+      action: "Restart",
+      state: "RecoveryRequired",
+      acceptedAt: "2026-10-31T00:00:00.000Z",
+      startedAt: "2026-10-31T00:01:00.000Z",
+      requiresHumanAt: null,
+      progress: {
+        phase: "FoundationReady",
+        attemptedStep: "Workload",
+        attemptNumber: 2,
+        attemptStartedAt: "2026-10-31T00:01:00.000Z",
+        providerDump: "drop-me",
+      },
+      leaked: "drop-me",
+    },
+    lastOperation: {
+      action: "Create",
+      state: "Succeeded",
+      completedAt: "2026-10-20T00:00:00.000Z",
+      failureCode: null,
+      leaked: "drop-me",
+    },
+  });
+  assertEquals(engine?.unavailableReason, "Control wrote this sentence.");
+  assertEquals(engine?.unavailableReasonCode, "provider-timeout");
+  assertEquals(engine?.activeOperation?.action, "Restart");
+  assertEquals(engine?.activeOperation?.state, "RecoveryRequired");
+  assertEquals(engine?.activeOperation?.progress?.phase, "FoundationReady");
+  assertEquals(engine?.activeOperation?.progress?.attemptNumber, 2);
+  assertEquals(engine?.lastOperation?.action, "Create");
+  assertEquals(JSON.stringify(engine).includes("drop-me"), false);
+  assertEquals(JSON.stringify(engine).includes("secretNote"), false);
+  assertEquals(JSON.stringify(engine).includes("providerDump"), false);
+});
+
+Deno.test("normalizeEngineOverview treats missing allowlisted fields as null", () => {
+  const engine = normalizeEngineOverview({
+    summary: {
+      instanceId: OVERVIEW_ID,
+      name: "Prod",
+      slug: "prod",
+      observedLifecycle: "Ready",
+    },
+    health: { status: "Healthy" },
+  });
+  assertEquals(engine?.unavailableReason, null);
+  assertEquals(engine?.unavailableReasonCode, null);
+  assertEquals(engine?.activeOperation, null);
+  assertEquals(engine?.lastOperation, null);
+});
+
+Deno.test("normalizeProvisioningProgress carries attempt fields and drops extras", () => {
+  const progress = normalizeProvisioningProgress({
+    state: "active",
+    currentStage: "runtime-deployment",
+    phase: "FoundationReady",
+    attemptedStep: "Workload",
+    attemptNumber: 2,
+    attemptStartedAt: "2026-10-31T00:00:00.000Z",
+    startedAt: "2026-10-27T00:00:00.000Z",
+    lastUpdatedAt: "2026-10-31T00:00:00.000Z",
+    completedAt: null,
+    diagnosticCode: null,
+    stages: [{ code: "runtime-deployment", status: "current" }],
+    activity: [{ sequence: 4, messageCode: "runtime.deploying", leaked: "drop-me" }],
+    leaked: "drop-me",
+  });
+  assertEquals(progress?.attemptNumber, 2);
+  assertEquals(progress?.phase, "FoundationReady");
+  assertEquals(progress?.attemptedStep, "Workload");
+  assertEquals(progress?.activity?.[0]?.messageCode, "runtime.deploying");
+  assertEquals(JSON.stringify(progress).includes("drop-me"), false);
+});
+
