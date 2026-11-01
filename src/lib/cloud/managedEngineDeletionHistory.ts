@@ -7,6 +7,12 @@ export type DeletionHistoryInstance = {
 
 export const MANAGED_DELETION_HISTORY_LIMIT = 20;
 
+export type DeletionOperationStamp = {
+  action?: string | null;
+  state?: string | null;
+  completedAt?: string | null;
+};
+
 export type DeletionHistoryRecord = {
   phase: "submitting" | "tracking";
   instanceId: string;
@@ -15,6 +21,7 @@ export type DeletionHistoryRecord = {
   completedAt?: string | null;
   requestedAt?: string | null;
   state?: string;
+  lastOperation?: DeletionOperationStamp | null;
 };
 
 export type DeletionDateProvenance = "completed" | "accepted" | "requested" | "unavailable";
@@ -49,8 +56,36 @@ export function isSucceededDeletion(record: Pick<DeletionHistoryRecord, "phase" 
   return record.phase === "tracking" && record.state === "Succeeded";
 }
 
-export function deletionRecordClock(record: DeletionHistoryRecord): DeletionRecordClock {
-  const completedWhen = formatDeletionWhen(record.completedAt);
+export function isSucceededDeleteOperation(
+  operation?: DeletionOperationStamp | null,
+): operation is DeletionOperationStamp {
+  return operation?.action === "Delete"
+    && operation.state === "Succeeded"
+    && Boolean(operation.completedAt);
+}
+
+export function deletionCompletedAt(
+  terminal?: DeletionOperationStamp | null,
+  lastOperation?: DeletionOperationStamp | null,
+): string | null {
+  if (isSucceededDeleteOperation(terminal)) return terminal.completedAt ?? null;
+  if (isSucceededDeleteOperation(lastOperation)) return lastOperation.completedAt ?? null;
+  return null;
+}
+
+export function deletionRecordClock(
+  record: DeletionHistoryRecord,
+  lastOperation?: DeletionOperationStamp | null,
+): DeletionRecordClock {
+  const completedAt = lastOperation && lastOperation.action !== "Delete"
+    ? null
+    : deletionCompletedAt(
+      isSucceededDeletion(record)
+        ? { action: "Delete", state: "Succeeded", completedAt: record.completedAt }
+        : null,
+      lastOperation,
+    );
+  const completedWhen = formatDeletionWhen(completedAt);
   const acceptedWhen = formatDeletionWhen(record.acceptedAt);
   const requestedWhen = formatDeletionWhen(record.requestedAt);
   const claimsDeleted = isSucceededDeletion(record);
@@ -109,11 +144,12 @@ export const SUCCEEDED_DELETION_ON_SENTENCE = "{name} deleted on {when}";
 export const SUCCEEDED_DELETION_REQUEST_ACCEPTED_SENTENCE = "{name} deleted. Request accepted {when}.";
 export const SUCCEEDED_DELETION_SENTENCE = "{name} deleted.";
 export const UNFINISHED_DELETE_STATE_NEEDS_ATTENTION = "Needs attention";
-export const UNFINISHED_DELETE_STATE_FAILED = "needs attention";
-export const UNFINISHED_DELETE_STATE_UNAVAILABLE = "status unavailable";
+export const UNFINISHED_DELETE_STATE_CANCELLED = "Deletion cancelled";
+export const UNFINISHED_DELETE_STATE_UNAVAILABLE = "Status unavailable";
 export const UNFINISHED_DELETE_STATE_DELETING = "Deleting";
+export const DELETING_THIS_ENGINE_HEADING = "Deleting this engine";
 
-const IN_FLIGHT_DELETE_STATES = new Set(["Accepted", "Running"]);
+const IN_FLIGHT_DELETE_STATES = new Set(["Pending", "InProgress", "Accepted", "Running"]);
 
 export function succeededDeletionSentence(name: string, clock: DeletionRecordClock): string {
   if (clock.provenance === "completed" && clock.when) return `${name} deleted on ${clock.when}`;
@@ -122,19 +158,10 @@ export function succeededDeletionSentence(name: string, clock: DeletionRecordClo
 }
 
 export function unfinishedDeleteStateLabel(state?: string | null): string {
-  if (state === "RecoveryRequired") return UNFINISHED_DELETE_STATE_NEEDS_ATTENTION;
-  if (state === "Failed") return UNFINISHED_DELETE_STATE_FAILED;
+  if (state === "Failed" || state === "RecoveryRequired") return UNFINISHED_DELETE_STATE_NEEDS_ATTENTION;
+  if (state === "Cancelled" || state === "Canceled") return UNFINISHED_DELETE_STATE_CANCELLED;
   if (state && IN_FLIGHT_DELETE_STATES.has(state)) return UNFINISHED_DELETE_STATE_DELETING;
   return UNFINISHED_DELETE_STATE_UNAVAILABLE;
-}
-
-export function deletionCompletedAt(
-  terminalCompletedAt?: string | null,
-  lastOperation?: { action?: string | null; completedAt?: string | null } | null,
-): string | null {
-  if (terminalCompletedAt) return terminalCompletedAt;
-  if (lastOperation?.action === "Delete") return lastOperation.completedAt ?? null;
-  return null;
 }
 
 function timestampMillis(value?: string | null) {

@@ -79,8 +79,9 @@ export default function CloudEngineOverviewPage() {
         instanceId: engine.id,
         instanceName: engine.name,
         acceptedAt: accepted.operation.acceptedAt,
-        completedAt: accepted.operation.completedAt,
+        completedAt: deletionCompletedAt(accepted.operation, engine.lastOperation),
         state: accepted.operation.state,
+        lastOperation: accepted.operation,
       });
     }
     const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
@@ -90,8 +91,9 @@ export default function CloudEngineOverviewPage() {
         instanceId: engine.id,
         instanceName: engine.name,
         acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
-        completedAt: deletionCompletedAt(terminal.operation.completedAt, engine.lastOperation),
+        completedAt: deletionCompletedAt(terminal.operation, engine.lastOperation),
         state: terminal.operation.state,
+        lastOperation: terminal.operation,
       });
     }
     if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
