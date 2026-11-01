@@ -13,6 +13,7 @@ import {
   CLOUD_ACCOUNT_LINK_CLOUD_PASSWORD,
   CLOUD_ACCOUNT_LINK_CLOUD_SIGN_IN,
   CLOUD_ACCOUNT_LINK_CONFIRM,
+  CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
   CLOUD_ACCOUNT_LINK_TITLE,
 } from "@/lib/cloudClient";
 import type { CloudAccountLinkPageView } from "@/hooks/useCloudAccountLink";
@@ -79,7 +80,7 @@ describe("CloudLinkAccount", () => {
   it("hides Google Cloud sign-in while it is switched off", () => {
     renderLink();
     expect(screen.queryByRole("button", { name: CLOUD_ACCOUNT_LINK_CLOUD_GOOGLE })).not.toBeInTheDocument();
-    expect(screen.getByText(/Google sign-in for Elsa Cloud isn't available here yet/)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE)).toBeInTheDocument();
   });
 
   it("shows already linked when revisiting after a successful link", () => {
