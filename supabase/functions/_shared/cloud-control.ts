@@ -379,6 +379,7 @@ function normalizeOverviewOperation(value: unknown): CloudOperation | null {
     ...base,
     acceptedAt: asString(record.acceptedAt),
     startedAt: asString(record.startedAt),
+    completedAt: asString(record.completedAt),
     requiresHumanAt: asString(record.requiresHumanAt),
     progress: normalizeOperationProgress(record.progress),
   };
@@ -483,10 +484,14 @@ export function normalizeOperation(value: unknown): CloudOperation | null {
   const id = asString(record.id) ?? asString(record.operationId);
   const state = asString(record.state);
   if (!isGuid(id) || !state) return null;
+  const acceptedAt = asString(record.acceptedAt);
+  const completedAt = asString(record.completedAt);
   return {
     id,
     action: asString(record.action) ?? "Unknown",
     state,
+    ...(acceptedAt ? { acceptedAt } : {}),
+    ...(completedAt ? { completedAt } : {}),
   };
 }
 

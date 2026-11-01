@@ -78,7 +78,8 @@ export default function CloudEngineOverviewPage() {
         phase: "tracking",
         instanceId: engine.id,
         instanceName: engine.name,
-        acceptedAt: accepted.operation.acceptedAt ?? new Date().toISOString(),
+        acceptedAt: accepted.operation.acceptedAt,
+        completedAt: accepted.operation.completedAt,
         state: accepted.operation.state,
       });
     }
@@ -89,7 +90,7 @@ export default function CloudEngineOverviewPage() {
         instanceId: engine.id,
         instanceName: engine.name,
         acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
-        completedAt: terminal.operation.state === "Succeeded" ? new Date().toISOString() : null,
+        completedAt: terminal.operation.completedAt ?? engine.lastOperation?.completedAt,
         state: terminal.operation.state,
       });
     }
@@ -194,6 +195,10 @@ export default function CloudEngineOverviewPage() {
                       <p className="text-muted-foreground">Health</p>
                       <p className="font-medium">{view.engine.health}</p>
                     </div>
+                    {view.engine.unavailableReason &&
+                      view.engine.unavailableReasonCode !== "not-authorized" && (
+                      <p className="sm:col-span-2 text-sm">{view.engine.unavailableReason}</p>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -213,7 +218,9 @@ export default function CloudEngineOverviewPage() {
                 />
 
                 {(view.engine.status === "Provisioning" ||
+                  view.engine.status === "Deleting" ||
                   view.engine.status === "RecoveryRequired" ||
+                  view.engine.activeOperation?.action === "Delete" ||
                   view.engine.activeOperation?.state === "RecoveryRequired" ||
                   lifecycle.progress) && (
                   <CloudProvisioningTimeline

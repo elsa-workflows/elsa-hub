@@ -68,6 +68,51 @@ describe("CloudProvisioningTimeline", () => {
     expect(screen.queryByText("Failed")).not.toBeInTheDocument();
   });
 
+  it("shows Control unavailableReason on a Deleting engine and keeps the timeline", () => {
+    const deleting = {
+      ...engine("Deleting"),
+      unavailableReason: "Deletion of this engine is in progress.",
+      unavailableReasonCode: "delete-pending",
+      activeOperation: {
+        id: "22222222-2222-4222-8222-222222222222",
+        action: "Delete",
+        state: "Accepted",
+      },
+    };
+    render(
+      <CloudProvisioningTimeline
+        progress={{ ...unknownProgress, currentStage: "runtime-deployment", stages: [] }}
+        engine={deleting}
+      />,
+    );
+    expect(screen.getByText("Deletion of this engine is in progress.")).toBeInTheDocument();
+    expect(screen.getByText(provisioningStageLabels["runtime-deployment"])).toBeInTheDocument();
+  });
+
+  it("hides the Provisioning stepper and needs-attention copy for a parked Delete", () => {
+    const parked = {
+      ...engine("RecoveryRequired"),
+      unavailableReason: "A human is finishing this deletion.",
+      unavailableReasonCode: "delete-parked",
+      activeOperation: {
+        id: "22222222-2222-4222-8222-222222222222",
+        action: "Delete",
+        state: "RecoveryRequired",
+        requiresHumanAt: "2026-10-31T00:00:00.000Z",
+      },
+    };
+    render(
+      <CloudProvisioningTimeline
+        progress={{ ...unknownProgress, state: "stale", diagnosticCode: "provisioning.requires-attention" }}
+        engine={parked}
+      />,
+    );
+    expect(screen.getByText("A human is finishing this deletion.")).toBeInTheDocument();
+    expect(screen.queryByText(/Provisioning needs attention/)).not.toBeInTheDocument();
+    expect(screen.queryByText(provisioningStageLabels["request-accepted"])).not.toBeInTheDocument();
+    expect(screen.queryByText(/Step \d+ of 7/)).not.toBeInTheDocument();
+  });
+
   it("keeps Check again as a secondary refresh", () => {
     const onRefresh = vi.fn();
     render(

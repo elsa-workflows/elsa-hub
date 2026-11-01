@@ -140,5 +140,6 @@ export {
   MANAGED_DELETION_HISTORY_LIMIT,
   deletionEngineDisplayName,
   deletionRecordClock,
+  deletionRowText,
   succeededDeletionSentence,
 } from "./managedEngineDeletionHistory";
