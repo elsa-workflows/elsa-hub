@@ -176,6 +176,20 @@ export type CloudEngineActionDecision = {
   reasonCode: string | null;
 };
 
+export type CloudLastOperation = {
+  action: string;
+  state: string;
+  completedAt: string | null;
+  failureCode: string | null;
+};
+
+export type CloudOperationProgress = {
+  phase: string | null;
+  attemptedStep: string | null;
+  attemptNumber: number | null;
+  attemptStartedAt: string | null;
+};
+
 export type CloudEngineOverview = CloudEngineSummary & {
   health: string;
   canOpen: boolean;
@@ -184,6 +198,10 @@ export type CloudEngineOverview = CloudEngineSummary & {
   organizationId: string | null;
   audience: string | null;
   redirectUri: string | null;
+  unavailableReason?: string | null;
+  unavailableReasonCode?: string | null;
+  activeOperation?: CloudOperation | null;
+  lastOperation?: CloudLastOperation | null;
   allowedActions: {
     restart: CloudEngineActionDecision;
     applyRelease: CloudEngineActionDecision;
@@ -225,6 +243,11 @@ export type CloudProvisioningStage = {
   completedAt: string | null;
 };
 
+export type CloudProvisioningActivity = {
+  sequence: number;
+  messageCode: string | null;
+};
+
 export type CloudProvisioningProgress = {
   state: string;
   currentStage: string | null;
@@ -232,7 +255,12 @@ export type CloudProvisioningProgress = {
   lastUpdatedAt: string | null;
   completedAt: string | null;
   diagnosticCode: string | null;
+  phase?: string | null;
+  attemptedStep?: string | null;
+  attemptNumber?: number | null;
+  attemptStartedAt?: string | null;
   stages: CloudProvisioningStage[];
+  activity?: CloudProvisioningActivity[];
 };
 
 export type CloudActivityItem = {
@@ -256,6 +284,10 @@ export type CloudOperation = {
   id: string;
   action: string;
   state: string;
+  acceptedAt?: string | null;
+  startedAt?: string | null;
+  requiresHumanAt?: string | null;
+  progress?: CloudOperationProgress | null;
 };
 
 export type CloudDeleteConfirmation = {

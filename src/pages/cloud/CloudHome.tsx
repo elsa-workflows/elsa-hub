@@ -4,7 +4,9 @@ import { CloudCreateEngineDialog } from "@/components/cloud/CloudCreateEngineDia
 import { CloudLinkOrganizationState } from "@/components/cloud/CloudLinkOrganizationState";
 import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
 import { CloudEmptyState } from "@/components/cloud/CloudEmptyState";
+import { CloudDeletionHistory } from "@/components/cloud/CloudDeletionHistory";
 import { CloudEngineList } from "@/components/cloud/CloudEngineList";
+import { readDeletionHistory } from "@/lib/cloud/deletionHistoryStore";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
 import { CloudLoadingState } from "@/components/cloud/CloudLoadingState";
 import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
@@ -152,6 +154,16 @@ export default function CloudHome() {
             )}
             {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}
             {showConsole && view.kind === "list" && <CloudEngineList engines={view.engines} />}
+            {showConsole && selectedWorkspace && (
+              <CloudDeletionHistory
+                records={readDeletionHistory(selectedWorkspace.id)}
+                liveInstances={(view.kind === "list" ? view.engines : []).map((engine) => ({
+                  id: engine.id,
+                  name: engine.name,
+                  slug: engine.slug,
+                }))}
+              />
+            )}
 
             {showConsole && (
               <p className="text-sm text-muted-foreground break-words">

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { shouldPollCloudEngine } from "@/components/cloud/engineStatus";
 import {
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
@@ -10,12 +11,10 @@ import {
   type CloudBffResponse,
   type CloudProvisioningProgress,
 } from "@/lib/cloudClient";
+import { shouldAdoptManagedProvisioningProgress } from "@/lib/cloud/provisioningProgress";
+import { useRef } from "react";
 
 const POLL_MS = 5_000;
-
-function isBusyStatus(status: string) {
-  return status === "Provisioning" || status === "Updating" || status === "Deleting";
-}
 
 export function useCloudEngineLifecycle(
   workspaceId: string | undefined,
@@ -27,7 +26,8 @@ export function useCloudEngineLifecycle(
   const queryClient = useQueryClient();
   const enabled = Boolean(workspaceId && engineId && !updating);
   const writesPaused = updating || mutationsPaused;
-  const poll = enabled && Boolean(status && isBusyStatus(status));
+  const poll = enabled && shouldPollCloudEngine(status);
+  const adoptedProgress = useRef<(CloudProvisioningProgress & { activity: NonNullable<CloudProvisioningProgress["activity"]> }) | null>(null);
 
   const progressQuery = useQuery({
     queryKey: ["cloud", "progress", workspaceId, engineId],
@@ -66,9 +66,13 @@ export function useCloudEngineLifecycle(
     retry: false,
   });
 
-  const progress = progressQuery.data && progressQuery.data.ok && "progress" in progressQuery.data
-    ? progressQuery.data.progress
+  const nextProgress = progressQuery.data && progressQuery.data.ok && "progress" in progressQuery.data
+    ? { ...progressQuery.data.progress, activity: progressQuery.data.progress.activity ?? [] }
     : undefined;
+  if (nextProgress && shouldAdoptManagedProvisioningProgress(adoptedProgress.current, nextProgress)) {
+    adoptedProgress.current = nextProgress;
+  }
+  const progress = adoptedProgress.current ?? nextProgress;
   const activity = activityQuery.data && activityQuery.data.ok && "items" in activityQuery.data
     ? activityQuery.data.items
     : [];
