@@ -10,6 +10,7 @@ import {
   CLOUD_LINK_ORG_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_LINK_ORG_UPDATING,
+  CLOUD_PAGE_TITLE,
 } from "@/lib/cloudClient";
 
 export type { CloudSetupStatus };
@@ -34,7 +35,7 @@ export function CloudLinkOrganizationState({
   return (
     <Card className="p-8 text-center">
       <Cloud className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-50" />
-      <h2 className="text-lg font-semibold">{CLOUD_LINK_ORG_HEADING}</h2>
+      <h2 className="text-lg font-semibold">{canLink ? CLOUD_LINK_ORG_HEADING : CLOUD_PAGE_TITLE}</h2>
       <p className="mt-2 text-sm text-muted-foreground">
         {canLink ? CLOUD_LINK_ORG_MESSAGE : CLOUD_LINK_ORG_NOT_CONNECTED}
       </p>

@@ -9,6 +9,7 @@ import {
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_HEADING,
   CLOUD_LINK_ORG_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_LINK_ORG_UPDATING,
@@ -330,6 +331,8 @@ describe("CloudEngineOverview", () => {
     viewState.current = { kind: "ready", engine };
     renderOverview();
     expect(screen.getByText(CLOUD_LINK_ORG_NOT_CONNECTED)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: CLOUD_PAGE_TITLE })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: CLOUD_LINK_ORG_HEADING })).not.toBeInTheDocument();
     expect(screen.queryByText(CLOUD_LINK_ORG_MESSAGE)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
     expect(viewState.setupCloud).not.toHaveBeenCalled();
