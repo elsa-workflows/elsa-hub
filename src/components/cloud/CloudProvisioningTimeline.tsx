@@ -6,7 +6,7 @@ import {
   parkedDeleteGuidance,
   parkedEngineGuidance,
 } from "@/lib/cloud/parkedGuidance";
-import { mapControlPhaseToStage, STATUS_UNAVAILABLE_LABEL } from "@/lib/cloud/provisioningPhases";
+import { mapControlPhaseToStage, stageStatusLabel } from "@/lib/cloud/provisioningPhases";
 import {
   provisioningActivityLabels,
   provisioningStageDescriptions,
@@ -62,23 +62,26 @@ export function CloudProvisioningTimeline({
   engine?: CloudEngineOverview;
   onRefresh?: () => void;
 }) {
-  const parkedDeleteWithoutProgress = isParkedCustomerDelete(engine?.activeOperation);
+  const parkedDelete = isParkedCustomerDelete(engine?.activeOperation);
+  const parked = engine ? isParkedEngine(engine.status, engine.activeOperation) : false;
   if (!progress) {
     const controlReason = engine?.unavailableReason && engine.unavailableReasonCode !== "not-authorized"
       ? engine.unavailableReason
       : null;
-    const parkedFallback = parkedDeleteWithoutProgress
-      ? parkedDeleteGuidance(null, null, engine?.activeOperation?.id)
+    const parkedFallback = parked
+      ? (parkedDelete
+        ? parkedDeleteGuidance(null, null, engine?.activeOperation?.id)
+        : parkedEngineGuidance(null, null, engine?.activeOperation?.id))
       : null;
     return (
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">
-          {parkedDeleteWithoutProgress ? NEEDS_ATTENTION_LABEL : CLOUD_PROVISIONING_HEADING}
+          {parked ? NEEDS_ATTENTION_LABEL : CLOUD_PROVISIONING_HEADING}
         </h2>
         {(controlReason ?? parkedFallback) && (
           <p className="text-sm">{controlReason ?? parkedFallback}</p>
         )}
-        {!parkedDeleteWithoutProgress && (
+        {!parked && (
           <p className="text-sm text-muted-foreground">{WAITING_FOR_PROGRESS_TITLE}</p>
         )}
       </section>
@@ -88,7 +91,6 @@ export function CloudProvisioningTimeline({
   const managed = toManagedProgress(progress);
   const unmapped = isUnmappedProvisioningSnapshot(managed);
   const recoveryRequired = isRecoveryRequired(engine?.status, engine?.activeOperation?.state);
-  const parkedDelete = isParkedCustomerDelete(engine?.activeOperation);
   const title = parkedDelete
     ? NEEDS_ATTENTION_LABEL
     : unmapped
@@ -97,9 +99,6 @@ export function CloudProvisioningTimeline({
   const stageCode = currentStageCode(progress);
   const stageIndex = stageCode ? MANAGED_PROVISIONING_STAGE_CODES.indexOf(stageCode) : -1;
   const clock = presentProvisioningAttemptClock(managed);
-  const parked = engine
-    ? isParkedEngine(engine.status, engine.activeOperation)
-    : false;
   const controlReason = engine?.unavailableReason && engine.unavailableReasonCode !== "not-authorized"
     ? engine.unavailableReason
     : null;
@@ -175,26 +174,13 @@ export function CloudProvisioningTimeline({
                 <p className="sr-only">{description}</p>
                 <p className="text-sm text-muted-foreground" aria-hidden="true">{description}</p>
               </div>
-              <span className="shrink-0 text-sm text-muted-foreground capitalize">
-                {status === "unknown" ? STATUS_UNAVAILABLE_LABEL : status}
+              <span className="shrink-0 text-sm text-muted-foreground">
+                {stageStatusLabel(status)}
               </span>
             </li>
           );
         })}
       </ol>}
-
-      {(engine?.activeOperation || progress.phase || progress.attemptedStep) && (
-        <details className="text-sm text-muted-foreground">
-          <summary className="min-h-11 cursor-pointer">Technical details</summary>
-          <dl className="mt-2 space-y-1">
-            {engine?.activeOperation?.action && <div>Action: {engine.activeOperation.action}</div>}
-            {engine?.activeOperation?.state && <div>State: {engine.activeOperation.state}</div>}
-            {engine?.activeOperation?.id && <div>Operation: {engine.activeOperation.id}</div>}
-            {progress.phase && <div>Phase: {progress.phase}</div>}
-            {progress.attemptedStep && <div>Attempted step: {progress.attemptedStep}</div>}
-          </dl>
-        </details>
-      )}
     </section>
   );
 }

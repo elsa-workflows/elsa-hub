@@ -75,10 +75,10 @@ export function deletionRecordClock(record: DeletionHistoryRecord): DeletionReco
   }
   if (requestedWhen) {
     return {
-      when: null,
-      dateTime: null,
-      provenance: "unavailable",
-      label: "Request time unavailable",
+      when: requestedWhen,
+      dateTime: record.requestedAt ?? null,
+      provenance: "requested",
+      label: `Requested ${requestedWhen}`,
       claimsDeleted,
     };
   }
@@ -104,37 +104,25 @@ export function deletionEngineDisplayName(input: {
   return isSucceededDeletion(input.record) ? "Previous engine" : "Unnamed engine";
 }
 
-export const SUCCEEDED_DELETION_SENTENCE = "{name} deleted.";
+export const PREVIOUS_DELETIONS_HEADING = "Previous deletions";
+export const SUCCEEDED_DELETION_ON_SENTENCE = "{name} deleted on {when}";
 export const SUCCEEDED_DELETION_REQUEST_ACCEPTED_SENTENCE = "{name} deleted. Request accepted {when}.";
+export const SUCCEEDED_DELETION_SENTENCE = "{name} deleted.";
+export const UNFINISHED_DELETE_STATE_NEEDS_ATTENTION = "Needs attention";
+export const UNFINISHED_DELETE_STATE_FAILED = "Failed";
+export const UNFINISHED_DELETE_STATE_DELETING = "Deleting";
 
-export function succeededDeletionSentence(
-  name: string,
-  clock: DeletionRecordClock,
-  record?: Pick<DeletionHistoryRecord, "completedAt" | "acceptedAt">,
-): string {
-  const completedAt = record?.completedAt;
-  if (!completedAt) return name;
-  const acceptedWhen = formatDeletionWhen(record?.acceptedAt);
-  if (acceptedWhen) return `${name} deleted. Request accepted ${acceptedWhen}.`;
+export function succeededDeletionSentence(name: string, clock: DeletionRecordClock): string {
+  if (clock.provenance === "completed" && clock.when) return `${name} deleted on ${clock.when}`;
+  if (clock.provenance === "accepted" && clock.when) return `${name} deleted. Request accepted ${clock.when}.`;
   return `${name} deleted.`;
 }
 
 export function unfinishedDeleteStateLabel(state?: string | null): string | null {
   if (!state) return null;
-  if (state === "RecoveryRequired") return "Needs attention";
-  return state;
-}
-
-export function deletionRowText(name: string, record: DeletionHistoryRecord): string {
-  const clock = deletionRecordClock(record);
-  if (isSucceededDeletion(record) && record.completedAt) {
-    return succeededDeletionSentence(name, clock, record);
-  }
-  const state = unfinishedDeleteStateLabel(record.state);
-  const time = clock.provenance === "accepted" && clock.when
-    ? `Request accepted ${clock.when}.`
-    : `${clock.label}.`;
-  return state ? `${name}. ${state}. ${time}` : `${name}. ${time}`;
+  if (state === "RecoveryRequired") return UNFINISHED_DELETE_STATE_NEEDS_ATTENTION;
+  if (state === "Failed") return UNFINISHED_DELETE_STATE_FAILED;
+  return UNFINISHED_DELETE_STATE_DELETING;
 }
 
 function timestampMillis(value?: string | null) {

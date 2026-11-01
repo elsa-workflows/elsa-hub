@@ -4,6 +4,16 @@ import { CLOUD_UPDATING_RETRY } from "@/lib/cloudClient";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
 import { MANAGED_PROVISIONING_STAGE_CODES } from "@/lib/cloud/provisioningProgress";
 import { provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
+import {
+  EMPTY_OPERATION_ID,
+  formatParkedDeleteGuidance,
+  formatParkedEngineGuidance,
+} from "@/lib/cloud/parkedGuidance";
+import {
+  STAGE_STATUS_COMPLETE,
+  STAGE_STATUS_IN_PROGRESS,
+  STAGE_STATUS_UP_NEXT,
+} from "@/lib/cloud/provisioningPhases";
 import { CloudProvisioningTimeline, WAITING_FOR_PROGRESS_TITLE } from "./CloudProvisioningTimeline";
 import { NEEDS_ATTENTION_LABEL } from "./engineStatus";
 
@@ -111,6 +121,55 @@ describe("CloudProvisioningTimeline", () => {
     expect(screen.queryByText(/Provisioning needs attention/)).not.toBeInTheDocument();
     expect(screen.queryByText(provisioningStageLabels["request-accepted"])).not.toBeInTheDocument();
     expect(screen.queryByText(/Step \d+ of 7/)).not.toBeInTheDocument();
+  });
+
+  it("shows parked engine and parked Delete copy when progress is missing", () => {
+    const parkedEngine = engine("RecoveryRequired", "RecoveryRequired");
+    const { unmount } = render(<CloudProvisioningTimeline engine={parkedEngine} />);
+    expect(screen.getByText(formatParkedEngineGuidance(parkedEngine.activeOperation?.id))).toBeInTheDocument();
+    expect(screen.queryByText(WAITING_FOR_PROGRESS_TITLE)).not.toBeInTheDocument();
+    expect(screen.queryByText(provisioningStageLabels["request-accepted"])).not.toBeInTheDocument();
+    unmount();
+
+    const parkedDelete = {
+      ...engine("RecoveryRequired"),
+      activeOperation: {
+        id: "22222222-2222-4222-8222-222222222222",
+        action: "Delete",
+        state: "RecoveryRequired",
+        requiresHumanAt: "2026-10-31T00:00:00.000Z",
+      },
+    };
+    render(<CloudProvisioningTimeline engine={parkedDelete} />);
+    expect(screen.getByText(formatParkedDeleteGuidance(parkedDelete.activeOperation.id))).toBeInTheDocument();
+    expect(screen.queryByText(/Provisioning needs attention/)).not.toBeInTheDocument();
+    expect(screen.queryByText(provisioningStageLabels["request-accepted"])).not.toBeInTheDocument();
+  });
+
+  it("maps stage statuses to signed labels and omits Technical details", () => {
+    render(
+      <CloudProvisioningTimeline
+        progress={{
+          ...unknownProgress,
+          currentStage: "configuration",
+          stages: [
+            { code: "request-accepted", status: "completed", startedAt: null, completedAt: null },
+            { code: "hosting-foundation", status: "Completed", startedAt: null, completedAt: null },
+            { code: "configuration", status: "current", startedAt: null, completedAt: null },
+            { code: "runtime-deployment", status: "pending", startedAt: null, completedAt: null },
+          ],
+        }}
+        engine={engine("Provisioning")}
+      />,
+    );
+    expect(screen.getAllByText(STAGE_STATUS_COMPLETE).length).toBeGreaterThan(0);
+    expect(screen.getByText(STAGE_STATUS_IN_PROGRESS)).toBeInTheDocument();
+    expect(screen.getAllByText(STAGE_STATUS_UP_NEXT).length).toBeGreaterThan(0);
+    expect(screen.queryByText("completed")).not.toBeInTheDocument();
+    expect(screen.queryByText("current")).not.toBeInTheDocument();
+    expect(screen.queryByText("pending")).not.toBeInTheDocument();
+    expect(screen.queryByText("Technical details")).not.toBeInTheDocument();
+    expect(screen.queryByText(EMPTY_OPERATION_ID)).not.toBeInTheDocument();
   });
 
   it("keeps Check again as a secondary refresh", () => {

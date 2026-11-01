@@ -8,7 +8,11 @@ import {
   formatParkedEngineGuidance,
 } from "@/lib/cloud/parkedGuidance";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
-import type { DeletionHistoryRecord } from "@/lib/cloud/managedEngineDeletionHistory";
+import {
+  PREVIOUS_DELETIONS_HEADING,
+  formatDeletionWhen,
+  type DeletionHistoryRecord,
+} from "@/lib/cloud/managedEngineDeletionHistory";
 
 const OLD_ENGINE_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const NEW_ENGINE_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -92,11 +96,19 @@ describe("#605 console fixture", () => {
       </>,
     );
 
-    expect(screen.getByText("Old prod deleted.")).toBeInTheDocument();
+    expect(screen.getByText(PREVIOUS_DELETIONS_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(`Old prod deleted on ${formatDeletionWhen(deleted.completedAt)}`)).toBeInTheDocument();
     expect(screen.getByText("Deploying Elsa runtime")).toBeInTheDocument();
+    expect(screen.getAllByText("complete").length).toBeGreaterThan(0);
+    expect(screen.getByText("in progress")).toBeInTheDocument();
     expect(screen.getByText("Step 4 of 7")).toBeInTheDocument();
     expect(screen.getByText(/Attempt 2 · elapsed /)).toBeInTheDocument();
-    expect(screen.getByText(/First started /)).toBeInTheDocument();
+    expect(screen.getByText(`First started ${new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(Date.parse(progress.startedAt!))}`)).toBeInTheDocument();
+    expect(screen.queryByText("Technical details")).not.toBeInTheDocument();
   });
 
   it("uses parked guidance for RecoveryRequired, not the old Setup didn't finish string", () => {
