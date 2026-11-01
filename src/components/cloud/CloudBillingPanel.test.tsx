@@ -6,6 +6,7 @@ import {
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
   CLOUD_BILLING_NOT_AVAILABLE_YET,
+  CLOUD_BILLING_NOT_CONNECTED,
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_ERROR_RETRY,
   CLOUD_LINK_CHECK_ERROR,
@@ -111,9 +112,27 @@ describe("CloudBillingPanel", () => {
       onRetry,
     });
 
+    expect(CLOUD_BILLING_UNAVAILABLE).toBe("We couldn't load billing. Please try again.");
     expect(screen.getByText(CLOUD_BILLING_UNAVAILABLE)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CLOUD_ERROR_RETRY })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: CLOUD_ERROR_RETRY }));
     expect(onRetry).toHaveBeenCalled();
+  });
+
+  it("tells an admin the org is not connected when checkout is unavailable", () => {
+    renderPanel({
+      ...noPlan,
+      billingAccount: "missing",
+      cloudLink: "missing",
+      needsLink: false,
+    });
+
+    expect(CLOUD_BILLING_NOT_CONNECTED).toBe(
+      "This organization isn't connected to Elsa Cloud, so checkout isn't available.",
+    );
+    expect(screen.getByText(CLOUD_BILLING_NOT_CONNECTED)).toBeInTheDocument();
+    expect(screen.queryByText(/Hub-to-Control/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
   });
 
   it("shows Retry for a failed organization-link check, not the needs-link CTA", () => {
@@ -142,8 +161,12 @@ describe("CloudBillingPanel", () => {
       cloudHomeHref: "/dashboard/org/acme/cloud",
     });
 
+    expect(CLOUD_BILLING_NOT_AVAILABLE_YET).toBe("Elsa Cloud billing isn't available on the Hub.");
     const notice = screen.getByText(CLOUD_BILLING_NOT_AVAILABLE_YET).closest("[role='alert']");
     expect(notice).toBeInTheDocument();
+    expect(screen.queryByText(
+      "Elsa Cloud billing isn't available yet. We'll let you know when you can subscribe.",
+    )).not.toBeInTheDocument();
     expect(notice).not.toHaveClass("text-destructive");
     expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
