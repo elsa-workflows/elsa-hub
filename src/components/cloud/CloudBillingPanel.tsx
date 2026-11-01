@@ -11,6 +11,7 @@ import { cloudPlanStatusLabel } from "@/lib/cloud/billingDisplay";
 import {
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
+  CLOUD_BILLING_NOT_AVAILABLE,
   CLOUD_BILLING_NOT_CONNECTED,
   CLOUD_ERROR_RETRY,
   CLOUD_PREVIEW_LIMITS_HEADING,
@@ -78,6 +79,14 @@ export function CloudBillingPanel({
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading billing…
           </div>
+        )}
+
+        {unavailable && (
+          <Alert>
+            <AlertDescription>
+              <p>{CLOUD_BILLING_NOT_AVAILABLE}</p>
+            </AlertDescription>
+          </Alert>
         )}
 
         {error?.message ? (

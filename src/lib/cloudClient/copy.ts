@@ -26,6 +26,8 @@ export const CLOUD_BILLING_NEEDS_LINK = "Link this organization first";
 export const CLOUD_BILLING_UNAVAILABLE = "We couldn't load billing. Please try again.";
 export const CLOUD_BILLING_NOT_CONNECTED =
   "This organization isn't connected to Elsa Cloud, so checkout isn't available.";
+export const CLOUD_BILLING_NOT_AVAILABLE =
+  "Elsa Cloud billing isn't available on the Hub.";
 export const CLOUD_BILLING_NO_CUSTOMER =
   "Hub has no billing customer for this organization, so the billing portal cannot be opened.";
 export const CLOUD_PREVIEW_LIMITS_HEADING = "Preview limits";
