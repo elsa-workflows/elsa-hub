@@ -26,7 +26,7 @@ Deno.test("createControlFetch maps outages and non-JSON to updating without the 
       status: 500,
     }));
   assertEquals(
-    await serverError({ method: "GET", path: "/api/me/workspaces" }, "hub-token"),
+    await serverError({ method: "GET", path: "/api/me/workspace-memberships" }, "hub-token"),
     { ok: false, kind: "updating" },
   );
 
@@ -186,7 +186,7 @@ Deno.test("createControlFetch never logs or returns the BFF credential", async (
     for (const respond of responders) {
       results.push(
         await createControlFetch(env, respond)(
-          { method: "GET", path: "/api/me/workspaces", headers: { "x-elsa-bff-credential": "client-value" } },
+          { method: "GET", path: "/api/me/workspace-memberships", headers: { "x-elsa-bff-credential": "client-value" } },
           "hub-session",
         ),
       );

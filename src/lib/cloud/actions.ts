@@ -39,9 +39,9 @@ export type CloudBffAction = (typeof CLOUD_BFF_ACTIONS)[number];
 export const CLOUD_BFF_CONTROL_ENDPOINTS = {
   compatibility: { method: "GET", path: "/api/cloud/compatibility" },
   bootstrap: { method: "POST", path: "/api/cloud/bootstrap" },
-  listWorkspaces: { method: "GET", path: "/api/me/workspaces" },
+  listWorkspaces: { method: "GET", path: "/api/me/workspace-memberships" },
   // Control has no dedicated select route; membership is confirmed via the list.
-  selectWorkspace: { method: "GET", path: "/api/me/workspaces" },
+  selectWorkspace: { method: "GET", path: "/api/me/workspace-memberships" },
   listEngines: { method: "GET", path: "/api/workspaces/{workspaceId}/instances" },
   engineOverview: {
     method: "GET",
