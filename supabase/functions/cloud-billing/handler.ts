@@ -83,7 +83,7 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
   const canManage = isAdmin === true;
 
   try {
-    assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
+    assertStripeTestMode(env.get("STRIPE_SECRET_KEY"), env);
   } catch (error) {
     return jsonResponse(503, {
       error: (error as Error).message,

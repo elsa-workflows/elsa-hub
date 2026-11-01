@@ -1,7 +1,9 @@
 import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   assertStripeTestMode,
+  CLOUD_BILLING_LIVE_ENABLED_KEY,
   buildCloudCheckoutMetadata,
+  isCloudBillingLiveEnabled,
   classifyStripeEvent,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
@@ -58,14 +60,43 @@ Deno.test("return paths name the billed org, and fall back to the legacy /cloud 
   assertEquals(cloudPortalReturnPath(undefined), "/cloud/billing");
 });
 
-Deno.test("sandbox allows only test keys, by #57's stripeKeyMode", () => {
+function flagEnv(value: string | undefined) {
+  return { get: (key: string) => (key === CLOUD_BILLING_LIVE_ENABLED_KEY ? value : undefined) };
+}
+
+Deno.test("a test key is allowed with the live flag off", () => {
   assertStripeTestMode("sk_test_cloud");
-  assertStripeTestMode("rk_test_cloud");
-  for (const live of ["sk_live_cloud", "rk_live_cloud"]) {
-    assertThrows(() => assertStripeTestMode(live), Error, "sandbox-only");
+  assertStripeTestMode("rk_test_cloud", flagEnv(undefined));
+  assertStripeTestMode("sk_test_cloud", flagEnv("false"));
+});
+
+Deno.test("a live key is refused when the live flag is off, unset, or malformed", () => {
+  const live = "sk_live_MUST_NOT_LEAK";
+  for (const flag of [undefined, "", "false", "TRUE", "true ", "1", "yes"]) {
+    const error = assertThrows(() => assertStripeTestMode(live, flagEnv(flag)), Error, "sandbox-only");
+    assertEquals(error.message.includes(live), false);
+    assertEquals(error.message.includes("sk_live_"), false);
   }
-  for (const unknown of [undefined, "", "pk_test_cloud", "whsec_cloud"]) {
-    assertThrows(() => assertStripeTestMode(unknown), Error, "not configured");
+  assertEquals(isCloudBillingLiveEnabled(undefined), false);
+  assertEquals(isCloudBillingLiveEnabled(""), false);
+  assertEquals(isCloudBillingLiveEnabled("1"), false);
+  assertEquals(isCloudBillingLiveEnabled("yes"), false);
+  assertEquals(isCloudBillingLiveEnabled("true"), true);
+});
+
+Deno.test("a live key is allowed only when the live flag is exactly true", () => {
+  assertStripeTestMode("sk_live_cloud", flagEnv("true"));
+  assertStripeTestMode("rk_live_cloud", flagEnv("true"));
+  assertThrows(() => assertStripeTestMode("sk_live_cloud", flagEnv("1")), Error, "sandbox-only");
+  assertThrows(() => assertStripeTestMode("sk_live_cloud", flagEnv("yes")), Error, "sandbox-only");
+});
+
+Deno.test("an unrecognised Stripe key is not configured and does not echo the value", () => {
+  const unknown = "pk_test_MUST_NOT_LEAK";
+  const error = assertThrows(() => assertStripeTestMode(unknown), Error, "not configured");
+  assertEquals(error.message.includes(unknown), false);
+  for (const missing of [undefined, "", "whsec_cloud"]) {
+    assertThrows(() => assertStripeTestMode(missing), Error, "not configured");
   }
 });
 

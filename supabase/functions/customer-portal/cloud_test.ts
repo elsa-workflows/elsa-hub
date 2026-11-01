@@ -92,12 +92,27 @@ Deno.test("a member who is not an org admin is 403", async () => {
 });
 
 Deno.test("a live Stripe key is refused", async () => {
-  const { run, calls } = portal({ env: { STRIPE_SECRET_KEY: "sk_live_cloud" } });
+  const leaked = "sk_live_MUST_NOT_LEAK";
+  const { run, calls } = portal({ env: { STRIPE_SECRET_KEY: leaked } });
 
-  const { response } = await run();
+  const { response, payload } = await run();
 
   assertEquals(response.status, 503);
+  assertEquals(payload.error, "Cloud billing is sandbox-only");
+  assertEquals(JSON.stringify(payload).includes(leaked), false);
   assertEquals(calls.portals.length, 0);
+});
+
+Deno.test("a live Stripe key is allowed when the live flag is exactly true", async () => {
+  const { run, calls } = portal({
+    env: { STRIPE_SECRET_KEY: "sk_live_cloud", CLOUD_BILLING_LIVE_ENABLED: "true" },
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(JSON.stringify(payload).includes("sk_live_cloud"), false);
+  assertEquals(calls.portals[0]?.customer, "cus_org_a_live");
 });
 
 Deno.test("a stored-customer read error is the helper's generic 500, not 404", async () => {

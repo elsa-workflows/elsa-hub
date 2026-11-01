@@ -293,7 +293,7 @@ Deno.test("a link read error is a generic 500 and logs the detail", async () => 
 });
 
 for (const [label, key, error] of [
-  ["sandbox-only", "sk_live_cloud", "Cloud billing is sandbox-only"],
+  ["sandbox-only", "sk_live_MUST_NOT_LEAK", "Cloud billing is sandbox-only"],
   ["not-configured", "", "Cloud billing is not configured"],
 ] as const) {
   Deno.test(`Stripe ${label} gate is 503 with billing_unavailable`, async () => {
@@ -302,5 +302,16 @@ for (const [label, key, error] of [
     assertEquals(response.status, 503);
     assertEquals(payload.error, error);
     assertEquals(payload.code, CLOUD_BILLING_UNAVAILABLE_CODE);
+    if (key) assertEquals(JSON.stringify(payload).includes(key), false);
   });
 }
+
+Deno.test("a live Stripe key is allowed on status when the live flag is exactly true", async () => {
+  const { run } = status({
+    env: { STRIPE_SECRET_KEY: "sk_live_cloud", CLOUD_BILLING_LIVE_ENABLED: "true" },
+  });
+  const { response, payload } = await run();
+  assertEquals(response.status, 200);
+  assertEquals(payload.code, undefined);
+  assertEquals(JSON.stringify(payload).includes("sk_live_cloud"), false);
+});
