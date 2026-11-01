@@ -10,8 +10,8 @@ import {
   CLOUD_LIMIT_MESSAGE,
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
-  CLOUD_LINK_ORG_ASK_ADMIN,
   CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_MESSAGE,
   CLOUD_LINK_ORG_UPDATING,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
@@ -426,7 +426,7 @@ describe("CloudHome", () => {
       }],
     };
     renderHome();
-    expect(screen.getByText(CLOUD_LINK_ORG_ASK_ADMIN)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_ORG_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
     expect(viewState.setupCloud).not.toHaveBeenCalled();
   });

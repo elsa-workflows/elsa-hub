@@ -5,7 +5,6 @@ import type { CloudSetupStatus } from "@/hooks/useCloudWorkspace";
 import {
   CLOUD_ERROR_RETRY,
   CLOUD_LINK_ORG_ACTION,
-  CLOUD_LINK_ORG_ASK_ADMIN,
   CLOUD_LINK_ORG_ERROR,
   CLOUD_LINK_ORG_HEADING,
   CLOUD_LINK_ORG_MESSAGE,
@@ -36,7 +35,7 @@ export function CloudLinkOrganizationState({
       <Cloud className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-50" />
       <h2 className="text-lg font-semibold">{CLOUD_LINK_ORG_HEADING}</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        {canLink ? CLOUD_LINK_ORG_MESSAGE : CLOUD_LINK_ORG_ASK_ADMIN}
+        {CLOUD_LINK_ORG_MESSAGE}
       </p>
       {updating && (
         <p className="mt-3 text-sm text-muted-foreground" role="status">

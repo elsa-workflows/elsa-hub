@@ -8,8 +8,8 @@ import {
   CLOUD_ERROR_HEADING,
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
-  CLOUD_LINK_ORG_ASK_ADMIN,
   CLOUD_LINK_ORG_ERROR,
+  CLOUD_LINK_ORG_MESSAGE,
   CLOUD_LINK_ORG_UPDATING,
   CLOUD_OPEN_STUDIO,
   CLOUD_PAGE_TITLE,
@@ -328,7 +328,7 @@ describe("CloudEngineOverview", () => {
     orgLinkState.current = { kind: "needsLink", canLink: false };
     viewState.current = { kind: "ready", engine };
     renderOverview();
-    expect(screen.getByText(CLOUD_LINK_ORG_ASK_ADMIN)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_ORG_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_LINK_ORG_ACTION })).not.toBeInTheDocument();
     expect(viewState.setupCloud).not.toHaveBeenCalled();
   });

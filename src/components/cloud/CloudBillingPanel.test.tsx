@@ -9,6 +9,8 @@ import {
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_ERROR_RETRY,
   CLOUD_LINK_CHECK_ERROR,
+  CLOUD_PREVIEW_LIMITS_HEADING,
+  CLOUD_PREVIEW_ONE_USER,
 } from "@/lib/cloudClient";
 import { CloudBillingPanel } from "./CloudBillingPanel";
 
@@ -59,9 +61,7 @@ describe("CloudBillingPanel", () => {
 
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /manage or cancel billing/i })).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/only organization admins can start checkout or open the billing portal/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/only organization admins can start checkout or open the billing portal/i)).not.toBeInTheDocument();
   });
 
   it("lets an admin subscribe when there is no plan", () => {
@@ -207,5 +207,12 @@ describe("CloudBillingPanel", () => {
     expect(screen.getByText(/cloud billing belongs to an organization/i)).toBeInTheDocument();
     expect(screen.queryByText(/only organization admins/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("lists the Preview one-user limit on the plan", () => {
+    renderPanel();
+
+    expect(screen.getByText(CLOUD_PREVIEW_LIMITS_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_PREVIEW_ONE_USER)).toBeInTheDocument();
   });
 });
