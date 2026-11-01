@@ -161,8 +161,12 @@ describe("CloudBillingPanel", () => {
       cloudHomeHref: "/dashboard/org/acme/cloud",
     });
 
+    expect(CLOUD_BILLING_NOT_AVAILABLE_YET).toBe("Elsa Cloud billing isn't available on the Hub.");
     const notice = screen.getByText(CLOUD_BILLING_NOT_AVAILABLE_YET).closest("[role='alert']");
     expect(notice).toBeInTheDocument();
+    expect(screen.queryByText(
+      "Elsa Cloud billing isn't available yet. We'll let you know when you can subscribe.",
+    )).not.toBeInTheDocument();
     expect(notice).not.toHaveClass("text-destructive");
     expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();

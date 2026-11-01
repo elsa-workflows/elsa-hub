@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_BILLING_NOT_CONNECTED,
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_EMPTY_MESSAGE,
@@ -19,6 +20,13 @@ describe("cloud billing copy", () => {
     expect(CLOUD_BILLING_UNAVAILABLE).toBe("We couldn't load billing. Please try again.");
     expect(CLOUD_BILLING_NOT_CONNECTED).toBe(
       "This organization isn't connected to Elsa Cloud, so checkout isn't available.",
+    );
+  });
+
+  it("pins the signed gate sentence and drops the old yet/subscribe line", () => {
+    expect(CLOUD_BILLING_NOT_AVAILABLE_YET).toBe("Elsa Cloud billing isn't available on the Hub.");
+    expect(CLOUD_BILLING_NOT_AVAILABLE_YET).not.toBe(
+      "Elsa Cloud billing isn't available yet. We'll let you know when you can subscribe.",
     );
   });
 });
