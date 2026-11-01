@@ -53,6 +53,14 @@ describe("cloud-bff action contract", () => {
       expect(mapping.method).toMatch(/^(GET|POST)$/);
       expect(mapping.path.startsWith("/api/")).toBe(true);
     }
+    expect(CLOUD_BFF_CONTROL_ENDPOINTS.listWorkspaces).toEqual({
+      method: "GET",
+      path: "/api/me/workspace-memberships",
+    });
+    expect(CLOUD_BFF_CONTROL_ENDPOINTS.selectWorkspace).toEqual({
+      method: "GET",
+      path: "/api/me/workspace-memberships",
+    });
   });
 
   it("keeps the Hub-required compatibility floor as read and write sets", () => {
