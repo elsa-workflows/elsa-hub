@@ -58,7 +58,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_NOT_AVAILABLE_YET, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
+import { CLOUD_BILLING_NEEDS_LINK, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
 import CloudBilling from "./CloudBilling";
 
 function httpFailure(status: number, body: Record<string, unknown> | string) {
@@ -163,7 +163,7 @@ describe("Cloud billing pages", () => {
     );
   });
 
-  it("shows a neutral unavailable notice and the link CTA for an unlinked org on the gate 503", async () => {
+  it("keeps the link CTA for an unlinked org on the gate 503", async () => {
     linkState.data = null;
     invoke.mockImplementation(async (name: string) =>
       name === "cloud-billing"
@@ -173,19 +173,15 @@ describe("Cloud billing pages", () => {
 
     renderAt("/dashboard/org/acme/cloud/billing");
 
-    const notice = await screen.findByText(CLOUD_BILLING_NOT_AVAILABLE_YET);
-    const alert = notice.closest("[role='alert']");
-    expect(alert).toBeInTheDocument();
-    expect(alert).not.toHaveClass("text-destructive");
-    expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: CLOUD_BILLING_NEEDS_LINK })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: CLOUD_BILLING_NEEDS_LINK })).toHaveAttribute(
       "href",
       "/dashboard/org/acme/cloud",
     );
+    expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
   });
 
-  it("shows only the neutral unavailable notice for a linked org on the gate 503", async () => {
+  it("does not invent billing-unavailable copy for a linked org on the gate 503", async () => {
     invoke.mockImplementation(async (name: string) =>
       name === "cloud-billing"
         ? httpFailure(503, { error: "Cloud billing is not configured" })
@@ -194,7 +190,7 @@ describe("Cloud billing pages", () => {
 
     renderAt("/dashboard/org/acme/cloud/billing");
 
-    expect(await screen.findByText(CLOUD_BILLING_NOT_AVAILABLE_YET)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Cloud billing" })).toBeInTheDocument();
     expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
     expect(screen.queryByText(/sandbox-only|not configured/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();

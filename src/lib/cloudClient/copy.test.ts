@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
-  CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_EMPTY_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_PREVIEW_ONE_USER,
@@ -21,9 +20,7 @@ describe("cloudEngineCountLabel", () => {
     );
   });
 
-  it("pins the billing-unavailable and no-Google link intros", () => {
-    expect(CLOUD_BILLING_NOT_AVAILABLE_YET).toBe("Elsa Cloud billing isn't available yet.");
-    expect(CLOUD_BILLING_NOT_AVAILABLE_YET).not.toMatch(/We'll let you know/);
+  it("pins the no-Google link intro", () => {
     expect(CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE).toContain(
       "Use Microsoft or email to sign in to Elsa Cloud.",
     );
