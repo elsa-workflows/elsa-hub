@@ -164,6 +164,18 @@ describe("CloudBillingPanel", () => {
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
   });
 
+  it("renders no alert when the gate message is empty", () => {
+    renderPanel({
+      ...noPlan,
+      billingAccount: "missing",
+      cloudLink: "missing",
+      unavailable: true,
+      error: new Error(""),
+    });
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("lets an admin open the portal when a Cloud subscription exists without a Control link", () => {
     renderPanel({ cloudLink: "missing", needsLink: true });
 

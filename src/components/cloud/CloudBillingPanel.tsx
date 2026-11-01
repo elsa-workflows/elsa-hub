@@ -79,7 +79,7 @@ export function CloudBillingPanel({
           </div>
         )}
 
-        {error && (
+        {error?.message ? (
           <Alert variant="destructive">
             <AlertDescription className="space-y-3">
               <p>{error.message}</p>
@@ -90,7 +90,7 @@ export function CloudBillingPanel({
               )}
             </AlertDescription>
           </Alert>
-        )}
+        ) : null}
 
         {!hasOrganization && (
           <p className="text-muted-foreground">
