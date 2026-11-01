@@ -562,7 +562,23 @@ describe("CloudEngineOverview", () => {
     ]);
   });
 
-  it("shows Control unavailableReason only on the timeline", () => {
+  it("shows Control unavailableReason exactly once on a Ready engine when the timeline is hidden", () => {
+    viewState.current = {
+      kind: "ready",
+      engine: {
+        ...engine,
+        status: "Ready",
+        unavailableReason: "This engine is temporarily unavailable.",
+        unavailableReasonCode: "provider-timeout",
+      },
+    };
+    renderOverview();
+    expect(screen.getByText("This engine is temporarily unavailable.")).toBeInTheDocument();
+    expect(screen.getAllByText("This engine is temporarily unavailable.")).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Deleting this engine" })).not.toBeInTheDocument();
+  });
+
+  it("shows Control unavailableReason once, in the timeline only, for a Deleting engine", () => {
     viewState.current = {
       kind: "ready",
       engine: {

@@ -149,7 +149,12 @@ export const UNFINISHED_DELETE_STATE_UNAVAILABLE = "Status unavailable";
 export const UNFINISHED_DELETE_STATE_DELETING = "Deleting";
 export const DELETING_THIS_ENGINE_HEADING = "Deleting this engine";
 
-const IN_FLIGHT_DELETE_STATES = new Set(["Pending", "InProgress", "Accepted", "Running"]);
+const IN_FLIGHT_DELETE_STATES = new Set([
+  "Accepted",
+  "WaitingForPriorOperation",
+  "Queued",
+  "Running",
+]);
 
 export function succeededDeletionSentence(name: string, clock: DeletionRecordClock): string {
   if (clock.provenance === "completed" && clock.when) return `${name} deleted on ${clock.when}`;
@@ -161,7 +166,9 @@ export function unfinishedDeleteStateLabel(
   state?: string | null,
   phase?: DeletionHistoryRecord["phase"] | null,
 ): string {
-  if (state === "Failed" || state === "RecoveryRequired") return UNFINISHED_DELETE_STATE_NEEDS_ATTENTION;
+  if (state === "Failed" || state === "RecoveryRequired" || state === "EntitlementHeld") {
+    return UNFINISHED_DELETE_STATE_NEEDS_ATTENTION;
+  }
   if (state === "Cancelled") return UNFINISHED_DELETE_STATE_CANCELLED;
   if (state && IN_FLIGHT_DELETE_STATES.has(state)) return UNFINISHED_DELETE_STATE_DELETING;
   if (!state && phase === "submitting") return UNFINISHED_DELETE_STATE_DELETING;

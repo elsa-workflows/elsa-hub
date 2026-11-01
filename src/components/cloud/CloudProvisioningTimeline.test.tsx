@@ -186,6 +186,54 @@ describe("CloudProvisioningTimeline", () => {
     expect(screen.queryByText(provisioningStageLabels["request-accepted"])).not.toBeInTheDocument();
   });
 
+  it("follows the parked-Delete rule for EntitlementHeld and never mentions billing", () => {
+    const held = {
+      ...engine("Deleting"),
+      unavailableReason: "Deletion of this engine is waiting for a human.",
+      unavailableReasonCode: "delete-held",
+      activeOperation: {
+        id: "22222222-2222-4222-8222-222222222222",
+        action: "Delete" as const,
+        state: "EntitlementHeld",
+      },
+    };
+    const { unmount } = render(
+      <CloudProvisioningTimeline
+        progress={{
+          ...unknownProgress,
+          attemptNumber: 2,
+          attemptStartedAt: "2026-10-31T00:00:00.000Z",
+          startedAt: "2026-10-27T00:00:00.000Z",
+          activity: [{ sequence: 1, messageCode: "provisioning.requires-attention" }],
+        }}
+        engine={held}
+      />,
+    );
+    expect(screen.getByText("Deletion of this engine is waiting for a human.")).toBeInTheDocument();
+    expect(screen.getAllByText("Deletion of this engine is waiting for a human.")).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: DELETING_THIS_ENGINE_HEADING })).not.toBeInTheDocument();
+    expect(screen.queryByText(provisioningActivityLabels["provisioning.requires-attention"])).not.toBeInTheDocument();
+    expect(screen.queryByText(UNKNOWN_ATTEMPT_CLOCK_LABEL)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Attempt /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/entitlement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/billing/i)).not.toBeInTheDocument();
+    unmount();
+
+    const heldWithoutReason = {
+      ...engine("Deleting"),
+      activeOperation: {
+        id: "22222222-2222-4222-8222-222222222222",
+        action: "Delete" as const,
+        state: "EntitlementHeld",
+      },
+    };
+    render(<CloudProvisioningTimeline engine={heldWithoutReason} />);
+    expect(screen.getByText(formatParkedDeleteGuidance(heldWithoutReason.activeOperation.id))).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: DELETING_THIS_ENGINE_HEADING })).not.toBeInTheDocument();
+    expect(screen.queryByText(/entitlement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/billing/i)).not.toBeInTheDocument();
+  });
+
   it("maps stage statuses to signed labels and omits Technical details", () => {
     render(
       <CloudProvisioningTimeline

@@ -69,6 +69,20 @@ export default function CloudEngineOverviewPage() {
     updating,
     mutationsPaused,
   );
+  const showTimeline = Boolean(engine && (
+    engine.status === "Provisioning"
+    || engine.status === "Deleting"
+    || engine.status === "RecoveryRequired"
+    || engine.activeOperation?.action === "Delete"
+    || engine.activeOperation?.state === "RecoveryRequired"
+    || lifecycle.progress
+  ));
+  const overviewReason = engine
+    && !showTimeline
+    && engine.unavailableReason
+    && engine.unavailableReasonCode !== "not-authorized"
+    ? engine.unavailableReason
+    : null;
 
   async function handleDelete(
     input: { deleteConfirmationId: string; idempotencyKey: string; ifMatch: string },
@@ -227,12 +241,8 @@ export default function CloudEngineOverviewPage() {
                   onOpenStudio={lifecycle.openStudio}
                 />
 
-                {(view.engine.status === "Provisioning" ||
-                  view.engine.status === "Deleting" ||
-                  view.engine.status === "RecoveryRequired" ||
-                  view.engine.activeOperation?.action === "Delete" ||
-                  view.engine.activeOperation?.state === "RecoveryRequired" ||
-                  lifecycle.progress) && (
+                {overviewReason && <p className="text-sm">{overviewReason}</p>}
+                {showTimeline && (
                   <CloudProvisioningTimeline
                     progress={lifecycle.progress}
                     engine={view.engine}

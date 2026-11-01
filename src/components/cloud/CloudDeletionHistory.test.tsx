@@ -52,13 +52,31 @@ describe("CloudDeletionHistory", () => {
             completedAt: null,
             acceptedAt: null,
             requestedAt: when,
-            state: "Pending",
+            state: "Accepted",
           }),
           record({
             instanceId: "12121212-1212-4121-8121-121212121212",
             completedAt: null,
             acceptedAt: when,
-            state: "InProgress",
+            state: "WaitingForPriorOperation",
+          }),
+          record({
+            instanceId: "13131313-1313-4131-8131-131313131313",
+            completedAt: null,
+            acceptedAt: when,
+            state: "Queued",
+          }),
+          record({
+            instanceId: "14141414-1414-4141-8141-141414141414",
+            completedAt: null,
+            acceptedAt: when,
+            state: "Running",
+          }),
+          record({
+            instanceId: "15151515-1515-4151-8151-151515151515",
+            completedAt: null,
+            acceptedAt: when,
+            state: "EntitlementHeld",
           }),
           record({
             instanceId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
@@ -94,11 +112,11 @@ describe("CloudDeletionHistory", () => {
         liveInstances={[]}
       />,
     );
-    expect(screen.getAllByText("Prod")).toHaveLength(8);
-    expect(screen.getAllByText(`Request accepted ${whenLabel}`)).toHaveLength(7);
+    expect(screen.getAllByText("Prod")).toHaveLength(11);
+    expect(screen.getAllByText(`Request accepted ${whenLabel}`)).toHaveLength(10);
     expect(screen.getByText(`Requested ${whenLabel}`)).toBeInTheDocument();
-    expect(screen.getAllByText(UNFINISHED_DELETE_STATE_NEEDS_ATTENTION)).toHaveLength(2);
-    expect(screen.getAllByText(UNFINISHED_DELETE_STATE_DELETING)).toHaveLength(2);
+    expect(screen.getAllByText(UNFINISHED_DELETE_STATE_NEEDS_ATTENTION)).toHaveLength(3);
+    expect(screen.getAllByText(UNFINISHED_DELETE_STATE_DELETING)).toHaveLength(4);
     expect(screen.getByText(UNFINISHED_DELETE_STATE_CANCELLED)).toBeInTheDocument();
     expect(screen.getAllByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).toHaveLength(3);
     expect(screen.queryByText("Failed")).not.toBeInTheDocument();
