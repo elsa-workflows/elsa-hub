@@ -109,8 +109,11 @@ export const SUCCEEDED_DELETION_ON_SENTENCE = "{name} deleted on {when}";
 export const SUCCEEDED_DELETION_REQUEST_ACCEPTED_SENTENCE = "{name} deleted. Request accepted {when}.";
 export const SUCCEEDED_DELETION_SENTENCE = "{name} deleted.";
 export const UNFINISHED_DELETE_STATE_NEEDS_ATTENTION = "Needs attention";
-export const UNFINISHED_DELETE_STATE_FAILED = "Failed";
+export const UNFINISHED_DELETE_STATE_FAILED = "needs attention";
+export const UNFINISHED_DELETE_STATE_UNAVAILABLE = "status unavailable";
 export const UNFINISHED_DELETE_STATE_DELETING = "Deleting";
+
+const IN_FLIGHT_DELETE_STATES = new Set(["Accepted", "Running"]);
 
 export function succeededDeletionSentence(name: string, clock: DeletionRecordClock): string {
   if (clock.provenance === "completed" && clock.when) return `${name} deleted on ${clock.when}`;
@@ -118,11 +121,20 @@ export function succeededDeletionSentence(name: string, clock: DeletionRecordClo
   return `${name} deleted.`;
 }
 
-export function unfinishedDeleteStateLabel(state?: string | null): string | null {
-  if (!state) return null;
+export function unfinishedDeleteStateLabel(state?: string | null): string {
   if (state === "RecoveryRequired") return UNFINISHED_DELETE_STATE_NEEDS_ATTENTION;
   if (state === "Failed") return UNFINISHED_DELETE_STATE_FAILED;
-  return UNFINISHED_DELETE_STATE_DELETING;
+  if (state && IN_FLIGHT_DELETE_STATES.has(state)) return UNFINISHED_DELETE_STATE_DELETING;
+  return UNFINISHED_DELETE_STATE_UNAVAILABLE;
+}
+
+export function deletionCompletedAt(
+  terminalCompletedAt?: string | null,
+  lastOperation?: { action?: string | null; completedAt?: string | null } | null,
+): string | null {
+  if (terminalCompletedAt) return terminalCompletedAt;
+  if (lastOperation?.action === "Delete") return lastOperation.completedAt ?? null;
+  return null;
 }
 
 function timestampMillis(value?: string | null) {

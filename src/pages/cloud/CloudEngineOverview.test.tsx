@@ -23,6 +23,7 @@ import {
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
+import { readDeletionHistory } from "@/lib/cloud/deletionHistoryStore";
 import type { CloudEngineOverviewView } from "@/hooks/useCloudEngineOverview";
 
 const engine: CloudEngineOverview = {
@@ -175,6 +176,7 @@ describe("CloudEngineOverview", () => {
     compatibilityState.updating = false;
     compatibilityState.message = undefined;
     compatibilityState.refetch.mockReset();
+    localStorage.clear();
   });
 
   it("shows overview actions for a Ready engine", () => {
@@ -396,5 +398,68 @@ describe("CloudEngineOverview", () => {
     fireEvent.click(confirm!);
     await waitFor(() => expect(lifecycle.deleteEngine).toHaveBeenCalled());
     expect(lifecycle.pollDeleteOperation).toHaveBeenCalled();
+  });
+
+  it("does not stamp a deletion row with a prior Create or Restart completedAt", async () => {
+    viewState.current = {
+      kind: "ready",
+      engine: {
+        ...engine,
+        lastOperation: {
+          action: "Create",
+          state: "Succeeded",
+          completedAt: "2026-09-01T00:00:00.000Z",
+          failureCode: null,
+        },
+      },
+    };
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    lifecycle.deleteEngine.mockResolvedValue({
+      ok: true,
+      operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Accepted" },
+    });
+    lifecycle.pollDeleteOperation.mockResolvedValue({
+      ok: true,
+      operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Succeeded" },
+    });
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await waitFor(() => expect(lifecycle.confirmDelete).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    await waitFor(() => expect(lifecycle.pollDeleteOperation).toHaveBeenCalled());
+    expect(readDeletionHistory(viewState.workspaceId)).toEqual([
+      expect.objectContaining({
+        instanceId: engine.id,
+        completedAt: null,
+        state: "Succeeded",
+      }),
+    ]);
+  });
+
+  it("shows Control unavailableReason only on the timeline", () => {
+    viewState.current = {
+      kind: "ready",
+      engine: {
+        ...engine,
+        status: "Deleting",
+        unavailableReason: "Deletion of this engine is in progress.",
+        unavailableReasonCode: "delete-pending",
+        activeOperation: {
+          id: "55555555-5555-5555-5555-555555555555",
+          action: "Delete",
+          state: "Accepted",
+        },
+      },
+    };
+    renderOverview();
+    expect(screen.getByText("Deletion of this engine is in progress.")).toBeInTheDocument();
+    expect(screen.getAllByText("Deletion of this engine is in progress.")).toHaveLength(1);
   });
 });

@@ -139,6 +139,7 @@ export {
 export {
   MANAGED_DELETION_HISTORY_LIMIT,
   PREVIOUS_DELETIONS_HEADING,
+  deletionCompletedAt,
   deletionEngineDisplayName,
   deletionRecordClock,
   succeededDeletionSentence,

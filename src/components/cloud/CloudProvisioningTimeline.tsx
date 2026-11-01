@@ -21,11 +21,16 @@ import {
   type ManagedProvisioningProgress,
   type ManagedProvisioningStageCode,
 } from "@/lib/cloud/provisioningProgress";
+import { unfinishedDeleteStateLabel } from "@/lib/cloud/managedEngineDeletionHistory";
 import { stateGuidance } from "@/lib/cloud/stateGuidance";
 import { NEEDS_ATTENTION_LABEL, isRecoveryRequired } from "./engineStatus";
 import { Button } from "@/components/ui/button";
 
 export const WAITING_FOR_PROGRESS_TITLE = "Waiting for progress";
+
+function isActiveDelete(engine?: CloudEngineOverview): boolean {
+  return engine?.activeOperation?.action === "Delete" || engine?.status === "Deleting";
+}
 
 function toManagedProgress(progress: CloudProvisioningProgress): ManagedProvisioningProgress {
   return {
@@ -64,6 +69,9 @@ export function CloudProvisioningTimeline({
 }) {
   const parkedDelete = isParkedCustomerDelete(engine?.activeOperation);
   const parked = engine ? isParkedEngine(engine.status, engine.activeOperation) : false;
+  const activeDelete = isActiveDelete(engine);
+  const deleteState = activeDelete ? unfinishedDeleteStateLabel(engine?.activeOperation?.state) : null;
+  const hideProvisioning = parkedDelete || activeDelete;
   if (!progress) {
     const controlReason = engine?.unavailableReason && engine.unavailableReasonCode !== "not-authorized"
       ? engine.unavailableReason
@@ -73,15 +81,18 @@ export function CloudProvisioningTimeline({
         ? parkedDeleteGuidance(null, null, engine?.activeOperation?.id)
         : parkedEngineGuidance(null, null, engine?.activeOperation?.id))
       : null;
+    const title = parked
+      ? NEEDS_ATTENTION_LABEL
+      : activeDelete
+      ? deleteState
+      : CLOUD_PROVISIONING_HEADING;
     return (
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          {parked ? NEEDS_ATTENTION_LABEL : CLOUD_PROVISIONING_HEADING}
-        </h2>
+        <h2 className="text-lg font-semibold">{title}</h2>
         {(controlReason ?? parkedFallback) && (
           <p className="text-sm">{controlReason ?? parkedFallback}</p>
         )}
-        {!parked && (
+        {!parked && !activeDelete && (
           <p className="text-sm text-muted-foreground">{WAITING_FOR_PROGRESS_TITLE}</p>
         )}
       </section>
@@ -93,6 +104,8 @@ export function CloudProvisioningTimeline({
   const recoveryRequired = isRecoveryRequired(engine?.status, engine?.activeOperation?.state);
   const title = parkedDelete
     ? NEEDS_ATTENTION_LABEL
+    : activeDelete
+    ? deleteState
     : unmapped
     ? (recoveryRequired ? NEEDS_ATTENTION_LABEL : WAITING_FOR_PROGRESS_TITLE)
     : CLOUD_PROVISIONING_HEADING;
@@ -108,7 +121,7 @@ export function CloudProvisioningTimeline({
       : parkedEngineGuidance(null, null, engine?.activeOperation?.id))
     : null;
   const reasonCopy = controlReason ?? parkedFallback;
-  const guidance = parkedDelete ? null : stateGuidance(managed, progress.state === "unavailable");
+  const guidance = hideProvisioning ? null : stateGuidance(managed, progress.state === "unavailable");
   const latestActivity = [...(progress.activity ?? [])].sort((a, b) => a.sequence - b.sequence).at(-1);
   const activityLabel = latestActivity?.messageCode
     ? provisioningActivityLabels[latestActivity.messageCode as ManagedProvisioningActivityMessageCode]
@@ -118,24 +131,24 @@ export function CloudProvisioningTimeline({
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{title}</h2>
-        {!parkedDelete && !unmapped && stageIndex >= 0 && (
+        {!hideProvisioning && !unmapped && stageIndex >= 0 && (
           <p className="text-sm text-muted-foreground">
             Step {stageIndex + 1} of {MANAGED_PROVISIONING_STAGE_CODES.length}
           </p>
         )}
       </div>
 
-      {clock.primary && <p className="text-sm">{clock.primary}</p>}
-      {clock.elapsedUnknown && !clock.primary && (
+      {!hideProvisioning && clock.primary && <p className="text-sm">{clock.primary}</p>}
+      {!hideProvisioning && clock.elapsedUnknown && !clock.primary && (
         <p className="text-sm">{UNKNOWN_ATTEMPT_CLOCK_LABEL}</p>
       )}
-      {clock.showAttemptLabel && clock.elapsedUnknown && clock.primary && (
+      {!hideProvisioning && clock.showAttemptLabel && clock.elapsedUnknown && clock.primary && (
         <p className="text-sm">{UNKNOWN_ATTEMPT_CLOCK_LABEL}</p>
       )}
-      {clock.firstStarted && (
+      {!hideProvisioning && clock.firstStarted && (
         <p className="text-sm text-muted-foreground">First started {clock.firstStarted}</p>
       )}
-      {activityLabel && clock.elapsed && (
+      {!hideProvisioning && activityLabel && clock.elapsed && (
         <p className="text-sm text-muted-foreground">
           {activityLabel} · +{clock.elapsed}
         </p>
@@ -150,7 +163,7 @@ export function CloudProvisioningTimeline({
         </Button>
       )}
 
-      {!parkedDelete && <ol className="space-y-2">
+      {!hideProvisioning && <ol className="space-y-2">
         {MANAGED_PROVISIONING_STAGE_CODES.map((code, index) => {
           const reported = progress.stages.find((stage) => stage.code === code);
           const reached = !unmapped && stageIndex >= 0 && index < stageIndex;

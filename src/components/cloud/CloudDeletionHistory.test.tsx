@@ -5,6 +5,7 @@ import {
   UNFINISHED_DELETE_STATE_DELETING,
   UNFINISHED_DELETE_STATE_FAILED,
   UNFINISHED_DELETE_STATE_NEEDS_ATTENTION,
+  UNFINISHED_DELETE_STATE_UNAVAILABLE,
   formatDeletionWhen,
   type DeletionHistoryRecord,
 } from "@/lib/cloud/managedEngineDeletionHistory";
@@ -59,16 +60,23 @@ describe("CloudDeletionHistory", () => {
             acceptedAt: when,
             state: "RecoveryRequired",
           }),
+          record({
+            instanceId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+            completedAt: null,
+            acceptedAt: when,
+            state: "Cancelled",
+          }),
         ]}
         liveInstances={[]}
       />,
     );
-    expect(screen.getAllByText("Prod")).toHaveLength(3);
-    expect(screen.getAllByText(`Request accepted ${whenLabel}`)).toHaveLength(2);
+    expect(screen.getAllByText("Prod")).toHaveLength(4);
+    expect(screen.getAllByText(`Request accepted ${whenLabel}`)).toHaveLength(3);
     expect(screen.getByText(`Requested ${whenLabel}`)).toBeInTheDocument();
     expect(screen.getByText(UNFINISHED_DELETE_STATE_FAILED)).toBeInTheDocument();
     expect(screen.getByText(UNFINISHED_DELETE_STATE_DELETING)).toBeInTheDocument();
     expect(screen.getByText(UNFINISHED_DELETE_STATE_NEEDS_ATTENTION)).toBeInTheDocument();
+    expect(screen.getByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).toBeInTheDocument();
     expect(screen.queryByText(/deleted/i)).not.toBeInTheDocument();
   });
 });

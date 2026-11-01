@@ -20,7 +20,7 @@ import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
-import { isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
+import { deletionCompletedAt, isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
 import { CLOUD_LINK_CHECK_ERROR, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 
@@ -90,7 +90,7 @@ export default function CloudEngineOverviewPage() {
         instanceId: engine.id,
         instanceName: engine.name,
         acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
-        completedAt: terminal.operation.completedAt ?? engine.lastOperation?.completedAt,
+        completedAt: deletionCompletedAt(terminal.operation.completedAt, engine.lastOperation),
         state: terminal.operation.state,
       });
     }
@@ -195,10 +195,6 @@ export default function CloudEngineOverviewPage() {
                       <p className="text-muted-foreground">Health</p>
                       <p className="font-medium">{view.engine.health}</p>
                     </div>
-                    {view.engine.unavailableReason &&
-                      view.engine.unavailableReasonCode !== "not-authorized" && (
-                      <p className="sm:col-span-2 text-sm">{view.engine.unavailableReason}</p>
-                    )}
                   </CardContent>
                 </Card>
 
