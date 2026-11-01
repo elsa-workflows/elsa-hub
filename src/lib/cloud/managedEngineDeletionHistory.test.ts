@@ -8,7 +8,9 @@ import {
   UNFINISHED_DELETE_STATE_DELETING,
   UNFINISHED_DELETE_STATE_FAILED,
   UNFINISHED_DELETE_STATE_NEEDS_ATTENTION,
+  UNFINISHED_DELETE_STATE_UNAVAILABLE,
   capStoredDeletionRecords,
+  deletionCompletedAt,
   deletionEngineDisplayName,
   deletionRecordClock,
   formatDeletionWhen,
@@ -69,12 +71,31 @@ describe("deletion history copy", () => {
   });
 
   it("maps unfinished delete states onto signed labels", () => {
-    expect(unfinishedDeleteStateLabel("RecoveryRequired")).toBe(UNFINISHED_DELETE_STATE_NEEDS_ATTENTION);
-    expect(unfinishedDeleteStateLabel("Failed")).toBe(UNFINISHED_DELETE_STATE_FAILED);
-    expect(unfinishedDeleteStateLabel("Accepted")).toBe(UNFINISHED_DELETE_STATE_DELETING);
     expect(UNFINISHED_DELETE_STATE_NEEDS_ATTENTION).toBe("Needs attention");
-    expect(UNFINISHED_DELETE_STATE_FAILED).toBe("Failed");
+    expect(UNFINISHED_DELETE_STATE_FAILED).toBe("needs attention");
+    expect(UNFINISHED_DELETE_STATE_UNAVAILABLE).toBe("status unavailable");
     expect(UNFINISHED_DELETE_STATE_DELETING).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel("RecoveryRequired")).toBe("Needs attention");
+    expect(unfinishedDeleteStateLabel("Failed")).toBe("needs attention");
+    expect(unfinishedDeleteStateLabel("Accepted")).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel("Running")).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel("Cancelled")).toBe("status unavailable");
+    expect(unfinishedDeleteStateLabel("Canceled")).toBe("status unavailable");
+    expect(unfinishedDeleteStateLabel("Unknown")).toBe("status unavailable");
+    expect(unfinishedDeleteStateLabel(null)).toBe("status unavailable");
+    expect(unfinishedDeleteStateLabel(undefined)).toBe("status unavailable");
+  });
+
+  it("uses lastOperation.completedAt only when that operation is a Delete", () => {
+    const deleteCompleted = "2026-10-20T16:00:00.000Z";
+    const createCompleted = "2026-10-01T00:00:00.000Z";
+    expect(deletionCompletedAt(deleteCompleted, { action: "Create", completedAt: createCompleted }))
+      .toBe(deleteCompleted);
+    expect(deletionCompletedAt(null, { action: "Delete", completedAt: deleteCompleted }))
+      .toBe(deleteCompleted);
+    expect(deletionCompletedAt(null, { action: "Create", completedAt: createCompleted })).toBeNull();
+    expect(deletionCompletedAt(null, { action: "Restart", completedAt: createCompleted })).toBeNull();
+    expect(deletionCompletedAt(null, null)).toBeNull();
   });
 
   it("names unnamed rows Previous engine or Unnamed engine", () => {

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { CLOUD_UPDATING_RETRY } from "@/lib/cloudClient";
+import { CLOUD_PROVISIONING_HEADING, CLOUD_UPDATING_RETRY } from "@/lib/cloudClient";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
-import { MANAGED_PROVISIONING_STAGE_CODES } from "@/lib/cloud/provisioningProgress";
-import { provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
+import { MANAGED_PROVISIONING_STAGE_CODES, UNKNOWN_ATTEMPT_CLOCK_LABEL } from "@/lib/cloud/provisioningProgress";
+import { provisioningActivityLabels, provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
 import {
   EMPTY_OPERATION_ID,
   formatParkedDeleteGuidance,
@@ -14,6 +14,7 @@ import {
   STAGE_STATUS_IN_PROGRESS,
   STAGE_STATUS_UP_NEXT,
 } from "@/lib/cloud/provisioningPhases";
+import { UNFINISHED_DELETE_STATE_DELETING } from "@/lib/cloud/managedEngineDeletionHistory";
 import { CloudProvisioningTimeline, WAITING_FOR_PROGRESS_TITLE } from "./CloudProvisioningTimeline";
 import { NEEDS_ATTENTION_LABEL } from "./engineStatus";
 
@@ -78,7 +79,7 @@ describe("CloudProvisioningTimeline", () => {
     expect(screen.queryByText("Failed")).not.toBeInTheDocument();
   });
 
-  it("shows Control unavailableReason on a Deleting engine and keeps the timeline", () => {
+  it("shows Control unavailableReason and the signed delete state on a Deleting engine", () => {
     const deleting = {
       ...engine("Deleting"),
       unavailableReason: "Deletion of this engine is in progress.",
@@ -96,7 +97,27 @@ describe("CloudProvisioningTimeline", () => {
       />,
     );
     expect(screen.getByText("Deletion of this engine is in progress.")).toBeInTheDocument();
-    expect(screen.getByText(provisioningStageLabels["runtime-deployment"])).toBeInTheDocument();
+    expect(screen.getByText(UNFINISHED_DELETE_STATE_DELETING)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_PROVISIONING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(WAITING_FOR_PROGRESS_TITLE)).not.toBeInTheDocument();
+    expect(screen.queryByText(provisioningStageLabels["runtime-deployment"])).not.toBeInTheDocument();
+    expect(screen.queryByText(/Step \d+ of 7/)).not.toBeInTheDocument();
+  });
+
+  it("shows the signed delete state without provisioning copy when a Delete has no progress", () => {
+    const deleting = {
+      ...engine("Deleting"),
+      activeOperation: {
+        id: "22222222-2222-4222-8222-222222222222",
+        action: "Delete",
+        state: "Accepted",
+      },
+    };
+    render(<CloudProvisioningTimeline engine={deleting} />);
+    expect(screen.getByText(UNFINISHED_DELETE_STATE_DELETING)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_PROVISIONING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(WAITING_FOR_PROGRESS_TITLE)).not.toBeInTheDocument();
+    expect(screen.queryByText(provisioningStageLabels["request-accepted"])).not.toBeInTheDocument();
   });
 
   it("hides the Provisioning stepper and needs-attention copy for a parked Delete", () => {
@@ -113,12 +134,23 @@ describe("CloudProvisioningTimeline", () => {
     };
     render(
       <CloudProvisioningTimeline
-        progress={{ ...unknownProgress, state: "stale", diagnosticCode: "provisioning.requires-attention" }}
+        progress={{
+          ...unknownProgress,
+          state: "stale",
+          diagnosticCode: "provisioning.requires-attention",
+          attemptNumber: 2,
+          attemptStartedAt: "2026-10-31T00:00:00.000Z",
+          startedAt: "2026-10-27T00:00:00.000Z",
+          activity: [{ sequence: 1, messageCode: "provisioning.requires-attention" }],
+        }}
         engine={parked}
       />,
     );
     expect(screen.getByText("A human is finishing this deletion.")).toBeInTheDocument();
     expect(screen.queryByText(/Provisioning needs attention/)).not.toBeInTheDocument();
+    expect(screen.queryByText(provisioningActivityLabels["provisioning.requires-attention"])).not.toBeInTheDocument();
+    expect(screen.queryByText(UNKNOWN_ATTEMPT_CLOCK_LABEL)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Attempt /)).not.toBeInTheDocument();
     expect(screen.queryByText(provisioningStageLabels["request-accepted"])).not.toBeInTheDocument();
     expect(screen.queryByText(/Step \d+ of 7/)).not.toBeInTheDocument();
   });
