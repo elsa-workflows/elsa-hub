@@ -63,7 +63,7 @@ export const CLOUD_APPLY_RELEASE = "Apply release";
 export const CLOUD_DELETE_ENGINE = "Delete engine";
 export const CLOUD_DELETE_CONFIRM = "Delete this engine?";
 export const CLOUD_DELETE_START_ERROR =
-  "We couldn't start deleting this engine. Check again or email hello@valence.works.";
+  "We couldn't start deleting this engine. Please try again. If it keeps failing, email hello@valence.works with this engine's name and we'll help during business hours.";
 export const CLOUD_STRUCTURED_LOGS = "Structured logs";
 export const CLOUD_PROVISIONING_HEADING = "Provisioning";
 export { CLOUD_LIMIT_MESSAGE, CLOUD_ORG_LINK_CONFLICT } from "@/lib/cloud";
