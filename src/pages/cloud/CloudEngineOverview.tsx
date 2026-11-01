@@ -13,7 +13,8 @@ import { CloudPageHeader } from "@/components/cloud/CloudPageHeader";
 import { CloudProvisioningTimeline } from "@/components/cloud/CloudProvisioningTimeline";
 import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
-import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import { upsertDeletionHistoryRecord } from "@/lib/cloud/deletionHistoryStore";
 import { useCloudCompatibility } from "@/hooks/useCloudCompatibility";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
@@ -72,9 +73,28 @@ export default function CloudEngineOverviewPage() {
     if (isCloudUpdating(accepted) || !accepted.ok || !("operation" in accepted)) {
       return accepted;
     }
+    if (workspaceId && engine) {
+      upsertDeletionHistoryRecord(workspaceId, {
+        phase: "tracking",
+        instanceId: engine.id,
+        instanceName: engine.name,
+        acceptedAt: accepted.operation.acceptedAt ?? new Date().toISOString(),
+        state: accepted.operation.state,
+      });
+    }
     const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
+    if (workspaceId && engine && terminal.ok && "operation" in terminal) {
+      upsertDeletionHistoryRecord(workspaceId, {
+        phase: "tracking",
+        instanceId: engine.id,
+        instanceName: engine.name,
+        acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
+        completedAt: terminal.operation.state === "Succeeded" ? new Date().toISOString() : null,
+        state: terminal.operation.state,
+      });
+    }
     if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
-      navigate(home);
+      if (terminal.operation.state === "Succeeded") navigate(home);
     }
     return terminal;
   }
@@ -150,15 +170,17 @@ export default function CloudEngineOverviewPage() {
                   <CardHeader>
                     <CardTitle className="flex flex-wrap items-center gap-3">
                       <span>{view.engine.name}</span>
-                      <Badge variant={cloudEngineStatusVariant(view.engine.status)}>
-                        {view.engine.status}
+                      <Badge variant={cloudEngineStatusVariant(view.engine.status, view.engine.activeOperation?.state)}>
+                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state)}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="grid gap-4 sm:grid-cols-2 text-sm">
                     <div>
                       <p className="text-muted-foreground">Status</p>
-                      <p className="font-medium">{view.engine.status}</p>
+                      <p className="font-medium" role="status" aria-live="polite">
+                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Release</p>
@@ -190,8 +212,17 @@ export default function CloudEngineOverviewPage() {
                   onOpenStudio={lifecycle.openStudio}
                 />
 
-                {(view.engine.status === "Provisioning" || lifecycle.progress) && (
-                  <CloudProvisioningTimeline progress={lifecycle.progress} />
+                {(view.engine.status === "Provisioning" ||
+                  view.engine.status === "RecoveryRequired" ||
+                  view.engine.activeOperation?.state === "RecoveryRequired" ||
+                  lifecycle.progress) && (
+                  <CloudProvisioningTimeline
+                    progress={lifecycle.progress}
+                    engine={view.engine}
+                    onRefresh={() => {
+                      void refetch();
+                    }}
+                  />
                 )}
 
                 <CloudActivityLog items={lifecycle.activity} />
