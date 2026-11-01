@@ -77,7 +77,7 @@ function DeletionRow({
     );
   }
 
-  const state = unfinishedDeleteStateLabel(record.state);
+  const state = unfinishedDeleteStateLabel(record.state, record.phase);
 
   return (
     <li className="rounded-lg border px-3 py-3 text-sm space-y-1">

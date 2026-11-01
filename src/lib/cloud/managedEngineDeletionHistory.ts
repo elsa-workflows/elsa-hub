@@ -157,10 +157,14 @@ export function succeededDeletionSentence(name: string, clock: DeletionRecordClo
   return `${name} deleted.`;
 }
 
-export function unfinishedDeleteStateLabel(state?: string | null): string {
+export function unfinishedDeleteStateLabel(
+  state?: string | null,
+  phase?: DeletionHistoryRecord["phase"] | null,
+): string {
   if (state === "Failed" || state === "RecoveryRequired") return UNFINISHED_DELETE_STATE_NEEDS_ATTENTION;
   if (state === "Cancelled" || state === "Canceled") return UNFINISHED_DELETE_STATE_CANCELLED;
   if (state && IN_FLIGHT_DELETE_STATES.has(state)) return UNFINISHED_DELETE_STATE_DELETING;
+  if (!state && phase === "submitting") return UNFINISHED_DELETE_STATE_DELETING;
   return UNFINISHED_DELETE_STATE_UNAVAILABLE;
 }
 

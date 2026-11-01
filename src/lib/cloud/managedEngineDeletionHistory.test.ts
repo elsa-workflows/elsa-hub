@@ -89,7 +89,12 @@ describe("deletion history copy", () => {
     expect(unfinishedDeleteStateLabel("")).toBe("Status unavailable");
     expect(unfinishedDeleteStateLabel(null)).toBe("Status unavailable");
     expect(unfinishedDeleteStateLabel(undefined)).toBe("Status unavailable");
+    expect(unfinishedDeleteStateLabel(undefined, "submitting")).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel(null, "submitting")).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel("", "submitting")).toBe("Deleting");
+    expect(unfinishedDeleteStateLabel(undefined, "tracking")).toBe("Status unavailable");
     expect(unfinishedDeleteStateLabel("Failed")).not.toBe("Failed");
+    expect(unfinishedDeleteStateLabel("Cancelled")).not.toBe("Deleting");
     expect(unfinishedDeleteStateLabel("RecoveryRequired")).not.toBe("Failed");
   });
 

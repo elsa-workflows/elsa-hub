@@ -99,7 +99,8 @@ export default function CloudEngineOverviewPage() {
     if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
       if (terminal.operation.state === "Succeeded") navigate(home);
     }
-    return terminal;
+    // After Control accepts the delete, polling failures are not start failures.
+    return terminal.ok ? terminal : accepted;
   }
 
   return (
