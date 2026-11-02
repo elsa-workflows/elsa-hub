@@ -105,7 +105,7 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
   const env = ctx.env ?? Deno.env;
 
   try {
-    assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
+    assertStripeTestMode(env.get("STRIPE_SECRET_KEY"), env);
   } catch (error) {
     return jsonResponse(503, { error: (error as Error).message });
   }

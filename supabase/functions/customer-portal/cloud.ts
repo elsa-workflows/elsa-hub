@@ -43,7 +43,7 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
   const env = ctx.env ?? Deno.env;
 
   try {
-    assertStripeTestMode(env.get("STRIPE_SECRET_KEY"));
+    assertStripeTestMode(env.get("STRIPE_SECRET_KEY"), env);
   } catch (error) {
     return jsonResponse(503, { error: (error as Error).message });
   }

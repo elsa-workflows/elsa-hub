@@ -215,17 +215,31 @@ export function cloudPortalReturnPath(orgSlug?: string | null): string {
   return `${cloudHomePath(orgSlug)}/billing`;
 }
 
-/** Sandbox only until the live switch: a test-mode key (sk_test_ / rk_test_) or nothing. */
-export function assertStripeTestMode(secretKey: string | undefined): void {
+/** Operator switch. A live Stripe key is allowed only when this is exactly `true`. */
+export const CLOUD_BILLING_LIVE_ENABLED_KEY = "CLOUD_BILLING_LIVE_ENABLED";
+
+export function isCloudBillingLiveEnabled(value: string | undefined | null): boolean {
+  return value === "true";
+}
+
+/**
+ * A test key is always allowed. A live key is allowed only when
+ * CLOUD_BILLING_LIVE_ENABLED is exactly `true`. Unset or any other value
+ * keeps the sandbox-only 503. The key never appears in the thrown message.
+ */
+export function assertStripeTestMode(
+  secretKey: string | undefined,
+  env?: EnvReader,
+): void {
   let mode: "live" | "test";
   try {
     mode = stripeKeyMode(secretKey ?? "");
   } catch {
     throw new Error("Cloud billing is not configured");
   }
-  if (mode !== "test") {
-    throw new Error("Cloud billing is sandbox-only");
-  }
+  if (mode === "test") return;
+  if (isCloudBillingLiveEnabled(env?.get(CLOUD_BILLING_LIVE_ENABLED_KEY))) return;
+  throw new Error("Cloud billing is sandbox-only");
 }
 
 export function readCloudPriceId(env: EnvReader = Deno.env): string {

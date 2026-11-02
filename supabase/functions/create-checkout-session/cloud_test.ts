@@ -164,13 +164,40 @@ Deno.test("personal Cloud checkout is 400 and touches no customer", async () => 
 });
 
 Deno.test("a live Stripe key is refused before any read", async () => {
-  const { run, serviceClient } = checkout({ env: { STRIPE_SECRET_KEY: "rk_live_cloud" } });
+  const leaked = "rk_live_MUST_NOT_LEAK";
+  const { run, serviceClient } = checkout({ env: { STRIPE_SECRET_KEY: leaked } });
 
   const { response, payload } = await run();
 
   assertEquals(response.status, 503);
   assertEquals(payload.error, "Cloud billing is sandbox-only");
+  assertEquals(JSON.stringify(payload).includes(leaked), false);
   assertEquals(serviceClient.reads, []);
+});
+
+Deno.test("a live Stripe key is allowed when the live flag is exactly true", async () => {
+  const { run, calls } = checkout({
+    env: { STRIPE_SECRET_KEY: "sk_live_cloud", CLOUD_BILLING_LIVE_ENABLED: "true" },
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(JSON.stringify(payload).includes("sk_live_cloud"), false);
+  assertEquals(calls.sessions.length, 1);
+});
+
+Deno.test("a live Stripe key stays refused when the live flag is 1 or yes", async () => {
+  for (const flag of ["1", "yes"]) {
+    const { run, serviceClient } = checkout({
+      env: { STRIPE_SECRET_KEY: "sk_live_MUST_NOT_LEAK", CLOUD_BILLING_LIVE_ENABLED: flag },
+    });
+    const { response, payload } = await run();
+    assertEquals(response.status, 503);
+    assertEquals(payload.error, "Cloud billing is sandbox-only");
+    assertEquals(JSON.stringify(payload).includes("sk_live_MUST_NOT_LEAK"), false);
+    assertEquals(serviceClient.reads, []);
+  }
 });
 
 Deno.test("a member who is not an org admin is 403 and touches no customer", async () => {
