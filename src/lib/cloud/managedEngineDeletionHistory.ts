@@ -17,6 +17,7 @@ export type DeletionHistoryRecord = {
   phase: "submitting" | "tracking";
   instanceId: string;
   instanceName?: string | null;
+  operationId?: string;
   acceptedAt?: string;
   completedAt?: string | null;
   requestedAt?: string | null;
@@ -200,28 +201,21 @@ export function isSucceededPriorDeletion(
   });
 }
 
-/** Drops oldest succeeded rows so browser-only history stays near the cap. In-progress and failed rows are kept. */
+/** Keeps the newest `limit` rows, including unfinished ones. Oldest rows are dropped. */
 export function capStoredDeletionRecords<T extends DeletionHistoryRecord>(
   records: readonly T[],
   limit = MANAGED_DELETION_HISTORY_LIMIT,
 ): T[] {
   if (records.length <= limit) return [...records];
-  const succeeded = records.filter(isSucceededDeletion);
-  const overflow = records.length - limit;
-  if (overflow <= 0 || succeeded.length === 0) return [...records];
-  const dropCount = Math.min(overflow, succeeded.length);
-  const drop = new Set(
-    [...succeeded]
-      .sort((left, right) => {
-        const leftTime = deletionOccurredAt(left);
-        const rightTime = deletionOccurredAt(right);
-        const leftSort = Number.isFinite(leftTime) ? leftTime : Number.POSITIVE_INFINITY;
-        const rightSort = Number.isFinite(rightTime) ? rightTime : Number.POSITIVE_INFINITY;
-        return leftSort - rightSort;
-      })
-      .slice(0, dropCount),
-  );
-  return records.filter((record) => !drop.has(record));
+  const ranked = [...records].sort((left, right) => {
+    const leftTime = deletionOccurredAt(left);
+    const rightTime = deletionOccurredAt(right);
+    const leftSort = Number.isFinite(leftTime) ? leftTime : Number.NEGATIVE_INFINITY;
+    const rightSort = Number.isFinite(rightTime) ? rightTime : Number.NEGATIVE_INFINITY;
+    return rightSort - leftSort;
+  });
+  const keep = new Set(ranked.slice(0, limit));
+  return records.filter((record) => keep.has(record));
 }
 
 export function partitionDeletionRecords<T extends DeletionHistoryRecord>(

@@ -171,7 +171,7 @@ describe("deletion history copy", () => {
     expect(sentence).not.toMatch(/Previous engine \(deleted/);
   });
 
-  it("caps stored history by dropping the oldest succeeded rows and keeping unfinished ones", () => {
+  it("caps stored history at 20 by dropping the oldest rows", () => {
     const succeeded = Array.from({ length: 25 }, (_, index) => record({
       instanceId: `${index.toString().padStart(8, "0")}-1111-4111-8111-111111111111`,
       completedAt: `2026-10-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
@@ -202,6 +202,19 @@ describe("deletion history copy", () => {
     expect(capped).not.toContainEqual(succeeded[6]);
     expect(capped).toContainEqual(succeeded[7]);
     expect(capped).toContainEqual(succeeded[24]);
+  });
+
+  it("trims unfinished rows once they pass the 20-row cap", () => {
+    const unfinished = Array.from({ length: 21 }, (_, index) => record({
+      instanceId: `${index.toString().padStart(8, "0")}-1111-4111-8111-111111111111`,
+      completedAt: null,
+      acceptedAt: `2026-10-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`,
+      state: "Accepted",
+    }));
+    const capped = capStoredDeletionRecords(unfinished);
+    expect(capped).toHaveLength(MANAGED_DELETION_HISTORY_LIMIT);
+    expect(capped).not.toContainEqual(unfinished[0]);
+    expect(capped).toContainEqual(unfinished[20]);
   });
 
   it("moves a succeeded delete into history when a later engine is live", () => {

@@ -15,6 +15,7 @@ import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import {
+  forgetControlDeletionState,
   removeDeletionHistoryRecord,
   upsertDeletionHistoryRecord,
   upsertSubmittingDeletionRecord,
@@ -103,6 +104,7 @@ export default function CloudEngineOverviewPage() {
         phase: "tracking",
         instanceId: engine.id,
         instanceName: engine.name,
+        operationId: accepted.operation.id,
         acceptedAt: accepted.operation.acceptedAt,
         completedAt: deletionCompletedAt(accepted.operation, engine.lastOperation),
         state: accepted.operation.state,
@@ -115,11 +117,14 @@ export default function CloudEngineOverviewPage() {
         phase: "tracking",
         instanceId: engine.id,
         instanceName: engine.name,
+        operationId: terminal.operation.id ?? accepted.operation.id,
         acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
         completedAt: deletionCompletedAt(terminal.operation, engine.lastOperation),
         state: terminal.operation.state,
         lastOperation: terminal.operation,
       });
+    } else if (workspaceId && engine) {
+      forgetControlDeletionState(workspaceId, engine.id);
     }
     if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
       if (terminal.operation.state === "Succeeded") navigate(home);

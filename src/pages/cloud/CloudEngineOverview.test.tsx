@@ -25,7 +25,16 @@ import {
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
-import { readDeletionHistory, resetDeletionHistoryStore } from "@/lib/cloud/deletionHistoryStore";
+import {
+  readDeletionHistory,
+  readPersistedDeletionHistory,
+  resetDeletionHistoryStore,
+} from "@/lib/cloud/deletionHistoryStore";
+import {
+  UNFINISHED_DELETE_STATE_DELETING,
+  UNFINISHED_DELETE_STATE_UNAVAILABLE,
+  unfinishedDeleteStateLabel,
+} from "@/lib/cloud/managedEngineDeletionHistory";
 import type { CloudEngineOverviewView } from "@/hooks/useCloudEngineOverview";
 
 const engine: CloudEngineOverview = {
@@ -473,6 +482,45 @@ describe("CloudEngineOverview", () => {
     expect(screen.queryByText(CLOUD_DELETE_START_ERROR)).not.toBeInTheDocument();
     expect(screen.queryByText("Delete did not reach a terminal state.")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /delete this engine/i })).not.toBeInTheDocument();
+    const [row] = readDeletionHistory(viewState.workspaceId);
+    expect(row?.state).toBeUndefined();
+    expect(readPersistedDeletionHistory(viewState.workspaceId)[0]?.state).toBeUndefined();
+    expect(unfinishedDeleteStateLabel(row?.state, row?.phase)).toBe(UNFINISHED_DELETE_STATE_UNAVAILABLE);
+    expect(unfinishedDeleteStateLabel(row?.state, row?.phase)).not.toBe(UNFINISHED_DELETE_STATE_DELETING);
+  });
+
+  it("does not keep Deleting after a slow delete outlives the poll window", async () => {
+    viewState.current = { kind: "ready", engine };
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    lifecycle.deleteEngine.mockResolvedValue({
+      ok: true,
+      operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Accepted" },
+    });
+    lifecycle.pollDeleteOperation.mockResolvedValue({
+      ok: false,
+      code: "invalid_request",
+      error: "Delete did not reach a terminal state.",
+    });
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await waitFor(() => expect(lifecycle.confirmDelete).toHaveBeenCalled());
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    await waitFor(() => expect(lifecycle.pollDeleteOperation).toHaveBeenCalled());
+    const stored = JSON.parse(
+      localStorage.getItem(`elsa-hub.cloud.deletion-history.${viewState.workspaceId}`) ?? "[]",
+    ) as Array<{ state?: string }>;
+    expect(stored[0]?.state).toBeUndefined();
+    expect(unfinishedDeleteStateLabel(
+      readDeletionHistory(viewState.workspaceId)[0]?.state,
+      readDeletionHistory(viewState.workspaceId)[0]?.phase,
+    )).toBe(UNFINISHED_DELETE_STATE_UNAVAILABLE);
   });
 
   it("does not stamp a deletion row with a prior Create or Restart completedAt", async () => {
