@@ -21,7 +21,6 @@ import {
   ENDED_SUBSCRIPTION_STATUSES,
 } from "@/lib/cloud/billingContract";
 import {
-  CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_LINK_CHECK_ERROR,
 } from "@/lib/cloudClient";
@@ -123,7 +122,7 @@ export function classifyBillingStatusFailure(
   if (status === 503 && isBillingGate(payload)) {
     const gate = new CloudBillingStatusError({
       kind: "gate",
-      message: CLOUD_BILLING_NOT_AVAILABLE_YET,
+      message: "",
       retryable: false,
       internalMessage: internal ?? payload?.code,
     });

@@ -11,8 +11,9 @@ import { cloudPlanStatusLabel } from "@/lib/cloud/billingDisplay";
 import {
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
-  CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_ERROR_RETRY,
+  CLOUD_PREVIEW_LIMITS_HEADING,
+  CLOUD_PREVIEW_ONE_USER,
 } from "@/lib/cloudClient";
 
 export function CloudBillingPanel({
@@ -78,15 +79,7 @@ export function CloudBillingPanel({
           </div>
         )}
 
-        {unavailable && (
-          <Alert>
-            <AlertDescription>
-              <p>{CLOUD_BILLING_NOT_AVAILABLE_YET}</p>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {error && (
+        {error?.message ? (
           <Alert variant="destructive">
             <AlertDescription className="space-y-3">
               <p>{error.message}</p>
@@ -97,7 +90,7 @@ export function CloudBillingPanel({
               )}
             </AlertDescription>
           </Alert>
-        )}
+        ) : null}
 
         {!hasOrganization && (
           <p className="text-muted-foreground">
@@ -171,11 +164,14 @@ export function CloudBillingPanel({
             This organization is not linked to Elsa Cloud. Checkout is unavailable until the
             Hub-to-Control organization link is validated.
           </p>
-        ) : hasOrganization && !canManage ? (
-          <p className="text-sm text-muted-foreground">
-            Only organization admins can start checkout or open the billing portal.
-          </p>
         ) : null}
+
+        {hasOrganization && !isLoading && !unavailable && (
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{CLOUD_PREVIEW_LIMITS_HEADING}</p>
+            <p className="text-sm text-muted-foreground">{CLOUD_PREVIEW_ONE_USER}</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

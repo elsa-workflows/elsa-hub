@@ -59,7 +59,6 @@ vi.mock("@/hooks/useCloudOrganizationLink", () => ({
 
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
 import {
-  CLOUD_BILLING_NOT_AVAILABLE_YET,
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_LINK_CHECK_ERROR,
 } from "@/lib/cloudClient";
@@ -353,7 +352,7 @@ describe("useCloudBilling", () => {
       { code: CLOUD_BILLING_UNAVAILABLE_CODE },
     );
     expect(failure.kind).toBe("gate");
-    expect(failure.message).toBe(CLOUD_BILLING_NOT_AVAILABLE_YET);
+    expect(failure.retryable).toBe(false);
     expect(failure.internalMessage).toBe(CLOUD_BILLING_UNAVAILABLE_CODE);
     expect(info).toHaveBeenCalledWith("Cloud billing gate:", failure.internalMessage);
     info.mockRestore();
@@ -368,7 +367,7 @@ describe("useCloudBilling", () => {
         { error: internal },
       );
       expect(failure.kind).toBe("gate");
-      expect(failure.message).toBe(CLOUD_BILLING_NOT_AVAILABLE_YET);
+      expect(failure.retryable).toBe(false);
       expect(failure.internalMessage).toBe(internal);
       expect(info).toHaveBeenCalledWith("Cloud billing gate:", failure.internalMessage);
       info.mockRestore();
