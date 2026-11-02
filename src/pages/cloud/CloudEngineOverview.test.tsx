@@ -19,7 +19,7 @@ import {
   CLOUD_RESTART,
   CLOUD_SETUP_ACTION,
   CLOUD_STRUCTURED_LOGS,
-  CLOUD_UPDATING_HEADING,
+  CLOUD_UNREACHABLE_HEADING,
   CLOUD_UPDATING_MESSAGE,
   CLOUD_UPDATING_RETRY,
   type CloudEngineOverview,
@@ -231,7 +231,7 @@ describe("CloudEngineOverview", () => {
   it("disables actions in the updating state without retrying them", () => {
     viewState.current = { kind: "updating", message: CLOUD_UPDATING_MESSAGE };
     renderOverview();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_RESTART })).not.toBeInTheDocument();
     expect(lifecycle.restart).not.toHaveBeenCalled();
     expect(lifecycle.applyRelease).not.toHaveBeenCalled();
@@ -243,7 +243,7 @@ describe("CloudEngineOverview", () => {
     compatibilityState.updating = true;
     compatibilityState.message = CLOUD_UPDATING_MESSAGE;
     renderOverview();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     expect(screen.getByText("Production")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: CLOUD_OPEN_STUDIO })).toBeDisabled();
     expect(screen.getByRole("button", { name: CLOUD_RESTART })).toBeDisabled();
@@ -283,13 +283,13 @@ describe("CloudEngineOverview", () => {
     );
     expect(screen.getByRole("button", { name: CLOUD_RESTART })).toBeEnabled();
     expect(screen.getByRole("button", { name: CLOUD_OPEN_STUDIO })).toBeEnabled();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
   });
 
   it("shows the updating state and is noindex", async () => {
     viewState.current = { kind: "updating", message: CLOUD_UPDATING_MESSAGE };
     renderOverview();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     await waitFor(() => {
       expect(document.querySelector("meta[name='robots']")?.getAttribute("content")).toBe(
         "noindex,nofollow",
@@ -301,7 +301,7 @@ describe("CloudEngineOverview", () => {
     viewState.current = { kind: "error", message: "This workspace is not available." };
     renderOverview();
     expect(screen.getByText(CLOUD_ERROR_HEADING)).toBeInTheDocument();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
   });
 
   it("can set up Elsa Cloud from an overview without an org", () => {

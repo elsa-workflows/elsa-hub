@@ -19,7 +19,7 @@ import {
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
-  CLOUD_UPDATING_HEADING,
+  CLOUD_UNREACHABLE_HEADING,
   CLOUD_UPDATING_MESSAGE,
   CLOUD_UPDATING_RETRY,
   type CloudOnboardingOptions,
@@ -289,7 +289,7 @@ describe("CloudHome", () => {
     viewState.options = options;
     viewState.canCreate = false;
     renderHome();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_UPDATING_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_CREATE_ENGINE })).not.toBeInTheDocument();
     expect(viewState.createEngine).not.toHaveBeenCalled();
@@ -311,7 +311,7 @@ describe("CloudHome", () => {
     compatibilityState.updating = true;
     compatibilityState.message = CLOUD_UPDATING_MESSAGE;
     renderHome();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     expect(screen.getByText("Production")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeDisabled();
     expect(viewState.createEngine).not.toHaveBeenCalled();
@@ -343,7 +343,7 @@ describe("CloudHome", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeEnabled();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
   });
 
   it("shows a separate error state with retry", () => {
@@ -351,7 +351,7 @@ describe("CloudHome", () => {
     renderHome();
     expect(screen.getByText(CLOUD_ERROR_HEADING)).toBeInTheDocument();
     expect(screen.getByText("This workspace is not available.")).toBeInTheDocument();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
     screen.getByRole("button", { name: /try again/i }).click();
     expect(viewState.refetch).toHaveBeenCalled();
   });
@@ -487,7 +487,7 @@ describe("CloudHome", () => {
     viewState.setupMessage = CLOUD_LINK_ORG_UNREACHABLE;
     renderHome();
     expect(screen.getByText(CLOUD_LINK_ORG_UNREACHABLE)).toBeInTheDocument();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
     expect(screen.queryByText("Production")).not.toBeInTheDocument();
   });
 

@@ -56,6 +56,20 @@ describe("CloudLinkOrganizationState", () => {
     expect(screen.queryByText(/your elsa cloud engines/i)).not.toBeInTheDocument();
   });
 
+  it("never renders the old yet/try-again-later linking sentence", () => {
+    render(
+      <CloudLinkOrganizationState
+        canLink
+        onLink={vi.fn()}
+        status="updating"
+      />,
+    );
+    expect(screen.getByText(CLOUD_LINK_ORG_UNREACHABLE)).toBeInTheDocument();
+    expect(screen.queryByText(
+      "Elsa Cloud isn't available for linking yet. Please try again later.",
+    )).not.toBeInTheDocument();
+  });
+
   it("shows an error and Retry for 401 or 403", () => {
     const onRetry = vi.fn();
     render(

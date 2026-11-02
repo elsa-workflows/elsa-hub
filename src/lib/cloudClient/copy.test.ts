@@ -6,6 +6,7 @@ import {
   CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_LINK_ORG_UNREACHABLE,
   CLOUD_PREVIEW_ONE_USER,
+  CLOUD_UNREACHABLE_HEADING,
   cloudEngineCountLabel,
 } from "./copy";
 
@@ -45,10 +46,19 @@ describe("signed Cloud action errors", () => {
 });
 
 describe("unreachable-state copy", () => {
+  const retiredLinking =
+    "Elsa Cloud isn't available for linking yet. Please try again later.";
+
+  it("pins the signed unreachable heading", () => {
+    expect(CLOUD_UNREACHABLE_HEADING).toBe("Elsa Cloud can't be reached");
+    expect(CLOUD_UNREACHABLE_HEADING).not.toMatch(/[.]/);
+  });
+
   it("pins the signed linking-unreachable sentence", () => {
     expect(CLOUD_LINK_ORG_UNREACHABLE).toBe(
       "Elsa Cloud can't be reached, so linking isn't available. Refresh this page to check again.",
     );
+    expect(CLOUD_LINK_ORG_UNREACHABLE).not.toBe(retiredLinking);
     expect(CLOUD_LINK_ORG_UNREACHABLE).not.toMatch(/yet/i);
     expect(CLOUD_LINK_ORG_UNREACHABLE).not.toMatch(/try again later/i);
     expect(CLOUD_LINK_ORG_UNREACHABLE).not.toMatch(/temporarily/i);
