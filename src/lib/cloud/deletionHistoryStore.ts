@@ -141,25 +141,6 @@ export function forgetControlDeletionState(
   return readDeletionHistory(workspaceId);
 }
 
-export function retainKnownDeletionRecords(
-  workspaceId: string,
-  knownInstanceIds: ReadonlySet<string>,
-): DeletionHistoryRecord[] {
-  persistPointers(
-    workspaceId,
-    readPersistedDeletionHistory(workspaceId).filter((item) => knownInstanceIds.has(item.instanceId)),
-  );
-  writeControlSnapshots(
-    workspaceId,
-    readControlSnapshots(workspaceId).filter((item) => knownInstanceIds.has(item.instanceId)),
-  );
-  submittingByWorkspace.set(
-    workspaceId,
-    readSubmitting(workspaceId).filter((item) => knownInstanceIds.has(item.instanceId)),
-  );
-  return readDeletionHistory(workspaceId);
-}
-
 export function upsertDeletionHistoryRecord(
   workspaceId: string,
   record: DeletionHistoryRecord,

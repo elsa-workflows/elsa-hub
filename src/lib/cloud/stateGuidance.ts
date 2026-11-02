@@ -1,18 +1,31 @@
 import { provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
 import type { ManagedProvisioningProgress, ManagedProvisioningStageCode } from "@/lib/cloud/provisioningProgress";
 
-const stageLabels = provisioningStageLabels;
-
 export const STATE_GUIDANCE_TEMPORARILY_UNAVAILABLE =
-  "Detailed provisioning progress is temporarily unavailable. The engine status above remains current.";
+  "Detailed provisioning progress can't be loaded. Refresh this page to check again.";
 export const STATE_GUIDANCE_CANCELLED =
   "Provisioning was cancelled before the engine was ready. Email hello@valence.works if you need help restarting.";
-export const STATE_GUIDANCE_FAILED_PREFIX = "Provisioning failed at ";
-export const STATE_GUIDANCE_FAILED_SUFFIX =
-  ". Review the safe guidance below or email hello@valence.works.";
+export const STATE_GUIDANCE_FAILED_BEFORE_READY =
+  "Provisioning stopped before the engine was ready. Email hello@valence.works with this engine's name and we'll help during business hours.";
 export const STATE_GUIDANCE_NEEDS_ATTENTION_PREFIX = "Provisioning needs attention";
 export const STATE_GUIDANCE_NEEDS_ATTENTION_SUFFIX =
   ". Check again or email hello@valence.works if it remains here.";
+
+function controlCurrentStageLabel(currentStage: string | null | undefined): string | null {
+  if (!currentStage) return null;
+  if (!Object.prototype.hasOwnProperty.call(provisioningStageLabels, currentStage)) return null;
+  return provisioningStageLabels[currentStage as ManagedProvisioningStageCode];
+}
+
+function isFailedProgressState(state: string): boolean {
+  return state === "failed" || state === "Failed";
+}
+
+function failedStateGuidance(currentStage: string | null | undefined): string {
+  const stage = controlCurrentStageLabel(currentStage);
+  if (!stage) return STATE_GUIDANCE_FAILED_BEFORE_READY;
+  return `Provisioning stopped at ${stage}. Email hello@valence.works with this engine's name and we'll help during business hours.`;
+}
 
 export function stateGuidance(progress: ManagedProvisioningProgress, temporarilyUnavailable: boolean) {
   if (temporarilyUnavailable || progress.state === "unavailable" || progress.diagnosticCode === "provisioning.history-unavailable") {
@@ -21,16 +34,12 @@ export function stateGuidance(progress: ManagedProvisioningProgress, temporarily
   if (progress.diagnosticCode === "provisioning.cancelled") {
     return STATE_GUIDANCE_CANCELLED;
   }
-  if (progress.state === "failed" || progress.diagnosticCode === "provisioning.failed") {
-    const failedStage = progress.currentStage
-      ? stageLabels[progress.currentStage as ManagedProvisioningStageCode] ?? "the current stage"
-      : "the current stage";
-    return `Provisioning failed at ${failedStage}. Review the safe guidance below or email hello@valence.works.`;
+  if (isFailedProgressState(progress.state)) {
+    return failedStateGuidance(progress.currentStage);
   }
   if (progress.state === "stale" || progress.diagnosticCode === "provisioning.requires-attention") {
-    const pausedAt = progress.currentStage
-      ? `: paused at ${stageLabels[progress.currentStage as ManagedProvisioningStageCode] ?? progress.currentStage}`
-      : "";
+    const stage = controlCurrentStageLabel(progress.currentStage);
+    const pausedAt = stage ? `: paused at ${stage}` : "";
     return `Provisioning needs attention${pausedAt}. Check again or email hello@valence.works if it remains here.`;
   }
   return null;

@@ -7,7 +7,6 @@ import {
   readPersistedDeletionHistory,
   removeDeletionHistoryRecord,
   resetDeletionHistoryStore,
-  retainKnownDeletionRecords,
   upsertDeletionHistoryRecord,
   upsertSubmittingDeletionRecord,
 } from "./deletionHistoryStore";
@@ -161,7 +160,7 @@ describe("deletionHistoryStore", () => {
     expect(unfinishedDeleteStateLabel(row?.state, row?.phase)).not.toBe(UNFINISHED_DELETE_STATE_DELETING);
   });
 
-  it("trims stored pointers to 20 and drops rows Control does not know", () => {
+  it("trims stored pointers to 20", () => {
     for (let index = 0; index < 21; index += 1) {
       upsertDeletionHistoryRecord(workspaceId, accepted({
         instanceId: `${index.toString().padStart(8, "0")}-1111-4111-8111-111111111111`,
@@ -176,15 +175,5 @@ describe("deletionHistoryStore", () => {
     expect(readPersistedDeletionHistory(workspaceId).map((row) => row.instanceId)).not.toContain(
       "00000000-1111-4111-8111-111111111111",
     );
-
-    retainKnownDeletionRecords(workspaceId, new Set([
-      "00000020-1111-4111-8111-111111111111",
-    ]));
-    expect(readPersistedDeletionHistory(workspaceId)).toEqual([
-      expect.objectContaining({ instanceId: "00000020-1111-4111-8111-111111111111" }),
-    ]);
-    expect(readDeletionHistory(workspaceId)).toEqual([
-      expect.objectContaining({ instanceId: "00000020-1111-4111-8111-111111111111" }),
-    ]);
   });
 });
