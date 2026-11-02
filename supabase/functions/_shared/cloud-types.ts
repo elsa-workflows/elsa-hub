@@ -61,7 +61,7 @@ export const CLOUD_SUPPORTED_CONTRACT_VERSION = 1;
 export const CLOUD_UPDATING_CODE = "control_update_in_progress" as const;
 
 export const CLOUD_UPDATING_MESSAGE =
-  "Elsa Cloud is being updated. Managed engine actions are temporarily paused.";
+  "Elsa Cloud can't be reached, so engine actions aren't available. Refresh this page to check again.";
 
 export const CLOUD_LIMIT_CODE = "instance_limit_reached" as const;
 

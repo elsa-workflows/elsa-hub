@@ -5,7 +5,7 @@ import {
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ERROR,
   CLOUD_LINK_ORG_HEADING,
-  CLOUD_LINK_ORG_UPDATING,
+  CLOUD_LINK_ORG_UNREACHABLE,
   CLOUD_PAGE_TITLE,
 } from "@/lib/cloudClient";
 import { CloudLinkOrganizationState } from "./CloudLinkOrganizationState";
@@ -49,10 +49,10 @@ describe("CloudLinkOrganizationState", () => {
         canLink
         onLink={vi.fn()}
         status="updating"
-        message={CLOUD_LINK_ORG_UPDATING}
+        message={CLOUD_LINK_ORG_UNREACHABLE}
       />,
     );
-    expect(screen.getByText(CLOUD_LINK_ORG_UPDATING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_ORG_UNREACHABLE)).toBeInTheDocument();
     expect(screen.queryByText(/your elsa cloud engines/i)).not.toBeInTheDocument();
   });
 

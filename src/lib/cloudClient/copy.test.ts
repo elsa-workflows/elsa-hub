@@ -4,6 +4,7 @@ import {
   CLOUD_DELETE_START_ERROR,
   CLOUD_EMPTY_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
+  CLOUD_LINK_ORG_UNREACHABLE,
   CLOUD_PREVIEW_ONE_USER,
   cloudEngineCountLabel,
 } from "./copy";
@@ -40,5 +41,16 @@ describe("signed Cloud action errors", () => {
     expect(CLOUD_DELETE_START_ERROR).toBe(
       "We couldn't start deleting this engine. Please try again. If it keeps failing, email hello@valence.works with this engine's name and we'll help during business hours.",
     );
+  });
+});
+
+describe("unreachable-state copy", () => {
+  it("pins the signed linking-unreachable sentence", () => {
+    expect(CLOUD_LINK_ORG_UNREACHABLE).toBe(
+      "Elsa Cloud can't be reached, so linking isn't available. Refresh this page to check again.",
+    );
+    expect(CLOUD_LINK_ORG_UNREACHABLE).not.toMatch(/yet/i);
+    expect(CLOUD_LINK_ORG_UNREACHABLE).not.toMatch(/try again later/i);
+    expect(CLOUD_LINK_ORG_UNREACHABLE).not.toMatch(/temporarily/i);
   });
 });

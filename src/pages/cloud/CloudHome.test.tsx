@@ -15,7 +15,7 @@ import {
   CLOUD_LINK_ORG_HEADING,
   CLOUD_LINK_ORG_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
-  CLOUD_LINK_ORG_UPDATING,
+  CLOUD_LINK_ORG_UNREACHABLE,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
@@ -484,9 +484,9 @@ describe("CloudHome", () => {
     orgLinkState.current = { kind: "needsLink", canLink: true };
     viewState.current = { kind: "updating", message: CLOUD_UPDATING_MESSAGE };
     viewState.setupStatus = "updating";
-    viewState.setupMessage = CLOUD_LINK_ORG_UPDATING;
+    viewState.setupMessage = CLOUD_LINK_ORG_UNREACHABLE;
     renderHome();
-    expect(screen.getByText(CLOUD_LINK_ORG_UPDATING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_ORG_UNREACHABLE)).toBeInTheDocument();
     expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
     expect(screen.queryByText("Production")).not.toBeInTheDocument();
   });
