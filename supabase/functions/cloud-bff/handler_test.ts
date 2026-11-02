@@ -161,7 +161,7 @@ Deno.test("each read action returns the normalized shape for a signed-in user", 
   });
 
   const listWorkspaces = await signedIn({ action: "listWorkspaces" }, {
-    "GET /api/me/workspaces": {
+    "GET /api/me/workspace-memberships": {
       ok: true,
       status: 200,
       body: { workspaces: [WORKSPACE] },
@@ -177,7 +177,7 @@ Deno.test("each read action returns the normalized shape for a signed-in user", 
     action: "selectWorkspace",
     workspaceId: WORKSPACE_ID,
   }, {
-    "GET /api/me/workspaces": {
+    "GET /api/me/workspace-memberships": {
       ok: true,
       status: 200,
       body: { workspaces: [WORKSPACE] },
@@ -285,6 +285,64 @@ Deno.test("each read action returns the normalized shape for a signed-in user", 
   });
 });
 
+Deno.test("selectWorkspace treats a malformed memberships body as updating", async () => {
+  const malformed = await signedIn({
+    action: "selectWorkspace",
+    workspaceId: WORKSPACE_ID,
+  }, {
+    "GET /api/me/workspace-memberships": {
+      ok: true,
+      status: 200,
+      body: { error: "nope" },
+    },
+  });
+  assertEquals(malformed.status, 503);
+  assertEquals((await readJson(malformed)).code, CLOUD_UPDATING_CODE);
+});
+
+Deno.test("no file under supabase/functions calls retired Control list routes", async () => {
+  const retired = [`/api/me/${"workspaces"}`, `/api/me/${"organizations"}`];
+  const root = new URL("../", import.meta.url);
+  async function walk(dir: URL): Promise<string[]> {
+    const hits: string[] = [];
+    for await (const entry of Deno.readDir(dir)) {
+      const next = new URL(entry.name + (entry.isDirectory ? "/" : ""), dir);
+      if (entry.isDirectory) {
+        hits.push(...await walk(next));
+        continue;
+      }
+      if (!entry.name.endsWith(".ts")) continue;
+      const text = await Deno.readTextFile(next);
+      if (retired.some((path) => text.includes(path))) hits.push(next.pathname);
+    }
+    return hits;
+  }
+  assertEquals(await walk(root), []);
+});
+
+Deno.test("an empty memberships list is setup, not updating, and writes nothing", async () => {
+  const calls: string[] = [];
+  const empty = await signedIn({ action: "listWorkspaces" }, {}, {
+    controlFetch: async (call) => {
+      calls.push(`${call.method} ${call.path}`);
+      if (call.path === "/api/cloud/compatibility") {
+        return { ok: true, status: 200, body: COMPATIBLE };
+      }
+      assertEquals(call.method, "GET");
+      assertEquals(call.path, "/api/me/workspace-memberships");
+      return { ok: true, status: 200, body: { workspaces: [] } };
+    },
+  });
+  assertEquals(empty.status, 200);
+  assertEquals(await readJson(empty), {
+    ok: true,
+    state: "ready",
+    workspaces: [],
+  });
+  assertFalse(calls.some((call) => call.startsWith("POST ")));
+  assertEquals(calls, ["GET /api/me/workspace-memberships"]);
+});
+
 Deno.test("unknown actions and extra fields are refused", async () => {
   const unknown = await signedIn({ action: "notAnAction" }, {});
   const unknownBody = await readJson(unknown);
@@ -311,7 +369,7 @@ Deno.test("unknown actions and extra fields are refused", async () => {
     action: "selectWorkspace",
     workspaceId: "44444444-4444-4444-4444-444444444444",
   }, {
-    "GET /api/me/workspaces": {
+    "GET /api/me/workspace-memberships": {
       ok: true,
       status: 200,
       body: { workspaces: [WORKSPACE] },

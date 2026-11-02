@@ -259,7 +259,7 @@ async function callControl(
       return await call({ method: "POST", path: "/api/cloud/bootstrap", body: {} });
     case "listWorkspaces":
     case "selectWorkspace":
-      return await call({ method: "GET", path: "/api/me/workspaces" });
+      return await call({ method: "GET", path: "/api/me/workspace-memberships" });
     case "listEngines":
       return await call({
         method: "GET",
