@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { elsaIndustries, elsaRegions } from "@/data/elsaUsageLocations";
 import { countries, countryByName } from "@/data/countries";
+import { STREET_ADDRESS_CITY_MESSAGE, looksLikeStreetAddress } from "@/lib/radarLocations";
 
 
 const teamSchema = z.object({
@@ -40,7 +41,12 @@ const teamSchema = z.object({
     .optional()
     .or(z.literal("")),
   contactEmail: z.string().trim().email("Enter a valid email").max(255),
-  city: z.string().trim().min(1, "City is required").max(80),
+  city: z
+    .string()
+    .trim()
+    .min(1, "City is required")
+    .max(80)
+    .refine((value) => !looksLikeStreetAddress(value), STREET_ADDRESS_CITY_MESSAGE),
   country: z.string().trim().min(1, "Country is required").max(80),
   region: z.enum(["Europe", "North America", "South America", "Asia", "Africa", "Oceania"]),
   industry: z.string().trim().min(1, "Pick an industry").max(80),

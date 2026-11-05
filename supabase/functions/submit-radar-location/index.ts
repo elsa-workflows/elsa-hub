@@ -24,11 +24,31 @@ const REGIONS = [
   "Oceania",
 ] as const;
 
+// Keep in sync with src/lib/radarLocations.ts looksLikeStreetAddress.
+const STREET_HINT =
+  /(weg|straße|strasse|str\.?|street|avenue|ave\.?|road|rd\.?|lane|ln\.?|drive|dr\.?|boulevard|blvd\.?|platz|laan|gasse|close|court|ct\.?|\bway\b)/i;
+const HOUSE_NUMBER = /\b\d+[a-z]?\b/i;
+
+function looksLikeStreetAddress(city: string): boolean {
+  const value = city.trim();
+  if (!value) return false;
+  if (/ahornweg/i.test(value)) return true;
+  if (value.includes(",")) return true;
+  return STREET_HINT.test(value) && HOUSE_NUMBER.test(value);
+}
+
 const BodySchema = z.object({
   companyName: z.string().trim().min(2).max(160),
   websiteUrl: z.string().trim().max(500).url().optional().or(z.literal("")),
   contactEmail: z.string().trim().email().max(255),
-  city: z.string().trim().min(1).max(120),
+  city: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .refine((value) => !looksLikeStreetAddress(value), {
+      message: "Use a city name, not a street address.",
+    }),
   country: z.string().trim().min(1).max(120),
   region: z.enum(REGIONS),
   industry: z.string().trim().min(1).max(160),

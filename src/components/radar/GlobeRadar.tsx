@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import type { ElsaUsageLocation } from "@/data/elsaUsageLocations";
+import { RADAR_PUBLIC_COPY } from "@/lib/radarLocations";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { useCssVar } from "@/hooks/use-css-var";
 import { cn } from "@/lib/utils";
@@ -289,7 +290,7 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
             isDark ? "bg-cyan-300" : "bg-sky-500",
           )}
         />
-        live · global radar
+        {RADAR_PUBLIC_COPY.globeStatus}
       </div>
       <div
         className={cn(
@@ -297,7 +298,7 @@ export function GlobeRadar({ locations, onSelect, selectedId, heatmap = false }:
           isDark ? "text-cyan-200/60" : "text-slate-500",
         )}
       >
-        v1.0 · sample dataset
+        {RADAR_PUBLIC_COPY.globeDataset}
       </div>
       <div
         className={cn(

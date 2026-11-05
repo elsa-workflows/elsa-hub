@@ -33,6 +33,7 @@ import {
   useRadarLocationsAdmin,
   type RadarLocationRow,
 } from "@/hooks/useRadarLocations";
+import { STREET_ADDRESS_CITY_MESSAGE, looksLikeStreetAddress } from "@/lib/radarLocations";
 
 const REGIONS = [
   "Europe", "North America", "South America", "Asia", "Africa", "Oceania",
@@ -41,7 +42,13 @@ const REGIONS = [
 const formSchema = z.object({
   latitude: z.coerce.number().min(-90).max(90),
   longitude: z.coerce.number().min(-180).max(180),
-  city: z.string().trim().max(120).optional().or(z.literal("")),
+  city: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .or(z.literal(""))
+    .refine((value) => !looksLikeStreetAddress(value), STREET_ADDRESS_CITY_MESSAGE),
   country: z.string().trim().min(1, "Country is required").max(120),
   region: z.enum(REGIONS),
   anonymous: z.boolean(),
@@ -249,6 +256,12 @@ export default function AdminRadarLocations() {
 
   const setStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
+      if (status === "approved") {
+        const row = rows?.find((r) => r.id === id);
+        if (row && looksLikeStreetAddress(row.city)) {
+          throw new Error(STREET_ADDRESS_CITY_MESSAGE);
+        }
+      }
       const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("radar_locations")
