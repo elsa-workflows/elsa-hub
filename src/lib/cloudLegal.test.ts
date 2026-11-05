@@ -63,7 +63,7 @@ describe("cloudLegal", () => {
     expect(CLOUD_TERMS_INTRO.caveat).toMatch(/no contractual SLO/);
   });
 
-  it("does not add the Preview one-user limit to the legal terms", () => {
-    expect(allText).not.toMatch(/each organization has one Elsa Cloud user/);
+  it("states the Preview one-user limit", () => {
+    expect(allText).toMatch(/During Preview, each organization has one Elsa Cloud user\./);
   });
 });

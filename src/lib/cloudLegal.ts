@@ -76,6 +76,7 @@ export const CLOUD_TERMS_SECTIONS: CloudTermsSection[] = [
       // CHANGED: entity name written "BV" to match the Academy terms; VAT number added.
       "The service is provided by Skywalker Digital BV, registered with the Dutch Chamber of Commerce under KvK 88244520, VAT NL864551484B01, and trading as Valence Works.",
       "These terms cover the Preview service and do not change the separate licence terms for Elsa Workflows open-source software.",
+      "During Preview, each organization has one Elsa Cloud user.",
     ],
   },
   {
