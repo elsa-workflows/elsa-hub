@@ -11,6 +11,8 @@ import { cloudPlanStatusLabel } from "@/lib/cloud/billingDisplay";
 import {
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
+  CLOUD_BILLING_NOT_AVAILABLE,
+  CLOUD_BILLING_NOT_CONNECTED,
   CLOUD_ERROR_RETRY,
   CLOUD_PREVIEW_LIMITS_HEADING,
   CLOUD_PREVIEW_ONE_USER,
@@ -77,6 +79,14 @@ export function CloudBillingPanel({
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading billing…
           </div>
+        )}
+
+        {unavailable && (
+          <Alert>
+            <AlertDescription>
+              <p>{CLOUD_BILLING_NOT_AVAILABLE}</p>
+            </AlertDescription>
+          </Alert>
         )}
 
         {error?.message ? (
@@ -161,8 +171,7 @@ export function CloudBillingPanel({
           </p>
         ) : canManage && hasOrganization && !linkedToControl && !isLoading && !error && !unavailable ? (
           <p className="text-sm text-muted-foreground">
-            This organization is not linked to Elsa Cloud. Checkout is unavailable until the
-            Hub-to-Control organization link is validated.
+            {CLOUD_BILLING_NOT_CONNECTED}
           </p>
         ) : null}
 

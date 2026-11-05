@@ -5,6 +5,8 @@ import { MemoryRouter } from "react-router-dom";
 import {
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
+  CLOUD_BILLING_NOT_AVAILABLE,
+  CLOUD_BILLING_NOT_CONNECTED,
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_ERROR_RETRY,
   CLOUD_LINK_CHECK_ERROR,
@@ -110,9 +112,27 @@ describe("CloudBillingPanel", () => {
       onRetry,
     });
 
+    expect(CLOUD_BILLING_UNAVAILABLE).toBe("We couldn't load billing. Please try again.");
     expect(screen.getByText(CLOUD_BILLING_UNAVAILABLE)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: CLOUD_ERROR_RETRY })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: CLOUD_ERROR_RETRY }));
     expect(onRetry).toHaveBeenCalled();
+  });
+
+  it("tells an admin the org is not connected when checkout is unavailable", () => {
+    renderPanel({
+      ...noPlan,
+      billingAccount: "missing",
+      cloudLink: "missing",
+      needsLink: false,
+    });
+
+    expect(CLOUD_BILLING_NOT_CONNECTED).toBe(
+      "This organization isn't connected to Elsa Cloud, so checkout isn't available.",
+    );
+    expect(screen.getByText(CLOUD_BILLING_NOT_CONNECTED)).toBeInTheDocument();
+    expect(screen.queryByText(/Hub-to-Control/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
   });
 
   it("shows Retry for a failed organization-link check, not the needs-link CTA", () => {
@@ -141,6 +161,10 @@ describe("CloudBillingPanel", () => {
       cloudHomeHref: "/dashboard/org/acme/cloud",
     });
 
+    expect(CLOUD_BILLING_NOT_AVAILABLE).toBe("Elsa Cloud billing isn't available on the Hub.");
+    const notice = screen.getByText(CLOUD_BILLING_NOT_AVAILABLE).closest("[role='alert']");
+    expect(notice).toBeInTheDocument();
+    expect(notice).not.toHaveClass("text-destructive");
     expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: CLOUD_BILLING_NEEDS_LINK })).toHaveAttribute(
@@ -159,12 +183,13 @@ describe("CloudBillingPanel", () => {
       cloudHomeHref: "/dashboard/org/acme/cloud",
     });
 
+    expect(screen.getByText(CLOUD_BILLING_NOT_AVAILABLE)).toBeInTheDocument();
     expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
     expect(screen.queryByText(/not linked to elsa cloud/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
   });
 
-  it("renders no alert when the gate message is empty", () => {
+  it("pins the signed Hub billing-gate sentence on the gated card", () => {
     renderPanel({
       ...noPlan,
       billingAccount: "missing",
@@ -173,7 +198,24 @@ describe("CloudBillingPanel", () => {
       error: new Error(""),
     });
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(CLOUD_BILLING_NOT_AVAILABLE).toBe("Elsa Cloud billing isn't available on the Hub.");
+    const notice = screen.getByText(CLOUD_BILLING_NOT_AVAILABLE).closest("[role='alert']");
+    expect(notice).toBeInTheDocument();
+    expect(notice).not.toHaveClass("text-destructive");
+  });
+
+  it("never renders the old yet/subscribe billing-gate sentence", () => {
+    renderPanel({
+      ...noPlan,
+      billingAccount: "missing",
+      cloudLink: "missing",
+      unavailable: true,
+      error: new Error(""),
+    });
+
+    expect(screen.queryByText(
+      "Elsa Cloud billing isn't available yet. We'll let you know when you can subscribe.",
+    )).not.toBeInTheDocument();
   });
 
   it("lets an admin open the portal when a Cloud subscription exists without a Control link", () => {
