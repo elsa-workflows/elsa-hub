@@ -1,6 +1,8 @@
 // Tool-call "intent" payloads emitted by the weaver edge function.
 // The client validates and applies these after the user clicks Confirm.
 
+import { resolvePath } from "react-router-dom";
+
 export type WeaverIntent =
   | NavigateIntent
   | RbAddPackageIntent
@@ -62,6 +64,41 @@ export interface RbValidateIntent {
 }
 export interface RbGenerateBundleIntent {
   kind: "rb.generateBundle";
+}
+
+const WEAVER_NAVIGATION_ORIGIN = "https://weaver.invalid";
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/;
+
+export function getSafeWeaverNavigationPath(value: unknown): string | null {
+  if (
+    typeof value !== "string" ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\") ||
+    CONTROL_CHARACTERS.test(value)
+  ) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(value, WEAVER_NAVIGATION_ORIGIN);
+    if (parsed.origin !== WEAVER_NAVIGATION_ORIGIN) return null;
+
+    // URL parsing resolves dot segments; React Router's path resolver applies
+    // the same normalization again before handing a path to browser history.
+    const resolved = resolvePath(`${parsed.pathname}${parsed.search}${parsed.hash}`, "/");
+    if (!resolved.pathname.startsWith("/") || resolved.pathname.startsWith("//")) return null;
+
+    const path = `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    const finalUrl = new URL(path, WEAVER_NAVIGATION_ORIGIN);
+    if (finalUrl.origin !== WEAVER_NAVIGATION_ORIGIN || finalUrl.pathname.startsWith("//")) {
+      return null;
+    }
+
+    return path;
+  } catch {
+    return null;
+  }
 }
 
 export function isWeaverIntent(value: unknown): value is WeaverIntent {
