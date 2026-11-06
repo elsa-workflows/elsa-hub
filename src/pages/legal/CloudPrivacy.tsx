@@ -29,7 +29,7 @@ export default function CloudPrivacy() {
           <ol className="space-y-1 text-sm">
             {CLOUD_PRIVACY_SECTIONS.map((section) => (
               <li key={section.id}>
-                <a href={`#${section.id}`} className="text-primary hover:underline">
+                <a href={`#${section.id}`} className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">
                   {section.number} {section.title}
                 </a>
               </li>
@@ -62,7 +62,7 @@ export default function CloudPrivacy() {
         <section aria-label="Related pages" className="rounded-lg border p-6 mb-10">
           <div className="flex flex-wrap gap-4 text-sm">
             {related.map((link) => (
-              <Link key={link.href} to={link.href} className="text-primary hover:underline">
+              <Link key={link.href} to={link.href} className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">
                 {link.label}
               </Link>
             ))}
@@ -74,8 +74,8 @@ export default function CloudPrivacy() {
           <h2 id="cloud-privacy-contact" className="text-xl font-semibold mb-2">{contact.title}</h2>
           <p className="mb-4">{contact.body}</p>
           <div className="flex flex-wrap gap-4 text-sm">
-            <a href="mailto:hello@valence.works" className="text-primary hover:underline">hello@valence.works</a>
-            <Link to={contact.related.to} className="text-primary hover:underline">
+            <a href="mailto:hello@valence.works" className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">hello@valence.works</a>
+            <Link to={contact.related.to} className="text-foreground underline underline-offset-2 hover:text-foreground/80 transition-colors">
               {contact.related.label}
             </Link>
           </div>
