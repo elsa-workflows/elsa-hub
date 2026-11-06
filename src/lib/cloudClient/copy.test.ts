@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
+  CLOUD_DELETE_START_ERROR,
   CLOUD_EMPTY_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
   CLOUD_PREVIEW_ONE_USER,
@@ -30,6 +31,14 @@ describe("cloudEngineCountLabel", () => {
   it("pins the signed non-admin disconnected line", () => {
     expect(CLOUD_LINK_ORG_NOT_CONNECTED).toBe(
       "Elsa Cloud isn't connected to this Hub organization yet.",
+    );
+  });
+});
+
+describe("signed Cloud action errors", () => {
+  it("pins the signed delete-start error", () => {
+    expect(CLOUD_DELETE_START_ERROR).toBe(
+      "We couldn't start deleting this engine. Please try again. If it keeps failing, email hello@valence.works with this engine's name and we'll help during business hours.",
     );
   });
 });

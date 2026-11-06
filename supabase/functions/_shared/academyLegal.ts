@@ -7,7 +7,7 @@
  * /legal/academy-terms page only. Do not put the address in the footer.
  */
 
-export const ACADEMY_TERMS_VERSION = "2026-10-16";
+export const ACADEMY_TERMS_VERSION = "2026-10-31";
 export const ACADEMY_TERMS_PATH = "/legal/academy-terms";
 export const ACADEMY_TERMS_URL = `https://www.elsaworkflows.io${ACADEMY_TERMS_PATH}`;
 export const ACADEMY_REFUNDS_URL = `${ACADEMY_TERMS_URL}#refunds`;
