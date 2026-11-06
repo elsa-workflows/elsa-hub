@@ -3,6 +3,8 @@ import { Github, MessageCircle, BookOpen, ExternalLink } from "lucide-react";
 import elsaLogo from "@/assets/elsa-logo.png";
 import { FooterNewsletterSignup } from "@/components/newsletter";
 import { ELSA_NUGET_URL } from "@/data/elsaVersion";
+import { ACADEMY_TERMS_INDEX_PATH } from "@/lib/academyLegal";
+import { ACADEMY_PATH } from "@/lib/academyPaths";
 
 const footerLinks = {
   product: [{
@@ -28,6 +30,9 @@ const footerLinks = {
   resources: [{
     label: "Blog",
     to: "/blog"
+  }, {
+    label: "Academy",
+    to: ACADEMY_PATH
   }, {
     label: "Documentation",
     href: "https://docs.elsaworkflows.io/",
@@ -158,7 +163,11 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Elsa Workflows. Open source under MIT License.
           </p>
-          
+          <nav className="flex items-center gap-4" aria-label="Legal">
+            <Link to={ACADEMY_TERMS_INDEX_PATH} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Terms
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>;
