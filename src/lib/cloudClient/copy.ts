@@ -4,7 +4,7 @@ export const CLOUD_ENGINES_INTRO = "Your Elsa Cloud engines in this workspace.";
 export const CLOUD_EMPTY_MESSAGE = "No engines yet";
 export const CLOUD_OPEN_LINK = "Open Elsa Cloud";
 export const CLOUD_WORKSPACE_LABEL = "Workspace:";
-export const CLOUD_UPDATING_HEADING = "Elsa Cloud is being updated";
+export const CLOUD_UNREACHABLE_HEADING = "Elsa Cloud can't be reached";
 export const CLOUD_UPDATING_RETRY = "Check again";
 export const CLOUD_ERROR_HEADING = "Could not load Elsa Cloud";
 export const CLOUD_ERROR_RETRY = "Try again";
@@ -18,8 +18,8 @@ export const CLOUD_LINK_ORG_MESSAGE =
   "Connect this Hub organization to Elsa Cloud so engines and checkout can use it.";
 export const CLOUD_LINK_ORG_NOT_CONNECTED =
   "Elsa Cloud isn't connected to this Hub organization yet.";
-export const CLOUD_LINK_ORG_UPDATING =
-  "Elsa Cloud isn't available for linking yet. Please try again later.";
+export const CLOUD_LINK_ORG_UNREACHABLE =
+  "Elsa Cloud can't be reached, so linking isn't available. Refresh this page to check again.";
 export const CLOUD_LINK_ORG_ERROR = "Could not link this organization to Elsa Cloud.";
 export const CLOUD_LINK_ORG_SUCCESS = "This organization is now linked to Elsa Cloud.";
 export const CLOUD_BILLING_NEEDS_LINK = "Link this organization first";
