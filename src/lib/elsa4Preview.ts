@@ -24,19 +24,19 @@ export const ELSA4_PREVIEW_SECTIONS = [
     title: "Essentials",
     description:
       "Run and understand the reference server and Workbench, with a local quickstart and a first-workflow walkthrough.",
-    href: "https://v4.elsaworkflows.io/essentials/essentials",
+    href: "https://v4.elsaworkflows.io/essentials",
   },
   {
     title: "Extensions",
     description:
       "Explore optional modules and extension points. Each host chooses the capabilities in its own composition.",
-    href: "https://v4.elsaworkflows.io/extensions/extensions",
+    href: "https://v4.elsaworkflows.io/extensions",
   },
   {
     title: "Studio",
     description:
       "Learn about the visual client and the documented Workbench pairing, then browse the current Studio source in Foundation.",
-    href: "https://v4.elsaworkflows.io/studio/studio",
+    href: "https://v4.elsaworkflows.io/studio",
     sourceHref: ELSA4_STUDIO_SOURCE_URL,
   },
 ] as const;
@@ -46,19 +46,19 @@ export const ELSA4_PREVIEW_GUIDES = [
     title: "Try Elsa locally",
     description:
       "Build and run the documented Workbench and Studio image pair, with the versions and setup steps in the guide.",
-    href: "https://v4.elsaworkflows.io/essentials/essentials/quickstart",
+    href: "https://v4.elsaworkflows.io/essentials/quickstart",
   },
   {
     title: "Your first workflow",
     description:
       "Create, publish, run, and inspect a small workflow using the documented local setup.",
-    href: "https://v4.elsaworkflows.io/essentials/essentials/first-workflow",
+    href: "https://v4.elsaworkflows.io/essentials/first-workflow",
   },
   {
     title: "Contribute documentation",
     description:
       "The public docs live in the Foundation repository and accept proposed changes through GitHub pull requests.",
-    href: "https://v4.elsaworkflows.io/contributing/contributing",
+    href: "https://v4.elsaworkflows.io/contributing",
   },
 ] as const;
 
