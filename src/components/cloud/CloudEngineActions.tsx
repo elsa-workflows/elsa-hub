@@ -24,6 +24,7 @@ import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_CONFIRM,
   CLOUD_DELETE_ENGINE,
+  CLOUD_DELETE_START_ERROR,
   CLOUD_OPEN_STUDIO,
   CLOUD_RESTART,
   CLOUD_RESTART_CONFIRM,
@@ -42,6 +43,13 @@ function resultError(result: unknown): string | null {
     return result.error;
   }
   return "That action could not be completed.";
+}
+
+function deleteStartError(result: unknown): string | null {
+  if (!result || typeof result !== "object" || !("ok" in result) || result.ok) {
+    return null;
+  }
+  return CLOUD_DELETE_START_ERROR;
 }
 
 export function CloudEngineActions({
@@ -134,7 +142,7 @@ export function CloudEngineActions({
     setConfirmation(null);
     setDeleteOpen(true);
     const result = await onConfirmDelete();
-    const error = resultError(result);
+    const error = deleteStartError(result);
     if (error) {
       setDeleteError(error);
       return;
@@ -148,7 +156,7 @@ export function CloudEngineActions({
     event.preventDefault();
     if (!confirmation || !canDelete) return;
     setDeleteError(null);
-    const error = resultError(await onDelete({
+    const error = deleteStartError(await onDelete({
       deleteConfirmationId: confirmation.id,
       idempotencyKey: crypto.randomUUID(),
       ifMatch,

@@ -4,6 +4,7 @@ import { CloudCreateEngineDialog } from "@/components/cloud/CloudCreateEngineDia
 import { CloudLinkOrganizationState } from "@/components/cloud/CloudLinkOrganizationState";
 import { OrgCloudMembershipGate } from "@/components/cloud/CloudRedirects";
 import { CloudEmptyState } from "@/components/cloud/CloudEmptyState";
+import { CloudDeletionHistory } from "@/components/cloud/CloudDeletionHistory";
 import { CloudEngineList } from "@/components/cloud/CloudEngineList";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
 import { CloudLoadingState } from "@/components/cloud/CloudLoadingState";
@@ -13,6 +14,7 @@ import { CloudSetupState } from "@/components/cloud/CloudSetupState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { useCloudBilling } from "@/hooks/useCloudBilling";
 import { useCloudCompatibility } from "@/hooks/useCloudCompatibility";
+import { useDeletionHistory } from "@/hooks/useDeletionHistory";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
@@ -50,6 +52,7 @@ export default function CloudHome() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngines();
+  const deletionRecords = useDeletionHistory(selectedWorkspace?.id);
   const compatibility = useCloudCompatibility();
   const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
   const billing = useCloudBilling();
@@ -152,6 +155,16 @@ export default function CloudHome() {
             )}
             {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}
             {showConsole && view.kind === "list" && <CloudEngineList engines={view.engines} />}
+            {showConsole && selectedWorkspace && (
+              <CloudDeletionHistory
+                records={deletionRecords}
+                liveInstances={(view.kind === "list" ? view.engines : []).map((engine) => ({
+                  id: engine.id,
+                  name: engine.name,
+                  slug: engine.slug,
+                }))}
+              />
+            )}
 
             {showConsole && (
               <p className="text-sm text-muted-foreground break-words">
