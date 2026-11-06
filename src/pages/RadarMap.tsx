@@ -11,6 +11,7 @@ import { RadarFilters } from "@/components/radar/RadarFilters";
 import { AddTeamDialog } from "@/components/radar/AddTeamDialog";
 import { type ElsaUsageLocation } from "@/data/elsaUsageLocations";
 import { useRadarLocations } from "@/hooks/useRadarLocations";
+import { isPublicRadarLocation, RADAR_PUBLIC_COPY } from "@/lib/radarLocations";
 
 export default function RadarMap() {
   const [region, setRegion] = useState<string | null>(null);
@@ -20,7 +21,11 @@ export default function RadarMap() {
   const [selected, setSelected] = useState<ElsaUsageLocation | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
-  const { data: locations = [] } = useRadarLocations();
+  const { data: queried = [] } = useRadarLocations();
+  const locations = useMemo(
+    () => queried.filter(isPublicRadarLocation),
+    [queried],
+  );
 
   const filtered = useMemo(() => {
     return locations.filter((l) => {
@@ -45,8 +50,8 @@ export default function RadarMap() {
     <Layout>
       <Seo
         path="/community/radar"
-        title="Global Radar — Elsa Workflows around the world"
-        description="A live radar of Elsa Workflows deployments across the world. Anonymous by default, opt-in showcases for teams that want to share what they're building."
+        title={RADAR_PUBLIC_COPY.seoTitle}
+        description={RADAR_PUBLIC_COPY.seoDescription}
       />
 
       {/* Theme-aware scoped wrapper */}
@@ -83,18 +88,13 @@ export default function RadarMap() {
           >
             <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-sky-700/90 dark:text-cyan-300/80 sm:text-[11px]">
               <Radar className="h-3.5 w-3.5" />
-              global radar · community telemetry
+              {RADAR_PUBLIC_COPY.eyebrow}
             </div>
             <h1 className="mt-3 text-3xl font-bold leading-tight tracking-tight sm:mt-4 sm:text-4xl md:text-5xl">
-              Elsa Workflows is running{" "}
-              <span className="bg-gradient-to-r from-sky-600 via-primary to-primary bg-clip-text text-transparent dark:from-cyan-200 dark:via-primary-foreground dark:to-primary">
-                all over the world.
-              </span>
+              {RADAR_PUBLIC_COPY.headline}
             </h1>
             <p className="mt-4 text-base leading-relaxed text-slate-600 dark:text-cyan-100/70 sm:mt-5 sm:text-lg">
-              A live, opt-in view of where teams are building durable workflow systems with Elsa.
-              Anonymous by default — public showcases for the teams that want to share what they're
-              building.
+              {RADAR_PUBLIC_COPY.lede}
             </p>
           </motion.header>
 
@@ -110,6 +110,11 @@ export default function RadarMap() {
               organizations={stats.organizations}
               countries={stats.countries}
             />
+            {locations.length === 0 && (
+              <p className="mt-4 text-sm text-slate-600 dark:text-cyan-100/70">
+                {RADAR_PUBLIC_COPY.empty}
+              </p>
+            )}
           </motion.div>
 
           {/* Globe + Filters */}

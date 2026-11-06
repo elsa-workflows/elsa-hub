@@ -30,6 +30,17 @@ if (typeof (globalThis as any).ResizeObserver === "undefined") {
   };
 }
 
+if (typeof (globalThis as any).IntersectionObserver === "undefined") {
+  (globalThis as any).IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  };
+}
+
 if (!(Element.prototype as any).hasPointerCapture) {
   (Element.prototype as any).hasPointerCapture = () => false;
   (Element.prototype as any).setPointerCapture = () => {};

@@ -16,8 +16,14 @@ export type ElsaUsageLocation = {
   usingSince?: number;
 };
 
-export const elsaUsageLocations: ElsaUsageLocation[] = [
-  // Public showcase
+/**
+ * Original seed / demo dataset shipped with the first radar migration.
+ * Do not render these as live opt-in deployments. The public radar maps
+ * approved `radar_locations` rows only; this list exists so we can recognize
+ * and exclude the planted placeholders.
+ */
+export const radarSampleLocations: ElsaUsageLocation[] = [
+  // Seeded sample showcases (not opt-in submissions)
   {
     id: "valence-works",
     latitude: 52.3676,
@@ -202,7 +208,7 @@ const curatedIndustries = [
 export const elsaIndustries = Array.from(
   new Set([
     ...curatedIndustries,
-    ...(elsaUsageLocations.map((l) => l.industry).filter(Boolean) as string[]),
+    ...(radarSampleLocations.map((l) => l.industry).filter(Boolean) as string[]),
   ]),
 ).sort((a, b) => (a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b)));
 
