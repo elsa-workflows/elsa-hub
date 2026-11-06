@@ -10,6 +10,7 @@
  */
 
 import { CLOUD_SUBPROCESSORS_PATH } from "./cloudDpa";
+import { CLOUD_PRIVACY_PATH } from "./cloudPrivacy";
 
 export const CLOUD_TERMS_PATH = "/legal/cloud-terms";
 export const CLOUD_TERMS_TITLE = "Elsa Cloud Early Access Terms";
@@ -17,8 +18,8 @@ export const CLOUD_TERMS_DESCRIPTION =
   "Early Access Terms for business customers using the Elsa Cloud Preview, operated by Valence Works.";
 export const CLOUD_TERMS_EFFECTIVE = "14 September 2026";
 export const CLOUD_TERMS_CONTACT_EMAIL = "hello@valence.works";
-/** CHANGED: the Hub has no privacy page yet; link the published Elsa Cloud notice. */
-export const CLOUD_PRIVACY_NOTICE_URL = "https://elsacloud.app/privacy";
+/** Link Cloud Terms to the public Privacy Notice on the Hub. */
+export const CLOUD_PRIVACY_NOTICE_URL = CLOUD_PRIVACY_PATH;
 
 export interface CloudTermsLink {
   label: string;

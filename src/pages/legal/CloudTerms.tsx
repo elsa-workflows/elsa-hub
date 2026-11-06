@@ -90,9 +90,9 @@ export default function CloudTerms() {
             <a href={`mailto:${CLOUD_TERMS_CONTACT_EMAIL}`} className="text-primary hover:underline">
               {CLOUD_TERMS_CONTACT_EMAIL}
             </a>
-            <a href={CLOUD_PRIVACY_NOTICE_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+            <Link to={CLOUD_PRIVACY_NOTICE_URL} className="text-primary hover:underline">
               Read the privacy notice
-            </a>
+            </Link>
           </div>
         </section>
       </div>
