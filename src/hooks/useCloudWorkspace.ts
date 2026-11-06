@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   CLOUD_LINK_ORG_ERROR,
   CLOUD_LINK_ORG_SUCCESS,
-  CLOUD_LINK_ORG_UPDATING,
+  CLOUD_LINK_ORG_UNREACHABLE,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_ORG_LINK_CONFLICT_CODE,
   cloudClient,
@@ -74,7 +74,7 @@ export function cloudSetupOutcome(
   if (pending) return { status: "pending" };
   if (!result) return { status: "idle" };
   if (result.ok) return { status: "success" };
-  if (isCloudUpdating(result)) return { status: "updating", message: CLOUD_LINK_ORG_UPDATING };
+  if (isCloudUpdating(result)) return { status: "updating", message: CLOUD_LINK_ORG_UNREACHABLE };
   if (isCloudBffError(result) && result.code === CLOUD_ORG_LINK_CONFLICT_CODE) {
     return { status: "error", message: CLOUD_ORG_LINK_CONFLICT };
   }

@@ -9,7 +9,7 @@ import {
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_HEADING,
   CLOUD_SETUP_MESSAGE,
-  CLOUD_UPDATING_HEADING,
+  CLOUD_UNREACHABLE_HEADING,
   CLOUD_UPDATING_MESSAGE,
 } from "@/lib/cloudClient";
 import { ElsaCloudOverviewCard } from "./ElsaCloudOverviewCard";
@@ -79,7 +79,7 @@ describe("ElsaCloudOverviewCard", () => {
   it("reuses the signed Control outage line when Control is down", () => {
     viewState.current = { kind: "updating", message: CLOUD_UPDATING_MESSAGE };
     renderCard();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_UPDATING_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByText(/billing|cancel/i)).not.toBeInTheDocument();
     expect(screen.queryByText(CLOUD_ERROR_HEADING)).not.toBeInTheDocument();
