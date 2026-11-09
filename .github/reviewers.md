@@ -2,11 +2,11 @@
 
 Live list of automated reviewers for this repository (elsa-hub), plus the merge gate. Agents read it before opening a PR.
 
-Last verified: 2026-10-03
+Copilot configuration rechecked: 2026-11-09. Other reviewer entries were last verified on 2026-10-03.
 
 | Reviewer | Status | How to request | Notes |
 | --- | --- | --- | --- |
-| GitHub Copilot code review (`copilot-pull-request-reviewer[bot]`) | not live | Add reviewer `@copilot`: `gh pr edit <n> --add-reviewer @copilot` (GitHub CLI 2.88 or later), once enabled for this repository | Not enabled for this repository: a request does not register here, and the ruleset "Code Quality Copilot review for default branch" is disabled. It works on other elsa-workflows repositories. It becomes live once Copilot review is enabled for elsa-hub and a review actually lands on an elsa-hub PR. A `@copilot review` comment does not trigger it. |
+| GitHub Copilot code review (`copilot-pull-request-reviewer[bot]`) | not live; active rule, review unverified | The current rule enables automatic review on pushes and draft PRs. Manual request: `gh pr edit <n> --add-reviewer @copilot` (GitHub CLI 2.88 or later). | On 2026-11-09, ruleset 19356142, "Code Quality Copilot review for default branch", was active with `review_on_push` and `review_draft_pull_requests` true. A manual request on #179 returned success, but no requested reviewer or review was present at inspection; the six most recently opened PRs also had no reviews. Treat the configuration as active, without claiming reviewer availability until an actual review lands. A `@copilot review` comment does not trigger it. |
 | Greptile (`greptile-apps[bot]`) | not live | Automatic when a PR is opened; comment `@greptileai` after every push (once enabled for this repository) | Not enabled for this repository: it has not reviewed or commented on any elsa-hub PR. |
 | CodeRabbit (`coderabbitai[bot]`) | not live | Automatic on PRs into `main`; comment `@coderabbitai review` for other base branches or a re-review after a push (once enabled for this repository) | Not enabled for this repository: the org app is installed for selected repositories only and has not reviewed any elsa-hub PR. |
 | Cursor Bugbot | not live | Top-level PR comment `cursor review` (once enabled) | Must first be enabled in the Cursor dashboard. `cursor[bot]` comments on PRs come from Cursor cloud agents, not Bugbot. |
@@ -25,6 +25,8 @@ Last verified: 2026-10-03
 - Update this file whenever a reviewer is added, removed, runs out of credits, or changes how it is requested.
 
 ## Evidence (elsa-hub PRs #1 to #11, checked 2026-10-03)
+
+The following observations are historical. The Copilot configuration recheck above supersedes the disabled-rule statement for current operations; it does not establish that reviews are being delivered.
 
 - GitHub Copilot code review: its only elsa-hub review is on #1 (2026-01-26), which the Copilot coding agent opened; Copilot was added as a reviewer at merge time and the review landed after the merge. On #10 (opened 2026-10-03) a request via `gh pr edit 10 --add-reviewer @copilot` and via the REST API returned success but never registered: no `review_requested` event, no requested reviewers, no review. The ruleset "Code Quality Copilot review for default branch" is disabled. The same account's request registered on another elsa-workflows repository (2026-10-03), so this is specific to elsa-hub.
 - Greptile: no reviews, comments or "Greptile Review" check on #1 to #11, including #9, #10 and #11 (opened 2026-10-03, after the org app was last updated on 2026-10-01).
