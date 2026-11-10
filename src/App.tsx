@@ -20,7 +20,7 @@ import {
   getLegacyElsaRuntimeRedirectTarget,
 } from "@/lib/elsaRuntime";
 import { PROFILE_ROUTE_TABLE } from "@/lib/authRedirect";
-import { LEGACY_TERMS_PATH } from "@/lib/legalRedirects";
+import { LEGACY_PRIVACY_PATH, LEGACY_TERMS_PATH } from "@/lib/legalRedirects";
 
 import { RouteFallback } from "@/components/RouteFallback";
 import { WeaverProvider, WeaverLauncher, WeaverHost } from "@/components/weaver";
@@ -219,6 +219,7 @@ const App = () => (
               <Route path="/legal/dpa" element={<CloudDpa />} />
               <Route path="/legal/subprocessors" element={<CloudSubprocessors />} />
               <Route path={LEGACY_TERMS_PATH} element={<Navigate to={ACADEMY_TERMS_INDEX_PATH} replace />} />
+              <Route path={LEGACY_PRIVACY_PATH} element={<Navigate to={CLOUD_PRIVACY_PATH} replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/signup/confirm-email" element={<ConfirmEmail />} />
