@@ -101,6 +101,21 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsaworkflows.io/academy/fundamentals-core</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/academy/fundamentals-complete</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/academy/advanced-patterns</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsaworkflows.io/resources</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
