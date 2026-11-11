@@ -58,7 +58,7 @@ vi.mock("react-router-dom", async () => {
 });
 
 import { FunctionsHttpError } from "@supabase/supabase-js";
-import { CLOUD_BILLING_NEEDS_LINK, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
+import { CLOUD_BILLING_NEEDS_LINK, CLOUD_BILLING_NOT_AVAILABLE, CLOUD_ERROR_RETRY } from "@/lib/cloudClient";
 import CloudBilling from "./CloudBilling";
 
 function httpFailure(status: number, body: Record<string, unknown> | string) {
@@ -177,11 +177,12 @@ describe("Cloud billing pages", () => {
       "href",
       "/dashboard/org/acme/cloud",
     );
+    expect(await screen.findByText(CLOUD_BILLING_NOT_AVAILABLE)).toBeInTheDocument();
     expect(screen.queryByText(/sandbox-only/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
   });
 
-  it("does not invent billing-unavailable copy for a linked org on the gate 503", async () => {
+  it("shows the signed Hub billing-gate sentence for a linked org on the gate 503", async () => {
     invoke.mockImplementation(async (name: string) =>
       name === "cloud-billing"
         ? httpFailure(503, { error: "Cloud billing is not configured" })
@@ -190,7 +191,10 @@ describe("Cloud billing pages", () => {
 
     renderAt("/dashboard/org/acme/cloud/billing");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Cloud billing" })).toBeInTheDocument();
+    expect(await screen.findByText(CLOUD_BILLING_NOT_AVAILABLE)).toBeInTheDocument();
+    expect(screen.queryByText(
+      "Elsa Cloud billing isn't available yet. We'll let you know when you can subscribe.",
+    )).not.toBeInTheDocument();
     expect(screen.queryByText(CLOUD_BILLING_NEEDS_LINK)).not.toBeInTheDocument();
     expect(screen.queryByText(/sandbox-only|not configured/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_ERROR_RETRY })).not.toBeInTheDocument();
