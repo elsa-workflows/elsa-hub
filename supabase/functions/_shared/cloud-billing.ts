@@ -46,8 +46,8 @@ export const CLOUD_ORG_NOT_LINKED_CODE = "cloud_org_not_linked";
 export const CLOUD_BILLING_UNAVAILABLE_CODE = "billing_unavailable";
 export const CLOUD_ORGANIZATION_REQUIRED = "Cloud billing requires an organization";
 export const CLOUD_LINK_READ_FAILED =
-  "We couldn't check this organization's Elsa Cloud link. Please try again later.";
-export const CLOUD_CHECKOUT_FAILED = "We couldn't start Cloud checkout. Please try again later.";
+  "We couldn't check this organization's Elsa Cloud link. Refresh this page to check again.";
+export const CLOUD_CHECKOUT_FAILED = "We couldn't start Elsa Cloud checkout. Please try again.";
 /** Plan label until Control reports a more specific Hosted product name. */
 export const CLOUD_PLAN_NAME = "Elsa Cloud";
 

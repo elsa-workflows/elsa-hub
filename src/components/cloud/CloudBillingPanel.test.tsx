@@ -112,7 +112,7 @@ describe("CloudBillingPanel", () => {
       onRetry,
     });
 
-    expect(CLOUD_BILLING_UNAVAILABLE).toBe("We couldn't load billing. Please try again.");
+    expect(CLOUD_BILLING_UNAVAILABLE).toBe("We couldn't load billing. Refresh this page to check again.");
     expect(screen.getByText(CLOUD_BILLING_UNAVAILABLE)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: CLOUD_ERROR_RETRY })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: CLOUD_ERROR_RETRY }));

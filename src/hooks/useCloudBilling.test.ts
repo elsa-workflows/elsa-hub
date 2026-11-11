@@ -227,7 +227,7 @@ describe("useCloudBilling", () => {
   it("shows the server's message when the portal fails", async () => {
     invoke.mockImplementation(async (name: string) =>
       name === "customer-portal"
-        ? httpFailure(404, { error: "No Cloud billing account yet. Start a Cloud subscription first." })
+        ? httpFailure(404, { error: "This organization has no Elsa Cloud subscription. Start one to manage billing." })
         : { data: emptySnapshot, error: null },
     );
 
@@ -235,7 +235,7 @@ describe("useCloudBilling", () => {
     result.current.openPortal.mutate();
 
     await waitFor(() =>
-      expect(toastError).toHaveBeenCalledWith("No Cloud billing account yet. Start a Cloud subscription first."),
+      expect(toastError).toHaveBeenCalledWith("This organization has no Elsa Cloud subscription. Start one to manage billing."),
     );
   });
 

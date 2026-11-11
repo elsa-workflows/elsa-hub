@@ -78,7 +78,7 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
 
   if (!customerId) {
     return jsonResponse(404, {
-      error: "No Cloud billing account yet. Start a Cloud subscription first.",
+      error: "This organization has no Elsa Cloud subscription. Start one to manage billing.",
     });
   }
 
@@ -101,7 +101,7 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
     })).url;
   } catch (error) {
     console.error("Cloud billing portal session failed:", error);
-    return jsonResponse(500, { error: "We couldn't open the billing portal. Please try again later." });
+    return jsonResponse(500, { error: "We couldn't open the billing portal. Please try again." });
   }
 
   return jsonResponse(200, { url: portalUrl });

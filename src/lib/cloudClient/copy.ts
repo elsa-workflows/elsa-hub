@@ -17,19 +17,19 @@ export const CLOUD_LINK_ORG_ACTION = "Link this organization";
 export const CLOUD_LINK_ORG_MESSAGE =
   "Connect this Hub organization to Elsa Cloud so engines and checkout can use it.";
 export const CLOUD_LINK_ORG_NOT_CONNECTED =
-  "Elsa Cloud isn't connected to this Hub organization yet.";
+  "This Hub organization isn't connected to Elsa Cloud.";
 export const CLOUD_LINK_ORG_UNREACHABLE =
   "Elsa Cloud can't be reached, so linking isn't available. Refresh this page to check again.";
 export const CLOUD_LINK_ORG_ERROR = "Could not link this organization to Elsa Cloud.";
 export const CLOUD_LINK_ORG_SUCCESS = "This organization is now linked to Elsa Cloud.";
 export const CLOUD_BILLING_NEEDS_LINK = "Link this organization first";
-export const CLOUD_BILLING_UNAVAILABLE = "We couldn't load billing. Please try again.";
+export const CLOUD_BILLING_UNAVAILABLE = "We couldn't load billing. Refresh this page to check again.";
 export const CLOUD_BILLING_NOT_CONNECTED =
   "This organization isn't connected to Elsa Cloud, so checkout isn't available.";
 export const CLOUD_BILLING_NOT_AVAILABLE =
   "Elsa Cloud billing isn't available on the Hub.";
 export const CLOUD_BILLING_NO_CUSTOMER =
-  "Hub has no billing customer for this organization, so the billing portal cannot be opened.";
+  "This organization has no billing account on the Hub, so the billing portal isn't available.";
 export const CLOUD_PREVIEW_LIMITS_HEADING = "Preview limits";
 export const CLOUD_PREVIEW_ONE_USER =
   "During Preview, each organization has one Elsa Cloud user.";

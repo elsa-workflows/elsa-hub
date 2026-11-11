@@ -51,15 +51,18 @@ function toManagedProgress(progress: CloudProvisioningProgress): ManagedProvisio
   };
 }
 
+/**
+ * Control's currentStage is the single source for the highlighted step. The
+ * phase and attempted-step mapping is only the fallback for a currentStage
+ * that is null or not a known stage code.
+ */
 function currentStageCode(progress: CloudProvisioningProgress): ManagedProvisioningStageCode | null {
-  const mapped = mapControlPhaseToStage(progress.phase, progress.attemptedStep);
-  if (mapped) return mapped;
   if (progress.currentStage && MANAGED_PROVISIONING_STAGE_CODES.includes(
     progress.currentStage as ManagedProvisioningStageCode,
   )) {
     return progress.currentStage as ManagedProvisioningStageCode;
   }
-  return null;
+  return mapControlPhaseToStage(progress.phase, progress.attemptedStep);
 }
 
 export function CloudProvisioningTimeline({

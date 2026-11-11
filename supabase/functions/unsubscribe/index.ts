@@ -161,20 +161,20 @@ function generateConfirmationPage(success: boolean, type: UnsubscribeType, error
 </head>
 <body>
   <div class="container">
-    <img src="https://elsa-hub.lovable.app/elsa-logo.png" alt="Elsa Workflows" class="logo">
+    <img src="https://www.elsaworkflows.io/elsa-logo.png" alt="Elsa Workflows" class="logo">
     
     ${success ? `
     <div class="icon success">✓</div>
     <h1>You've been unsubscribed</h1>
     <p>You will no longer receive ${typeLabel} from Elsa Workflows. If this was a mistake, you can update your preferences at any time.</p>
-    <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" class="btn btn-primary">
+    <a href="https://www.elsaworkflows.io/dashboard/settings/notifications" class="btn btn-primary">
       Manage Preferences
     </a>
     ` : `
     <div class="icon error">✕</div>
     <h1>Something went wrong</h1>
     <p>${error || "This unsubscribe link is invalid or has already been used. Please try managing your preferences directly."}</p>
-    <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" class="btn btn-primary">
+    <a href="https://www.elsaworkflows.io/dashboard/settings/notifications" class="btn btn-primary">
       Manage Preferences
     </a>
     `}
