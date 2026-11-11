@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
               
               <!-- Footer links -->
               <p style="margin: 0 0 24px 0; font-size: 14px;">
-                <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none; font-weight: 500;">Manage preferences</a>
+                <a href="https://www.elsaworkflows.io/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none; font-weight: 500;">Manage preferences</a>
                 <span style="color: #d4d4d8; padding: 0 8px;">·</span>
                 <a href="{{{unsubscribe_url}}}" style="color: #6366f1; text-decoration: none; font-weight: 500;">Unsubscribe</a>
               </p>

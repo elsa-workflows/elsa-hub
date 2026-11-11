@@ -16,7 +16,7 @@ export interface EmailWithHeaders {
   headers?: Record<string, string>;
 }
 
-const BASE_URL = "https://elsa-hub.lovable.app";
+const BASE_URL = "https://www.elsaworkflows.io";
 const LOGO_URL = `${BASE_URL}/elsa-logo.png`;
 
 export function buildEmailTemplate(options: EmailTemplateOptions): EmailWithHeaders {

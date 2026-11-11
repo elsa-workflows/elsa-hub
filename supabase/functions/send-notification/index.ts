@@ -47,11 +47,11 @@ async function sha256(message: string): Promise<string> {
 }
 
 function getProviderDashboardUrl(): string {
-  return "https://elsa-hub.lovable.app/dashboard";
+  return "https://www.elsaworkflows.io/dashboard";
 }
 
 function getOrgCreditsUrl(slug: string): string {
-  return `https://elsa-hub.lovable.app/dashboard/org/${slug}/credits`;
+  return `https://www.elsaworkflows.io/dashboard/org/${slug}/credits`;
 }
 
 function generateEmailContent(

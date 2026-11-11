@@ -242,7 +242,7 @@ serve(async (req) => {
         entries,
       );
 
-      const ctaUrl = `https://elsa-hub.lovable.app/dashboard/org/${org.slug ?? org.id}/workspaces`;
+      const ctaUrl = `https://www.elsaworkflows.io/dashboard/org/${org.slug ?? org.id}/workspaces`;
 
       for (const r of recipients) {
         try {

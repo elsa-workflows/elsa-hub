@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
           <!-- Logo Header -->
           <tr>
             <td align="center" style="padding-bottom: 24px;">
-              <img src="https://elsa-hub.lovable.app/elsa-logo.png" 
+              <img src="https://www.elsaworkflows.io/elsa-logo.png" 
                    alt="Elsa Workflows" 
                    width="48" height="48" 
                    style="display: block; border-radius: 8px;">
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
                 You're receiving this email because you subscribed to Elsa Workflows updates.
               </p>
               <p style="margin: 0; font-size: 13px;">
-                <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none;">Manage preferences</a>
+                <a href="https://www.elsaworkflows.io/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none;">Manage preferences</a>
                 &nbsp;·&nbsp;
                 <a href="{{{unsubscribe_url}}}" style="color: #6366f1; text-decoration: none;">Unsubscribe</a>
               </p>
