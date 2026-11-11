@@ -8,6 +8,7 @@ import {
 } from "../_shared/stripe-customer.ts";
 import {
   assertStripeTestMode,
+  cloudBillingUnavailablePayload,
   CLOUD_ORGANIZATION_REQUIRED,
   cloudOrganizationIdFromBody,
   cloudPortalReturnPath,
@@ -45,7 +46,7 @@ export async function handleCloudPortal(ctx: CloudPortalContext): Promise<Respon
   try {
     assertStripeTestMode(env.get("STRIPE_SECRET_KEY"), env);
   } catch (error) {
-    return jsonResponse(503, { error: (error as Error).message });
+    return jsonResponse(503, cloudBillingUnavailablePayload(error as Error));
   }
 
   const organizationId = cloudOrganizationIdFromBody(body);

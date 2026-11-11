@@ -2,7 +2,9 @@ import { assertEquals, assertThrows } from "https://deno.land/std@0.224.0/assert
 import {
   assertStripeTestMode,
   CLOUD_BILLING_LIVE_ENABLED_KEY,
+  CLOUD_BILLING_UNAVAILABLE_CODE,
   buildCloudCheckoutMetadata,
+  cloudBillingUnavailablePayload,
   isCloudBillingLiveEnabled,
   classifyStripeEvent,
   cloudCheckoutCancelPath,
@@ -14,6 +16,7 @@ import {
   isCloudStripeEvent,
   normalizeControlEntitlement,
   orgHasBlockingCloudSubscription,
+  readCloudPriceId,
   readControlEntitlement,
 } from "./cloud-billing.ts";
 import type { ControlCall, ControlFetch } from "./cloud-control.ts";
@@ -98,6 +101,19 @@ Deno.test("an unrecognised Stripe key is not configured and does not echo the va
   for (const missing of [undefined, "", "whsec_cloud"]) {
     assertThrows(() => assertStripeTestMode(missing), Error, "not configured");
   }
+});
+
+Deno.test("the Cloud billing gate payload is 503 billing_unavailable and never echoes the key", () => {
+  const leaked = "sk_live_MUST_NOT_LEAK";
+  const payload = cloudBillingUnavailablePayload(new Error("Cloud billing is sandbox-only"));
+  assertEquals(payload, { error: "Cloud billing is sandbox-only", code: CLOUD_BILLING_UNAVAILABLE_CODE });
+  assertEquals(JSON.stringify(payload).includes(leaked), false);
+});
+
+Deno.test("STRIPE_CLOUD_PRICE_ID is the Cloud price for whichever mode the key is in", () => {
+  assertEquals(readCloudPriceId({ get: (key) => key === "STRIPE_CLOUD_PRICE_ID" ? "price_from_primary" : undefined }), "price_from_primary");
+  assertEquals(readCloudPriceId({ get: (key) => key === "CLOUD_STRIPE_PRICE_ID" ? "price_from_fallback" : undefined }), "price_from_fallback");
+  assertThrows(() => readCloudPriceId({ get: () => undefined }), Error, "not configured");
 });
 
 Deno.test("Cloud events are Cloud; Academy events are not", () => {
@@ -214,6 +230,9 @@ Deno.test("Cloud checkout, portal and status use #57's helper and never list cus
   assertEquals(checkout.includes("getOrCreateStripeCustomer("), true);
   assertEquals(portal.includes("getStoredStripeCustomerId("), true);
   assertEquals(status.includes("getStoredStripeCustomerId("), true);
+  for (const source of [checkout, portal, status]) {
+    assertEquals(source.includes("cloudBillingUnavailablePayload("), true);
+  }
   assertEquals(portal.includes("getOrCreateStripeCustomer"), false);
   assertEquals(status.includes("getOrCreateStripeCustomer"), false);
   assertEquals(status.includes("readControlEntitlement("), true);
