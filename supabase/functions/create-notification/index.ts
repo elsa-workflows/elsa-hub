@@ -35,7 +35,7 @@ function getEmailTemplate(
   payload: Record<string, unknown>,
   actionUrl?: string
 ): { subject: string; html: string } {
-  const baseUrl = "https://elsa-hub.lovable.app";
+  const baseUrl = "https://www.elsaworkflows.io";
   const fullActionUrl = actionUrl?.startsWith("http") ? actionUrl : `${baseUrl}${actionUrl}`;
 
   const buttonHtml = actionUrl

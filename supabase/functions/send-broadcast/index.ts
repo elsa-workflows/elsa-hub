@@ -41,7 +41,7 @@ function buildEmailHtml(subject: string, preheader: string | undefined, title: s
               <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align: middle; padding-right: 12px;">
-                    <img src="https://elsa-hub.lovable.app/elsa-logo.png" alt="Elsa" width="44" height="44" style="display: block; border-radius: 10px;" />
+                    <img src="https://www.elsaworkflows.io/elsa-logo.png" alt="Elsa" width="44" height="44" style="display: block; border-radius: 10px;" />
                   </td>
                   <td style="vertical-align: middle;">
                     <span style="font-size: 24px; font-weight: 600; letter-spacing: -0.5px;">
@@ -99,7 +99,7 @@ function buildEmailHtml(subject: string, preheader: string | undefined, title: s
               
               <!-- Footer links -->
               <p style="margin: 0 0 24px 0; font-size: 14px;">
-                <a href="https://elsa-hub.lovable.app/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none; font-weight: 500;">Manage preferences</a>
+                <a href="https://www.elsaworkflows.io/dashboard/settings/notifications" style="color: #6366f1; text-decoration: none; font-weight: 500;">Manage preferences</a>
                 <span style="color: #d4d4d8; padding: 0 8px;">·</span>
                 <a href="{$unsubscribe}" style="color: #6366f1; text-decoration: none; font-weight: 500;">Unsubscribe</a>
               </p>

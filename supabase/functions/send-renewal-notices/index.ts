@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
-const APP_URL = "https://elsa-hub.lovable.app";
+const APP_URL = "https://www.elsaworkflows.io";
 
 interface SubscriptionRow {
   id: string;
