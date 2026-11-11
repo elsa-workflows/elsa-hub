@@ -11,6 +11,11 @@ for (
     ["the site's own origin", "https://hub.example", "https://hub.example"],
     ["the canonical Hub host", "https://www.elsaworkflows.io", "https://www.elsaworkflows.io"],
     ["the Lovable Hub host", "https://elsa-hub.lovable.app", "https://elsa-hub.lovable.app"],
+    ["the apex host", "https://elsaworkflows.io", "https://elsaworkflows.io"],
+    ["the apex host over http", "http://elsaworkflows.io", "https://hub.example"],
+    ["a Lovable preview host", "https://id-preview--42142296-d1c7-49c5-aeb5-ced6054f340b.lovable.app", "https://hub.example"],
+    ["a subdomain of the canonical host", "https://evil.www.elsaworkflows.io", "https://hub.example"],
+    ["the canonical host with a different port", "https://www.elsaworkflows.io:8443", "https://hub.example"],
     ["another Lovable host", "https://attacker.lovable.app", "https://hub.example"],
     ["http localhost on any port", "http://localhost:8080", "http://localhost:8080"],
     ["https localhost", "https://localhost:5173", "https://localhost:5173"],
@@ -28,6 +33,11 @@ for (
     assertEquals(trustedSiteOrigin(request(origin), env("https://hub.example/")), expected);
   });
 }
+
+Deno.test("the default site is the canonical Hub URL, not the Lovable host", () => {
+  assertEquals(DEFAULT_SITE_URL, "https://www.elsaworkflows.io");
+  assertEquals(HUB_ORIGINS, ["https://www.elsaworkflows.io", "https://elsaworkflows.io", "https://elsa-hub.lovable.app"]);
+});
 
 Deno.test("without SITE_URL the site is the Hub's production URL", () => {
   assertEquals(trustedSiteOrigin(request("https://attacker.example"), env()), DEFAULT_SITE_URL);

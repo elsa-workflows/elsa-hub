@@ -7,6 +7,7 @@ import {
   type StripeCustomerStore,
 } from "../_shared/stripe-customer.ts";
 import { isCloudRequest } from "../_shared/cloud-billing.ts";
+import { trustedSiteOrigin } from "../_shared/site-origin.ts";
 import { handleCloudPortal } from "./cloud.ts";
 
 const corsHeaders = {
@@ -99,7 +100,8 @@ serve(async (req) => {
     }
 
     // Create customer portal session
-    const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
+    // Only a Hub host may be the return URL, whatever Origin the caller sends (elsa-hub#192).
+    const origin = trustedSiteOrigin(req);
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/org/${organizationId}`,

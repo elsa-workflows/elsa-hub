@@ -808,22 +808,48 @@ Deno.test("HTTP handler requires a signed-in user", async () => {
   assertEquals(res.status, 401);
 });
 
-Deno.test("HTTP handler returns to www.elsaworkflows.io when the request has no Origin header", async () => {
+const NO_SITE_URL_ENV = { get: (_key: string) => undefined };
+
+async function academyReturnUrls(origin: string | undefined, env = NO_SITE_URL_ENV) {
   const stripe = createStripeMock();
+  const headers: Record<string, string> = { Authorization: "Bearer test-token", "Content-Type": "application/json" };
+  if (origin !== undefined) headers.origin = origin;
   const req = new Request("https://example/academy-checkout", {
     method: "POST",
-    headers: { Authorization: "Bearer test-token", "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ courseId: SOLO_COURSE.id }),
   });
   const res = await handleAcademyCheckoutRequest(req, async () => ({
     userClient: createUserClient(false),
     serviceClient: createServiceClient(),
     stripe: stripe.stripe,
-  }));
+  }), env);
   const { status } = await parseJson(res);
   assertEquals(status, 200);
-  assertEquals(stripe.sessions[0].success_url, "https://www.elsaworkflows.io/academy/published-course?payment=success");
-  assertEquals(stripe.sessions[0].cancel_url, "https://www.elsaworkflows.io/academy/published-course");
+  return { success: stripe.sessions[0].success_url, cancel: stripe.sessions[0].cancel_url };
+}
+
+for (
+  const [name, origin, host] of [
+    ["has no Origin header", undefined, "https://www.elsaworkflows.io"],
+    ["has the canonical Origin", "https://www.elsaworkflows.io", "https://www.elsaworkflows.io"],
+    ["has the apex Origin", "https://elsaworkflows.io", "https://elsaworkflows.io"],
+    ["has the Lovable Origin", "https://elsa-hub.lovable.app", "https://elsa-hub.lovable.app"],
+    ["has a foreign Origin", "https://attacker.example", "https://www.elsaworkflows.io"],
+    ["has a lookalike Origin", "https://www.elsaworkflows.io.attacker.example", "https://www.elsaworkflows.io"],
+  ] as const
+) {
+  Deno.test(`Academy checkout return URLs: a request that ${name} returns to ${host}`, async () => {
+    const { success, cancel } = await academyReturnUrls(origin);
+    assertEquals(success, `${host}/academy/published-course?payment=success`);
+    assertEquals(cancel, `${host}/academy/published-course`);
+  });
+}
+
+Deno.test("Academy checkout return URLs: a foreign Origin gets SITE_URL when it is set", async () => {
+  const env = { get: (key: string) => (key === "SITE_URL" ? "https://hub.example" : undefined) };
+  const { success } = await academyReturnUrls("https://attacker.example", env);
+  assertEquals(success, "https://hub.example/academy/published-course?payment=success");
 });
 
 Deno.test("HTTP handler creates a Solo session for a signed-in user", async () => {
