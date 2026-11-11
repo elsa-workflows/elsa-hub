@@ -102,9 +102,13 @@ describe("cloud-bff action contract", () => {
     };
     expect(isCloudUpdating(updating)).toBe(true);
     expect(isCloudBffError(updating)).toBe(false);
-    expect(updating.error).toBe(
-      "Elsa Cloud is being updated. Managed engine actions are temporarily paused.",
+    expect(CLOUD_UPDATING_MESSAGE).toBe(
+      "Elsa Cloud can't be reached, so engine actions aren't available. Refresh this page to check again.",
     );
+    expect(updating.error).toBe(CLOUD_UPDATING_MESSAGE);
+    expect(CLOUD_UPDATING_MESSAGE).not.toMatch(/yet/i);
+    expect(CLOUD_UPDATING_MESSAGE).not.toMatch(/try again later/i);
+    expect(CLOUD_UPDATING_MESSAGE).not.toMatch(/temporarily/i);
   });
 
   it("distinguishes client errors from the updating state", () => {

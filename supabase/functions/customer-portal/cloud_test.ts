@@ -1,5 +1,6 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudPortal } from "./cloud.ts";
+import { CLOUD_BILLING_UNAVAILABLE_CODE } from "../_shared/cloud-billing.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import {
   ADMIN,
@@ -99,6 +100,7 @@ Deno.test("a live Stripe key is refused", async () => {
 
   assertEquals(response.status, 503);
   assertEquals(payload.error, "Cloud billing is sandbox-only");
+  assertEquals(payload.code, CLOUD_BILLING_UNAVAILABLE_CODE);
   assertEquals(JSON.stringify(payload).includes(leaked), false);
   assertEquals(calls.portals.length, 0);
 });
@@ -113,6 +115,20 @@ Deno.test("a live Stripe key is allowed when the live flag is exactly true", asy
   assertEquals(response.status, 200);
   assertEquals(JSON.stringify(payload).includes("sk_live_cloud"), false);
   assertEquals(calls.portals[0]?.customer, "cus_org_a_live");
+});
+
+Deno.test("a live Stripe key stays refused when the live flag is 1 or yes", async () => {
+  for (const flag of ["1", "yes"]) {
+    const { run, calls } = portal({
+      env: { STRIPE_SECRET_KEY: "sk_live_MUST_NOT_LEAK", CLOUD_BILLING_LIVE_ENABLED: flag },
+    });
+    const { response, payload } = await run();
+    assertEquals(response.status, 503);
+    assertEquals(payload.error, "Cloud billing is sandbox-only");
+    assertEquals(payload.code, CLOUD_BILLING_UNAVAILABLE_CODE);
+    assertEquals(JSON.stringify(payload).includes("sk_live_MUST_NOT_LEAK"), false);
+    assertEquals(calls.portals.length, 0);
+  }
 });
 
 Deno.test("a stored-customer read error is the helper's generic 500, not 404", async () => {

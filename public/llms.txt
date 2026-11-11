@@ -5,6 +5,8 @@
 ## Pages
 
 - [Home](/): Overview of Elsa Workflows and the Elsa+ ecosystem.
+- [Features](/features): What Elsa 3 can author, run, and operate.
+- [Elsa 4 preview](/elsa-4): Next-generation Elsa Workflows preview, with docs and source.
 - [Get started](/get-started): Setup guides and onboarding paths for Elsa.
 - [Get started with Elsa Server](/get-started/elsa-server): Run a standalone Elsa Server.
 - [Get started with Elsa Studio](/get-started/elsa-studio): Run the Elsa Studio designer UI.
@@ -15,8 +17,13 @@
 - [Elsa Runtime by Valence Works](/elsa-plus/elsa-runtime): Ready-to-deploy Elsa Server and Studio Docker images, with public Community images and subscription-backed paid tiers.
 - [Cloud services](/elsa-plus/cloud-services): Managed Elsa hosting providers.
 - [Training](/elsa-plus/training): Elsa training programs.
+- [Academy](/academy): Self-paced Elsa 3 courses, preview lessons, and the Solo Bundle.
 - [Resources](/resources): Documentation, samples, community content, and governance links.
 - [Community content](/resources/community-content): Articles, videos, and demos from the Elsa community.
+- [Blog](/blog): Release notes and deep dives from the Elsa team.
+- [Roadmap](/roadmap): What the Elsa team is working on next.
+- [Radar](/community/radar): Community map of approved Elsa deployments.
+- [Terms](/legal/terms): Terms of sale for Elsa+ products, including Academy and Cloud.
 
 ## Optional
 

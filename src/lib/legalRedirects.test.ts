@@ -14,8 +14,12 @@ describe("legacy legal redirects", () => {
     expect(getLegacyLegalRedirectTarget("/terms")).toBe("/legal/terms");
   });
 
-  it("does not invent a privacy or DPA destination", () => {
-    expect(getLegacyLegalRedirectTarget(LEGACY_PRIVACY_PATH)).toBeNull();
+  it("sends /privacy to the Cloud Privacy Notice", () => {
+    expect(LEGACY_PRIVACY_PATH).toBe("/privacy");
+    expect(getLegacyLegalRedirectTarget(LEGACY_PRIVACY_PATH)).toBe("/legal/privacy");
+  });
+
+  it("does not invent a DPA destination", () => {
     expect(getLegacyLegalRedirectTarget(LEGACY_DPA_PATH)).toBeNull();
     expect(getLegacyLegalRedirectTarget("/legal/privacy")).toBeNull();
   });

@@ -1,53 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { elsaUsageLocations, type ElsaUsageLocation } from "@/data/elsaUsageLocations";
+import {
+  RADAR_PUBLIC_STATUS,
+  toPublicRadarLocations,
+  type RadarLocationRow,
+} from "@/lib/radarLocations";
 
-export type RadarLocationRow = {
-  id: string;
-  latitude: number | string;
-  longitude: number | string;
-  city: string | null;
-  country: string;
-  region: "Europe" | "North America" | "South America" | "Asia" | "Africa" | "Oceania";
-  anonymous: boolean;
-  weight: number | string;
-  company_name: string | null;
-  company_logo_url: string | null;
-  website_url: string | null;
-  industry: string | null;
-  description: string | null;
-  using_since: number | null;
-  sort_order: number;
-  status: "pending" | "approved" | "rejected";
-  submitted_contact_email: string | null;
-  submitted_by: string | null;
-  submitted_at: string | null;
-  reviewed_at: string | null;
-  reviewed_by: string | null;
-  rejection_reason: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-
-export function rowToLocation(r: RadarLocationRow): ElsaUsageLocation {
-  return {
-    id: r.id,
-    latitude: Number(r.latitude),
-    longitude: Number(r.longitude),
-    city: r.city ?? undefined,
-    country: r.country,
-    region: r.region,
-    anonymous: r.anonymous,
-    weight: r.weight != null ? Number(r.weight) : undefined,
-    companyName: r.company_name ?? undefined,
-    companyLogoUrl: r.company_logo_url ?? undefined,
-    websiteUrl: r.website_url ?? undefined,
-    industry: r.industry ?? undefined,
-    description: r.description ?? undefined,
-    usingSince: r.using_since ?? undefined,
-  };
-}
+export type { RadarLocationRow } from "@/lib/radarLocations";
+export { rowToLocation } from "@/lib/radarLocations";
 
 export const RADAR_LOCATIONS_KEY = ["radar-locations"] as const;
 
@@ -58,19 +18,19 @@ export function useRadarLocations() {
       const { data, error } = await supabase
         .from("radar_locations")
         .select("*")
+        .eq("status", RADAR_PUBLIC_STATUS)
         .order("sort_order", { ascending: true })
         .order("country", { ascending: true })
         .limit(2000);
 
       if (error) {
-        console.warn("Falling back to curated radar locations", error);
-        return elsaUsageLocations;
+        console.warn("Radar locations query failed; showing no public entries", error);
+        return [];
       }
 
-      const mapped = (data as unknown as RadarLocationRow[]).map(rowToLocation);
-      return mapped.length > 0 ? mapped : elsaUsageLocations;
+      return toPublicRadarLocations((data ?? []) as unknown as RadarLocationRow[]);
     },
-    placeholderData: (previousData) => previousData ?? elsaUsageLocations,
+    placeholderData: (previousData) => previousData ?? [],
     staleTime: 60_000,
   });
 }

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { CloudEngineSummary } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
-import { cloudEngineStatusVariant } from "./engineStatus";
+import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "./engineStatus";
 
 export function CloudEngineList({ engines }: { engines: CloudEngineSummary[] }) {
   const { engine: enginePath } = useCloudConsolePaths();
@@ -24,7 +24,9 @@ export function CloudEngineList({ engines }: { engines: CloudEngineSummary[] }) 
                     Release {engine.release ?? "unknown"}
                   </p>
                 </div>
-                <Badge variant={cloudEngineStatusVariant(engine.status)}>{engine.status}</Badge>
+                <Badge variant={cloudEngineStatusVariant(engine.status)}>
+                  {cloudEngineStatusLabel(engine.status)}
+                </Badge>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
               </CardContent>
             </Card>

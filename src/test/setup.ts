@@ -1,4 +1,12 @@
+import { randomUUID } from "node:crypto";
 import "@testing-library/jest-dom";
+
+if (typeof window.crypto.randomUUID !== "function") {
+  Object.defineProperty(window.crypto, "randomUUID", {
+    configurable: true,
+    value: randomUUID,
+  });
+}
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -19,6 +27,17 @@ if (typeof (globalThis as any).ResizeObserver === "undefined") {
     observe() {}
     unobserve() {}
     disconnect() {}
+  };
+}
+
+if (typeof (globalThis as any).IntersectionObserver === "undefined") {
+  (globalThis as any).IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
   };
 }
 

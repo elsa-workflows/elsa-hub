@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudCheckout } from "./cloud.ts";
-import { CLOUD_CHECKOUT_FAILED } from "../_shared/cloud-billing.ts";
+import { CLOUD_BILLING_UNAVAILABLE_CODE, CLOUD_CHECKOUT_FAILED } from "../_shared/cloud-billing.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import { TAX_LOCATION_INVALID_CODE, TAX_LOCATION_INVALID_MESSAGE } from "../_shared/stripe-customer.ts";
 import {
@@ -171,6 +171,7 @@ Deno.test("a live Stripe key is refused before any read", async () => {
 
   assertEquals(response.status, 503);
   assertEquals(payload.error, "Cloud billing is sandbox-only");
+  assertEquals(payload.code, CLOUD_BILLING_UNAVAILABLE_CODE);
   assertEquals(JSON.stringify(payload).includes(leaked), false);
   assertEquals(serviceClient.reads, []);
 });
@@ -195,6 +196,7 @@ Deno.test("a live Stripe key stays refused when the live flag is 1 or yes", asyn
     const { response, payload } = await run();
     assertEquals(response.status, 503);
     assertEquals(payload.error, "Cloud billing is sandbox-only");
+    assertEquals(payload.code, CLOUD_BILLING_UNAVAILABLE_CODE);
     assertEquals(JSON.stringify(payload).includes("sk_live_MUST_NOT_LEAK"), false);
     assertEquals(serviceClient.reads, []);
   }

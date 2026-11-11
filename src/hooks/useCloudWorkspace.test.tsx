@@ -17,7 +17,7 @@ import {
 } from "@/lib/cloudClient/setupMarker";
 import {
   CLOUD_LINK_ORG_ERROR,
-  CLOUD_LINK_ORG_UPDATING,
+  CLOUD_LINK_ORG_UNREACHABLE,
 } from "@/lib/cloudClient";
 import {
   cloudSetupOutcome,
@@ -70,7 +70,7 @@ describe("cloudSetupOutcome", () => {
         },
         false,
       ),
-    ).toEqual({ status: "updating", message: CLOUD_LINK_ORG_UPDATING });
+    ).toEqual({ status: "updating", message: CLOUD_LINK_ORG_UNREACHABLE });
   });
 
   it("maps unauthorized or forbidden to a retryable error", () => {

@@ -20,7 +20,11 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useCatalogQuery } from "@/lib/runtime-builder/catalog-client";
 import { applyRbIntent } from "@/lib/weaver/runtime-builder-bridge";
-import { isWeaverIntent, type WeaverIntent } from "@/lib/weaver/intents";
+import {
+  getSafeWeaverNavigationPath,
+  isWeaverIntent,
+  type WeaverIntent,
+} from "@/lib/weaver/intents";
 import { toast } from "sonner";
 
 type AnyToolPart = ToolUIPart | DynamicToolUIPart;
@@ -90,15 +94,28 @@ export function WeaverToolPart({ part }: { part: AnyToolPart }) {
     return <RbApprovalCard intent={intent} toolName={toolName} />;
   }
   if (intent && intent.kind === "navigate") {
+    const navigation = intent as unknown as {
+      path?: unknown;
+      label?: unknown;
+      reason?: unknown;
+    };
+    const path = getSafeWeaverNavigationPath(navigation.path);
+    const label = typeof navigation.label === "string" ? navigation.label : null;
+    const reason = typeof navigation.reason === "string" ? navigation.reason : null;
+
     return (
       <div className="my-2 flex items-center justify-between gap-3 rounded-md border bg-muted/40 p-3 text-sm">
         <div className="min-w-0">
-          <div className="font-medium">{intent.label}</div>
-          <div className="truncate text-xs text-muted-foreground">{intent.reason}</div>
+          {label !== null ? <div className="font-medium">{label}</div> : null}
+          {reason !== null ? (
+            <div className="truncate text-xs text-muted-foreground">{reason}</div>
+          ) : null}
         </div>
-        <Button size="sm" onClick={() => navigate(intent.path)}>
-          Open <ArrowRight className="size-3" />
-        </Button>
+        {path !== null && label !== null && reason !== null ? (
+          <Button size="sm" onClick={() => navigate(path)}>
+            Open <ArrowRight className="size-3" />
+          </Button>
+        ) : null}
       </div>
     );
   }

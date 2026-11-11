@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import {
@@ -14,11 +15,11 @@ import {
   CLOUD_LINK_ORG_HEADING,
   CLOUD_LINK_ORG_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
-  CLOUD_LINK_ORG_UPDATING,
+  CLOUD_LINK_ORG_UNREACHABLE,
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_PAGE_TITLE,
   CLOUD_SETUP_ACTION,
-  CLOUD_UPDATING_HEADING,
+  CLOUD_UNREACHABLE_HEADING,
   CLOUD_UPDATING_MESSAGE,
   CLOUD_UPDATING_RETRY,
   type CloudOnboardingOptions,
@@ -143,25 +144,48 @@ const { toastSuccess } = vi.hoisted(() => ({ toastSuccess: vi.fn() }));
 
 vi.mock("sonner", () => ({ toast: { success: toastSuccess, message: vi.fn(), error: vi.fn() } }));
 
+const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
+
+vi.mock("@/lib/cloudClient", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/cloudClient")>("@/lib/cloudClient");
+  return {
+    ...actual,
+    cloudClient: { invoke },
+  };
+});
+
 import CloudHome from "./CloudHome";
+import {
+  deletionHistoryStorageKey,
+  resetDeletionHistoryStore,
+} from "@/lib/cloud/deletionHistoryStore";
+import {
+  UNFINISHED_DELETE_STATE_DELETING,
+  UNFINISHED_DELETE_STATE_UNAVAILABLE,
+} from "@/lib/cloud/managedEngineDeletionHistory";
 
 function LocationProbe() {
   const location = useLocation();
   return <div data-testid="location">{location.pathname}</div>;
 }
 
+const WORKSPACE_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
 function renderHome(path = "/dashboard/org/acme/cloud") {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <HelmetProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
-          <Route path="/dashboard/cloud" element={<CloudHome />} />
-          <Route path="/cloud" element={<CloudHome />} />
-          <Route path="*" element={<LocationProbe />} />
-        </Routes>
-      </MemoryRouter>
-    </HelmetProvider>,
+    <QueryClientProvider client={client}>
+      <HelmetProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
+            <Route path="/dashboard/cloud" element={<CloudHome />} />
+            <Route path="/cloud" element={<CloudHome />} />
+            <Route path="*" element={<LocationProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -186,6 +210,10 @@ describe("CloudHome", () => {
     compatibilityState.updating = false;
     compatibilityState.message = undefined;
     compatibilityState.refetch.mockReset();
+    viewState.selectedWorkspace = undefined;
+    viewState.workspaces = [];
+    invoke.mockReset();
+    resetDeletionHistoryStore();
     localStorage.clear();
   });
 
@@ -261,7 +289,7 @@ describe("CloudHome", () => {
     viewState.options = options;
     viewState.canCreate = false;
     renderHome();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_UPDATING_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_CREATE_ENGINE })).not.toBeInTheDocument();
     expect(viewState.createEngine).not.toHaveBeenCalled();
@@ -283,7 +311,7 @@ describe("CloudHome", () => {
     compatibilityState.updating = true;
     compatibilityState.message = CLOUD_UPDATING_MESSAGE;
     renderHome();
-    expect(screen.getByText(CLOUD_UPDATING_HEADING)).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_UNREACHABLE_HEADING)).toBeInTheDocument();
     expect(screen.getByText("Production")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeDisabled();
     expect(viewState.createEngine).not.toHaveBeenCalled();
@@ -304,16 +332,18 @@ describe("CloudHome", () => {
     compatibilityState.updating = false;
     compatibilityState.message = undefined;
     rerender(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/dashboard/org/acme/cloud"]}>
-          <Routes>
-            <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
-          </Routes>
-        </MemoryRouter>
-      </HelmetProvider>,
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/dashboard/org/acme/cloud"]}>
+            <Routes>
+              <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByRole("button", { name: CLOUD_CREATE_ENGINE })).toBeEnabled();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
   });
 
   it("shows a separate error state with retry", () => {
@@ -321,7 +351,7 @@ describe("CloudHome", () => {
     renderHome();
     expect(screen.getByText(CLOUD_ERROR_HEADING)).toBeInTheDocument();
     expect(screen.getByText("This workspace is not available.")).toBeInTheDocument();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
     screen.getByRole("button", { name: /try again/i }).click();
     expect(viewState.refetch).toHaveBeenCalled();
   });
@@ -330,14 +360,16 @@ describe("CloudHome", () => {
     viewState.current = { kind: "empty" };
     orgState.organizations = [{ slug: "acme", id: HUB_ORG_ID }];
     render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/dashboard/org/other-co/cloud"]}>
-          <Routes>
-            <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
-            <Route path="/dashboard/cloud" element={<LocationProbe />} />
-          </Routes>
-        </MemoryRouter>
-      </HelmetProvider>,
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/dashboard/org/other-co/cloud"]}>
+            <Routes>
+              <Route path="/dashboard/org/:slug/cloud" element={<CloudHome />} />
+              <Route path="/dashboard/cloud" element={<LocationProbe />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByTestId("location")).toHaveTextContent("/dashboard/cloud");
     expect(screen.queryByText(CLOUD_EMPTY_MESSAGE)).not.toBeInTheDocument();
@@ -346,14 +378,16 @@ describe("CloudHome", () => {
   it("sends /dashboard/cloud to the org Cloud route when the user has a Hub org", () => {
     viewState.current = { kind: "empty" };
     render(
-      <HelmetProvider>
-        <MemoryRouter initialEntries={["/dashboard/cloud"]}>
-          <Routes>
-            <Route path="/dashboard/cloud" element={<CloudHome />} />
-            <Route path="/dashboard/org/:slug/cloud" element={<LocationProbe />} />
-          </Routes>
-        </MemoryRouter>
-      </HelmetProvider>,
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <HelmetProvider>
+          <MemoryRouter initialEntries={["/dashboard/cloud"]}>
+            <Routes>
+              <Route path="/dashboard/cloud" element={<CloudHome />} />
+              <Route path="/dashboard/org/:slug/cloud" element={<LocationProbe />} />
+            </Routes>
+          </MemoryRouter>
+        </HelmetProvider>
+      </QueryClientProvider>,
     );
     expect(screen.getByTestId("location")).toHaveTextContent("/dashboard/org/acme/cloud");
     expect(screen.queryByText(CLOUD_EMPTY_MESSAGE)).not.toBeInTheDocument();
@@ -450,10 +484,10 @@ describe("CloudHome", () => {
     orgLinkState.current = { kind: "needsLink", canLink: true };
     viewState.current = { kind: "updating", message: CLOUD_UPDATING_MESSAGE };
     viewState.setupStatus = "updating";
-    viewState.setupMessage = CLOUD_LINK_ORG_UPDATING;
+    viewState.setupMessage = CLOUD_LINK_ORG_UNREACHABLE;
     renderHome();
-    expect(screen.getByText(CLOUD_LINK_ORG_UPDATING)).toBeInTheDocument();
-    expect(screen.queryByText(CLOUD_UPDATING_HEADING)).not.toBeInTheDocument();
+    expect(screen.getByText(CLOUD_LINK_ORG_UNREACHABLE)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_UNREACHABLE_HEADING)).not.toBeInTheDocument();
     expect(screen.queryByText("Production")).not.toBeInTheDocument();
   });
 
@@ -556,6 +590,34 @@ describe("CloudHome", () => {
       "href",
       "/dashboard/org/acme/cloud/billing",
     );
+  });
+
+  it("shows Status unavailable after a closed tab reloads a stored Deleting row", async () => {
+    const instanceId = "11111111-1111-4111-8111-111111111111";
+    viewState.current = { kind: "empty" };
+    viewState.selectedWorkspace = { id: WORKSPACE_ID, name: "Acme" };
+    localStorage.setItem(
+      deletionHistoryStorageKey(WORKSPACE_ID),
+      JSON.stringify([{
+        phase: "tracking",
+        instanceId,
+        instanceName: "Prod",
+        operationId: "55555555-5555-5555-5555-555555555555",
+        acceptedAt: "2026-10-20T15:04:00.000Z",
+        state: "Accepted",
+      }]),
+    );
+    invoke.mockResolvedValue({
+      ok: false,
+      code: "invalid_request",
+      error: "Delete did not reach a terminal state.",
+    });
+    resetDeletionHistoryStore();
+    renderHome();
+
+    expect(await screen.findByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).toBeInTheDocument();
+    expect(screen.queryByText(UNFINISHED_DELETE_STATE_DELETING)).not.toBeInTheDocument();
+    expect(screen.getByText("Prod")).toBeInTheDocument();
   });
 
   it("does not show a plan on /cloud before Control reports the entitlement", () => {

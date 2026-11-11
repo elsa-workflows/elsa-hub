@@ -9,7 +9,7 @@ import {
 import {
   assertStripeTestMode,
   classifyStripeDataObject,
-  CLOUD_BILLING_UNAVAILABLE_CODE,
+  cloudBillingUnavailablePayload,
   CLOUD_LINK_READ_FAILED,
   CLOUD_ORGANIZATION_REQUIRED,
   CLOUD_PLAN_NAME,
@@ -85,10 +85,7 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
   try {
     assertStripeTestMode(env.get("STRIPE_SECRET_KEY"), env);
   } catch (error) {
-    return jsonResponse(503, {
-      error: (error as Error).message,
-      code: CLOUD_BILLING_UNAVAILABLE_CODE,
-    });
+    return jsonResponse(503, cloudBillingUnavailablePayload(error as Error));
   }
 
   let customerId: string | null;

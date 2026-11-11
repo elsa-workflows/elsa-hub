@@ -47,7 +47,7 @@ interface RadarStatsProps {
 export function RadarStats({ total, organizations, countries }: RadarStatsProps) {
   return (
     <div className="grid grid-cols-3 gap-3">
-      <Counter value={total} label="Deployments" sublabel="active signals" />
+      <Counter value={total} label="Deployments" sublabel="approved entries" />
       <Counter value={organizations} label="Showcase orgs" sublabel="public profiles" />
       <Counter value={countries} label="Countries" sublabel="and territories" />
     </div>

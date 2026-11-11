@@ -9,7 +9,7 @@ import {
   CLOUD_LINK_ORG_HEADING,
   CLOUD_LINK_ORG_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
-  CLOUD_LINK_ORG_UPDATING,
+  CLOUD_LINK_ORG_UNREACHABLE,
   CLOUD_PAGE_TITLE,
 } from "@/lib/cloudClient";
 
@@ -41,7 +41,7 @@ export function CloudLinkOrganizationState({
       </p>
       {updating && (
         <p className="mt-3 text-sm text-muted-foreground" role="status">
-          {message ?? CLOUD_LINK_ORG_UPDATING}
+          {message ?? CLOUD_LINK_ORG_UNREACHABLE}
         </p>
       )}
       {failed && (
