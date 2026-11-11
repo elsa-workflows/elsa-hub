@@ -808,6 +808,24 @@ Deno.test("HTTP handler requires a signed-in user", async () => {
   assertEquals(res.status, 401);
 });
 
+Deno.test("HTTP handler returns to www.elsaworkflows.io when the request has no Origin header", async () => {
+  const stripe = createStripeMock();
+  const req = new Request("https://example/academy-checkout", {
+    method: "POST",
+    headers: { Authorization: "Bearer test-token", "Content-Type": "application/json" },
+    body: JSON.stringify({ courseId: SOLO_COURSE.id }),
+  });
+  const res = await handleAcademyCheckoutRequest(req, async () => ({
+    userClient: createUserClient(false),
+    serviceClient: createServiceClient(),
+    stripe: stripe.stripe,
+  }));
+  const { status } = await parseJson(res);
+  assertEquals(status, 200);
+  assertEquals(stripe.sessions[0].success_url, "https://www.elsaworkflows.io/academy/published-course?payment=success");
+  assertEquals(stripe.sessions[0].cancel_url, "https://www.elsaworkflows.io/academy/published-course");
+});
+
 Deno.test("HTTP handler creates a Solo session for a signed-in user", async () => {
   const stripe = createStripeMock();
   const req = new Request("https://example/academy-checkout", {
