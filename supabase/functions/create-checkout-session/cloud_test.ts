@@ -280,7 +280,7 @@ Deno.test("a stored-customer failure is the helper's generic 500", async () => {
 
   assertEquals(response.status, 500);
   assertNoStoreWithCors(response);
-  assertEquals(payload.error, "We couldn't set up your billing customer. Please try again later.");
+  assertEquals(payload.error, "We couldn't set up billing for this organization. Please try again.");
   assertEquals(calls.sessions.length, 0);
 });
 

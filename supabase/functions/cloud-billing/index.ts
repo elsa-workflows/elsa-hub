@@ -43,6 +43,6 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Cloud billing status error:", error);
-    return jsonResponse(500, { error: "We couldn't load Cloud billing. Please try again later." });
+    return jsonResponse(500, { error: "We couldn't load billing. Please try again." });
   }
 });

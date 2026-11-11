@@ -138,7 +138,7 @@ Deno.test("a stored-customer read error is the helper's generic 500, not 404", a
 
   assertEquals(response.status, 500);
   assertNoStoreWithCors(response);
-  assertEquals(payload.error, "We couldn't set up your billing customer. Please try again later.");
+  assertEquals(payload.error, "We couldn't set up billing for this organization. Please try again.");
   assertEquals(calls.portals.length, 0);
 });
 

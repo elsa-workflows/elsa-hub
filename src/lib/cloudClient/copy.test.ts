@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
+  CLOUD_BILLING_NO_CUSTOMER,
+  CLOUD_BILLING_UNAVAILABLE,
   CLOUD_DELETE_START_ERROR,
   CLOUD_EMPTY_MESSAGE,
   CLOUD_LINK_ORG_NOT_CONNECTED,
@@ -32,7 +34,21 @@ describe("cloudEngineCountLabel", () => {
 
   it("pins the signed non-admin disconnected line", () => {
     expect(CLOUD_LINK_ORG_NOT_CONNECTED).toBe(
-      "Elsa Cloud isn't connected to this Hub organization yet.",
+      "This Hub organization isn't connected to Elsa Cloud.",
+    );
+  });
+});
+
+describe("signed Cloud billing copy (elsa-control#936)", () => {
+  it("pins the signed billing-unavailable line", () => {
+    expect(CLOUD_BILLING_UNAVAILABLE).toBe(
+      "We couldn't load billing. Refresh this page to check again.",
+    );
+  });
+
+  it("pins the signed no-billing-account line", () => {
+    expect(CLOUD_BILLING_NO_CUSTOMER).toBe(
+      "This organization has no billing account on the Hub, so the billing portal isn't available.",
     );
   });
 });
