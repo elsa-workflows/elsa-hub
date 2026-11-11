@@ -8,6 +8,7 @@ import {
   taxLocationFailureResponse,
 } from "../_shared/stripe-customer.ts";
 import { isCloudRequest } from "../_shared/cloud-billing.ts";
+import { trustedSiteOrigin } from "../_shared/site-origin.ts";
 import { handleCloudCheckout } from "./cloud.ts";
 
 const corsHeaders = {
@@ -367,7 +368,8 @@ serve(async (req) => {
     }
 
     // Create Stripe Checkout session
-    const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
+    // Only a Hub host may be the return URL, whatever Origin the caller sends (elsa-hub#192).
+    const origin = trustedSiteOrigin(req);
 
     // Build invoice custom fields from billing profile (Stripe allows up to 4)
     const invoiceCustomFields: { name: string; value: string }[] = [];

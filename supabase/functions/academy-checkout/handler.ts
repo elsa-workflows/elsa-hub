@@ -6,6 +6,8 @@ import {
   academyInvoiceFooter,
   isAcademyTosConsentEnabled,
 } from "../_shared/academyLegal.ts";
+import { trustedSiteOrigin } from "../_shared/site-origin.ts";
+import type { EnvReader } from "../_shared/stripe-customer.ts";
 import { ACADEMY_ALREADY_OWNED } from "../_shared/academyOwnership.ts";
 import { loadAcademyCourse, type AcademyCourseRow } from "./course.ts";
 import { soloBundleOwnership } from "./ownership.ts";
@@ -263,6 +265,7 @@ export async function runAcademyCheckout(params: {
 export async function handleAcademyCheckoutRequest(
   req: Request,
   depsFactory: (authHeader: string) => Promise<AcademyCheckoutDeps | Response>,
+  env: EnvReader = Deno.env,
 ): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -290,7 +293,8 @@ export async function handleAcademyCheckoutRequest(
       return jsonResponse(400, { error: "Invalid JSON body" });
     }
 
-    const origin = req.headers.get("origin") || "https://www.elsaworkflows.io";
+    // Stripe return URLs only ever point at a Hub host, whatever Origin the caller sends (elsa-hub#192).
+    const origin = trustedSiteOrigin(req, env);
     return await runAcademyCheckout({ user, body, origin, deps });
   } catch (error: unknown) {
     console.error("Academy checkout session error:", error);

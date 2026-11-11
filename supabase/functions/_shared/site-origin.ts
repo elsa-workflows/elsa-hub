@@ -2,21 +2,25 @@
  * The origin a Stripe redirect may send the browser back to.
  *
  * Return URLs are built from the request's Origin header, which any caller can
- * set. Only the Hub's own hosts are trusted: the two production hosts the Hub
- * is served from, and localhost for local development. Anything else,
- * including a missing or unparseable Origin, gets the site: SITE_URL when it
- * is set, or the production URL main's Hub checkout already falls back to.
+ * set. Only the Hub's own hosts are trusted: the production hosts the Hub is
+ * served from (www.elsaworkflows.io, elsaworkflows.io and the Lovable host),
+ * and localhost for local development. Anything else, including a missing or
+ * unparseable Origin, gets the site: SITE_URL when it is set, or the
+ * canonical production URL.
  * A SITE_URL that is not an http(s) URL is logged once and ignored, so a
  * misconfigured secret cannot fail every Cloud checkout and portal call.
  */
 
 import type { EnvReader } from "./stripe-customer.ts";
 
-/** Main's existing fallback for Hub checkout, the portal and emails. */
-export const DEFAULT_SITE_URL = "https://elsa-hub.lovable.app";
+/** The canonical Hub URL, as in src/lib/site.ts's SITE_URL (a parity test holds this). The fallback for every return URL. */
+export const DEFAULT_SITE_URL = "https://www.elsaworkflows.io";
 
-/** The canonical host, as in src/lib/site.ts's SITE_URL (a parity test holds this), and the Lovable host. */
-export const HUB_ORIGINS = ["https://www.elsaworkflows.io", DEFAULT_SITE_URL];
+/** The apex host and the Lovable host, still served by the Hub. */
+const EXTRA_HUB_ORIGINS = ["https://elsaworkflows.io", "https://elsa-hub.lovable.app"];
+
+/** Every origin a caller may pick for a return URL (besides localhost). */
+export const HUB_ORIGINS = [DEFAULT_SITE_URL, ...EXTRA_HUB_ORIGINS];
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
