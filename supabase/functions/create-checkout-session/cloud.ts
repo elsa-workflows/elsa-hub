@@ -10,6 +10,7 @@ import {
 } from "../_shared/stripe-customer.ts";
 import {
   assertStripeTestMode,
+  cloudBillingUnavailablePayload,
   buildCloudCheckoutMetadata,
   CLOUD_CHECKOUT_FAILED,
   CLOUD_LINK_READ_FAILED,
@@ -107,7 +108,7 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
   try {
     assertStripeTestMode(env.get("STRIPE_SECRET_KEY"), env);
   } catch (error) {
-    return jsonResponse(503, { error: (error as Error).message });
+    return jsonResponse(503, cloudBillingUnavailablePayload(error as Error));
   }
 
   const organizationId = cloudOrganizationIdFromBody(body);
@@ -141,7 +142,7 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
   try {
     stripePriceId = readCloudPriceId(env);
   } catch (error) {
-    return jsonResponse(503, { error: (error as Error).message });
+    return jsonResponse(503, cloudBillingUnavailablePayload(error as Error));
   }
 
   const { data: org } = await userClient

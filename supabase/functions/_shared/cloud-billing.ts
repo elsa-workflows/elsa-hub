@@ -222,6 +222,16 @@ export function isCloudBillingLiveEnabled(value: string | undefined | null): boo
   return value === "true";
 }
 
+export type CloudBillingUnavailablePayload = {
+  error: string;
+  code: typeof CLOUD_BILLING_UNAVAILABLE_CODE;
+};
+
+/** 503 JSON for a Cloud billing gate. The Stripe key never appears here. */
+export function cloudBillingUnavailablePayload(error: Error): CloudBillingUnavailablePayload {
+  return { error: error.message, code: CLOUD_BILLING_UNAVAILABLE_CODE };
+}
+
 /**
  * A test key is always allowed. A live key is allowed only when
  * CLOUD_BILLING_LIVE_ENABLED is exactly `true`. Unset or any other value
