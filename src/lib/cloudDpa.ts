@@ -66,7 +66,7 @@ export const CLOUD_DPA_SECTIONS: CloudDpaSection[] = [
 
 2.2 This DPA does not apply to:
 
-- (a) data we process as a controller to run our business, such as your account, sign-in, organisation membership, billing and support records. Our Privacy Notice at https://elsacloud.app/privacy covers that processing until it moves to Elsa Hub; and
+- (a) data we process as a controller to run our business, such as your account, sign-in, organisation membership, billing and support records. Our Privacy Notice at https://www.elsaworkflows.io/legal/privacy covers that processing; and
 - (b) Bring Your Own Azure ("BYO") environments. In BYO you run Elsa in your own Azure subscription and choose its region, configuration and content, and we do not host that data.
 
 2.3 Annex I describes the processing: its subject matter, duration, nature and purpose, the types of personal data and the categories of data subjects.`,

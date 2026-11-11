@@ -35,6 +35,11 @@ describe("CloudDpa page", () => {
       "href",
       "/legal/cloud-terms",
     );
+    expect(screen.getByRole("link", { name: "https://www.elsaworkflows.io/legal/privacy" })).toHaveAttribute(
+      "href",
+      "/legal/privacy",
+    );
+    expect(document.querySelector('a[href*="elsacloud.app/privacy"]')).toBeNull();
     expect(screen.getAllByRole("table").length).toBeGreaterThanOrEqual(3);
   });
 });
