@@ -260,6 +260,72 @@ describe("CloudProvisioningTimeline", () => {
     expect(screen.queryByText(EMPTY_OPERATION_ID)).not.toBeInTheDocument();
   });
 
+  describe("highlighted step follows Control's currentStage (elsa-control#902)", () => {
+    const configurationStage = provisioningStageLabels.configuration;
+    const stageIndexOf = (code: (typeof MANAGED_PROVISIONING_STAGE_CODES)[number]) =>
+      MANAGED_PROVISIONING_STAGE_CODES.indexOf(code) + 1;
+    const total = MANAGED_PROVISIONING_STAGE_CODES.length;
+
+    it("uses currentStage for a failed snapshot whose phase and attemptedStep map elsewhere", () => {
+      render(
+        <CloudProvisioningTimeline
+          progress={{
+            ...unknownProgress,
+            state: "failed",
+            currentStage: "configuration",
+            phase: "FoundationReady",
+            attemptedStep: "SqlBootstrap",
+            stages: [
+              { code: "request-accepted", status: "completed", startedAt: null, completedAt: null },
+              { code: "hosting-foundation", status: "completed", startedAt: null, completedAt: null },
+              { code: "configuration", status: "current", startedAt: null, completedAt: null },
+            ],
+          }}
+          engine={engine("Provisioning")}
+        />,
+      );
+      expect(screen.getByText(`Step ${stageIndexOf("configuration")} of ${total}`)).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(`Provisioning stopped at this step: ${configurationStage}\\.`))).toBeInTheDocument();
+      expect(screen.queryByText(`Step ${stageIndexOf("hosting-foundation")} of ${total}`)).not.toBeInTheDocument();
+    });
+
+    it("uses currentStage for a non-failed snapshot with a known stage", () => {
+      render(
+        <CloudProvisioningTimeline
+          progress={{
+            ...unknownProgress,
+            currentStage: "runtime-deployment",
+            phase: "FoundationReady",
+            attemptedStep: "SqlBootstrap",
+            stages: [
+              { code: "runtime-deployment", status: "current", startedAt: null, completedAt: null },
+            ],
+          }}
+          engine={engine("Provisioning")}
+        />,
+      );
+      expect(screen.getByText(`Step ${stageIndexOf("runtime-deployment")} of ${total}`)).toBeInTheDocument();
+    });
+
+    it("falls back to the phase mapping when currentStage is unknown", () => {
+      render(
+        <CloudProvisioningTimeline
+          progress={{
+            ...unknownProgress,
+            currentStage: "not-a-stage",
+            phase: "FoundationReady",
+            attemptedStep: null,
+            stages: [
+              { code: "hosting-foundation", status: "current", startedAt: null, completedAt: null },
+            ],
+          }}
+          engine={engine("Provisioning")}
+        />,
+      );
+      expect(screen.getByText(`Step ${stageIndexOf("hosting-foundation")} of ${total}`)).toBeInTheDocument();
+    });
+  });
+
   it("keeps Check again as a secondary refresh", () => {
     const onRefresh = vi.fn();
     render(
