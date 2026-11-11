@@ -290,7 +290,7 @@ export async function handleAcademyCheckoutRequest(
       return jsonResponse(400, { error: "Invalid JSON body" });
     }
 
-    const origin = req.headers.get("origin") || "https://elsa-hub.lovable.app";
+    const origin = req.headers.get("origin") || "https://www.elsaworkflows.io";
     return await runAcademyCheckout({ user, body, origin, deps });
   } catch (error: unknown) {
     console.error("Academy checkout session error:", error);
