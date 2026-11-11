@@ -1,3 +1,5 @@
+import { guardAdminPost } from "../_shared/admin-auth.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -10,6 +12,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Admin-only: POST with the service role key or a platform admin JWT (elsa-hub#189).
+  const denied = await guardAdminPost(req, corsHeaders);
+  if (denied) return denied;
 
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
