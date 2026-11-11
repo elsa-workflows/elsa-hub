@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local deno test lockfile
+supabase/functions/deno.lock
