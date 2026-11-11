@@ -102,7 +102,7 @@ export type GetOrCreateStripeCustomerDeps = {
   metadata?: Record<string, string>;
 };
 
-const GENERIC_MESSAGE = "We couldn't set up your billing customer. Please try again later.";
+const GENERIC_MESSAGE = "We couldn't set up billing for this organization. Please try again.";
 
 /** Generic by design; the detail is logged. code is a Stripe error code, kept so callers can still branch on it. */
 export class StripeCustomerError extends Error {

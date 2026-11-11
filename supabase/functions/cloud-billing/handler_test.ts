@@ -279,7 +279,7 @@ Deno.test("a stored-customer read error is the helper's generic 500, not missing
 
   assertEquals(response.status, 500);
   assertNoStoreWithCors(response);
-  assertEquals(payload.error, "We couldn't set up your billing customer. Please try again later.");
+  assertEquals(payload.error, "We couldn't set up billing for this organization. Please try again.");
 });
 
 Deno.test("a link read error is a generic 500 and logs the detail", async () => {

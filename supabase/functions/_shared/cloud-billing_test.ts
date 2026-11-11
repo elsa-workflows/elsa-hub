@@ -3,6 +3,8 @@ import {
   assertStripeTestMode,
   CLOUD_BILLING_LIVE_ENABLED_KEY,
   CLOUD_BILLING_UNAVAILABLE_CODE,
+  CLOUD_CHECKOUT_FAILED,
+  CLOUD_LINK_READ_FAILED,
   buildCloudCheckoutMetadata,
   cloudBillingUnavailablePayload,
   isCloudBillingLiveEnabled,
@@ -244,4 +246,12 @@ Deno.test("cloud-billing status sends the Hub session to Control hosted-subscrip
   assertEquals(index.includes('from "../_shared/cloud-control.ts"'), true);
   assertEquals(index.includes("createControlFetch()"), true);
   assertEquals(index.includes("accessToken: token"), true);
+});
+
+Deno.test("signed Cloud billing error lines (elsa-control#936)", () => {
+  assertEquals(
+    CLOUD_LINK_READ_FAILED,
+    "We couldn't check this organization's Elsa Cloud link. Refresh this page to check again.",
+  );
+  assertEquals(CLOUD_CHECKOUT_FAILED, "We couldn't start Elsa Cloud checkout. Please try again.");
 });
