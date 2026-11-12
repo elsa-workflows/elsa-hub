@@ -1,6 +1,14 @@
 import { assert, assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { handleCloudCheckout } from "./cloud.ts";
-import { CLOUD_BILLING_UNAVAILABLE_CODE, CLOUD_CHECKOUT_FAILED } from "../_shared/cloud-billing.ts";
+import {
+  CLOUD_BILLING_UNAVAILABLE_CODE,
+  CLOUD_CHECKOUT_FAILED,
+  CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+  CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+} from "../_shared/cloud-billing.ts";
+import type { ControlFetch } from "../_shared/cloud-control.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
 import { TAX_LOCATION_INVALID_CODE, TAX_LOCATION_INVALID_MESSAGE } from "../_shared/stripe-customer.ts";
 import {
@@ -39,7 +47,22 @@ type Setup = {
   sessionCreateError?: Error;
   origin?: string;
   env?: Record<string, string | undefined>;
+  accessToken?: string | undefined;
+  controlFetch?: ControlFetch | undefined;
 };
+
+function notFoundControlFetch(): ControlFetch {
+  return async () => ({ ok: false, kind: "not_found" });
+}
+
+function controlFetchWith(
+  result: { ok: true; body?: unknown } | { ok: false; kind: "not_found" | "updating" | "forbidden" },
+): ControlFetch {
+  return async () => {
+    if (!result.ok) return { ok: false, kind: result.kind };
+    return { ok: true, status: 200, body: result.body ?? {} };
+  };
+}
 
 const CLOUD_METADATA = { kind: "cloud", product_type: "cloud" };
 const SUCCESS_URL = `${SITE_ORIGIN}/dashboard/org/org-a/cloud?payment=success`;
@@ -92,6 +115,8 @@ function checkout(setup: Setup = {}) {
       body: (setup.body ?? { productType: "cloud", organizationId: HUB_ORG }) as never,
       env: testEnv(setup.env),
       stripe: stripe as never,
+      accessToken: "accessToken" in setup ? setup.accessToken : "hub-session",
+      controlFetch: "controlFetch" in setup ? setup.controlFetch : notFoundControlFetch(),
     });
     return { response, payload: await response.json() };
   };
@@ -462,5 +487,162 @@ Deno.test("customer_tax_location_invalid from the customer update is the same 40
   assertEquals(response.status, 400);
   assertNoStoreWithCors(response);
   assertEquals(payload, { error: TAX_LOCATION_INVALID_MESSAGE, code: TAX_LOCATION_INVALID_CODE });
+  assertEquals(calls.sessions.length, 0);
+});
+
+
+Deno.test("Control Suspended blocks Cloud checkout and creates no Stripe session", async () => {
+  const { run, calls } = checkout({
+    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Suspended" } }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload, {
+    error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+    code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  });
+  assertEquals(CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE, "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.");
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.customersCreated, 0);
+  assertEquals(calls.expired, []);
+});
+
+Deno.test("a direct Cloud checkout POST is refused when Control is Suspended", async () => {
+  const { run, calls } = checkout({
+    body: { productType: "cloud", organizationId: HUB_ORG },
+    controlFetch: controlFetchWith({ ok: true, body: { SubscriptionState: "Suspended" } }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload.code, CLOUD_SUBSCRIPTION_SUSPENDED_CODE);
+  assertEquals(payload.error, CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE);
+  assertEquals(calls.sessions.length, 0);
+});
+
+Deno.test("an open Cloud checkout is expired and not reused when Control is Suspended", async () => {
+  const { run, calls } = checkout({
+    storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    checkoutSessions: [openCloudSession()],
+    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Suspended" } }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload.code, CLOUD_SUBSCRIPTION_SUSPENDED_CODE);
+  assertEquals(payload.error, CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE);
+  assertEquals(calls.expired, ["cs_cloud"]);
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.customersCreated, 0);
+});
+
+Deno.test("a Control error blocks Cloud checkout with 503, not the Suspended line", async () => {
+  const { run, calls, customerTouched } = checkout({
+    controlFetch: controlFetchWith({ ok: false, kind: "forbidden" }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 503);
+  assertEquals(payload, {
+    error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+    code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+  });
+  assertEquals(payload.error, "We couldn't load billing. Refresh this page to check again.");
+  assertEquals(payload.error === CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE, false);
+  assertEquals(customerTouched(), false);
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.customersCreated, 0);
+});
+
+Deno.test("a Control timeout blocks Cloud checkout with 503, not the Suspended line", async () => {
+  const { run, calls, customerTouched } = checkout({
+    controlFetch: controlFetchWith({ ok: false, kind: "updating" }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 503);
+  assertEquals(payload, {
+    error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+    code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+  });
+  assertEquals(payload.error, "We couldn't load billing. Refresh this page to check again.");
+  assertEquals(payload.error === CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE, false);
+  assertEquals(customerTouched(), false);
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.customersCreated, 0);
+});
+
+Deno.test("a Control error blocks checkout even when the org has no Stripe customer", async () => {
+  const { run, calls, customerTouched } = checkout({
+    storedCustomers: [],
+    controlFetch: controlFetchWith({ ok: false, kind: "updating" }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 503);
+  assertEquals(payload.code, CLOUD_ENTITLEMENT_UNAVAILABLE_CODE);
+  assertEquals(customerTouched(), false);
+  assertEquals(calls.sessions.length, 0);
+});
+
+Deno.test("an Active Control entitlement allows Cloud checkout", async () => {
+  const { run, calls } = checkout({
+    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Active", source: "hub" } }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(typeof payload.checkoutUrl, "string");
+  assertEquals(calls.sessions.length, 1);
+});
+
+Deno.test("Suspended with recoveryAction Subscribe allows Cloud checkout", async () => {
+  const { run, calls } = checkout({
+    controlFetch: controlFetchWith({
+      ok: true,
+      body: { subscriptionState: "Suspended", recoveryAction: "Subscribe" },
+    }),
+  });
+
+  const { response } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(calls.sessions.length, 1);
+});
+
+Deno.test("Suspended with a PascalCase recoveryAction Subscribe allows Cloud checkout", async () => {
+  const { run, calls } = checkout({
+    controlFetch: controlFetchWith({
+      ok: true,
+      body: { SubscriptionState: "Suspended", RecoveryAction: "Subscribe" },
+    }),
+  });
+
+  const { response } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(calls.sessions.length, 1);
+});
+
+Deno.test("Suspended with any recoveryAction other than Subscribe is blocked", async () => {
+  const { run, calls } = checkout({
+    controlFetch: controlFetchWith({
+      ok: true,
+      body: { subscriptionState: "Suspended", recoveryAction: "UpdatePaymentMethod" },
+    }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload.code, CLOUD_SUBSCRIPTION_SUSPENDED_CODE);
   assertEquals(calls.sessions.length, 0);
 });

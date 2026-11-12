@@ -4,6 +4,7 @@ import {
   customerFailureResponse,
   type EnvReader,
   getOrCreateStripeCustomer,
+  getStoredStripeCustomerId,
   type StripeCustomerClient,
   type StripeCustomerStore,
   taxLocationFailureResponse,
@@ -13,9 +14,13 @@ import {
   cloudBillingUnavailablePayload,
   buildCloudCheckoutMetadata,
   CLOUD_CHECKOUT_FAILED,
+  CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+  CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
   CLOUD_LINK_READ_FAILED,
   CLOUD_ORGANIZATION_REQUIRED,
   CLOUD_SUBSCRIPTION_EXISTS_CODE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
   cloudCheckoutCancelPath,
   cloudCheckoutSuccessPath,
   cloudOrganizationIdFromBody,
@@ -23,14 +28,17 @@ import {
   type CloudCheckoutSessions,
   CLOUD_PRICE_ID_METADATA_KEY,
   CONTROL_ORGANIZATION_METADATA_KEY,
+  controlSubscriptionBlocksCheckout,
   expireCheckoutSession,
   HUB_ORGANIZATION_METADATA_KEY,
   listOpenCloudCheckoutSessions,
   type OpenCheckoutSession,
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
+  readControlCheckoutEntitlement,
   unlinkedControlOrganizationError,
 } from "../_shared/cloud-billing.ts";
+import type { ControlFetch } from "../_shared/cloud-control.ts";
 import { jsonResponse, noStoreHeaders } from "../_shared/cloud-http.ts";
 import { readValidatedControlOrganizationId } from "../_shared/cloud-organization-link.ts";
 import { trustedSiteOrigin } from "../_shared/site-origin.ts";
@@ -93,7 +101,43 @@ export type CloudCheckoutContext = {
   };
   env?: EnvReader;
   stripe?: CloudCheckoutStripe;
+  accessToken?: string;
+  controlFetch?: ControlFetch;
 };
+
+/**
+ * Expire any open Cloud Checkout Sessions for a stored customer. Used when
+ * Control is Suspended so a leftover session cannot be paid. Failures are
+ * logged; the Suspended 409 still returns.
+ */
+async function expireOpenCloudSessionsForOrg(
+  organizationId: string,
+  serviceClient: SupabaseClient,
+  env: EnvReader,
+  stripe: CloudCheckoutStripe,
+): Promise<void> {
+  let customerId: string | null = null;
+  try {
+    customerId = await getStoredStripeCustomerId(
+      { orgId: organizationId },
+      { supabase: serviceClient as unknown as StripeCustomerStore, env },
+    );
+  } catch (error) {
+    console.error("Cloud checkout could not look up the stored customer to expire open sessions:", error);
+    return;
+  }
+  if (!customerId) return;
+  const open = await listOpenCloudCheckoutSessions(stripe.checkout.sessions, customerId);
+  for (const session of open) {
+    await expireCheckoutSession(stripe.checkout.sessions, session.id);
+  }
+}
+
+function checkoutStripe(ctx: CloudCheckoutContext, env: EnvReader): CloudCheckoutStripe {
+  return ctx.stripe ?? new Stripe(env.get("STRIPE_SECRET_KEY")!, {
+    apiVersion: "2025-08-27.basil",
+  });
+}
 
 /**
  * Org-only Cloud checkout. The org is the one the request names; `is_org_admin`
@@ -138,6 +182,31 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     return jsonResponse(status, unlinked);
   }
 
+  // Fail closed on a Control error or timeout for every linked org, including
+  // those with no Stripe customer yet. Unlinked orgs have already returned.
+  const entitlement = await readControlCheckoutEntitlement({
+    accessToken: ctx.accessToken,
+    controlOrganizationId,
+    controlFetch: ctx.controlFetch,
+  });
+  if (!entitlement.ok) {
+    return jsonResponse(503, {
+      error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+      code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+    });
+  }
+  if (controlSubscriptionBlocksCheckout(entitlement.subscriptionState, entitlement.recoveryAction)) {
+    try {
+      await expireOpenCloudSessionsForOrg(organizationId, serviceClient, env, checkoutStripe(ctx, env));
+    } catch (error) {
+      console.error("Cloud checkout could not expire open sessions for a Suspended org:", error);
+    }
+    return jsonResponse(409, {
+      error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+      code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+    });
+  }
+
   let stripePriceId: string;
   try {
     stripePriceId = readCloudPriceId(env);
@@ -168,9 +237,7 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
       }
     : undefined;
 
-  const stripe: CloudCheckoutStripe = ctx.stripe ?? new Stripe(env.get("STRIPE_SECRET_KEY")!, {
-    apiVersion: "2025-08-27.basil",
-  });
+  const stripe: CloudCheckoutStripe = checkoutStripe(ctx, env);
 
   // Every Stripe call from here on fails into one catch: the customer helper's
   // own generic 500, the Hub's tax-location 400, or a logged generic 500, all
