@@ -267,7 +267,9 @@ describe("CloudBillingPanel", () => {
     expect(screen.getByText(CLOUD_PREVIEW_ONE_USER)).toBeInTheDocument();
   });
 
-  it("shows No active plan and View invoices for an ended (Suspended) plan, not Paused or Subscribe", () => {
+  it.each(["Suspended", "Retained"] as const)(
+    "shows No active plan and View invoices for an ended (Control %s) plan, not Paused, Subscribe or Update payment method",
+    () => {
     const { onSubscribe, onManage } = renderPanel({
       planStatus: "ended",
       subscription: subscription({ status: "ended" }),
@@ -289,7 +291,8 @@ describe("CloudBillingPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: CLOUD_BILLING_HISTORY_LINK }));
     expect(onManage).toHaveBeenCalled();
     expect(onSubscribe).not.toHaveBeenCalled();
-  });
+    },
+  );
 
   it("keeps Paused, Past due and Limited copy unchanged", () => {
     renderPanel({ planStatus: "paused", subscription: subscription({ status: "paused" }) });

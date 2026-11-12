@@ -183,7 +183,7 @@ Deno.test("Control hosted-subscription Active/Trial become a plan; ended and emp
   assertEquals(normalizeControlEntitlement({ subscriptionState: "PastDue" })?.status, "past_due");
   assertEquals(normalizeControlEntitlement({ subscriptionState: "Constrained" })?.status, "constrained");
   assertEquals(normalizeControlEntitlement({ subscriptionState: "Suspended" })?.status, "ended");
-  assertEquals(normalizeControlEntitlement({ subscriptionState: "Retained" }), null);
+  assertEquals(normalizeControlEntitlement({ subscriptionState: "Retained" })?.status, "ended");
   assertEquals(normalizeControlEntitlement({ subscriptionState: "Deleted" }), null);
   assertEquals(normalizeControlEntitlement({ subscriptionState: null, billingLinked: true }), null);
   assertEquals(normalizeControlEntitlement(null), null);
