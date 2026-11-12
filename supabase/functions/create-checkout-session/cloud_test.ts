@@ -7,7 +7,6 @@ import {
   CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
   CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
   CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
-  CONTROL_NO_BILLING_LINKAGE_ACTION,
 } from "../_shared/cloud-billing.ts";
 import type { ControlFetch } from "../_shared/cloud-control.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
@@ -30,6 +29,8 @@ import {
   storedOrgCustomer,
   testEnv,
   validatedLink,
+  controlHostedSubscriptionBody,
+  controlNeverSubscribedBody,
 } from "../_shared/cloud-billing_test_support.ts";
 
 type Setup = {
@@ -68,17 +69,9 @@ function controlFetchWith(
 
 const CLOUD_METADATA = { kind: "cloud", product_type: "cloud" };
 
-/** Control never-subscribed 200, as in Hosted_subscription_status_reports_missing_billing_linkage. */
+/** Control never-subscribed 200. Delegates to the real HostedSubscriptionManagementResponse stub. */
 function neverSubscribedBody(overrides: Record<string, unknown> = {}) {
-  return {
-    organizationId: CONTROL_ORG,
-    subscriptionState: null,
-    billingLinked: false,
-    portalAvailable: false,
-    managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
-    source: null,
-    ...overrides,
-  };
+  return controlNeverSubscribedBody(CONTROL_ORG, overrides);
 }
 const SUCCESS_URL = `${SITE_ORIGIN}/dashboard/org/org-a/cloud?payment=success`;
 
@@ -332,7 +325,7 @@ Deno.test("a stored-customer failure after a Control 404 is 503 entitlement unav
 Deno.test("a stored-customer failure is the helper's generic 500 when Control reports a state", async () => {
   const { run, calls } = checkout({
     failTables: ["org_stripe_customers"],
-    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Active" } }),
+    controlFetch: controlFetchWith({ ok: true, body: controlHostedSubscriptionBody("Active") }),
   });
 
   const { result: { response, payload } } = await captureConsoleError(run);
@@ -527,7 +520,7 @@ Deno.test("customer_tax_location_invalid from the customer update is the same 40
 
 for (
   const [name, body] of [
-    ["camelCase subscriptionState", { subscriptionState: "Suspended" }],
+    ["camelCase subscriptionState", controlHostedSubscriptionBody("Suspended")],
     ["PascalCase SubscriptionState", { SubscriptionState: "Suspended" }],
   ] as const
 ) {
@@ -554,7 +547,7 @@ Deno.test("an open Cloud checkout is expired and not reused when Control is Susp
   const { run, calls } = checkout({
     storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
     checkoutSessions: [openCloudSession()],
-    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Suspended" } }),
+    controlFetch: controlFetchWith({ ok: true, body: controlHostedSubscriptionBody("Suspended") }),
   });
 
   const { response, payload } = await run();
@@ -621,7 +614,7 @@ Deno.test("a Control error blocks checkout even when the org has no Stripe custo
 
 Deno.test("an Active Control entitlement allows Cloud checkout", async () => {
   const { run, calls } = checkout({
-    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Active", source: "hub" } }),
+    controlFetch: controlFetchWith({ ok: true, body: controlHostedSubscriptionBody("Active", { source: "hub" }) }),
   });
 
   const { response, payload } = await run();
@@ -635,7 +628,7 @@ Deno.test("Suspended with recoveryAction Subscribe allows Cloud checkout", async
   const { run, calls } = checkout({
     controlFetch: controlFetchWith({
       ok: true,
-      body: { subscriptionState: "Suspended", recoveryAction: "Subscribe" },
+      body: controlHostedSubscriptionBody("Suspended", { recoveryAction: "Subscribe" }),
     }),
   });
 
@@ -663,7 +656,7 @@ Deno.test("Suspended with any recoveryAction other than Subscribe is blocked", a
   const { run, calls } = checkout({
     controlFetch: controlFetchWith({
       ok: true,
-      body: { subscriptionState: "Suspended", recoveryAction: "UpdatePaymentMethod" },
+      body: controlHostedSubscriptionBody("Suspended", { recoveryAction: "UpdatePaymentMethod" }),
     }),
   });
 
@@ -791,7 +784,7 @@ Deno.test("Control Retained blocks Cloud checkout, expires open sessions, and cr
   const { run, calls } = checkout({
     storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
     checkoutSessions: [openCloudSession()],
-    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Retained" } }),
+    controlFetch: controlFetchWith({ ok: true, body: controlHostedSubscriptionBody("Retained") }),
   });
 
   const { response, payload } = await run();
@@ -809,7 +802,7 @@ Deno.test("Control Retained blocks Cloud checkout, expires open sessions, and cr
 
 Deno.test("Control Deleted allows Cloud checkout", async () => {
   const { run, calls } = checkout({
-    controlFetch: controlFetchWith({ ok: true, body: { subscriptionState: "Deleted" } }),
+    controlFetch: controlFetchWith({ ok: true, body: controlHostedSubscriptionBody("Deleted") }),
   });
 
   const { response, payload } = await run();
@@ -825,7 +818,7 @@ Deno.test("Control Retained with recoveryAction Subscribe still blocks checkout"
     checkoutSessions: [openCloudSession()],
     controlFetch: controlFetchWith({
       ok: true,
-      body: { subscriptionState: "Retained", recoveryAction: "Subscribe" },
+      body: controlHostedSubscriptionBody("Retained", { recoveryAction: "Subscribe" }),
     }),
   });
 

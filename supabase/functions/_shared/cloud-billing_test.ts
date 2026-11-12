@@ -29,7 +29,13 @@ import {
   readControlEntitlement,
 } from "./cloud-billing.ts";
 import type { ControlCall, ControlFetch } from "./cloud-control.ts";
-import { CLIENT_CONTROL_ORG, CONTROL_ORG, HUB_ORG } from "./cloud-billing_test_support.ts";
+import {
+  CLIENT_CONTROL_ORG,
+  CONTROL_ORG,
+  HUB_ORG,
+  controlHostedSubscriptionBody,
+  controlNeverSubscribedBody,
+} from "./cloud-billing_test_support.ts";
 
 Deno.test("a Cloud request is recognized by productType or kind; Hub bodies are not", () => {
   assertEquals(isCloudRequest({ productType: "cloud" }), true);
@@ -170,21 +176,26 @@ Deno.test("orgHasAnyCloudSubscription is true for any Cloud subscription, includ
 });
 
 Deno.test("Control hosted-subscription Active/Trial become a plan; ended and empty bodies do not", () => {
-  assertEquals(normalizeControlEntitlement({ subscriptionState: "Active", source: "hub" }), {
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Active", { source: "hub" })), {
     planName: CLOUD_PLAN_NAME,
     status: "active",
     source: "hub",
+  });
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Trial")), {
+    planName: CLOUD_PLAN_NAME,
+    status: "trialing",
+    source: "control",
   });
   assertEquals(normalizeControlEntitlement({ SubscriptionState: "Trial", Source: "control" }), {
     planName: CLOUD_PLAN_NAME,
     status: "trialing",
     source: "control",
   });
-  assertEquals(normalizeControlEntitlement({ subscriptionState: "PastDue" })?.status, "past_due");
-  assertEquals(normalizeControlEntitlement({ subscriptionState: "Constrained" })?.status, "constrained");
-  assertEquals(normalizeControlEntitlement({ subscriptionState: "Suspended" })?.status, "ended");
-  assertEquals(normalizeControlEntitlement({ subscriptionState: "Retained" })?.status, "ended");
-  assertEquals(normalizeControlEntitlement({ subscriptionState: "Deleted" }), null);
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("PastDue"))?.status, "past_due");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Constrained"))?.status, "constrained");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Suspended"))?.status, "ended");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Retained"))?.status, "ended");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Deleted")), null);
   assertEquals(normalizeControlEntitlement({ subscriptionState: null, billingLinked: true }), null);
   assertEquals(normalizeControlEntitlement(null), null);
   assertEquals(normalizeControlEntitlement("Active"), null);
@@ -196,7 +207,7 @@ Deno.test("readControlEntitlement calls Control with the Control org id and retu
   const ok: ControlFetch = async (call, token) => {
     calls.push(call);
     tokens.push(token);
-    return { ok: true, status: 200, body: { subscriptionState: "Active", source: "hub" } };
+    return { ok: true, status: 200, body: controlHostedSubscriptionBody("Active", { source: "hub" }) };
   };
 
   assertEquals(
@@ -345,15 +356,8 @@ Deno.test("readControlCheckoutEntitlement treats a 404 as no entitlement, not an
   );
 });
 
-/** Shape of Control's never-subscribed 200 (see Hosted_subscription_status_reports_missing_billing_linkage). */
-const neverSubscribedBody = {
-  organizationId: CONTROL_ORG,
-  subscriptionState: null,
-  billingLinked: false,
-  portalAvailable: false,
-  managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
-  source: null,
-};
+/** Real Control never-subscribed 200 (HostedSubscriptionManagementResponse). */
+const neverSubscribedBody = controlNeverSubscribedBody();
 
 Deno.test("readControlCheckoutEntitlement fails closed when a 200 body has no readable subscriptionState", async () => {
   for (const body of [{}, null, [], "oops", { foo: 1 }, { subscriptionState: 3 }]) {
@@ -422,7 +426,7 @@ Deno.test("readControlCheckoutEntitlement returns the Control state and recovery
     return {
       ok: true,
       status: 200,
-      body: { subscriptionState: "Suspended", recoveryAction: "Subscribe" },
+      body: controlHostedSubscriptionBody("Suspended", { recoveryAction: "Subscribe" }),
     };
   };
   assertEquals(

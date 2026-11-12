@@ -257,3 +257,78 @@ export async function captureConsoleError<T>(fn: () => Promise<T>): Promise<{ re
     console.error = original;
   }
 }
+
+/**
+ * Real JSON for Control GET /api/organizations/{id}/billing/hosted-subscription.
+ * Field names and wire values come from valence-works/elsa-control main
+ * (0486f2d1) HostedBillingContracts.HostedSubscriptionManagementResponse
+ * and HostedSubscriptionManagementActions, serialized with camelCase
+ * (JsonSerializerDefaults.Web). See OrganizationBillingService.GetHostedSubscriptionAsync
+ * and Hosted_subscription_status_reports_missing_billing_linkage.
+ *
+ * Copy hooks are part of the real body; Hub matchers ignore unknown fields,
+ * but stubs must include them so a missing required field cannot slip through.
+ */
+export const CONTROL_HOSTED_COPY_ENGINE_DELETION = {
+  code: "engine-deletion-leaves-subscription-active",
+  message:
+    "Deleting a managed engine does not cancel the Hosted subscription. Billing continues until the customer cancels it in the subscription portal.",
+} as const;
+
+export const CONTROL_HOSTED_COPY_SUBSCRIPTION_CANCELLATION = {
+  code: "subscription-cancellation-ends-at-period-end",
+  message:
+    "Canceling the Hosted subscription ends access and billing at the end of the current period. It does not immediately delete the managed engine.",
+} as const;
+
+export const CONTROL_HOSTED_COPY_MISSING_BILLING_LINKAGE = {
+  code: "billing-linkage-missing",
+  message:
+    "No Stripe billing customer is linked to this Hosted organization yet. Complete checkout, or wait for the billing webhook, before managing the subscription.",
+} as const;
+
+const CONTROL_NO_BILLING_LINKAGE_ACTION = "no-billing-linkage";
+const CONTROL_OPEN_PORTAL_ACTION = "open-portal";
+
+export function controlNeverSubscribedBody(
+  organizationId = CONTROL_ORG,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    organizationId,
+    subscriptionState: null,
+    billingLinked: false,
+    portalAvailable: false,
+    canManageSubscription: true,
+    managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
+    copy: {
+      engineDeletion: { ...CONTROL_HOSTED_COPY_ENGINE_DELETION },
+      subscriptionCancellation: { ...CONTROL_HOSTED_COPY_SUBSCRIPTION_CANCELLATION },
+      missingBillingLinkage: { ...CONTROL_HOSTED_COPY_MISSING_BILLING_LINKAGE },
+    },
+    source: null,
+    ...overrides,
+  };
+}
+
+/** Linked Hosted subscription 200 (Active, Suspended, Retained, and other enum names). */
+export function controlHostedSubscriptionBody(
+  subscriptionState: string,
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    organizationId: CONTROL_ORG,
+    subscriptionState,
+    billingLinked: true,
+    portalAvailable: true,
+    canManageSubscription: true,
+    managementAction: CONTROL_OPEN_PORTAL_ACTION,
+    copy: {
+      engineDeletion: { ...CONTROL_HOSTED_COPY_ENGINE_DELETION },
+      subscriptionCancellation: { ...CONTROL_HOSTED_COPY_SUBSCRIPTION_CANCELLATION },
+      missingBillingLinkage: null,
+    },
+    source: "control",
+    ...overrides,
+  };
+}
