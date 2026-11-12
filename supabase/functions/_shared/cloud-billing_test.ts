@@ -20,6 +20,7 @@ import {
   isCloudRequest,
   isCloudStripeEvent,
   normalizeControlEntitlement,
+  orgHasAnyCloudSubscription,
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
   readControlCheckoutEntitlement,
@@ -155,6 +156,17 @@ Deno.test("any Cloud subscription that has not ended blocks a second checkout", 
   );
 });
 
+Deno.test("orgHasAnyCloudSubscription is true for any Cloud subscription, including ended ones", () => {
+  for (const status of ["active", "canceled", "incomplete_expired", "past_due"]) {
+    assertEquals(orgHasAnyCloudSubscription([{ status, metadata: { kind: "cloud" } }]), true, status);
+  }
+  assertEquals(
+    orgHasAnyCloudSubscription([{ status: "active", metadata: { billing_type: "recurring" } }]),
+    false,
+  );
+  assertEquals(orgHasAnyCloudSubscription([]), false);
+});
+
 Deno.test("Control hosted-subscription Active/Trial become a plan; ended and empty bodies do not", () => {
   assertEquals(normalizeControlEntitlement({ subscriptionState: "Active", source: "hub" }), {
     planName: CLOUD_PLAN_NAME,
@@ -247,7 +259,7 @@ Deno.test("Cloud checkout, portal and status use #57's helper and never list cus
   }
   assertEquals(portal.includes("getOrCreateStripeCustomer"), false);
   assertEquals(status.includes("getOrCreateStripeCustomer"), false);
-  assertEquals(status.includes("readControlEntitlement("), true);
+  assertEquals(status.includes("readControlHostedSubscription("), true);
   assertEquals(status.includes("Promise.all("), true);
 });
 
@@ -278,11 +290,15 @@ Deno.test("the signed Suspended and entitlement-unavailable lines are exact", ()
   );
 });
 
-Deno.test("controlSubscriptionBlocksCheckout blocks Suspended unless recoveryAction is Subscribe", () => {
+Deno.test("controlSubscriptionBlocksCheckout blocks Suspended or Retained unless recoveryAction is Subscribe", () => {
   assertEquals(controlSubscriptionBlocksCheckout("Suspended", null), true);
   assertEquals(controlSubscriptionBlocksCheckout("suspended", null), true);
   assertEquals(controlSubscriptionBlocksCheckout("Suspended", "UpdatePaymentMethod"), true);
   assertEquals(controlSubscriptionBlocksCheckout("Suspended", "Subscribe"), false);
+  assertEquals(controlSubscriptionBlocksCheckout("Retained", null), true);
+  assertEquals(controlSubscriptionBlocksCheckout("retained", "UpdatePaymentMethod"), true);
+  assertEquals(controlSubscriptionBlocksCheckout("Retained", "Subscribe"), false);
+  assertEquals(controlSubscriptionBlocksCheckout("Deleted", null), false);
   assertEquals(controlSubscriptionBlocksCheckout("Active", null), false);
   assertEquals(controlSubscriptionBlocksCheckout("Active", "Subscribe"), false);
   assertEquals(controlSubscriptionBlocksCheckout(null, null), false);
@@ -325,6 +341,21 @@ Deno.test("readControlCheckoutEntitlement treats a 404 as no entitlement, not an
     }),
     { ok: true, subscriptionState: null, recoveryAction: null },
   );
+});
+
+Deno.test("readControlCheckoutEntitlement fails closed when a 200 body has no readable subscriptionState", async () => {
+  for (const body of [{}, null, [], "oops", { foo: 1 }, { subscriptionState: 3 }]) {
+    const fetch: ControlFetch = async () => ({ ok: true, status: 200, body });
+    assertEquals(
+      await readControlCheckoutEntitlement({
+        accessToken: "hub-session",
+        controlOrganizationId: CONTROL_ORG,
+        controlFetch: fetch,
+      }),
+      { ok: false },
+      JSON.stringify(body),
+    );
+  }
 });
 
 Deno.test("readControlCheckoutEntitlement returns the Control state and recoveryAction", async () => {

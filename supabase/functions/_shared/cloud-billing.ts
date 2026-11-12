@@ -201,6 +201,23 @@ export async function expireCheckoutSession(sessions: CloudCheckoutSessions, id:
 }
 
 /**
+ * Expire open Cloud Checkout Sessions for a stored customer. Used when
+ * Control is Suspended or Retained so a leftover session cannot be paid.
+ * A missing customer is a no-op. Failures to expire a single session are
+ * already swallowed by `expireCheckoutSession`.
+ */
+export async function expireOpenCloudSessionsForCustomer(
+  sessions: CloudCheckoutSessions,
+  customerId: string | null | undefined,
+): Promise<void> {
+  if (!customerId) return;
+  const open = await listOpenCloudCheckoutSessions(sessions, customerId);
+  for (const session of open) {
+    await expireCheckoutSession(sessions, session.id);
+  }
+}
+
+/**
  * Return paths name the org that was billed, so an admin of several orgs lands
  * on that org's Cloud pages. Without a slug they fall back to the legacy
  * `/cloud` routes, which pick an org on the client.
@@ -290,6 +307,20 @@ export function orgHasBlockingCloudSubscription(
 }
 
 /**
+ * True when this customer has ever had an Elsa Cloud subscription, including
+ * canceled and incomplete_expired. Used on Control 404 so a first subscribe
+ * is allowed only when there is no earlier Cloud subscription.
+ */
+export function orgHasAnyCloudSubscription(
+  subscriptions: Array<{
+    status?: string;
+    metadata?: Record<string, string> | null;
+  }>,
+): boolean {
+  return subscriptions.some((sub) => classifyStripeDataObject(sub) === "cloud");
+}
+
+/**
  * Control Hosted subscription states that still entitle the organization
  * (`OrganizationSubscriptionLifecycle.IsLive` on valence-works/elsa-control#825).
  * Mapped to the Hub billing page's Stripe-style status strings.
@@ -359,6 +390,41 @@ export function normalizeControlEntitlement(body: unknown): CloudControlEntitlem
   };
 }
 
+export type ControlHostedSubscriptionRead = {
+  entitlement: CloudControlEntitlement | null;
+  subscriptionState: string | null;
+  recoveryAction: string | null;
+};
+
+/**
+ * Billing-page read of Control's Hosted subscription. Failures return a
+ * null entitlement so Stripe status on `/cloud/billing` still loads. The
+ * raw state is included so a Suspended or Retained result can expire open
+ * Cloud Checkout Sessions without a second Control call.
+ */
+export async function readControlHostedSubscription(
+  input: ReadControlEntitlementInput,
+): Promise<ControlHostedSubscriptionRead> {
+  const empty = { entitlement: null, subscriptionState: null, recoveryAction: null };
+  const { accessToken, controlOrganizationId, controlFetch } = input;
+  if (!accessToken || !controlFetch || !controlOrganizationId || !isGuid(controlOrganizationId)) {
+    return empty;
+  }
+
+  const result = await controlFetch({
+    method: "GET",
+    path: `/api/organizations/${controlOrganizationId}/billing/hosted-subscription`,
+    action: "hostedSubscription",
+  }, accessToken);
+  if (!result.ok) return empty;
+  const record = asRecord(result.body);
+  return {
+    entitlement: normalizeControlEntitlement(result.body),
+    subscriptionState: record && readStringField(record, "subscriptionState", "SubscriptionState"),
+    recoveryAction: record ? readStringField(record, "recoveryAction", "RecoveryAction") : null,
+  };
+}
+
 /**
  * Hub read of Control's Hosted subscription for the linked Control organization.
  * Failures (outage, 404, forbidden, unrecognised body) return null so Stripe
@@ -368,18 +434,7 @@ export function normalizeControlEntitlement(body: unknown): CloudControlEntitlem
 export async function readControlEntitlement(
   input: ReadControlEntitlementInput,
 ): Promise<CloudControlEntitlement | null> {
-  const { accessToken, controlOrganizationId, controlFetch } = input;
-  if (!accessToken || !controlFetch || !controlOrganizationId || !isGuid(controlOrganizationId)) {
-    return null;
-  }
-
-  const result = await controlFetch({
-    method: "GET",
-    path: `/api/organizations/${controlOrganizationId}/billing/hosted-subscription`,
-    action: "hostedSubscription",
-  }, accessToken);
-  if (!result.ok) return null;
-  return normalizeControlEntitlement(result.body);
+  return (await readControlHostedSubscription(input)).entitlement;
 }
 
 export type ControlCheckoutEntitlement =
@@ -389,8 +444,10 @@ export type ControlCheckoutEntitlement =
 /**
  * Checkout read of Control's Hosted subscription. Unlike
  * `readControlEntitlement`, this fails closed on a Control error or timeout
- * (`ok: false`). A 404 or a body with no live state is `ok: true` with a null
- * state, so a first-time subscribe can proceed.
+ * (`ok: false`). A 200 without a readable, non-empty `subscriptionState` is
+ * also `ok: false` (a contract break, not "no subscription"). A 404 is
+ * `ok: true` with a null state; checkout then allows a first subscribe only
+ * when Stripe has no earlier Cloud subscription for the org.
  */
 export async function readControlCheckoutEntitlement(
   input: ReadControlEntitlementInput,
@@ -416,25 +473,27 @@ export async function readControlCheckoutEntitlement(
     }
     return { ok: false };
   }
+  // A 200 without a readable state is a contract break, not "no subscription".
   const record = asRecord(result.body);
-  if (!record) {
-    return { ok: true, subscriptionState: null, recoveryAction: null };
-  }
+  const subscriptionState = record && readStringField(record, "subscriptionState", "SubscriptionState");
+  if (!record || !subscriptionState) return { ok: false };
   return {
     ok: true,
-    subscriptionState: readStringField(record, "subscriptionState", "SubscriptionState"),
+    subscriptionState,
     recoveryAction: readStringField(record, "recoveryAction", "RecoveryAction"),
   };
 }
 
 /**
- * A Suspended Control entitlement blocks Cloud checkout unless #960's
- * `recoveryAction` is exactly `Subscribe`. A missing field is blocked.
+ * A Suspended or Retained Control entitlement blocks Cloud checkout unless
+ * #960's `recoveryAction` is exactly `Subscribe`. A missing field is blocked.
+ * Deleted is not blocked; a first-time or resubscribe path may proceed.
  */
 export function controlSubscriptionBlocksCheckout(
   subscriptionState: string | null,
   recoveryAction: string | null,
 ): boolean {
-  if ((subscriptionState ?? "").toLowerCase() !== "suspended") return false;
+  const state = (subscriptionState ?? "").toLowerCase();
+  if (state !== "suspended" && state !== "retained") return false;
   return recoveryAction !== CONTROL_RECOVERY_ACTION_SUBSCRIBE;
 }

@@ -30,9 +30,11 @@ import {
   CONTROL_ORGANIZATION_METADATA_KEY,
   controlSubscriptionBlocksCheckout,
   expireCheckoutSession,
+  expireOpenCloudSessionsForCustomer,
   HUB_ORGANIZATION_METADATA_KEY,
   listOpenCloudCheckoutSessions,
   type OpenCheckoutSession,
+  orgHasAnyCloudSubscription,
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
   readControlCheckoutEntitlement,
@@ -56,7 +58,7 @@ const CLOUD_CHECKOUT_REUSE_MIN_SECONDS_LEFT = 10 * 60;
 /** The Stripe surface Cloud checkout uses; the real client satisfies it. */
 export type CloudCheckoutStripe = StripeCustomerClient & {
   subscriptions: {
-    list(params: { customer: string; limit?: number }): Promise<{
+    list(params: { customer: string; status?: string; limit?: number }): Promise<{
       data: Array<{ id: string; status: string; metadata?: Record<string, string> | null }>;
     }>;
   };
@@ -105,10 +107,17 @@ export type CloudCheckoutContext = {
   controlFetch?: ControlFetch;
 };
 
+function entitlementUnavailableResponse(): Response {
+  return jsonResponse(503, {
+    error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+    code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+  });
+}
+
 /**
  * Expire any open Cloud Checkout Sessions for a stored customer. Used when
- * Control is Suspended so a leftover session cannot be paid. Failures are
- * logged; the Suspended 409 still returns.
+ * Control is Suspended or Retained so a leftover session cannot be paid.
+ * Failures are logged; the 409 still returns.
  */
 async function expireOpenCloudSessionsForOrg(
   organizationId: string,
@@ -126,11 +135,46 @@ async function expireOpenCloudSessionsForOrg(
     console.error("Cloud checkout could not look up the stored customer to expire open sessions:", error);
     return;
   }
-  if (!customerId) return;
-  const open = await listOpenCloudCheckoutSessions(stripe.checkout.sessions, customerId);
-  for (const session of open) {
-    await expireCheckoutSession(stripe.checkout.sessions, session.id);
+  await expireOpenCloudSessionsForCustomer(stripe.checkout.sessions, customerId);
+}
+
+/**
+ * A Control 404 is a first subscribe only when this org's stored Stripe
+ * customer has never had an Elsa Cloud subscription, including canceled and
+ * incomplete_expired. No stored customer counts as none. A lookup failure
+ * fails closed.
+ */
+async function refuseCheckoutIfEarlierCloudSubscription(
+  organizationId: string,
+  serviceClient: SupabaseClient,
+  env: EnvReader,
+  stripe: CloudCheckoutStripe,
+): Promise<Response | null> {
+  let customerId: string | null = null;
+  try {
+    customerId = await getStoredStripeCustomerId(
+      { orgId: organizationId },
+      { supabase: serviceClient as unknown as StripeCustomerStore, env },
+    );
+  } catch (error) {
+    console.error("Cloud checkout could not look up the stored customer after a Control 404:", error);
+    return entitlementUnavailableResponse();
   }
+  if (!customerId) return null;
+  try {
+    const existing = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      limit: 100,
+    });
+    if (orgHasAnyCloudSubscription(existing.data)) {
+      return entitlementUnavailableResponse();
+    }
+  } catch (error) {
+    console.error("Cloud checkout could not list subscriptions after a Control 404:", error);
+    return entitlementUnavailableResponse();
+  }
+  return null;
 }
 
 function checkoutStripe(ctx: CloudCheckoutContext, env: EnvReader): CloudCheckoutStripe {
@@ -190,21 +234,27 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     controlFetch: ctx.controlFetch,
   });
   if (!entitlement.ok) {
-    return jsonResponse(503, {
-      error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
-      code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
-    });
+    return entitlementUnavailableResponse();
   }
   if (controlSubscriptionBlocksCheckout(entitlement.subscriptionState, entitlement.recoveryAction)) {
     try {
       await expireOpenCloudSessionsForOrg(organizationId, serviceClient, env, checkoutStripe(ctx, env));
     } catch (error) {
-      console.error("Cloud checkout could not expire open sessions for a Suspended org:", error);
+      console.error("Cloud checkout could not expire open sessions for a blocked Control state:", error);
     }
     return jsonResponse(409, {
       error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
       code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
     });
+  }
+  if (entitlement.subscriptionState === null) {
+    const refused = await refuseCheckoutIfEarlierCloudSubscription(
+      organizationId,
+      serviceClient,
+      env,
+      checkoutStripe(ctx, env),
+    );
+    if (refused) return refused;
   }
 
   let stripePriceId: string;
