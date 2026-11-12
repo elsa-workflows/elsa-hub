@@ -68,12 +68,15 @@ function controlFetchWith(
 
 const CLOUD_METADATA = { kind: "cloud", product_type: "cloud" };
 
+/** Control never-subscribed 200, as in Hosted_subscription_status_reports_missing_billing_linkage. */
 function neverSubscribedBody(overrides: Record<string, unknown> = {}) {
   return {
     organizationId: CONTROL_ORG,
     subscriptionState: null,
     billingLinked: false,
+    portalAvailable: false,
     managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
+    source: null,
     ...overrides,
   };
 }
@@ -885,7 +888,7 @@ for (
       return rest;
     })()],
     ["billingLinked true", neverSubscribedBody({ billingLinked: true })],
-    ["different managementAction", neverSubscribedBody({ managementAction: "no-billing-linkage" })],
+    ["different managementAction", neverSubscribedBody({ managementAction: "manage" })],
   ] as const
 ) {
   Deno.test(`a never-subscribed 200 with ${name} fails closed with 503 and creates no session`, async () => {

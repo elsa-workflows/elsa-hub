@@ -17,6 +17,7 @@ import {
   CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
   CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
   CONTROL_NO_BILLING_LINKAGE_ACTION,
+  CONTROL_NO_BILLING_LINKAGE_ACTIONS,
   controlSubscriptionBlocksCheckout,
   isControlNeverSubscribedBody,
   isCloudRequest,
@@ -345,11 +346,14 @@ Deno.test("readControlCheckoutEntitlement treats a 404 as no entitlement, not an
   );
 });
 
+/** Shape of Control's never-subscribed 200 (see Hosted_subscription_status_reports_missing_billing_linkage). */
 const neverSubscribedBody = {
   organizationId: CONTROL_ORG,
   subscriptionState: null,
   billingLinked: false,
+  portalAvailable: false,
   managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
+  source: null,
 };
 
 Deno.test("readControlCheckoutEntitlement fails closed when a 200 body has no readable subscriptionState", async () => {
@@ -367,15 +371,27 @@ Deno.test("readControlCheckoutEntitlement fails closed when a 200 body has no re
   }
 });
 
-Deno.test("a Control never-subscribed 200 is accepted only for the exact shape", async () => {
+Deno.test("a Control never-subscribed 200 is accepted for the real Control body and Lead's spelling", async () => {
+  assertEquals(CONTROL_NO_BILLING_LINKAGE_ACTION, "no-billing-linkage");
+  assertEquals(CONTROL_NO_BILLING_LINKAGE_ACTIONS, ["no-billing-linkage", "NoBillingLinkage"]);
   assertEquals(isControlNeverSubscribedBody(neverSubscribedBody, CONTROL_ORG), true);
-  assertEquals(CONTROL_NO_BILLING_LINKAGE_ACTION, "NoBillingLinkage");
   const fetch: ControlFetch = async () => ({ ok: true, status: 200, body: neverSubscribedBody });
   assertEquals(
     await readControlCheckoutEntitlement({
       accessToken: "hub-session",
       controlOrganizationId: CONTROL_ORG,
       controlFetch: fetch,
+    }),
+    { ok: true, subscriptionState: null, recoveryAction: null },
+  );
+  const leadSpelling = { ...neverSubscribedBody, managementAction: "NoBillingLinkage" };
+  assertEquals(isControlNeverSubscribedBody(leadSpelling, CONTROL_ORG), true);
+  const leadFetch: ControlFetch = async () => ({ ok: true, status: 200, body: leadSpelling });
+  assertEquals(
+    await readControlCheckoutEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: leadFetch,
     }),
     { ok: true, subscriptionState: null, recoveryAction: null },
   );
@@ -392,7 +408,7 @@ Deno.test("a never-subscribed 200 fails closed when any required field is mutate
     ["whitespace subscriptionState", { ...neverSubscribedBody, subscriptionState: "  " }],
     ["billingLinked true", { ...neverSubscribedBody, billingLinked: true }],
     ["missing billingLinked", { organizationId: CONTROL_ORG, subscriptionState: null, managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION }],
-    ["different managementAction", { ...neverSubscribedBody, managementAction: "no-billing-linkage" }],
+    ["different managementAction", { ...neverSubscribedBody, managementAction: "manage" }],
     ["missing managementAction", { organizationId: CONTROL_ORG, subscriptionState: null, billingLinked: false }],
   ];
   for (const [name, body] of variants) {
