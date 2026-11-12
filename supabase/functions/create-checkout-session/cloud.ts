@@ -150,8 +150,9 @@ async function expireOpenCloudSessionsForOrg(
  * A Control 404 or never-subscribed 200 is a first subscribe only when this
  * org's stored Stripe customer has never had an Elsa Cloud subscription,
  * including canceled and incomplete_expired. No stored customer counts as
- * none. An earlier Cloud subscription is a permanent 409. A lookup failure
- * or a truncated Stripe page (`has_more`) fails closed with 503.
+ * none. An earlier Cloud subscription on page 1 is a permanent 409, even
+ * when the list has more pages. A lookup failure, or `has_more` when page
+ * 1 has no Cloud subscription, fails closed with 503.
  */
 async function refuseCheckoutIfEarlierCloudSubscription(
   organizationId: string,
@@ -176,11 +177,11 @@ async function refuseCheckoutIfEarlierCloudSubscription(
       status: "all",
       limit: 100,
     });
-    if (existing.has_more) {
-      return entitlementUnavailableResponse();
-    }
     if (orgHasAnyCloudSubscription(existing.data)) {
       return subscriptionSuspendedResponse();
+    }
+    if (existing.has_more) {
+      return entitlementUnavailableResponse();
     }
   } catch (error) {
     console.error("Cloud checkout could not list subscriptions after a never-subscribed Control read:", error);

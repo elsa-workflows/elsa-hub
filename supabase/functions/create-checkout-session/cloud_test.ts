@@ -888,6 +888,7 @@ for (
       return rest;
     })()],
     ["billingLinked true", neverSubscribedBody({ billingLinked: true })],
+    ["NoBillingLinkage managementAction", neverSubscribedBody({ managementAction: "NoBillingLinkage" })],
     ["different managementAction", neverSubscribedBody({ managementAction: "manage" })],
   ] as const
 ) {
@@ -932,9 +933,33 @@ for (const state of ["", "  "]) {
   });
 }
 
-Deno.test("a never-subscribed Control read fails closed with 503 when the Stripe list has_more", async () => {
+Deno.test("a never-subscribed Control read is 409 when page 1 has an earlier Cloud subscription, even if has_more", async () => {
   const { run, calls } = checkout({
     storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    checkoutSessions: [openCloudSession()],
+    subscriptions: [{ id: "sub_cloud", status: "canceled", metadata: CLOUD_METADATA }],
+    subscriptionListHasMore: true,
+    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload, {
+    error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+    code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  });
+  assertEquals(payload.error, "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.");
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(payload.checkoutUrl, undefined);
+  assertEquals(calls.customersCreated, 0);
+  assertEquals(calls.subscriptionLists, [{ customer: "cus_org_a", status: "all", limit: 100 }]);
+});
+
+Deno.test("a never-subscribed Control read fails closed with 503 when has_more and page 1 has no Cloud subscription", async () => {
+  const { run, calls } = checkout({
+    storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    subscriptions: [{ id: "sub_hub", status: "active", metadata: { billing_type: "recurring" } }],
     subscriptionListHasMore: true,
     controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
   });

@@ -60,15 +60,6 @@ export const CONTROL_RECOVERY_ACTION_SUBSCRIBE = "Subscribe";
  * valence-works/elsa-control `HostedBillingContracts.cs`).
  */
 export const CONTROL_NO_BILLING_LINKAGE_ACTION = "no-billing-linkage";
-
-/**
- * Accepted `managementAction` spellings for a never-subscribed 200: Control's
- * wire value, and Lead's `NoBillingLinkage`. Nothing else matches.
- */
-export const CONTROL_NO_BILLING_LINKAGE_ACTIONS: readonly string[] = [
-  CONTROL_NO_BILLING_LINKAGE_ACTION,
-  "NoBillingLinkage",
-];
 /** Plan label until Control reports a more specific Hosted product name. */
 export const CLOUD_PLAN_NAME = "Elsa Cloud";
 
@@ -473,9 +464,9 @@ function sameControlOrganizationId(value: unknown, expected: string): boolean {
 /**
  * Control's never-subscribed 200: an object with `organizationId` equal to
  * the requested Control org, `subscriptionState` present and null,
- * `billingLinked` === false, and `managementAction` one of
- * `CONTROL_NO_BILLING_LINKAGE_ACTIONS`. A missing or undefined
- * `subscriptionState` is not accepted.
+ * `billingLinked` === false, and `managementAction` exactly
+ * `no-billing-linkage`. A missing or undefined `subscriptionState` is
+ * not accepted. Other spellings, including `NoBillingLinkage`, are not.
  */
 export function isControlNeverSubscribedBody(
   body: unknown,
@@ -490,8 +481,7 @@ export function isControlNeverSubscribedBody(
   return sameControlOrganizationId(organizationId.value, controlOrganizationId) &&
     subscriptionState.present && subscriptionState.value === null &&
     billingLinked.value === false &&
-    typeof managementAction.value === "string" &&
-    CONTROL_NO_BILLING_LINKAGE_ACTIONS.includes(managementAction.value);
+    managementAction.value === CONTROL_NO_BILLING_LINKAGE_ACTION;
 }
 
 /**
