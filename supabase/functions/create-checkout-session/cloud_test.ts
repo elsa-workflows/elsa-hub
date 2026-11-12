@@ -7,6 +7,7 @@ import {
   CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
   CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
   CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+  CONTROL_NO_BILLING_LINKAGE_ACTION,
 } from "../_shared/cloud-billing.ts";
 import type { ControlFetch } from "../_shared/cloud-control.ts";
 import { hasNoStore } from "../_shared/cloud-http.ts";
@@ -45,6 +46,7 @@ type Setup = {
   subscriptionListError?: Error;
   sessionListError?: Error;
   sessionCreateError?: Error;
+  subscriptionListHasMore?: boolean;
   origin?: string;
   env?: Record<string, string | undefined>;
   accessToken?: string | undefined;
@@ -65,6 +67,19 @@ function controlFetchWith(
 }
 
 const CLOUD_METADATA = { kind: "cloud", product_type: "cloud" };
+
+/** Control never-subscribed 200, as in Hosted_subscription_status_reports_missing_billing_linkage. */
+function neverSubscribedBody(overrides: Record<string, unknown> = {}) {
+  return {
+    organizationId: CONTROL_ORG,
+    subscriptionState: null,
+    billingLinked: false,
+    portalAvailable: false,
+    managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
+    source: null,
+    ...overrides,
+  };
+}
 const SUCCESS_URL = `${SITE_ORIGIN}/dashboard/org/org-a/cloud?payment=success`;
 
 /** An open Cloud session matching what this request would create, unless overridden. */
@@ -105,6 +120,7 @@ function checkout(setup: Setup = {}) {
     subscriptionListError: setup.subscriptionListError,
     sessionListError: setup.sessionListError,
     sessionCreateError: setup.sessionCreateError,
+    subscriptionListHasMore: setup.subscriptionListHasMore,
   });
   const run = async () => {
     const response = await handleCloudCheckout({
@@ -717,7 +733,7 @@ Deno.test("a Control 404 with no Stripe customer row allows checkout", async () 
 });
 
 for (const status of ["canceled", "incomplete_expired", "active"]) {
-  Deno.test(`a Control 404 with an earlier ${status} Cloud subscription is 503 and opens no session`, async () => {
+  Deno.test(`a Control 404 with an earlier ${status} Cloud subscription is 409 and opens no session`, async () => {
     const { run, calls } = checkout({
       storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
       checkoutSessions: [openCloudSession()],
@@ -727,11 +743,12 @@ for (const status of ["canceled", "incomplete_expired", "active"]) {
 
     const { response, payload } = await run();
 
-    assertEquals(response.status, 503);
+    assertEquals(response.status, 409);
     assertEquals(payload, {
-      error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
-      code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+      error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+      code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
     });
+    assertEquals(payload.error, "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.");
     assertEquals(calls.sessions.length, 0);
     assertEquals(payload.checkoutUrl, undefined);
     assertEquals(calls.customersCreated, 0);
@@ -800,4 +817,162 @@ Deno.test("Control Deleted allows Cloud checkout", async () => {
   assertEquals(response.status, 200);
   assertEquals(typeof payload.checkoutUrl, "string");
   assertEquals(calls.sessions.length, 1);
+});
+
+Deno.test("Control Retained with recoveryAction Subscribe still blocks checkout", async () => {
+  const { run, calls } = checkout({
+    storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    checkoutSessions: [openCloudSession()],
+    controlFetch: controlFetchWith({
+      ok: true,
+      body: { subscriptionState: "Retained", recoveryAction: "Subscribe" },
+    }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload, {
+    error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+    code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  });
+  assertEquals(calls.expired, ["cs_cloud"]);
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.customersCreated, 0);
+});
+
+Deno.test("a never-subscribed Control 200 with no earlier Cloud subscription allows checkout", async () => {
+  const { run, calls } = checkout({
+    storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(typeof payload.checkoutUrl, "string");
+  assertEquals(calls.sessions.length, 1);
+  assertEquals(calls.subscriptionLists[0], { customer: "cus_org_a", status: "all", limit: 100 });
+});
+
+Deno.test("a never-subscribed Control 200 with an earlier Cloud subscription is 409 and opens no session", async () => {
+  const { run, calls } = checkout({
+    storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    checkoutSessions: [openCloudSession()],
+    subscriptions: [{ id: "sub_cloud", status: "canceled", metadata: CLOUD_METADATA }],
+    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload, {
+    error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+    code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  });
+  assertEquals(payload.error, "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.");
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(payload.checkoutUrl, undefined);
+  assertEquals(calls.customersCreated, 0);
+});
+
+for (
+  const [name, body] of [
+    ["wrong organizationId", neverSubscribedBody({ organizationId: CLIENT_CONTROL_ORG })],
+    ["missing organizationId", (() => {
+      const { organizationId: _omit, ...rest } = neverSubscribedBody();
+      return rest;
+    })()],
+    ["missing subscriptionState", (() => {
+      const { subscriptionState: _omit, ...rest } = neverSubscribedBody();
+      return rest;
+    })()],
+    ["billingLinked true", neverSubscribedBody({ billingLinked: true })],
+    ["NoBillingLinkage managementAction", neverSubscribedBody({ managementAction: "NoBillingLinkage" })],
+    ["different managementAction", neverSubscribedBody({ managementAction: "manage" })],
+  ] as const
+) {
+  Deno.test(`a never-subscribed 200 with ${name} fails closed with 503 and creates no session`, async () => {
+    const { run, calls } = checkout({
+      storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+      checkoutSessions: [openCloudSession()],
+      controlFetch: controlFetchWith({ ok: true, body }),
+    });
+
+    const { response, payload } = await run();
+
+    assertEquals(response.status, 503);
+    assertEquals(payload, {
+      error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+      code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+    });
+    assertEquals(calls.sessions.length, 0);
+    assertEquals(payload.checkoutUrl, undefined);
+    assertEquals(calls.customersCreated, 0);
+  });
+}
+
+for (const state of ["", "  "]) {
+  Deno.test(`a subscriptionState of ${JSON.stringify(state)} fails closed with 503 and creates no session`, async () => {
+    const { run, calls } = checkout({
+      storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+      checkoutSessions: [openCloudSession()],
+      controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody({ subscriptionState: state }) }),
+    });
+
+    const { response, payload } = await run();
+
+    assertEquals(response.status, 503);
+    assertEquals(payload, {
+      error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+      code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+    });
+    assertEquals(calls.sessions.length, 0);
+    assertEquals(payload.checkoutUrl, undefined);
+    assertEquals(calls.customersCreated, 0);
+  });
+}
+
+Deno.test("a never-subscribed Control read is 409 when page 1 has an earlier Cloud subscription, even if has_more", async () => {
+  const { run, calls } = checkout({
+    storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    checkoutSessions: [openCloudSession()],
+    subscriptions: [{ id: "sub_cloud", status: "canceled", metadata: CLOUD_METADATA }],
+    subscriptionListHasMore: true,
+    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 409);
+  assertEquals(payload, {
+    error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+    code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  });
+  assertEquals(payload.error, "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.");
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(payload.checkoutUrl, undefined);
+  assertEquals(calls.customersCreated, 0);
+  assertEquals(calls.subscriptionLists, [{ customer: "cus_org_a", status: "all", limit: 100 }]);
+});
+
+Deno.test("a never-subscribed Control read fails closed with 503 when has_more and page 1 has no Cloud subscription", async () => {
+  const { run, calls } = checkout({
+    storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+    subscriptions: [{ id: "sub_hub", status: "active", metadata: { billing_type: "recurring" } }],
+    subscriptionListHasMore: true,
+    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 503);
+  assertEquals(payload, {
+    error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+    code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+  });
+  assertEquals(payload.error, "We couldn't load billing. Refresh this page to check again.");
+  assertEquals(calls.sessions.length, 0);
+  assertEquals(calls.customersCreated, 0);
+  assertEquals(calls.subscriptionLists, [{ customer: "cus_org_a", status: "all", limit: 100 }]);
 });

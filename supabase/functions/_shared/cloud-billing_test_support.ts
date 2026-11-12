@@ -141,6 +141,7 @@ export function fakeStripe(
     customerUpdateError?: Error;
     expireError?: Error;
     subscriptionListError?: Error;
+    subscriptionListHasMore?: boolean;
     sessionListError?: Error;
     sessionCreateError?: Error;
   } = {},
@@ -153,8 +154,13 @@ export function fakeStripe(
     expired: [] as string[],
     portals: [] as Array<{ customer: string; return_url: string }>,
   };
-  const page = <T>(rows: T[], params: Record<string, unknown>) =>
-    Promise.resolve({ data: rows.slice(0, (params.limit as number | undefined) ?? 10) });
+  const page = <T>(rows: T[], params: Record<string, unknown>, hasMore = false) => {
+    const limit = (params.limit as number | undefined) ?? 10;
+    return Promise.resolve({
+      data: rows.slice(0, limit),
+      has_more: hasMore,
+    });
+  };
   const stripe = {
     customers: {
       create: () => {
@@ -169,7 +175,11 @@ export function fakeStripe(
       list: (params: Record<string, unknown>) => {
         calls.subscriptionLists.push(params);
         if (options.subscriptionListError) return Promise.reject(options.subscriptionListError);
-        return page(subscriptions.filter((sub) => subscriptionMatches(params.status, sub)), params);
+        return page(
+          subscriptions.filter((sub) => subscriptionMatches(params.status, sub)),
+          params,
+          options.subscriptionListHasMore === true,
+        );
       },
     },
     checkout: {
