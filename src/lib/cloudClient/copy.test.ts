@@ -5,6 +5,8 @@ import {
 } from "@/lib/cloud/billingContract";
 import {
   CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
+  CLOUD_BILLING_ENDED_BODY,
+  CLOUD_BILLING_HISTORY_LINK,
   CLOUD_BILLING_NOT_AVAILABLE,
   CLOUD_BILLING_NOT_CONNECTED,
   CLOUD_BILLING_NO_CUSTOMER,
@@ -119,6 +121,17 @@ describe("signed #195 checkout lines", () => {
     expect(CLOUD_BILLING_UNAVAILABLE).toBe(CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE);
     expect(CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE).not.toMatch(/has ended/);
     expect(CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE).not.toMatch(/has ended/);
+  });
+});
+
+describe("signed #195 canceled-state copy", () => {
+  it("byte-matches the signed Suspended body and View invoices label", () => {
+    expect(CLOUD_BILLING_ENDED_BODY).toBe(
+      "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.",
+    );
+    expect(CLOUD_BILLING_HISTORY_LINK).toBe("View invoices");
+    expect(CLOUD_BILLING_ENDED_BODY).not.toMatch(/has ended/);
+    expect(CLOUD_BILLING_ENDED_BODY).not.toMatch(/Subscribe/);
   });
 });
 

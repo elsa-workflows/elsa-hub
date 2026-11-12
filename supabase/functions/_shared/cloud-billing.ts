@@ -331,7 +331,7 @@ const CONTROL_LIVE_SUBSCRIPTION_STATUS: Record<string, string> = {
   active: "active",
   pastdue: "past_due",
   constrained: "constrained",
-  suspended: "paused",
+  suspended: "ended",
 };
 
 export type CloudControlEntitlement = {

@@ -9,6 +9,8 @@ import type { CloudSubscriptionStatus } from "@/hooks/useCloudBilling";
 import { ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
 import { cloudPlanStatusLabel } from "@/lib/cloud/billingDisplay";
 import {
+  CLOUD_BILLING_ENDED_BODY,
+  CLOUD_BILLING_HISTORY_LINK,
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
   CLOUD_BILLING_NOT_AVAILABLE,
@@ -56,6 +58,7 @@ export function CloudBillingPanel({
   cloudHomeHref?: string;
 }) {
   const hasPlan = Boolean(planName && planStatus && !ENDED_SUBSCRIPTION_STATUSES.includes(planStatus));
+  const planEnded = planStatus === "ended";
   const linkedToControl = cloudLink === "linked";
   const hasStoredCustomer = billingAccount === "linked";
   const periodEnd = subscription?.currentPeriodEnd
@@ -120,19 +123,21 @@ export function CloudBillingPanel({
                 {cloudPlanStatusLabel(planStatus, subscription?.cancelAtPeriodEnd ?? false)}
               </Badge>
             </div>
-            {periodEnd && (
+            {planEnded ? (
+              <p className="text-sm text-muted-foreground">{CLOUD_BILLING_ENDED_BODY}</p>
+            ) : periodEnd ? (
               <p className="text-sm text-muted-foreground">
                 {subscription?.cancelAtPeriodEnd
                   ? `Access and billing continue until ${periodEnd}. Canceling does not delete engines.`
                   : `Renews ${periodEnd}.`}
               </p>
-            )}
+            ) : null}
           </div>
         )}
 
         {canManage && !unavailable && (linkedToControl || hasPlan || hasStoredCustomer) ? (
           <div className="flex flex-col sm:flex-row gap-3">
-            {linkedToControl && !hasPlan && (
+            {linkedToControl && !hasPlan && !planEnded && (
               <Button
                 type="button"
                 onClick={onSubscribe}
@@ -152,7 +157,7 @@ export function CloudBillingPanel({
                 className="min-h-11"
               >
                 {portalPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Manage or cancel billing
+                {planEnded ? CLOUD_BILLING_HISTORY_LINK : "Manage or cancel billing"}
               </Button>
             )}
             {hasPlan && !hasStoredCustomer && (

@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import {
+  CLOUD_BILLING_ENDED_BODY,
+  CLOUD_BILLING_HISTORY_LINK,
   CLOUD_BILLING_NEEDS_LINK,
   CLOUD_BILLING_NO_CUSTOMER,
   CLOUD_BILLING_NOT_AVAILABLE,
@@ -263,5 +265,34 @@ describe("CloudBillingPanel", () => {
 
     expect(screen.getByText(CLOUD_PREVIEW_LIMITS_HEADING)).toBeInTheDocument();
     expect(screen.getByText(CLOUD_PREVIEW_ONE_USER)).toBeInTheDocument();
+  });
+
+  it("shows No active plan and View invoices for an ended (Suspended) plan, not Paused or Subscribe", () => {
+    const { onSubscribe, onManage } = renderPanel({
+      planStatus: "ended",
+      subscription: subscription({ status: "ended" }),
+    });
+
+    expect(screen.getByText("No active plan")).toBeInTheDocument();
+    expect(screen.queryByText("Paused")).not.toBeInTheDocument();
+    expect(screen.getByText(CLOUD_BILLING_ENDED_BODY)).toBeInTheDocument();
+    expect(CLOUD_BILLING_ENDED_BODY).toBe(
+      "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.",
+    );
+    expect(screen.queryByText(/has ended/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/renews/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /manage or cancel billing/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /update payment method/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_BILLING_HISTORY_LINK }));
+    expect(onManage).toHaveBeenCalled();
+    expect(onSubscribe).not.toHaveBeenCalled();
+  });
+
+  it("keeps Paused, Past due and Limited copy unchanged", () => {
+    renderPanel({ planStatus: "paused", subscription: subscription({ status: "paused" }) });
+    expect(screen.getByText("Paused")).toBeInTheDocument();
+    expect(screen.queryByText("No active plan")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /manage or cancel billing/i })).toBeInTheDocument();
   });
 });

@@ -30,6 +30,9 @@ export const CLOUD_BILLING_NOT_AVAILABLE =
   "Elsa Cloud billing isn't available on the Hub.";
 export const CLOUD_BILLING_NO_CUSTOMER =
   "This organization has no billing account on the Hub, so the billing portal isn't available.";
+export const CLOUD_BILLING_ENDED_BODY =
+  "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.";
+export const CLOUD_BILLING_HISTORY_LINK = "View invoices";
 export const CLOUD_PREVIEW_LIMITS_HEADING = "Preview limits";
 export const CLOUD_PREVIEW_ONE_USER =
   "During Preview, each organization has one Elsa Cloud user.";
