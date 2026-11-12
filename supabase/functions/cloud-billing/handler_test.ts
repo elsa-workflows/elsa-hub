@@ -348,7 +348,7 @@ Deno.test("a Suspended Control state on status expires open Cloud checkout sessi
   const { response, payload } = await run();
 
   assertEquals(response.status, 200);
-  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "paused", source: null });
+  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "ended", source: null });
   assertEquals(calls.expired, ["cs_cloud"]);
   assertEquals(calls.sessionLists, [{ customer: "cus_org_a", status: "open", limit: 100 }]);
 });
@@ -430,7 +430,7 @@ Deno.test("a session expiry error on a Suspended status read is logged and statu
   const payload = await response.json();
 
   assertEquals(response.status, 200);
-  assertEquals(payload.entitlement.status, "paused");
+  assertEquals(payload.entitlement.status, "ended");
   assertEquals(calls.expired, ["cs_cloud"]);
   assertStringIncludes(logged, "can be expired");
 });
