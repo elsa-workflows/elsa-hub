@@ -7,16 +7,28 @@ import {
   assertNoStoreWithCors,
   captureConsoleError,
   CONTROL_ORG,
+  type FakeCheckoutSession,
   fakeStripe,
   type FakeSubscription,
   fakeSupabase,
   fakeUserClient,
   HUB_ORG,
+  minutesFromNow,
   OTHER_ORG,
   storedOrgCustomer,
   validatedLink,
   testEnv,
 } from "../_shared/cloud-billing_test_support.ts";
+
+function openCloudSession(id = "cs_cloud"): FakeCheckoutSession {
+  return {
+    id,
+    status: "open",
+    url: "https://checkout.example/open-cloud",
+    expires_at: minutesFromNow(20),
+    metadata: { kind: "cloud", product_type: "cloud" },
+  };
+}
 
 function status(setup: {
   body?: unknown;
@@ -26,6 +38,7 @@ function status(setup: {
   links?: Array<ReturnType<typeof validatedLink>>;
   failTables?: string[];
   subscriptions?: FakeSubscription[];
+  checkoutSessions?: FakeCheckoutSession[];
   env?: Record<string, string | undefined>;
   accessToken?: string;
   controlFetch?: ControlFetch;
@@ -38,7 +51,9 @@ function status(setup: {
     },
     failTables: setup.failTables,
   });
-  const { stripe, calls } = fakeStripe(setup.subscriptions);
+  const { stripe, calls } = fakeStripe(setup.subscriptions, {
+    checkoutSessions: setup.checkoutSessions,
+  });
   const run = async () => {
     const response = await handleCloudBillingStatus({
       user: { id: ADMIN },
@@ -315,3 +330,108 @@ Deno.test("a live Stripe key is allowed on status when the live flag is exactly 
   assertEquals(payload.code, undefined);
   assertEquals(JSON.stringify(payload).includes("sk_live_cloud"), false);
 });
+
+Deno.test("a Suspended Control state on status expires open Cloud checkout sessions and still returns 200", async () => {
+  const control = recordingControlFetch({ subscriptionState: "Suspended" });
+  const { run, calls } = status({
+    accessToken: "hub-session",
+    controlFetch: control.fetch,
+    checkoutSessions: [openCloudSession(), {
+      id: "cs_hub",
+      status: "open",
+      url: "https://checkout.example/open-hub",
+      expires_at: minutesFromNow(20),
+      metadata: { bundle_id: "b1" },
+    }],
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "paused", source: null });
+  assertEquals(calls.expired, ["cs_cloud"]);
+  assertEquals(calls.sessionLists, [{ customer: "cus_org_a", status: "open", limit: 100 }]);
+});
+
+Deno.test("a Retained Control state on status expires open Cloud checkout sessions and still returns 200", async () => {
+  const control = recordingControlFetch({ subscriptionState: "Retained" });
+  const { run, calls } = status({
+    accessToken: "hub-session",
+    controlFetch: control.fetch,
+    checkoutSessions: [openCloudSession()],
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.entitlement, null);
+  assertEquals(calls.expired, ["cs_cloud"]);
+});
+
+Deno.test("Suspended with recoveryAction Subscribe on status does not expire open sessions", async () => {
+  const control = recordingControlFetch({
+    subscriptionState: "Suspended",
+    recoveryAction: "Subscribe",
+  });
+  const { run, calls } = status({
+    accessToken: "hub-session",
+    controlFetch: control.fetch,
+    checkoutSessions: [openCloudSession()],
+  });
+
+  const { response } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(calls.expired, []);
+  assertEquals(calls.sessionLists, []);
+});
+
+Deno.test("an Active Control state on status does not expire open sessions", async () => {
+  const control = recordingControlFetch({ subscriptionState: "Active", source: "hub" });
+  const { run, calls } = status({
+    accessToken: "hub-session",
+    controlFetch: control.fetch,
+    checkoutSessions: [openCloudSession()],
+  });
+
+  const { response, payload } = await run();
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.entitlement.status, "active");
+  assertEquals(calls.expired, []);
+  assertEquals(calls.sessionLists, []);
+});
+
+Deno.test("a session expiry error on a Suspended status read is logged and status is still 200", async () => {
+  const control = recordingControlFetch({ subscriptionState: "Suspended" });
+  const serviceClient = fakeSupabase({
+    tables: {
+      org_stripe_customers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
+      cloud_organization_links: [validatedLink()],
+    },
+  });
+  const { stripe, calls } = fakeStripe([], {
+    checkoutSessions: [openCloudSession()],
+    expireError: new Error("Only Checkout Sessions with a status of `open` can be expired."),
+  });
+
+  const { result: response, logged } = await captureConsoleError(async () =>
+    await handleCloudBillingStatus({
+      user: { id: ADMIN },
+      userClient: fakeUserClient() as never,
+      serviceClient: serviceClient as never,
+      body: { organizationId: HUB_ORG },
+      env: testEnv(),
+      stripe: () => stripe as never,
+      accessToken: "hub-session",
+      controlFetch: control.fetch,
+    })
+  );
+  const payload = await response.json();
+
+  assertEquals(response.status, 200);
+  assertEquals(payload.entitlement.status, "paused");
+  assertEquals(calls.expired, ["cs_cloud"]);
+  assertStringIncludes(logged, "can be expired");
+});
+

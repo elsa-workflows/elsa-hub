@@ -13,9 +13,12 @@ import {
   CLOUD_LINK_READ_FAILED,
   CLOUD_ORGANIZATION_REQUIRED,
   CLOUD_PLAN_NAME,
+  type CloudCheckoutSessions,
   cloudLinkFromControlOrganizationId,
   cloudOrganizationIdFromBody,
-  readControlEntitlement,
+  controlSubscriptionBlocksCheckout,
+  expireOpenCloudSessionsForCustomer,
+  readControlHostedSubscription,
 } from "../_shared/cloud-billing.ts";
 import type { ControlFetch } from "../_shared/cloud-control.ts";
 import { jsonResponse, noStoreHeaders } from "../_shared/cloud-http.ts";
@@ -24,6 +27,9 @@ import { readValidatedControlOrganizationId } from "../_shared/cloud-organizatio
 export type CloudBillingStripe = {
   subscriptions: {
     list(params: Stripe.SubscriptionListParams): Promise<{ data: Stripe.Subscription[] }>;
+  };
+  checkout: {
+    sessions: CloudCheckoutSessions;
   };
 };
 
@@ -111,18 +117,30 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
 
   // Control hosted-subscription can sit on its 15s timeout. Read Stripe in
   // parallel so /cloud/billing still returns the stored customer's status.
-  const [entitlement, subscriptions] = await Promise.all([
-    readControlEntitlement({
+  const stripe = ctx.stripe();
+  const [hosted, subscriptions] = await Promise.all([
+    readControlHostedSubscription({
       accessToken: ctx.accessToken,
       controlOrganizationId,
       controlFetch: ctx.controlFetch,
     }),
     customerId
-      ? listCloudSubscriptions(ctx.stripe(), customerId).then((subs) =>
+      ? listCloudSubscriptions(stripe, customerId).then((subs) =>
         subs.map(cloudSubscriptionView)
       )
       : Promise.resolve([]),
   ]);
+
+  // Expire leftover Cloud Checkout Sessions when this status read observes
+  // a blocked Control state (Suspended or Retained). Errors are logged; the
+  // status response still returns.
+  if (controlSubscriptionBlocksCheckout(hosted.subscriptionState, hosted.recoveryAction)) {
+    try {
+      await expireOpenCloudSessionsForCustomer(stripe.checkout.sessions, customerId);
+    } catch (error) {
+      console.error("Cloud billing could not expire open sessions for a blocked Control state:", error);
+    }
+  }
 
   return jsonResponse(200, {
     billingAccount: customerId ? "linked" : "missing",
@@ -130,6 +148,6 @@ export async function handleCloudBillingStatus(ctx: CloudBillingStatusContext): 
     controlOrganizationId,
     canManage,
     subscriptions,
-    entitlement,
+    entitlement: hosted.entitlement,
   });
 }
