@@ -16,7 +16,9 @@ import {
   cloudPortalReturnPath,
   CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
   CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+  CONTROL_NO_BILLING_LINKAGE_ACTION,
   controlSubscriptionBlocksCheckout,
+  isControlNeverSubscribedBody,
   isCloudRequest,
   isCloudStripeEvent,
   normalizeControlEntitlement,
@@ -27,7 +29,7 @@ import {
   readControlEntitlement,
 } from "./cloud-billing.ts";
 import type { ControlCall, ControlFetch } from "./cloud-control.ts";
-import { CONTROL_ORG, HUB_ORG } from "./cloud-billing_test_support.ts";
+import { CLIENT_CONTROL_ORG, CONTROL_ORG, HUB_ORG } from "./cloud-billing_test_support.ts";
 
 Deno.test("a Cloud request is recognized by productType or kind; Hub bodies are not", () => {
   assertEquals(isCloudRequest({ productType: "cloud" }), true);
@@ -290,14 +292,14 @@ Deno.test("the signed Suspended and entitlement-unavailable lines are exact", ()
   );
 });
 
-Deno.test("controlSubscriptionBlocksCheckout blocks Suspended or Retained unless recoveryAction is Subscribe", () => {
+Deno.test("controlSubscriptionBlocksCheckout blocks Suspended unless recoveryAction is Subscribe, and always blocks Retained", () => {
   assertEquals(controlSubscriptionBlocksCheckout("Suspended", null), true);
   assertEquals(controlSubscriptionBlocksCheckout("suspended", null), true);
   assertEquals(controlSubscriptionBlocksCheckout("Suspended", "UpdatePaymentMethod"), true);
   assertEquals(controlSubscriptionBlocksCheckout("Suspended", "Subscribe"), false);
   assertEquals(controlSubscriptionBlocksCheckout("Retained", null), true);
   assertEquals(controlSubscriptionBlocksCheckout("retained", "UpdatePaymentMethod"), true);
-  assertEquals(controlSubscriptionBlocksCheckout("Retained", "Subscribe"), false);
+  assertEquals(controlSubscriptionBlocksCheckout("Retained", "Subscribe"), true);
   assertEquals(controlSubscriptionBlocksCheckout("Deleted", null), false);
   assertEquals(controlSubscriptionBlocksCheckout("Active", null), false);
   assertEquals(controlSubscriptionBlocksCheckout("Active", "Subscribe"), false);
@@ -343,6 +345,13 @@ Deno.test("readControlCheckoutEntitlement treats a 404 as no entitlement, not an
   );
 });
 
+const neverSubscribedBody = {
+  organizationId: CONTROL_ORG,
+  subscriptionState: null,
+  billingLinked: false,
+  managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
+};
+
 Deno.test("readControlCheckoutEntitlement fails closed when a 200 body has no readable subscriptionState", async () => {
   for (const body of [{}, null, [], "oops", { foo: 1 }, { subscriptionState: 3 }]) {
     const fetch: ControlFetch = async () => ({ ok: true, status: 200, body });
@@ -354,6 +363,49 @@ Deno.test("readControlCheckoutEntitlement fails closed when a 200 body has no re
       }),
       { ok: false },
       JSON.stringify(body),
+    );
+  }
+});
+
+Deno.test("a Control never-subscribed 200 is accepted only for the exact shape", async () => {
+  assertEquals(isControlNeverSubscribedBody(neverSubscribedBody, CONTROL_ORG), true);
+  assertEquals(CONTROL_NO_BILLING_LINKAGE_ACTION, "NoBillingLinkage");
+  const fetch: ControlFetch = async () => ({ ok: true, status: 200, body: neverSubscribedBody });
+  assertEquals(
+    await readControlCheckoutEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: fetch,
+    }),
+    { ok: true, subscriptionState: null, recoveryAction: null },
+  );
+});
+
+Deno.test("a never-subscribed 200 fails closed when any required field is mutated", async () => {
+  const { subscriptionState: _omitState, ...missingState } = neverSubscribedBody;
+  const variants: Array<[string, unknown]> = [
+    ["wrong organizationId", { ...neverSubscribedBody, organizationId: CLIENT_CONTROL_ORG }],
+    ["missing organizationId", { subscriptionState: null, billingLinked: false, managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION }],
+    ["missing subscriptionState", missingState],
+    ["undefined subscriptionState", { ...neverSubscribedBody, subscriptionState: undefined }],
+    ["empty subscriptionState", { ...neverSubscribedBody, subscriptionState: "" }],
+    ["whitespace subscriptionState", { ...neverSubscribedBody, subscriptionState: "  " }],
+    ["billingLinked true", { ...neverSubscribedBody, billingLinked: true }],
+    ["missing billingLinked", { organizationId: CONTROL_ORG, subscriptionState: null, managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION }],
+    ["different managementAction", { ...neverSubscribedBody, managementAction: "no-billing-linkage" }],
+    ["missing managementAction", { organizationId: CONTROL_ORG, subscriptionState: null, billingLinked: false }],
+  ];
+  for (const [name, body] of variants) {
+    assertEquals(isControlNeverSubscribedBody(body, CONTROL_ORG), false, name);
+    const fetch: ControlFetch = async () => ({ ok: true, status: 200, body });
+    assertEquals(
+      await readControlCheckoutEntitlement({
+        accessToken: "hub-session",
+        controlOrganizationId: CONTROL_ORG,
+        controlFetch: fetch,
+      }),
+      { ok: false },
+      name,
     );
   }
 });

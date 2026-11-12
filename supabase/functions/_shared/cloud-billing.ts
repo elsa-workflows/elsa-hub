@@ -54,6 +54,12 @@ export const CLOUD_ENTITLEMENT_UNAVAILABLE_CODE = "cloud_entitlement_unavailable
 export const CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE = "We couldn't load billing. Refresh this page to check again.";
 /** #960 recoveryAction value that reopens Cloud checkout for a Suspended org. */
 export const CONTROL_RECOVERY_ACTION_SUBSCRIBE = "Subscribe";
+/**
+ * Checkout never-subscribed marker. Matched exactly; Control's current
+ * `HostedSubscriptionManagementActions.NoBillingLinkage` wire value is
+ * `no-billing-linkage` and will not satisfy this check until Control aligns.
+ */
+export const CONTROL_NO_BILLING_LINKAGE_ACTION = "NoBillingLinkage";
 /** Plan label until Control reports a more specific Hosted product name. */
 export const CLOUD_PLAN_NAME = "Elsa Cloud";
 
@@ -441,13 +447,50 @@ export type ControlCheckoutEntitlement =
   | { ok: true; subscriptionState: string | null; recoveryAction: string | null }
   | { ok: false };
 
+function ownField(record: Record<string, unknown>, ...names: string[]): { present: boolean; value: unknown } {
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(record, name)) {
+      return { present: true, value: record[name] };
+    }
+  }
+  return { present: false, value: undefined };
+}
+
+function sameControlOrganizationId(value: unknown, expected: string): boolean {
+  return typeof value === "string" && isGuid(value.trim()) &&
+    value.trim().toLowerCase() === expected.trim().toLowerCase();
+}
+
+/**
+ * Control's never-subscribed 200: an object with `organizationId` equal to
+ * the requested Control org, `subscriptionState` present and null,
+ * `billingLinked` === false, and `managementAction` === `NoBillingLinkage`.
+ * A missing or undefined `subscriptionState` is not accepted.
+ */
+export function isControlNeverSubscribedBody(
+  body: unknown,
+  controlOrganizationId: string,
+): boolean {
+  const record = asRecord(body);
+  if (!record) return false;
+  const organizationId = ownField(record, "organizationId", "OrganizationId");
+  const subscriptionState = ownField(record, "subscriptionState", "SubscriptionState");
+  const billingLinked = ownField(record, "billingLinked", "BillingLinked");
+  const managementAction = ownField(record, "managementAction", "ManagementAction");
+  return sameControlOrganizationId(organizationId.value, controlOrganizationId) &&
+    subscriptionState.present && subscriptionState.value === null &&
+    billingLinked.value === false &&
+    managementAction.value === CONTROL_NO_BILLING_LINKAGE_ACTION;
+}
+
 /**
  * Checkout read of Control's Hosted subscription. Unlike
  * `readControlEntitlement`, this fails closed on a Control error or timeout
- * (`ok: false`). A 200 without a readable, non-empty `subscriptionState` is
- * also `ok: false` (a contract break, not "no subscription"). A 404 is
- * `ok: true` with a null state; checkout then allows a first subscribe only
- * when Stripe has no earlier Cloud subscription for the org.
+ * (`ok: false`). A 200 is a first-subscribe candidate only when it matches
+ * `isControlNeverSubscribedBody`. Any other 200 without a non-empty
+ * `subscriptionState` is `ok: false`. A 404, or that never-subscribed 200,
+ * is `ok: true` with a null state; checkout then allows a first subscribe
+ * only when Stripe has no earlier Cloud subscription for the org.
  */
 export async function readControlCheckoutEntitlement(
   input: ReadControlEntitlementInput,
@@ -473,27 +516,33 @@ export async function readControlCheckoutEntitlement(
     }
     return { ok: false };
   }
-  // A 200 without a readable state is a contract break, not "no subscription".
   const record = asRecord(result.body);
   const subscriptionState = record && readStringField(record, "subscriptionState", "SubscriptionState");
-  if (!record || !subscriptionState) return { ok: false };
-  return {
-    ok: true,
-    subscriptionState,
-    recoveryAction: readStringField(record, "recoveryAction", "RecoveryAction"),
-  };
+  if (subscriptionState) {
+    return {
+      ok: true,
+      subscriptionState,
+      recoveryAction: readStringField(record, "recoveryAction", "RecoveryAction"),
+    };
+  }
+  if (isControlNeverSubscribedBody(result.body, controlOrganizationId)) {
+    return { ok: true, subscriptionState: null, recoveryAction: null };
+  }
+  return { ok: false };
 }
 
 /**
- * A Suspended or Retained Control entitlement blocks Cloud checkout unless
- * #960's `recoveryAction` is exactly `Subscribe`. A missing field is blocked.
- * Deleted is not blocked; a first-time or resubscribe path may proceed.
+ * Suspended blocks Cloud checkout unless #960's `recoveryAction` is exactly
+ * `Subscribe` (a missing field is blocked). Retained always blocks;
+ * `Subscribe` must not let it through (elsa-control#960 AC4). Deleted is
+ * not blocked; a first-time or resubscribe path may proceed.
  */
 export function controlSubscriptionBlocksCheckout(
   subscriptionState: string | null,
   recoveryAction: string | null,
 ): boolean {
   const state = (subscriptionState ?? "").toLowerCase();
-  if (state !== "suspended" && state !== "retained") return false;
+  if (state === "retained") return true;
+  if (state !== "suspended") return false;
   return recoveryAction !== CONTROL_RECOVERY_ACTION_SUBSCRIBE;
 }

@@ -60,6 +60,7 @@ export type CloudCheckoutStripe = StripeCustomerClient & {
   subscriptions: {
     list(params: { customer: string; status?: string; limit?: number }): Promise<{
       data: Array<{ id: string; status: string; metadata?: Record<string, string> | null }>;
+      has_more?: boolean;
     }>;
   };
   checkout: {
@@ -114,6 +115,13 @@ function entitlementUnavailableResponse(): Response {
   });
 }
 
+function subscriptionSuspendedResponse(): Response {
+  return jsonResponse(409, {
+    error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+    code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  });
+}
+
 /**
  * Expire any open Cloud Checkout Sessions for a stored customer. Used when
  * Control is Suspended or Retained so a leftover session cannot be paid.
@@ -139,10 +147,11 @@ async function expireOpenCloudSessionsForOrg(
 }
 
 /**
- * A Control 404 is a first subscribe only when this org's stored Stripe
- * customer has never had an Elsa Cloud subscription, including canceled and
- * incomplete_expired. No stored customer counts as none. A lookup failure
- * fails closed.
+ * A Control 404 or never-subscribed 200 is a first subscribe only when this
+ * org's stored Stripe customer has never had an Elsa Cloud subscription,
+ * including canceled and incomplete_expired. No stored customer counts as
+ * none. An earlier Cloud subscription is a permanent 409. A lookup failure
+ * or a truncated Stripe page (`has_more`) fails closed with 503.
  */
 async function refuseCheckoutIfEarlierCloudSubscription(
   organizationId: string,
@@ -157,7 +166,7 @@ async function refuseCheckoutIfEarlierCloudSubscription(
       { supabase: serviceClient as unknown as StripeCustomerStore, env },
     );
   } catch (error) {
-    console.error("Cloud checkout could not look up the stored customer after a Control 404:", error);
+    console.error("Cloud checkout could not look up the stored customer after a never-subscribed Control read:", error);
     return entitlementUnavailableResponse();
   }
   if (!customerId) return null;
@@ -167,11 +176,14 @@ async function refuseCheckoutIfEarlierCloudSubscription(
       status: "all",
       limit: 100,
     });
-    if (orgHasAnyCloudSubscription(existing.data)) {
+    if (existing.has_more) {
       return entitlementUnavailableResponse();
     }
+    if (orgHasAnyCloudSubscription(existing.data)) {
+      return subscriptionSuspendedResponse();
+    }
   } catch (error) {
-    console.error("Cloud checkout could not list subscriptions after a Control 404:", error);
+    console.error("Cloud checkout could not list subscriptions after a never-subscribed Control read:", error);
     return entitlementUnavailableResponse();
   }
   return null;
@@ -242,10 +254,7 @@ export async function handleCloudCheckout(ctx: CloudCheckoutContext): Promise<Re
     } catch (error) {
       console.error("Cloud checkout could not expire open sessions for a blocked Control state:", error);
     }
-    return jsonResponse(409, {
-      error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
-      code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
-    });
+    return subscriptionSuspendedResponse();
   }
   if (entitlement.subscriptionState === null) {
     const refused = await refuseCheckoutIfEarlierCloudSubscription(
