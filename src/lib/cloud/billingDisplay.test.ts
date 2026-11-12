@@ -16,6 +16,7 @@ describe("cloudPlanStatusLabel", () => {
     expect(CLOUD_PLAN_STATUS_NO_ACTIVE_PLAN).toBe("No active plan");
     expect(cloudPlanStatusLabel("ended")).toBe("No active plan");
     expect(cloudPlanStatusLabel("ended", true)).toBe("No active plan");
+    expect(cloudPlanStatusLabel("ended")).not.toBe("ended");
     expect(cloudPlanStatusLabel("ended")).not.toBe("Paused");
     expect(cloudPlanStatusLabel("paused")).toBe("Paused");
   });

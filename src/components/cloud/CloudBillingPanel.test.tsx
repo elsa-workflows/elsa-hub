@@ -279,7 +279,9 @@ describe("CloudBillingPanel", () => {
     expect(CLOUD_BILLING_ENDED_BODY).toBe(
       "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.",
     );
+    expect(screen.queryByText("ended")).not.toBeInTheDocument();
     expect(screen.queryByText(/has ended/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Manage or cancel through the Hub billing portal/)).not.toBeInTheDocument();
     expect(screen.queryByText(/renews/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /manage or cancel billing/i })).not.toBeInTheDocument();
@@ -295,4 +297,14 @@ describe("CloudBillingPanel", () => {
     expect(screen.queryByText("No active plan")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /manage or cancel billing/i })).toBeInTheDocument();
   });
+
+  it.each(["active", "paused", "past_due", "constrained", "trialing"] as const)(
+    "keeps the manage-or-cancel portal description for a %s plan",
+    (status) => {
+      renderPanel({ planStatus: status, subscription: subscription({ status }) });
+      expect(
+        screen.getByText(/Manage or cancel through the Hub billing portal/),
+      ).toBeInTheDocument();
+    },
+  );
 });

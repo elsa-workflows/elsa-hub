@@ -73,7 +73,9 @@ export function CloudBillingPanel({
           Elsa Cloud billing
         </CardTitle>
         <CardDescription>
-          Signed-in billing stays on this page. Manage or cancel through the Hub billing portal.
+          {planEnded
+            ? "Signed-in billing stays on this page."
+            : "Signed-in billing stays on this page. Manage or cancel through the Hub billing portal."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
