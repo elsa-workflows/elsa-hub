@@ -12,7 +12,7 @@ describe("cloudPlanStatusLabel", () => {
     expect(cloudPlanStatusLabel("active", true)).toBe("Cancels at period end");
   });
 
-  it("maps Control Suspended (Hub 'ended') to No active plan, never Paused", () => {
+  it("maps Control Suspended or Retained (Hub 'ended') to No active plan, never Paused", () => {
     expect(CLOUD_PLAN_STATUS_NO_ACTIVE_PLAN).toBe("No active plan");
     expect(cloudPlanStatusLabel("ended")).toBe("No active plan");
     expect(cloudPlanStatusLabel("ended", true)).toBe("No active plan");

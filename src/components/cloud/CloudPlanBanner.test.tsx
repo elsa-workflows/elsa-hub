@@ -38,7 +38,9 @@ describe("CloudPlanBanner", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows No active plan for a Control Suspended (Hub ended) entitlement, not Paused", () => {
+  it.each(["Suspended", "Retained"] as const)(
+    "shows No active plan for a Control %s (Hub ended) entitlement, not Paused",
+    () => {
     render(
       <MemoryRouter>
         <CloudPlanBanner planName="Elsa Cloud" planStatus="ended" />
@@ -51,7 +53,8 @@ describe("CloudPlanBanner", () => {
     expect(screen.queryByText("Paused")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /subscribe/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Manage or cancel through the Hub billing portal/)).not.toBeInTheDocument();
-  });
+    },
+  );
 
   it("still shows Paused when the Hub status is paused", () => {
     render(

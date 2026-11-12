@@ -364,7 +364,7 @@ Deno.test("a Retained Control state on status expires open Cloud checkout sessio
   const { response, payload } = await run();
 
   assertEquals(response.status, 200);
-  assertEquals(payload.entitlement, null);
+  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "ended", source: null });
   assertEquals(calls.expired, ["cs_cloud"]);
 });
 

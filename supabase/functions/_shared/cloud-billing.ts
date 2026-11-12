@@ -327,9 +327,10 @@ export function orgHasAnyCloudSubscription(
 }
 
 /**
- * Control Hosted subscription states that still entitle the organization
- * (`OrganizationSubscriptionLifecycle.IsLive` on valence-works/elsa-control#825).
- * Mapped to the Hub billing page's Stripe-style status strings.
+ * Control Hosted subscription states mapped to the Hub billing page's
+ * Stripe-style status strings. Suspended and Retained are not live
+ * (`OrganizationSubscriptionLifecycle.IsLive` on valence-works/elsa-control#825)
+ * but still map to Hub `ended` so the No active plan card can render.
  */
 const CONTROL_LIVE_SUBSCRIPTION_STATUS: Record<string, string> = {
   trial: "trialing",
@@ -338,6 +339,7 @@ const CONTROL_LIVE_SUBSCRIPTION_STATUS: Record<string, string> = {
   pastdue: "past_due",
   constrained: "constrained",
   suspended: "ended",
+  retained: "ended",
 };
 
 export type CloudControlEntitlement = {
@@ -378,9 +380,11 @@ function entitlementSource(value: string | null): CloudControlEntitlement["sourc
 }
 
 /**
- * The plan Hub shows once Control reports a live Hosted subscription
+ * The plan Hub shows once Control reports a Hosted subscription
  * (`GET /api/organizations/{id}/billing/hosted-subscription`, elsa-control#825).
- * Retained/Deleted/missing states, and any unrecognised body, are not a plan.
+ * Suspended and Retained map to Hub `ended` so `/cloud/billing` can show the
+ * No active plan card. Deleted, missing states, and any unrecognised body
+ * are not a plan.
  */
 export function normalizeControlEntitlement(body: unknown): CloudControlEntitlement | null {
   const record = asRecord(body);
