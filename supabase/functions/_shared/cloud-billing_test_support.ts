@@ -269,19 +269,19 @@ export async function captureConsoleError<T>(fn: () => Promise<T>): Promise<{ re
  * Copy hooks are part of the real body; Hub matchers ignore unknown fields,
  * but stubs must include them so a missing required field cannot slip through.
  */
-export const CONTROL_HOSTED_COPY_ENGINE_DELETION = {
+const CONTROL_HOSTED_COPY_ENGINE_DELETION = {
   code: "engine-deletion-leaves-subscription-active",
   message:
     "Deleting a managed engine does not cancel the Hosted subscription. Billing continues until the customer cancels it in the subscription portal.",
 } as const;
 
-export const CONTROL_HOSTED_COPY_SUBSCRIPTION_CANCELLATION = {
+const CONTROL_HOSTED_COPY_SUBSCRIPTION_CANCELLATION = {
   code: "subscription-cancellation-ends-at-period-end",
   message:
     "Canceling the Hosted subscription ends access and billing at the end of the current period. It does not immediately delete the managed engine.",
 } as const;
 
-export const CONTROL_HOSTED_COPY_MISSING_BILLING_LINKAGE = {
+const CONTROL_HOSTED_COPY_MISSING_BILLING_LINKAGE = {
   code: "billing-linkage-missing",
   message:
     "No Stripe billing customer is linked to this Hosted organization yet. Complete checkout, or wait for the billing webhook, before managing the subscription.",
@@ -290,12 +290,9 @@ export const CONTROL_HOSTED_COPY_MISSING_BILLING_LINKAGE = {
 const CONTROL_NO_BILLING_LINKAGE_ACTION = "no-billing-linkage";
 const CONTROL_OPEN_PORTAL_ACTION = "open-portal";
 
-export function controlNeverSubscribedBody(
-  organizationId = CONTROL_ORG,
-  overrides: Record<string, unknown> = {},
-) {
+export function controlNeverSubscribedBody(overrides: Record<string, unknown> = {}) {
   return {
-    organizationId,
+    organizationId: CONTROL_ORG,
     subscriptionState: null,
     billingLinked: false,
     portalAvailable: false,
@@ -331,4 +328,18 @@ export function controlHostedSubscriptionBody(
     source: "control",
     ...overrides,
   };
+}
+
+/**
+ * Forward-looking overlay for valence-works/elsa-control#960.
+ * Control does not send `recoveryAction` on hosted-subscription until that
+ * change lands. Use this only in tests that pin Hub's handling of the future
+ * field; keep controlNeverSubscribedBody and controlHostedSubscriptionBody
+ * as today's Control output, without recoveryAction.
+ */
+export function withForwardRecoveryAction(
+  body: Record<string, unknown>,
+  recoveryAction: string,
+) {
+  return { ...body, recoveryAction };
 }

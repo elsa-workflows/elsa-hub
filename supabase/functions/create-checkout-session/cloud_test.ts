@@ -31,6 +31,7 @@ import {
   validatedLink,
   controlHostedSubscriptionBody,
   controlNeverSubscribedBody,
+  withForwardRecoveryAction,
 } from "../_shared/cloud-billing_test_support.ts";
 
 type Setup = {
@@ -69,10 +70,6 @@ function controlFetchWith(
 
 const CLOUD_METADATA = { kind: "cloud", product_type: "cloud" };
 
-/** Control never-subscribed 200. Delegates to the real HostedSubscriptionManagementResponse stub. */
-function neverSubscribedBody(overrides: Record<string, unknown> = {}) {
-  return controlNeverSubscribedBody(CONTROL_ORG, overrides);
-}
 const SUCCESS_URL = `${SITE_ORIGIN}/dashboard/org/org-a/cloud?payment=success`;
 
 /** An open Cloud session matching what this request would create, unless overridden. */
@@ -628,7 +625,7 @@ Deno.test("Suspended with recoveryAction Subscribe allows Cloud checkout", async
   const { run, calls } = checkout({
     controlFetch: controlFetchWith({
       ok: true,
-      body: controlHostedSubscriptionBody("Suspended", { recoveryAction: "Subscribe" }),
+      body: withForwardRecoveryAction(controlHostedSubscriptionBody("Suspended"), "Subscribe"),
     }),
   });
 
@@ -656,7 +653,7 @@ Deno.test("Suspended with any recoveryAction other than Subscribe is blocked", a
   const { run, calls } = checkout({
     controlFetch: controlFetchWith({
       ok: true,
-      body: controlHostedSubscriptionBody("Suspended", { recoveryAction: "UpdatePaymentMethod" }),
+      body: withForwardRecoveryAction(controlHostedSubscriptionBody("Suspended"), "UpdatePaymentMethod"),
     }),
   });
 
@@ -818,7 +815,7 @@ Deno.test("Control Retained with recoveryAction Subscribe still blocks checkout"
     checkoutSessions: [openCloudSession()],
     controlFetch: controlFetchWith({
       ok: true,
-      body: controlHostedSubscriptionBody("Retained", { recoveryAction: "Subscribe" }),
+      body: withForwardRecoveryAction(controlHostedSubscriptionBody("Retained"), "Subscribe"),
     }),
   });
 
@@ -837,7 +834,7 @@ Deno.test("Control Retained with recoveryAction Subscribe still blocks checkout"
 Deno.test("a never-subscribed Control 200 with no earlier Cloud subscription allows checkout", async () => {
   const { run, calls } = checkout({
     storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
-    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+    controlFetch: controlFetchWith({ ok: true, body: controlNeverSubscribedBody() }),
   });
 
   const { response, payload } = await run();
@@ -853,7 +850,7 @@ Deno.test("a never-subscribed Control 200 with an earlier Cloud subscription is 
     storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
     checkoutSessions: [openCloudSession()],
     subscriptions: [{ id: "sub_cloud", status: "canceled", metadata: CLOUD_METADATA }],
-    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+    controlFetch: controlFetchWith({ ok: true, body: controlNeverSubscribedBody() }),
   });
 
   const { response, payload } = await run();
@@ -871,18 +868,18 @@ Deno.test("a never-subscribed Control 200 with an earlier Cloud subscription is 
 
 for (
   const [name, body] of [
-    ["wrong organizationId", neverSubscribedBody({ organizationId: CLIENT_CONTROL_ORG })],
+    ["wrong organizationId", controlNeverSubscribedBody({ organizationId: CLIENT_CONTROL_ORG })],
     ["missing organizationId", (() => {
-      const { organizationId: _omit, ...rest } = neverSubscribedBody();
+      const { organizationId: _omit, ...rest } = controlNeverSubscribedBody();
       return rest;
     })()],
     ["missing subscriptionState", (() => {
-      const { subscriptionState: _omit, ...rest } = neverSubscribedBody();
+      const { subscriptionState: _omit, ...rest } = controlNeverSubscribedBody();
       return rest;
     })()],
-    ["billingLinked true", neverSubscribedBody({ billingLinked: true })],
-    ["NoBillingLinkage managementAction", neverSubscribedBody({ managementAction: "NoBillingLinkage" })],
-    ["different managementAction", neverSubscribedBody({ managementAction: "manage" })],
+    ["billingLinked true", controlNeverSubscribedBody({ billingLinked: true })],
+    ["NoBillingLinkage managementAction", controlNeverSubscribedBody({ managementAction: "NoBillingLinkage" })],
+    ["different managementAction", controlNeverSubscribedBody({ managementAction: "manage" })],
   ] as const
 ) {
   Deno.test(`a never-subscribed 200 with ${name} fails closed with 503 and creates no session`, async () => {
@@ -910,7 +907,7 @@ for (const state of ["", "  "]) {
     const { run, calls } = checkout({
       storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
       checkoutSessions: [openCloudSession()],
-      controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody({ subscriptionState: state }) }),
+      controlFetch: controlFetchWith({ ok: true, body: controlNeverSubscribedBody({ subscriptionState: state }) }),
     });
 
     const { response, payload } = await run();
@@ -932,7 +929,7 @@ Deno.test("a never-subscribed Control read is 409 when page 1 has an earlier Clo
     checkoutSessions: [openCloudSession()],
     subscriptions: [{ id: "sub_cloud", status: "canceled", metadata: CLOUD_METADATA }],
     subscriptionListHasMore: true,
-    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+    controlFetch: controlFetchWith({ ok: true, body: controlNeverSubscribedBody() }),
   });
 
   const { response, payload } = await run();
@@ -954,7 +951,7 @@ Deno.test("a never-subscribed Control read fails closed with 503 when has_more a
     storedCustomers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
     subscriptions: [{ id: "sub_hub", status: "active", metadata: { billing_type: "recurring" } }],
     subscriptionListHasMore: true,
-    controlFetch: controlFetchWith({ ok: true, body: neverSubscribedBody() }),
+    controlFetch: controlFetchWith({ ok: true, body: controlNeverSubscribedBody() }),
   });
 
   const { response, payload } = await run();

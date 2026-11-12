@@ -35,6 +35,7 @@ import {
   HUB_ORG,
   controlHostedSubscriptionBody,
   controlNeverSubscribedBody,
+  withForwardRecoveryAction,
 } from "./cloud-billing_test_support.ts";
 
 Deno.test("a Cloud request is recognized by productType or kind; Hub bodies are not", () => {
@@ -426,7 +427,7 @@ Deno.test("readControlCheckoutEntitlement returns the Control state and recovery
     return {
       ok: true,
       status: 200,
-      body: controlHostedSubscriptionBody("Suspended", { recoveryAction: "Subscribe" }),
+      body: withForwardRecoveryAction(controlHostedSubscriptionBody("Suspended"), "Subscribe"),
     };
   };
   assertEquals(

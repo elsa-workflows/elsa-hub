@@ -19,6 +19,7 @@ import {
   validatedLink,
   testEnv,
   controlHostedSubscriptionBody,
+  withForwardRecoveryAction,
 } from "../_shared/cloud-billing_test_support.ts";
 
 function openCloudSession(id = "cs_cloud"): FakeCheckoutSession {
@@ -371,7 +372,7 @@ Deno.test("a Retained Control state on status expires open Cloud checkout sessio
 
 Deno.test("Suspended with recoveryAction Subscribe on status does not expire open sessions", async () => {
   const control = recordingControlFetch(
-    controlHostedSubscriptionBody("Suspended", { recoveryAction: "Subscribe" }),
+    withForwardRecoveryAction(controlHostedSubscriptionBody("Suspended"), "Subscribe"),
   );
   const { run, calls } = status({
     accessToken: "hub-session",
