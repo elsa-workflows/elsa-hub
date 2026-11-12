@@ -14,11 +14,15 @@ import {
   CLOUD_PLAN_NAME,
   cloudOrganizationIdFromBody,
   cloudPortalReturnPath,
+  CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+  controlSubscriptionBlocksCheckout,
   isCloudRequest,
   isCloudStripeEvent,
   normalizeControlEntitlement,
   orgHasBlockingCloudSubscription,
   readCloudPriceId,
+  readControlCheckoutEntitlement,
   readControlEntitlement,
 } from "./cloud-billing.ts";
 import type { ControlCall, ControlFetch } from "./cloud-control.ts";
@@ -28,7 +32,13 @@ Deno.test("a Cloud request is recognized by productType or kind; Hub bodies are 
   assertEquals(isCloudRequest({ productType: "cloud" }), true);
   assertEquals(isCloudRequest({ kind: "cloud" }), true);
   assertEquals(isCloudRequest({ bundleId: "b1", organizationId: "org-1" }), false);
+  assertEquals(isCloudRequest({ productId: "p1", organizationId: "org-1" }), false);
   assertEquals(isCloudRequest(null), false);
+});
+
+Deno.test("credits and product checkout bodies are not Cloud requests, so the Suspended guard does not apply", () => {
+  assertEquals(isCloudRequest({ bundleId: "credits-bundle", organizationId: CONTROL_ORG }), false);
+  assertEquals(isCloudRequest({ productId: "credits-product", organizationId: CONTROL_ORG }), false);
 });
 
 Deno.test("the organization id comes from the body, and blank means personal mode", () => {
@@ -254,4 +264,87 @@ Deno.test("signed Cloud billing error lines (elsa-control#936)", () => {
     "We couldn't check this organization's Elsa Cloud link. Refresh this page to check again.",
   );
   assertEquals(CLOUD_CHECKOUT_FAILED, "We couldn't start Elsa Cloud checkout. Please try again.");
+});
+
+
+Deno.test("the signed Suspended and entitlement-unavailable lines are exact", () => {
+  assertEquals(
+    CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+    "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.",
+  );
+  assertEquals(
+    CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+    "We couldn't load billing. Refresh this page to check again.",
+  );
+});
+
+Deno.test("controlSubscriptionBlocksCheckout blocks Suspended unless recoveryAction is Subscribe", () => {
+  assertEquals(controlSubscriptionBlocksCheckout("Suspended", null), true);
+  assertEquals(controlSubscriptionBlocksCheckout("suspended", null), true);
+  assertEquals(controlSubscriptionBlocksCheckout("Suspended", "UpdatePaymentMethod"), true);
+  assertEquals(controlSubscriptionBlocksCheckout("Suspended", "Subscribe"), false);
+  assertEquals(controlSubscriptionBlocksCheckout("Active", null), false);
+  assertEquals(controlSubscriptionBlocksCheckout("Active", "Subscribe"), false);
+  assertEquals(controlSubscriptionBlocksCheckout(null, null), false);
+});
+
+Deno.test("readControlCheckoutEntitlement fails closed on a Control error or timeout", async () => {
+  const updating: ControlFetch = async () => ({ ok: false, kind: "updating" });
+  const forbidden: ControlFetch = async () => ({ ok: false, kind: "forbidden" });
+  assertEquals(
+    await readControlCheckoutEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: updating,
+    }),
+    { ok: false },
+  );
+  assertEquals(
+    await readControlCheckoutEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: forbidden,
+    }),
+    { ok: false },
+  );
+  assertEquals(
+    await readControlCheckoutEntitlement({
+      controlOrganizationId: CONTROL_ORG,
+    }),
+    { ok: false },
+  );
+});
+
+Deno.test("readControlCheckoutEntitlement treats a 404 as no entitlement, not an outage", async () => {
+  const missing: ControlFetch = async () => ({ ok: false, kind: "not_found" });
+  assertEquals(
+    await readControlCheckoutEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: missing,
+    }),
+    { ok: true, subscriptionState: null, recoveryAction: null },
+  );
+});
+
+Deno.test("readControlCheckoutEntitlement returns the Control state and recoveryAction", async () => {
+  const calls: ControlCall[] = [];
+  const fetch: ControlFetch = async (call, token) => {
+    calls.push(call);
+    assertEquals(token, "hub-session");
+    return {
+      ok: true,
+      status: 200,
+      body: { subscriptionState: "Suspended", recoveryAction: "Subscribe" },
+    };
+  };
+  assertEquals(
+    await readControlCheckoutEntitlement({
+      accessToken: "hub-session",
+      controlOrganizationId: CONTROL_ORG,
+      controlFetch: fetch,
+    }),
+    { ok: true, subscriptionState: "Suspended", recoveryAction: "Subscribe" },
+  );
+  assertEquals(calls[0].path, `/api/organizations/${CONTROL_ORG}/billing/hosted-subscription`);
 });

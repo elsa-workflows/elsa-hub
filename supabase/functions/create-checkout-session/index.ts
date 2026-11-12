@@ -8,6 +8,7 @@ import {
   taxLocationFailureResponse,
 } from "../_shared/stripe-customer.ts";
 import { isCloudRequest } from "../_shared/cloud-billing.ts";
+import { createControlFetch } from "../_shared/cloud-control.ts";
 import { trustedSiteOrigin } from "../_shared/site-origin.ts";
 import { handleCloudCheckout } from "./cloud.ts";
 
@@ -81,6 +82,8 @@ serve(async (req) => {
         userClient,
         serviceClient,
         body,
+        accessToken: token,
+        controlFetch: createControlFetch(),
       });
     }
 

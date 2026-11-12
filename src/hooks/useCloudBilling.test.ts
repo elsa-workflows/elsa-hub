@@ -63,7 +63,14 @@ import {
   CLOUD_BILLING_UNAVAILABLE,
   CLOUD_LINK_CHECK_ERROR,
 } from "@/lib/cloudClient";
-import { CLOUD_BILLING_UNAVAILABLE_CODE, ENDED_SUBSCRIPTION_STATUSES } from "@/lib/cloud/billingContract";
+import {
+  CLOUD_BILLING_UNAVAILABLE_CODE,
+  CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+  CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+  ENDED_SUBSCRIPTION_STATUSES,
+} from "@/lib/cloud/billingContract";
 import { classifyBillingStatusFailure, useCloudBilling } from "./useCloudBilling";
 
 /** What supabase-js returns for a non-2xx function response: no data, the body on error.context. */
@@ -221,6 +228,43 @@ describe("useCloudBilling", () => {
     result.current.startCheckout.mutate();
 
     await waitFor(() => expect(toastError).toHaveBeenCalledWith("No organization is linked to this account"));
+    expect(redirectTo).not.toHaveBeenCalled();
+  });
+
+  it("surfaces the Suspended checkout 409 and does not open the portal", async () => {
+    invoke.mockImplementation(async (name: string) =>
+      name === "create-checkout-session"
+        ? httpFailure(409, {
+          error: CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+          code: CLOUD_SUBSCRIPTION_SUSPENDED_CODE,
+        })
+        : { data: emptySnapshot, error: null },
+    );
+
+    const result = await renderBilling();
+    result.current.startCheckout.mutate();
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE));
+    expect(toastError).toHaveBeenCalledWith("Your Elsa Cloud plan isn't active. For help, email hello@valence.works.");
+    expect(redirectTo).not.toHaveBeenCalled();
+    expect(functionBodies("customer-portal")).toEqual([]);
+  });
+
+  it("surfaces the Control entitlement 503 and does not open checkout", async () => {
+    invoke.mockImplementation(async (name: string) =>
+      name === "create-checkout-session"
+        ? httpFailure(503, {
+          error: CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+          code: CLOUD_ENTITLEMENT_UNAVAILABLE_CODE,
+        })
+        : { data: emptySnapshot, error: null },
+    );
+
+    const result = await renderBilling();
+    result.current.startCheckout.mutate();
+
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE));
+    expect(toastError).toHaveBeenCalledWith("We couldn't load billing. Refresh this page to check again.");
     expect(redirectTo).not.toHaveBeenCalled();
   });
 

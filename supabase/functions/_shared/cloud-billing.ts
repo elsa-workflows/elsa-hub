@@ -48,6 +48,12 @@ export const CLOUD_ORGANIZATION_REQUIRED = "Cloud billing requires an organizati
 export const CLOUD_LINK_READ_FAILED =
   "We couldn't check this organization's Elsa Cloud link. Refresh this page to check again.";
 export const CLOUD_CHECKOUT_FAILED = "We couldn't start Elsa Cloud checkout. Please try again.";
+export const CLOUD_SUBSCRIPTION_SUSPENDED_CODE = "cloud_subscription_suspended";
+export const CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE = "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.";
+export const CLOUD_ENTITLEMENT_UNAVAILABLE_CODE = "cloud_entitlement_unavailable";
+export const CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE = "We couldn't load billing. Refresh this page to check again.";
+/** #960 recoveryAction value that reopens Cloud checkout for a Suspended org. */
+export const CONTROL_RECOVERY_ACTION_SUBSCRIBE = "Subscribe";
 /** Plan label until Control reports a more specific Hosted product name. */
 export const CLOUD_PLAN_NAME = "Elsa Cloud";
 
@@ -374,4 +380,61 @@ export async function readControlEntitlement(
   }, accessToken);
   if (!result.ok) return null;
   return normalizeControlEntitlement(result.body);
+}
+
+export type ControlCheckoutEntitlement =
+  | { ok: true; subscriptionState: string | null; recoveryAction: string | null }
+  | { ok: false };
+
+/**
+ * Checkout read of Control's Hosted subscription. Unlike
+ * `readControlEntitlement`, this fails closed on a Control error or timeout
+ * (`ok: false`). A 404 or a body with no live state is `ok: true` with a null
+ * state, so a first-time subscribe can proceed.
+ */
+export async function readControlCheckoutEntitlement(
+  input: ReadControlEntitlementInput,
+): Promise<ControlCheckoutEntitlement> {
+  const { accessToken, controlOrganizationId, controlFetch } = input;
+  if (!accessToken || !controlFetch || !controlOrganizationId || !isGuid(controlOrganizationId)) {
+    return { ok: false };
+  }
+
+  let result;
+  try {
+    result = await controlFetch({
+      method: "GET",
+      path: `/api/organizations/${controlOrganizationId}/billing/hosted-subscription`,
+      action: "hostedSubscription",
+    }, accessToken);
+  } catch {
+    return { ok: false };
+  }
+  if (!result.ok) {
+    if (result.kind === "not_found") {
+      return { ok: true, subscriptionState: null, recoveryAction: null };
+    }
+    return { ok: false };
+  }
+  const record = asRecord(result.body);
+  if (!record) {
+    return { ok: true, subscriptionState: null, recoveryAction: null };
+  }
+  return {
+    ok: true,
+    subscriptionState: readStringField(record, "subscriptionState", "SubscriptionState"),
+    recoveryAction: readStringField(record, "recoveryAction", "RecoveryAction"),
+  };
+}
+
+/**
+ * A Suspended Control entitlement blocks Cloud checkout unless #960's
+ * `recoveryAction` is exactly `Subscribe`. A missing field is blocked.
+ */
+export function controlSubscriptionBlocksCheckout(
+  subscriptionState: string | null,
+  recoveryAction: string | null,
+): boolean {
+  if ((subscriptionState ?? "").toLowerCase() !== "suspended") return false;
+  return recoveryAction !== CONTROL_RECOVERY_ACTION_SUBSCRIBE;
 }

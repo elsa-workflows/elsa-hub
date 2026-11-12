@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
+  CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE,
+} from "@/lib/cloud/billingContract";
+import {
   CLOUD_ACCOUNT_LINK_INTRO_NO_GOOGLE,
   CLOUD_BILLING_NOT_AVAILABLE,
   CLOUD_BILLING_NOT_CONNECTED,
@@ -103,3 +107,18 @@ describe("unreachable-state copy", () => {
     expect(CLOUD_LINK_ORG_UNREACHABLE).not.toMatch(/temporarily/i);
   });
 });
+
+describe("signed #195 checkout lines", () => {
+  it("byte-matches the Suspended and Control-unavailable messages", () => {
+    expect(CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE).toBe(
+      "Your Elsa Cloud plan isn't active. For help, email hello@valence.works.",
+    );
+    expect(CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE).toBe(
+      "We couldn't load billing. Refresh this page to check again.",
+    );
+    expect(CLOUD_BILLING_UNAVAILABLE).toBe(CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE);
+    expect(CLOUD_SUBSCRIPTION_SUSPENDED_MESSAGE).not.toMatch(/has ended/);
+    expect(CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE).not.toMatch(/has ended/);
+  });
+});
+
