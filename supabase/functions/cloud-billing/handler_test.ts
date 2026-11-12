@@ -18,6 +18,8 @@ import {
   storedOrgCustomer,
   validatedLink,
   testEnv,
+  controlHostedSubscriptionBody,
+  withForwardRecoveryAction,
 } from "../_shared/cloud-billing_test_support.ts";
 
 function openCloudSession(id = "cs_cloud"): FakeCheckoutSession {
@@ -89,7 +91,7 @@ function recordingControlFetch(
 }
 
 Deno.test("status reports Control entitlement when hosted-subscription is live", async () => {
-  const control = recordingControlFetch({ subscriptionState: "Active", source: "hub" });
+  const control = recordingControlFetch(controlHostedSubscriptionBody("Active", { source: "hub" }));
   const { run } = status({
     accessToken: "hub-session",
     controlFetch: control.fetch,
@@ -110,7 +112,7 @@ Deno.test("status reads Control entitlement and Stripe subscriptions in parallel
   const controlBlocked = new Promise<void>((resolve) => {
     releaseControl = resolve;
   });
-  const control = recordingControlFetch({ subscriptionState: "Active", source: "hub" });
+  const control = recordingControlFetch(controlHostedSubscriptionBody("Active", { source: "hub" }));
   const blockedFetch: ControlFetch = async (call, token) => {
     await controlBlocked;
     return control.fetch(call, token);
@@ -172,7 +174,7 @@ Deno.test("a Control outage or missing Hosted subscription leaves entitlement nu
 });
 
 Deno.test("status does not call Control without a validated link", async () => {
-  const control = recordingControlFetch({ subscriptionState: "Active" });
+  const control = recordingControlFetch(controlHostedSubscriptionBody("Active"));
   const { run } = status({ links: [], accessToken: "hub-session", controlFetch: control.fetch });
 
   const { payload } = await run();
@@ -332,7 +334,7 @@ Deno.test("a live Stripe key is allowed on status when the live flag is exactly 
 });
 
 Deno.test("a Suspended Control state on status expires open Cloud checkout sessions and still returns 200", async () => {
-  const control = recordingControlFetch({ subscriptionState: "Suspended" });
+  const control = recordingControlFetch(controlHostedSubscriptionBody("Suspended"));
   const { run, calls } = status({
     accessToken: "hub-session",
     controlFetch: control.fetch,
@@ -348,13 +350,13 @@ Deno.test("a Suspended Control state on status expires open Cloud checkout sessi
   const { response, payload } = await run();
 
   assertEquals(response.status, 200);
-  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "ended", source: null });
+  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "ended", source: "control" });
   assertEquals(calls.expired, ["cs_cloud"]);
   assertEquals(calls.sessionLists, [{ customer: "cus_org_a", status: "open", limit: 100 }]);
 });
 
 Deno.test("a Retained Control state on status expires open Cloud checkout sessions and still returns 200", async () => {
-  const control = recordingControlFetch({ subscriptionState: "Retained" });
+  const control = recordingControlFetch(controlHostedSubscriptionBody("Retained"));
   const { run, calls } = status({
     accessToken: "hub-session",
     controlFetch: control.fetch,
@@ -364,15 +366,14 @@ Deno.test("a Retained Control state on status expires open Cloud checkout sessio
   const { response, payload } = await run();
 
   assertEquals(response.status, 200);
-  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "ended", source: null });
+  assertEquals(payload.entitlement, { planName: CLOUD_PLAN_NAME, status: "ended", source: "control" });
   assertEquals(calls.expired, ["cs_cloud"]);
 });
 
 Deno.test("Suspended with recoveryAction Subscribe on status does not expire open sessions", async () => {
-  const control = recordingControlFetch({
-    subscriptionState: "Suspended",
-    recoveryAction: "Subscribe",
-  });
+  const control = recordingControlFetch(
+    withForwardRecoveryAction(controlHostedSubscriptionBody("Suspended"), "Subscribe"),
+  );
   const { run, calls } = status({
     accessToken: "hub-session",
     controlFetch: control.fetch,
@@ -387,7 +388,7 @@ Deno.test("Suspended with recoveryAction Subscribe on status does not expire ope
 });
 
 Deno.test("an Active Control state on status does not expire open sessions", async () => {
-  const control = recordingControlFetch({ subscriptionState: "Active", source: "hub" });
+  const control = recordingControlFetch(controlHostedSubscriptionBody("Active", { source: "hub" }));
   const { run, calls } = status({
     accessToken: "hub-session",
     controlFetch: control.fetch,
@@ -403,7 +404,7 @@ Deno.test("an Active Control state on status does not expire open sessions", asy
 });
 
 Deno.test("a session expiry error on a Suspended status read is logged and status is still 200", async () => {
-  const control = recordingControlFetch({ subscriptionState: "Suspended" });
+  const control = recordingControlFetch(controlHostedSubscriptionBody("Suspended"));
   const serviceClient = fakeSupabase({
     tables: {
       org_stripe_customers: [storedOrgCustomer(HUB_ORG, "cus_org_a")],
