@@ -77,7 +77,11 @@ export default function Docker() {
                 <p className="text-muted-foreground">
                   The commands below use the Elsa 3 Community images on Docker Hub, pinned to{" "}
                   <code className="font-mono text-sm">{ELSA_COMMUNITY_DOCKER_TAG}</code> (linux/amd64
-                  and linux/arm64). They are intended for exploration and evaluation. For
+                  and linux/arm64). They are intended for exploration and evaluation. The run
+                  snippets set <code className="font-mono text-sm">ASPNETCORE_ENVIRONMENT=Development</code>.
+                  If you run these images outside Development, set{" "}
+                  <code className="font-mono text-sm">Identity__Tokens__SigningKey</code> — otherwise
+                  every request, including login, fails with an empty HTTP 500. For
                   production deployments, use the{" "}
                   <Link
                     to={ELSA_RUNTIME_PATH}

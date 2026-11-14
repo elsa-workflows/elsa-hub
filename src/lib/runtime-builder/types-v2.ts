@@ -128,7 +128,7 @@ export interface InfrastructureSelection {
 export interface ImageSelection {
   /** Slug from src/data/dockerImages.ts (e.g. "runtime-combined"). */
   slug: string;
-  /** Docker tag (e.g. "latest", "3.9.0"). */
+  /** Docker tag (e.g. "latest", "3.10.1"). */
   tag: string;
   /** Host port to publish (container port is fixed per image). */
   hostPort: number;

@@ -47,7 +47,7 @@ const lifecycleSteps = [
   {
     icon: Activity,
     title: "Operate",
-    body: "Inspect workflow instances and execution journals through the Elsa 3.9 API, and manage them from Elsa Studio. Structured logs, console logs and OpenTelemetry are available as opt-in diagnostics modules.",
+    body: "Inspect workflow instances and execution journals through the Elsa 3.10 API, and manage them from Elsa Studio. Structured logs, console logs and OpenTelemetry are available as opt-in diagnostics modules.",
   },
 ];
 
@@ -103,7 +103,7 @@ export default function Home() {
       <Seo
         path="/"
         title="The workflow and BPMN engine for .NET"
-        description="Build workflow-driven .NET apps with Elsa: C#, Elsa Studio, and BPMN 2.0 import, execution, and export in 3.9. Open source."
+        description="Build workflow-driven .NET apps with Elsa: C#, Elsa Studio, and BPMN 2.0 import, execution, and export in 3.10. Open source."
         jsonLd={jsonLd}
       />
 
@@ -121,7 +121,7 @@ export default function Home() {
               <p className="text-lg text-muted-foreground max-w-xl mb-8 leading-relaxed">
                 Elsa gives .NET teams an embeddable workflow engine and a deployable
                 Server and Studio for building long-running, event-driven, and
-                scheduled processes. Elsa 3.9 ships{" "}
+                scheduled processes. Elsa 3.10 ships{" "}
                 <code className="font-mono text-sm">Elsa.Bpmn</code> to execute BPMN
                 2.0 processes and{" "}
                 <code className="font-mono text-sm">Elsa.Bpmn.Interchange</code> to
@@ -333,7 +333,7 @@ export default function Home() {
               <div>
                 <dt className="font-medium mb-1">Inspectable execution</dt>
                 <dd className="text-sm text-muted-foreground">
-                  Elsa 3.9 exposes workflow instances and execution journals through
+                  Elsa 3.10 exposes workflow instances and execution journals through
                   its API for external observability tooling.
                 </dd>
               </div>

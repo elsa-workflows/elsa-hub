@@ -1,5 +1,5 @@
 // Canonical Elsa samples shared across the public site.
-// Source of truth: https://github.com/elsa-workflows/elsa-core/tree/3.9.0
+// Source of truth: https://github.com/elsa-workflows/elsa-core/tree/3.10.1
 // Community Docker images: Docker Hub elsaworkflows/*-v3, pinned to ELSA_COMMUNITY_DOCKER_TAG.
 //
 // Do not duplicate these strings inline. Import from here so the homepage
@@ -8,7 +8,7 @@
 import { ELSA_LATEST_STABLE_VERSION } from "./elsaVersion";
 
 // Embedding Elsa in a .NET host.
-// Source paths (tag 3.9.0):
+// Source paths (tag 3.10.1):
 //   src/modules/Elsa/Extensions/DependencyInjectionExtensions.cs:18   -> AddElsa
 //   src/modules/Elsa.Workflows.Core/Extensions/ModuleExtensions.cs:11 -> UseWorkflows
 //   src/modules/Elsa.Http/Extensions/ModuleExtensions.cs:15           -> UseHttp
@@ -39,8 +39,10 @@ export const ELSA_COMMUNITY_DOCKER_MINOR_TAG = ELSA_LATEST_STABLE_VERSION.split(
 
 /**
  * Elsa 3 Community images (source-built reference hosts on Docker Hub).
- * elsa-studio-v3 is not listed: at 3.9.0 it runs Elsa.ModularServer.Web (a
- * second full server), not a standalone designer, so the Community path only
+ * elsa-studio-v3 is not listed: at 3.9.0 it ran Elsa.ModularServer.Web (a
+ * second full server), not a standalone designer. The 3.10.1 Community
+ * publish is elsaworkflows/elsa-server-v3 and
+ * elsaworkflows/elsa-server-and-studio-v3 only, so the Community path still
  * documents Combined and Server.
  */
 export const COMMUNITY_IMAGES = {

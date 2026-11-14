@@ -21,6 +21,7 @@ import {
   ELSA_RELEASE_DATE,
   ELSA_RELEASE_LINKS,
   ELSA_TEMPLATES_VERSION,
+  ELSA_TEMPLATES_ELSA_VERSION,
   ELSA_TEMPLATES_RELEASE_URL,
   ELSA_TEMPLATES_NUGET_URL,
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
@@ -153,14 +154,16 @@ export default function GetStarted() {
               <Badge variant="secondary" className="font-mono">{ELSA_RELEASE_DATE}</Badge>
             </div>
             <p className="text-muted-foreground mb-5">
-              Elsa {ELSA_VERSION} ships Core, Studio and Extensions together, so upgrade all three at
-              once. It moves permissions to a <code className="font-mono">resource:verb</code> model,
-              opens a permission-gated dashboard to every signed-in user, adds a sign-out that
-              revokes the session, and adds User Tasks and BPMN modules. The setup guides below
-              are verified on this train.
+              3.10.0 was an internal candidate and was not published; Elsa {ELSA_VERSION} is the
+              first public 3.10 release. Core, Studio and Extensions packages are published
+              together as {ELSA_VERSION} from the elsa-core repository, so upgrade the Elsa.*
+              packages you use together. <code className="font-mono">Elsa.Templates</code> and the
+              legacy <code className="font-mono">Elsa.Secrets.*</code> packages stay at 3.9.0. The
+              combined Community image serves Studio again. This release hardens workflow dispatch
+              and cancellation, and scopes roles to the tenant.
             </p>
 
-            <h3 className="font-semibold mb-2 text-sm">Before you upgrade</h3>
+            <h3 className="font-semibold mb-2 text-sm">Before you upgrade to {ELSA_VERSION}</h3>
             <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1.5 mb-5">
               <li>
                 <strong className="text-foreground">Identity secrets are required.</strong> The reference
@@ -169,17 +172,33 @@ export default function GetStarted() {
                 characters with no surrounding whitespace (
                 <code className="font-mono">Identity__Tokens__SigningKey</code>). Known public defaults are
                 accepted only in <code className="font-mono">Development</code> or{" "}
-                <code className="font-mono">Demo</code>.
+                <code className="font-mono">Demo</code>. Outside those environments the Community
+                images start without the key, but every request, including login, then fails with
+                an empty HTTP 500, so always set the key when running them outside Development.
               </li>
+              <li>
+                <strong className="text-foreground">CLR access in JavaScript is opt-in.</strong>{" "}
+                Workflows whose JavaScript uses CLR types need{" "}
+                <code className="font-mono">JavaScript__AllowClrAccess=true</code>.
+              </li>
+              <li>
+                <strong className="text-foreground">Rotate default container credentials</strong> if
+                you ran older Community image tags, and remove duplicate default-tenant labels on
+                SQLite or MySQL (the same label name under both a NULL and an empty tenant id)
+                before upgrading.
+              </li>
+            </ul>
+            <h3 className="font-semibold mb-2 text-sm">Coming from 3.8 or earlier, also note:</h3>
+            <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1.5 mb-5">
               <li>
                 <strong className="text-foreground">The localhost SecurityRoot grant is gone.</strong>{" "}
                 <code className="font-mono break-all">EnableLocalHostPermissionGrantForSecurityRoot()</code> was
-                removed. Localhost requests get no special access. Bootstrap the first admin with{" "}
+                removed in 3.9.0. Localhost requests get no special access. Bootstrap the first admin with{" "}
                 <code className="font-mono">UseDefaultAdmin(...)</code> or an admin API key.
               </li>
               <li>
                 <strong className="text-foreground">Permissions are <code className="font-mono">resource:verb</code>.</strong>{" "}
-                Legacy strings such as <code className="font-mono">read:workflow-definitions</code> no
+                Since 3.9.0, legacy strings such as <code className="font-mono">read:workflow-definitions</code> no
                 longer grant anything. <code className="font-mono">*</code> still means everything, so
                 a seeded admin role keeps working.{" "}
                 <code className="font-mono">exec:csharp-expressions</code> /{" "}
@@ -189,12 +208,13 @@ export default function GetStarted() {
               </li>
               <li>
                 <strong className="text-foreground">Access tokens default to 15 minutes</strong>{" "}
-                (was 1 hour). A lifetime you set explicitly still applies.
+                (was 1 hour, changed in 3.9.0). A lifetime you set explicitly still applies.
               </li>
               <li>
-                <strong className="text-foreground">Studio {ELSA_VERSION} requires Core {ELSA_VERSION}.</strong>{" "}
-                Select exactly one authentication provider. Legacy Elsa.Studio.Login, Elsa Identity,
-                direct OIDC and brokered External Authentication must not be mixed.
+                <strong className="text-foreground">Studio and Core must be the same version,</strong>{" "}
+                and you must select exactly one authentication provider. Legacy Elsa.Studio.Login, Elsa Identity,
+                direct OIDC and brokered External Authentication must not be mixed. These rules shipped in 3.9.0
+                and still apply.
               </li>
             </ul>
 
@@ -252,11 +272,11 @@ export default function GetStarted() {
                 ships official <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">dotnet new</code> templates
                 for Elsa Server, Elsa Studio, and a combined solution. The{" "}
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_VERSION}</code>{" "}
-                templates reference Elsa Core and Elsa Studio at {ELSA_LATEST_STABLE_VERSION}, CShells{" "}
+                templates reference Elsa Core and Elsa Studio at {ELSA_TEMPLATES_ELSA_VERSION}, CShells{" "}
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_CSHELLS_VERSION}</code>,
                 and generate <strong>.NET 10</strong> (
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_TARGET_FRAMEWORK}</code>)
-                projects — so no manual package bump is needed after scaffolding.
+                projects. Elsa.Templates stays at {ELSA_TEMPLATES_VERSION} for this release; bump the generated Elsa.* packages to {ELSA_LATEST_STABLE_VERSION} if you want the latest runtime.
               </p>
               <p className="text-sm text-muted-foreground mt-4 rounded-md border border-border/70 bg-background p-4">
                 <strong className="text-foreground">Release status:</strong> the {ELSA_TEMPLATES_VERSION} template
@@ -279,8 +299,9 @@ export default function GetStarted() {
                 <div>
                   <h3 className="font-semibold mb-1">1. Install the templates</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Template package version — independent of the Elsa runtime version, though{" "}
-                    {ELSA_TEMPLATES_VERSION} lines up with the {ELSA_LATEST_STABLE_VERSION} runtime.
+                    Template package version — independent of the Elsa runtime version.
+                    Elsa.Templates stays at {ELSA_TEMPLATES_VERSION} for this release and still
+                    references Elsa {ELSA_TEMPLATES_ELSA_VERSION}.
                   </p>
                   <CodeBlock language="bash" code={`dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`} />
                 </div>

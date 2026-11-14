@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ELSA_VERSION } from "@/data/elsaVersion";
 import {
   ACADEMY_GUMROAD_CLAIM_LINE,
   ACADEMY_GUMROAD_CLAIM_LIVE,
@@ -11,13 +10,13 @@ import {
 describe("academySoloBundleBody", () => {
   it("uses the launch price and says prices include VAT", () => {
     expect(academySoloBundleBody(true)).toBe(
-      `Every self-paced course in the Academy, with the Elsa ${ELSA_VERSION} lab kit to download and unzip. €29 incl. VAT at launch until 30 Nov, then €39 incl. VAT.`,
+      `Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €29 incl. VAT at launch until 30 Nov, then €39 incl. VAT.`,
     );
   });
 
   it("drops the launch sentence after the launch window", () => {
     expect(academySoloBundleBody(false)).toBe(
-      `Every self-paced course in the Academy, with the Elsa ${ELSA_VERSION} lab kit to download and unzip. €39 incl. VAT.`,
+      `Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip. €39 incl. VAT.`,
     );
   });
 
