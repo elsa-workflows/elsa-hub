@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
+import { ELSA_VERSION } from "@/data/elsaVersion";
 import Home from "./Home";
 import Features from "./Features";
 import GetStarted from "./GetStarted";
@@ -52,8 +53,8 @@ describe("BPMN positioning copy", () => {
       screen.getByAltText("The new React-based Elsa Studio designer (preview)"),
     ).toBeInTheDocument();
     expect(screen.getByText("Preview, coming in Elsa 3.11")).toBeInTheDocument();
-    expect(screen.getByText(/through the Elsa 3\.9 API/)).toBeInTheDocument();
-    expect(screen.getByText(/Elsa 3\.9 exposes workflow instances and execution journals/)).toBeInTheDocument();
+    expect(screen.getByText(/through the Elsa 3\.10 API/)).toBeInTheDocument();
+    expect(screen.getByText(/Elsa 3\.10 exposes workflow instances and execution journals/)).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(screen.getByText("Elsa.Bpmn.Interchange", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(FORBIDDEN);
@@ -95,7 +96,7 @@ describe("BPMN positioning copy", () => {
     expect(document.body.textContent).not.toMatch(FORBIDDEN);
   });
 
-  it("mentions 3.10.1 BPMN packages on get-started without rewriting the release card", async () => {
+  it("mentions the latest BPMN packages on get-started", async () => {
     renderPage(<GetStarted />);
 
     await waitFor(() => {
@@ -104,7 +105,7 @@ describe("BPMN positioning copy", () => {
     expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
       "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.10.1 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
     );
-    expect(screen.getAllByText(/Elsa 3\.9\.0 ships/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(new RegExp(`Elsa ${ELSA_VERSION} ships`, "i")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/BPMN 2\.0 certified|fully compliant/i);
   });

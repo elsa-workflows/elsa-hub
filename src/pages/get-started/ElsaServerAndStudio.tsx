@@ -212,7 +212,7 @@ builder.Services.AddServerSideBlazor(options =>
     options.RootComponents.MaxJSRootComponents = 1000;
 });
 
-// Studio 3.9.0 requires exactly one authentication provider to be selected.
+// Studio ${ELSA_VERSION} requires exactly one authentication provider to be selected.
 builder.Services.AddStudioAuthenticationMode(options => options.Provider = StudioAuthenticationProvider.ElsaIdentity);
 builder.Services.AddElsaIdentity();
 builder.Services.AddElsaIdentityUI();

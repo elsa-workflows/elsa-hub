@@ -311,9 +311,9 @@ export default function Features() {
                   Core 3.9.0
                 </a>
                 . A <code className="font-mono text-xs">UserTask</code> activity materializes a task,
-                suspends the workflow, and resumes when a permitted action is submitted. Studio 3.10
-                adds a Workflows → User Tasks queue. This is a Core and Studio feature; Extensions
-                3.9.0 has no User Tasks module.
+                suspends the workflow, and resumes when a permitted action is submitted. Studio
+                includes a Workflows → User Tasks queue (since 3.9). This is a Core and Studio
+                feature; Extensions has no User Tasks module.
               </p>
             </li>
           </ul>

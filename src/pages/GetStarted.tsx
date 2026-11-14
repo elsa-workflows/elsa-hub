@@ -163,7 +163,7 @@ export default function GetStarted() {
               and cancellation, and scopes roles to the tenant.
             </p>
 
-            <h3 className="font-semibold mb-2 text-sm">Before you upgrade</h3>
+            <h3 className="font-semibold mb-2 text-sm">Before you upgrade to {ELSA_VERSION}</h3>
             <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1.5 mb-5">
               <li>
                 <strong className="text-foreground">Identity secrets are required.</strong> The reference
@@ -187,15 +187,18 @@ export default function GetStarted() {
                 SQLite or MySQL (the same label name under both a NULL and an empty tenant id)
                 before upgrading.
               </li>
+            </ul>
+            <h3 className="font-semibold mb-2 text-sm">Coming from 3.8 or earlier, also note:</h3>
+            <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1.5 mb-5">
               <li>
                 <strong className="text-foreground">The localhost SecurityRoot grant is gone.</strong>{" "}
                 <code className="font-mono break-all">EnableLocalHostPermissionGrantForSecurityRoot()</code> was
-                removed. Localhost requests get no special access. Bootstrap the first admin with{" "}
+                removed in 3.9.0. Localhost requests get no special access. Bootstrap the first admin with{" "}
                 <code className="font-mono">UseDefaultAdmin(...)</code> or an admin API key.
               </li>
               <li>
                 <strong className="text-foreground">Permissions are <code className="font-mono">resource:verb</code>.</strong>{" "}
-                Legacy strings such as <code className="font-mono">read:workflow-definitions</code> no
+                Since 3.9.0, legacy strings such as <code className="font-mono">read:workflow-definitions</code> no
                 longer grant anything. <code className="font-mono">*</code> still means everything, so
                 a seeded admin role keeps working.{" "}
                 <code className="font-mono">exec:csharp-expressions</code> /{" "}
@@ -205,12 +208,13 @@ export default function GetStarted() {
               </li>
               <li>
                 <strong className="text-foreground">Access tokens default to 15 minutes</strong>{" "}
-                (was 1 hour). A lifetime you set explicitly still applies.
+                (was 1 hour, changed in 3.9.0). A lifetime you set explicitly still applies.
               </li>
               <li>
-                <strong className="text-foreground">Studio {ELSA_VERSION} requires Core {ELSA_VERSION}.</strong>{" "}
-                Select exactly one authentication provider. Legacy Elsa.Studio.Login, Elsa Identity,
-                direct OIDC and brokered External Authentication must not be mixed.
+                <strong className="text-foreground">Studio and Core must be the same version,</strong>{" "}
+                and you must select exactly one authentication provider. Legacy Elsa.Studio.Login, Elsa Identity,
+                direct OIDC and brokered External Authentication must not be mixed. These rules shipped in 3.9.0
+                and still apply.
               </li>
             </ul>
 
