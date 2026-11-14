@@ -44,7 +44,7 @@ var configuration = builder.Configuration;
 
 builder.Services.AddElsa(elsa =>
 {
-    // Identity. Elsa 3.9.0 rejects a missing signing key, a key shorter than
+    // Identity. Elsa 3.10.1 rejects a missing signing key, a key shorter than
     // 32 ASCII characters, and known public defaults outside Development/Demo.
     // Bootstrap the first admin with UseDefaultAdmin and supply the values from
     // configuration or a secret manager - never hard-code them.
@@ -237,7 +237,7 @@ cd ElsaServer`}
               <CodeBlock code={appSettings} language="json" title="appsettings.json" />
               <div className="mt-6 p-4 rounded-lg border bg-muted/30 space-y-2 text-sm text-muted-foreground">
                 <p>
-                  The localhost SecurityRoot grant was removed in Elsa {ELSA_VERSION}. Localhost
+                  The localhost SecurityRoot grant was removed in Elsa 3.9.0. Localhost
                   requests get no special access, and{" "}
                   <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs break-all">
                     EnableLocalHostPermissionGrantForSecurityRoot()

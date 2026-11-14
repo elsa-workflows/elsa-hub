@@ -38,14 +38,14 @@ describe("BPMN positioning copy", () => {
       .forEach((node) => node.remove());
   });
 
-  it("sets the home tagline and 3.9 BPMN SEO", async () => {
+  it("sets the home tagline and 3.10 BPMN SEO", async () => {
     renderPage(<Home />);
 
     await waitFor(() => {
       expect(document.title).toBe("The workflow and BPMN engine for .NET");
     });
     expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
-      "Build workflow-driven .NET apps with Elsa: C#, Elsa Studio, and BPMN 2.0 import, execution, and export in 3.9. Open source.",
+      "Build workflow-driven .NET apps with Elsa: C#, Elsa Studio, and BPMN 2.0 import, execution, and export in 3.10. Open source.",
     );
     expect(screen.getByText("THE WORKFLOW AND BPMN ENGINE FOR .NET")).toBeInTheDocument();
     expect(
@@ -59,7 +59,7 @@ describe("BPMN positioning copy", () => {
     expect(document.body.textContent).not.toMatch(FORBIDDEN);
   });
 
-  it("documents verified 3.9 BPMN capabilities and labels preview work", async () => {
+  it("documents verified 3.10 BPMN capabilities and labels preview work", async () => {
     renderPage(<Features />);
 
     await waitFor(() => {
@@ -71,7 +71,7 @@ describe("BPMN positioning copy", () => {
     expect(screen.getByRole("heading", { name: /workflow and BPMN automation/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Elsa.Bpmn" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Elsa.Bpmn.Interchange" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Studio 3.9" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Studio 3.10" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "User Tasks in Core" })).toBeInTheDocument();
     expect(screen.getByText(/BPMN canvas is read-only/i)).toBeInTheDocument();
     expect(screen.getByText(/Preview \/ roadmap/i)).toBeInTheDocument();
@@ -82,23 +82,27 @@ describe("BPMN positioning copy", () => {
     expect(screen.getByText("Elsa.Mqtt", { selector: "code" })).toBeInTheDocument();
     expect(screen.getByText("Elsa.Ldap", { selector: "code" })).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Extensions 3.9.0" }),
-    ).toHaveAttribute("href", "https://github.com/elsa-workflows/elsa-extensions/releases/tag/3.9.0");
-    expect(screen.getAllByRole("link", { name: "Core 3.9.0" }).length).toBeGreaterThan(0);
+      screen.getByRole("link", { name: "Extensions 3.10.1" }),
+    ).toHaveAttribute("href", "https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.1");
+    expect(screen.getAllByRole("link", { name: "Core 3.10.1" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Core 3.9.0" })).toHaveAttribute(
+      "href",
+      "https://github.com/elsa-workflows/elsa-core/releases/tag/3.9.0",
+    );
     expect(screen.getByText(/remain on the extensions roadmap/i)).toBeInTheDocument();
     expect(screen.queryByText(/BPMN 2\.0 certified/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/fully compliant/i)).not.toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(FORBIDDEN);
   });
 
-  it("mentions 3.9.0 BPMN packages on get-started without rewriting the release card", async () => {
+  it("mentions 3.10.1 BPMN packages on get-started without rewriting the release card", async () => {
     renderPage(<GetStarted />);
 
     await waitFor(() => {
       expect(document.title).toBe("Get started with the workflow and BPMN engine for .NET");
     });
     expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
-      "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.9.0 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
+      "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.10.1 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
     );
     expect(screen.getAllByText(/Elsa 3\.9\.0 ships/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();

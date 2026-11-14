@@ -9,31 +9,43 @@
  *   2. Re-run each guide from an empty directory:
  *        dotnet restore && dotnet build && dotnet run
  *   3. Update SUPPORTED_DOTNET_SDKS if the release changes SDK support.
- *   4. Update LAST_VERIFIED_ON.
+ *   4. Update LAST_VERIFIED_ON and LAST_VERIFIED_ELSA_VERSION.
  *
  * Elsa and Elsa Studio ship on the same release line, so a single
  * version applies to both. Visitor-facing pins (guides, Resources NuGet
  * link, roadmap release context) all read this constant.
+ *
+ * Elsa.Templates ships on its own cadence. Do not assume it matches
+ * ELSA_VERSION; see ELSA_TEMPLATES_VERSION and ELSA_TEMPLATES_ELSA_VERSION.
  */
-export const ELSA_VERSION = "3.9.0";
+export const ELSA_VERSION = "3.10.1";
 
-/** Publication date of the pinned Elsa release. */
-export const ELSA_RELEASE_DATE = "2026-10-04";
+/** Publication date of the pinned Elsa release (UTC calendar day from GitHub). */
+export const ELSA_RELEASE_DATE = "2026-11-14";
 
-/** Official release notes for the pinned release line. */
+/**
+ * Official release notes for the pinned release line.
+ *
+ * As of 3.10.1, Core, Studio and Extensions packages are published from
+ * elsa-core. The elsa-studio and elsa-extensions repos have no 3.10.1
+ * tags (checked 2026-11-14: both 404). All three links therefore point
+ * at the elsa-core release.
+ */
 export const ELSA_RELEASE_LINKS = {
   core: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
-  studio: `https://github.com/elsa-workflows/elsa-studio/releases/tag/${ELSA_VERSION}`,
-  extensions: `https://github.com/elsa-workflows/elsa-extensions/releases/tag/${ELSA_VERSION}`,
+  studio: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
+  extensions: `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`,
 } as const;
 
 /**
  * Latest stable Elsa 3 release published on GitHub (Core, Studio and
- * Extensions ship as one aligned train). The guides are verified on this
- * train, so this matches ELSA_VERSION.
+ * Extensions ship as one aligned train). The guides pin this version,
+ * so this matches ELSA_VERSION.
  *
- * Source: https://github.com/elsa-workflows/elsa-core/releases/tag/3.9.0
- * (checked 2026-10-16; 3.9.0 is on nuget.org for Elsa and Elsa.Templates).
+ * Source: https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.1
+ * (checked 2026-11-14; 3.10.1 is on nuget.org for Elsa, Elsa.Workflows.Core
+ * and Elsa.Studio; Elsa 3.10.0 was not published. Elsa.Templates stays at
+ * 3.9.0.)
  */
 export const ELSA_LATEST_STABLE_VERSION = ELSA_VERSION;
 
@@ -43,9 +55,15 @@ export const ELSA_LATEST_STABLE_RELEASE_DATE = ELSA_RELEASE_DATE;
 /** Release notes for the latest stable release train. */
 export const ELSA_LATEST_STABLE_RELEASE_LINKS = ELSA_RELEASE_LINKS;
 
-/** Live upgrade guide for the pinned / latest stable release line. */
+/**
+ * Upgrade notes for the pinned / latest stable release line.
+ *
+ * docs.elsaworkflows.io/getting-started/upgrading-to-3.10 returned 404
+ * on 2026-11-14, so this points at the GitHub 3.10.1 release notes,
+ * which include the upgrade steps.
+ */
 export const ELSA_UPGRADE_GUIDE_URL =
-  "https://docs.elsaworkflows.io/getting-started/upgrading-to-3.9";
+  `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`;
 
 /** Upgrade guide for the latest stable release. Alias of ELSA_UPGRADE_GUIDE_URL. */
 export const ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL = ELSA_UPGRADE_GUIDE_URL;
@@ -53,18 +71,26 @@ export const ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL = ELSA_UPGRADE_GUIDE_URL;
 /** NuGet listing for the Elsa package (unversioned, so it always shows the newest release). */
 export const ELSA_NUGET_URL = "https://www.nuget.org/packages/Elsa";
 
-/** NuGet listing pinned to ELSA_VERSION. 3.9.0 exists on nuget.org. */
+/** NuGet listing pinned to ELSA_VERSION. 3.10.1 exists on nuget.org (checked 2026-11-14). */
 export const ELSA_NUGET_VERSION_URL = `${ELSA_NUGET_URL}/${ELSA_VERSION}`;
 
 /**
  * The `Elsa.Templates` package ships on its own cadence and is NOT part of the
- * Elsa Core / Studio release line. The 3.9.0 template package is tagged and
- * released (Elsa Core / Studio 3.9.0 references, CShells 0.0.28, .NET 10
- * generated projects) at commit 89f7747cba408a75a041cc3328b007c0c483acd1.
+ * Elsa Core / Studio release line. It stays at 3.9.0 for the 3.10.1 release
+ * (confirmed: no Elsa.Templates 3.10.1 on nuget.org or GitHub, 2026-11-14).
+ * The 3.9.0 template package is tagged and released (Elsa Core / Studio 3.9.0
+ * references, CShells 0.0.28, .NET 10 generated projects) at commit
+ * 89f7747cba408a75a041cc3328b007c0c483acd1.
  * Release: https://github.com/elsa-workflows/elsa-templates/releases/tag/3.9.0
  * NuGet: confirmed 3.9.0 on nuget.org (Elsa.Templates; Elsa.ProjectTemplates does not exist).
  */
 export const ELSA_TEMPLATES_VERSION = "3.9.0";
+
+/**
+ * Core / Studio package version referenced by the current Elsa.Templates
+ * package. This is not ELSA_VERSION: templates stayed at 3.9.0 for 3.10.1.
+ */
+export const ELSA_TEMPLATES_ELSA_VERSION = "3.9.0";
 
 /** Template release tag. */
 export const ELSA_TEMPLATES_RELEASE_URL =
@@ -91,14 +117,22 @@ export const SUPPORTED_DOTNET_SDKS = ["8.0", "9.0", "10.0"] as const;
  * hand-written Elsa Server, Elsa Studio (Blazor WebAssembly) and combined
  * Blazor Server walkthroughs. Each restore/build succeeded and each host
  * that exposes the API accepted a configured administrator sign-in.
+ *
+ * Package and image pins were later checked on 2026-11-14 against 3.10.1
+ * (see PACKAGES_CHECKED_ON). The walkthroughs themselves have not been
+ * re-run against 3.10.1.
  */
 export const LAST_VERIFIED_ON = "2026-10-15";
 
+/** Engine version used in the last clean-room guide run. */
+export const LAST_VERIFIED_ELSA_VERSION = "3.9.0";
+
 /**
- * ISO date on which the package versions and registration APIs on these pages
- * were checked against the tagged 3.9.0 sources and NuGet.org.
+ * ISO date on which the package versions, Docker Hub tags, and registration
+ * APIs on these pages were checked against the tagged 3.10.1 sources and
+ * nuget.org / hub.docker.com.
  */
-export const PACKAGES_CHECKED_ON = "2026-10-15";
+export const PACKAGES_CHECKED_ON = "2026-11-14";
 
 /** Convenience helper for `dotnet add package` snippets. */
 export const pkg = (name: string) =>

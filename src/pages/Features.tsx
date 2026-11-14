@@ -54,7 +54,7 @@ const featureCards = [
     icon: Workflow,
     title: "Visual Workflow Studio",
     description:
-      "A modular Blazor-based designer and management UI with diagnostics views, authentication modules, and localization. Studio 3.9 imports .bpmn files, shows a read-only BPMN canvas, and binds unbound tasks to Elsa activities.",
+      "A modular Blazor-based designer and management UI with diagnostics views, authentication modules, and localization. Studio 3.10 imports .bpmn files, shows a read-only BPMN canvas, and binds unbound tasks to Elsa activities.",
   },
   {
     icon: Puzzle,
@@ -191,7 +191,7 @@ export default function Features() {
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl mb-8">
                 Elsa is an open-source workflow and BPMN engine for building long-running,
                 event-driven, and integration-heavy processes inside your own .NET
-                applications. Elsa 3.9 ships{" "}
+                applications. Elsa 3.10 ships{" "}
                 <code className="font-mono text-sm">Elsa.Bpmn</code> and{" "}
                 <code className="font-mono text-sm">Elsa.Bpmn.Interchange</code> so a host
                 can execute BPMN 2.0 processes and round-trip <code className="font-mono text-sm">.bpmn</code> XML.
@@ -246,7 +246,7 @@ export default function Features() {
           <div className="max-w-3xl mb-10">
             <span className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground mb-6">
               <span className="h-px w-8 bg-primary" />
-              BPMN in Elsa 3.9
+              BPMN in Elsa 3.10
             </span>
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
               Execute BPMN 2.0 on the same .NET runtime
@@ -289,7 +289,7 @@ export default function Features() {
               </p>
             </li>
             <li className="p-6 md:p-7">
-              <h3 className="text-base font-semibold mb-1">Studio 3.9</h3>
+              <h3 className="text-base font-semibold mb-1">Studio 3.10</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Import a <code className="font-mono text-xs">.bpmn</code> file from the workflow list.
                 The BPMN canvas is read-only: it displays the imported process and forwards selection.
@@ -311,7 +311,7 @@ export default function Features() {
                   Core 3.9.0
                 </a>
                 . A <code className="font-mono text-xs">UserTask</code> activity materializes a task,
-                suspends the workflow, and resumes when a permitted action is submitted. Studio 3.9
+                suspends the workflow, and resumes when a permitted action is submitted. Studio 3.10
                 adds a Workflows → User Tasks queue. This is a Core and Studio feature; Extensions
                 3.9.0 has no User Tasks module.
               </p>
@@ -470,25 +470,25 @@ export default function Features() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-                Available in the 3.9.0 train:{" "}
+                Available in the 3.10.1 train:{" "}
                 <code className="font-mono">Elsa.Mqtt</code> and{" "}
                 <code className="font-mono">Elsa.Ldap</code> in{" "}
                 <a
-                  href="https://github.com/elsa-workflows/elsa-extensions/releases/tag/3.9.0"
+                  href="https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.1"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground underline underline-offset-4 hover:text-primary"
                 >
-                  Extensions 3.9.0
+                  Extensions 3.10.1
                 </a>
                 , and User Tasks in{" "}
                 <a
-                  href="https://github.com/elsa-workflows/elsa-core/releases/tag/3.9.0"
+                  href="https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.1"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-foreground underline underline-offset-4 hover:text-primary"
                 >
-                  Core 3.9.0
+                  Core 3.10.1
                 </a>
                 . Teams, GitLab, OPC UA, MQTT Sparkplug, and others remain on the extensions
                 roadmap.
