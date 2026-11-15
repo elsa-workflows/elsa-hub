@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -88,7 +88,7 @@ export type Database = {
           is_published?: boolean
           price_cents?: number
           product_code: string
-          product_codes?: string[]
+          product_codes: string[]
           slug: string
           sort_order?: number
           stripe_price_id?: string | null
@@ -245,6 +245,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      agent_mentions: {
+        Row: {
+          agent: string
+          author: string | null
+          body: string | null
+          created_at: string
+          delivery_id: string
+          error: string | null
+          forward_status: number | null
+          handle: string
+          id: number
+          kind: string | null
+          number: number | null
+          repo: string | null
+          role: string
+          status: string
+          url: string | null
+        }
+        Insert: {
+          agent: string
+          author?: string | null
+          body?: string | null
+          created_at?: string
+          delivery_id: string
+          error?: string | null
+          forward_status?: number | null
+          handle: string
+          id?: number
+          kind?: string | null
+          number?: number | null
+          repo?: string | null
+          role?: string
+          status?: string
+          url?: string | null
+        }
+        Update: {
+          agent?: string
+          author?: string | null
+          body?: string | null
+          created_at?: string
+          delivery_id?: string
+          error?: string | null
+          forward_status?: number | null
+          handle?: string
+          id?: number
+          kind?: string | null
+          number?: number | null
+          repo?: string | null
+          role?: string
+          status?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      agent_router_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
       }
       audit_events: {
         Row: {
@@ -666,6 +738,36 @@ export type Database = {
         }
         Relationships: []
       }
+      github_webhook_deliveries: {
+        Row: {
+          delivery_id: string
+          event: string | null
+          hook_id: string | null
+          received_at: string
+          repo: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          delivery_id: string
+          event?: string | null
+          hook_id?: string | null
+          received_at?: string
+          repo?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          delivery_id?: string
+          event?: string | null
+          hook_id?: string | null
+          received_at?: string
+          repo?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string
@@ -798,6 +900,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lab_progress: {
+        Row: {
+          course_id: string
+          lab_id: string
+          status: string
+          step_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          lab_id: string
+          status: string
+          step_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          lab_id?: string
+          status?: string
+          step_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lab_sessions: {
+        Row: {
+          course_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          lab_id: string
+          last_activity_at: string
+          status: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          lab_id: string
+          last_activity_at?: string
+          status?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          lab_id?: string
+          last_activity_at?: string
+          status?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       lot_consumptions: {
         Row: {
@@ -2013,7 +2178,7 @@ export type Database = {
           content_hash: string | null
           created_at: string
           embedding: string | null
-          external_id: string | null
+          external_id: string
           id: string
           metadata: Json
           path: string | null
@@ -2030,7 +2195,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           embedding?: string | null
-          external_id?: string | null
+          external_id: string
           id?: string
           metadata?: Json
           path?: string | null
@@ -2047,7 +2212,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           embedding?: string | null
-          external_id?: string | null
+          external_id?: string
           id?: string
           metadata?: Json
           path?: string | null
@@ -2554,6 +2719,20 @@ export type Database = {
       }
     }
     Functions: {
+      academy_course_outline: {
+        Args: { p_course_id: string }
+        Returns: {
+          id: string
+          is_preview: boolean
+          slug: string
+          sort_order: number
+          title: string
+        }[]
+      }
+      academy_product_codes_valid: {
+        Args: { p_codes: string[] }
+        Returns: boolean
+      }
       accept_invitation: { Args: { p_token: string }; Returns: string }
       accept_invitation_by_id: {
         Args: { p_invitation_id: string }
@@ -2794,6 +2973,7 @@ export type Database = {
           total_minutes_expired: number
         }[]
       }
+      purge_stale_invitations: { Args: never; Returns: number }
       record_blog_view: {
         Args: { p_slug: string; p_visitor_id: string }
         Returns: number
@@ -2808,6 +2988,30 @@ export type Database = {
       unassign_academy_seat: {
         Args: { p_entitlement_id: string; p_user_id: string }
         Returns: undefined
+      }
+      upsert_lab_progress: {
+        Args: {
+          p_course_id: string
+          p_lab_id: string
+          p_status: string
+          p_step_id: string
+          p_updated_at: string
+          p_user_id: string
+        }
+        Returns: {
+          course_id: string
+          lab_id: string
+          status: string
+          step_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lab_progress"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
