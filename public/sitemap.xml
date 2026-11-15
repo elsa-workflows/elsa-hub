@@ -181,6 +181,42 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.elsaworkflows.io/blog/inside-the-elsa-4-kernel</loc>
+    <lastmod>2026-11-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/blog/business-rules-in-elsa-4-introducing-decisions</loc>
+    <lastmod>2026-11-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/blog/a-look-at-elsa-4</loc>
+    <lastmod>2026-11-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/blog/elsa-4-transactional-outbox</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/blog/elsa-progress-update-october-2026</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.elsaworkflows.io/blog/one-repo-for-elsa-3</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.elsaworkflows.io/blog/elsa-4-replay-safe-console-output</loc>
     <lastmod>2026-10-11</lastmod>
     <changefreq>monthly</changefreq>
