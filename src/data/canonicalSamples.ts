@@ -5,8 +5,6 @@
 // Do not duplicate these strings inline. Import from here so the homepage
 // and get-started docs stay in lockstep with the release branch.
 
-import { ELSA_LATEST_STABLE_VERSION } from "./elsaVersion";
-
 // Embedding Elsa in a .NET host.
 // Source paths (tag 3.10.1):
 //   src/modules/Elsa/Extensions/DependencyInjectionExtensions.cs:18   -> AddElsa
@@ -31,11 +29,11 @@ export const PAID_REGISTRY = "valenceruntimeimages.azurecr.io";
 
 export const PAID_REGISTRY_LOGIN_COMMAND = `docker login ${PAID_REGISTRY}`;
 
-/** Pinned Community image tag. Prefer this in copy-paste snippets. */
-export const ELSA_COMMUNITY_DOCKER_TAG = ELSA_LATEST_STABLE_VERSION;
+/** Published Community image tag, tracked independently of NuGet. */
+export const ELSA_COMMUNITY_DOCKER_TAG = "3.10.1";
 
 /** Floating Community minor tag. Moves when a newer patch on this line ships. */
-export const ELSA_COMMUNITY_DOCKER_MINOR_TAG = ELSA_LATEST_STABLE_VERSION.split(".").slice(0, 2).join(".");
+export const ELSA_COMMUNITY_DOCKER_MINOR_TAG = ELSA_COMMUNITY_DOCKER_TAG.split(".").slice(0, 2).join(".");
 
 /**
  * Elsa 3 Community images (source-built reference hosts on Docker Hub).
