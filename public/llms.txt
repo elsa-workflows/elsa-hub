@@ -15,6 +15,8 @@
 - [Elsa+](/elsa-plus): Commercial ecosystem of Docker images, services, training, and hosting.
 - [Expert services](/elsa-plus/expert-services): Vetted independent providers offering Elsa expert services.
 - [Elsa Runtime by Valence Works](/elsa-plus/elsa-runtime): Ready-to-deploy Elsa Server and Studio Docker images, with public Community images and subscription-backed paid tiers.
+- [Distributions](/elsa-plus/distributions): What an Elsa distribution is: a packaged, versioned assembly of Elsa Workflows from a named provider.
+- [Runtime Builder](/elsa-plus/runtime-builder): Preview tool to compose an Elsa runtime and preview a Docker deployment bundle.
 - [Cloud services](/elsa-plus/cloud-services): Managed Elsa hosting providers.
 - [Training](/elsa-plus/training): Elsa training programs.
 - [Academy](/academy): Self-paced Elsa 3 courses, preview lessons, and the Solo Bundle.
@@ -24,6 +26,11 @@
 - [Roadmap](/roadmap): What the Elsa team is working on next.
 - [Radar](/community/radar): Community map of approved Elsa deployments.
 - [Terms](/legal/terms): Terms of sale for Elsa+ products, including Academy and Cloud.
+- [Academy terms](/legal/academy-terms): Elsa Academy terms of sale and refund policy.
+- [Cloud terms](/legal/cloud-terms): Elsa Cloud Early Access Terms.
+- [Privacy](/legal/privacy): Privacy Notice for Elsa Cloud.
+- [DPA](/legal/dpa): Elsa Cloud Data Processing Agreement.
+- [Subprocessors](/legal/subprocessors): Elsa Cloud sub-processors.
 
 ## Optional
 

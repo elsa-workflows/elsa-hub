@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter } from "react-router-dom";
-import { ELSA_VERSION } from "@/data/elsaVersion";
+import { ELSA_TEMPLATES_VERSION, ELSA_VERSION } from "@/data/elsaVersion";
 import Home from "./Home";
 import Features from "./Features";
 import GetStarted from "./GetStarted";
@@ -108,5 +108,11 @@ describe("BPMN positioning copy", () => {
     expect(screen.getAllByText(new RegExp(`Elsa ${ELSA_VERSION} ships`, "i")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/BPMN 2\.0 certified|fully compliant/i);
+    expect(document.body.textContent).toMatch(/3\.10\.1 was the\s+first public 3\.10 release/);
+    expect(document.body.textContent).not.toMatch(/Elsa 3\.10\.2 is the\s+first public 3\.10 release/);
+    expect(document.body.textContent).not.toMatch(/Elsa\.Templates and the\s+legacy Elsa\.Secrets\.\* packages stay at 3\.9\.0/);
+    expect(document.body.textContent).toMatch(
+      new RegExp(`Elsa\\.Templates also ships as ${ELSA_TEMPLATES_VERSION}`),
+    );
   });
 });

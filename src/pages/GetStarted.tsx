@@ -154,13 +154,18 @@ export default function GetStarted() {
               <Badge variant="secondary" className="font-mono">{ELSA_RELEASE_DATE}</Badge>
             </div>
             <p className="text-muted-foreground mb-5">
-              3.10.0 was an internal candidate and was not published; Elsa {ELSA_VERSION} is the
-              first public 3.10 release. Core, Studio and Extensions packages are published
-              together as {ELSA_VERSION} from the elsa-core repository, so upgrade the Elsa.*
-              packages you use together. <code className="font-mono">Elsa.Templates</code> and the
-              legacy <code className="font-mono">Elsa.Secrets.*</code> packages stay at 3.9.0. The
-              combined Community image serves Studio again. This release hardens workflow dispatch
-              and cancellation, and scopes roles to the tenant.
+              3.10.0 was an internal candidate and was not published; 3.10.1 was the
+              first public 3.10 release. Elsa {ELSA_VERSION} is a security update for the 3.10 line.
+              Core, Studio and Extensions packages are published together as {ELSA_VERSION} from the
+              elsa-core repository, so upgrade the Elsa.* packages you use together.{" "}
+              <code className="font-mono">Elsa.Templates</code> also ships as {ELSA_TEMPLATES_VERSION}.
+              The legacy <code className="font-mono">Elsa.Secrets.Api</code>,{" "}
+              <code className="font-mono">Elsa.Secrets.Core</code>,{" "}
+              <code className="font-mono">Elsa.Secrets.Management</code>,{" "}
+              <code className="font-mono">Elsa.Secrets.Models</code> and{" "}
+              <code className="font-mono">Elsa.Secrets.Scripting</code> packages stay at 3.9.0.
+              The combined Community image serves Studio again. This release hardens workflow starts,
+              bookmark resumes, tenant and role boundaries, workflow authoring, and recovery.
             </p>
 
             <h3 className="font-semibold mb-2 text-sm">Before you upgrade to {ELSA_VERSION}</h3>

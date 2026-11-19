@@ -32,9 +32,11 @@ import { BookOpen, Zap, Bot, Puzzle, Megaphone, MessageSquare, ArrowRight } from
  * | Reusing Triggers in Elsa Workflows 3.5          | medium.com/@sipke/...8g9h0i1j2k3l                                      | sipkeschoorstra.medium.com/reusing-triggers-in-elsa-workflows-3-5-d86a484f40b3                          | Placeholder slug    |
  * | Orchard Core and Elsa Workflows Demo            | youtube.com/watch?v=orchard-core-elsa-demo (placeholder)               | youtube.com/watch?v=5jWR5fWhNrk                                                                         | Placeholder URL     |
  *
+ * Removed 2026-11-19 (#194): Introducing Elsa Workflows 3 on cantinhode.net —
+ * TLS handshake fails (unrecognized_name). Do not relink until the host is reachable.
+ *
  * Verified working URLs (no changes needed):
  * - Elsa 3.0 – Unleash the power of workflows: sipkeschoorstra.medium.com/elsa-3-0-2b341e7cbfa7
- * - Introducing Elsa Workflows 3: cantinhode.net (cleaned tracking params)
  * - Parallel Task Orchestration: sipkeschoorstra.medium.com/parallel-task-orchestration-with-elsa-3-0-e387f863655f
  * - Scheduled Background Tasks: dev.to/sfmskywalker/scheduled-background-tasks-made-easy-with-elsa-workflows-3o6k
  * - Configure External Authentication: medium.com/@djay93_42000/configure-external-authentication-in-elsa-workflows-environment-c8f91b6bd3ae
@@ -54,15 +56,6 @@ const gettingStartedResources: CommunityResource[] = [
     source: "Medium",
     author: "Sipke Schoorstra",
     date: "Dec 2023",
-    type: "article",
-  },
-  {
-    title: "Introducing Elsa Workflows 3 – A Modern .NET Workflow Engine",
-    description:
-      "Overview of Elsa 3 as open-source .NET libraries for programmatic, visual, and declarative workflow definitions.",
-    href: "https://cantinhode.net/blogs/community-cantinho-de-net/introducing-elsa-workflows-3-a-modern-net-workflow-engine",
-    source: "Cantinhode.net",
-    date: "2024",
     type: "article",
   },
 ];
