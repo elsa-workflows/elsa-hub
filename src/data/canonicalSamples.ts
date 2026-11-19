@@ -30,7 +30,7 @@ export const PAID_REGISTRY = "valenceruntimeimages.azurecr.io";
 export const PAID_REGISTRY_LOGIN_COMMAND = `docker login ${PAID_REGISTRY}`;
 
 /** Published Community image tag, tracked independently of NuGet. */
-export const ELSA_COMMUNITY_DOCKER_TAG = "3.10.1";
+export const ELSA_COMMUNITY_DOCKER_TAG = "3.10.2";
 
 /** Floating Community minor tag. Moves when a newer patch on this line ships. */
 export const ELSA_COMMUNITY_DOCKER_MINOR_TAG = ELSA_COMMUNITY_DOCKER_TAG.split(".").slice(0, 2).join(".");

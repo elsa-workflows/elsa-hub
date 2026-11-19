@@ -12,17 +12,17 @@ import {
 } from "./canonicalSamples";
 
 describe("Elsa Community Docker samples", () => {
-  it("points Community images at Docker Hub v3 names with a pinned 3.10.1 tag", () => {
+  it("points Community images at Docker Hub v3 names with a pinned 3.10.2 tag", () => {
     expect(COMMUNITY_IMAGES.server).toBe("elsaworkflows/elsa-server-v3");
     expect(COMMUNITY_IMAGES).not.toHaveProperty("studio");
     expect(COMMUNITY_IMAGES.combined).toBe("elsaworkflows/elsa-server-and-studio-v3");
-    expect(ELSA_COMMUNITY_DOCKER_TAG).toBe("3.10.1");
+    expect(ELSA_COMMUNITY_DOCKER_TAG).toBe("3.10.2");
     expect(ELSA_COMMUNITY_DOCKER_MINOR_TAG).toBe("3.10");
-    expect(ELSA_DOCKER_PULL_COMMAND).toContain(`${COMMUNITY_IMAGES.combined}:3.10.1`);
-    expect(ELSA_DOCKER_RUN_COMMAND).toContain(`${COMMUNITY_IMAGES.combined}:3.10.1`);
-    expect(ELSA_DOCKER_SERVER_PULL_COMMAND).toContain(`${COMMUNITY_IMAGES.server}:3.10.1`);
+    expect(ELSA_DOCKER_PULL_COMMAND).toContain(`${COMMUNITY_IMAGES.combined}:3.10.2`);
+    expect(ELSA_DOCKER_RUN_COMMAND).toContain(`${COMMUNITY_IMAGES.combined}:3.10.2`);
+    expect(ELSA_DOCKER_SERVER_PULL_COMMAND).toContain(`${COMMUNITY_IMAGES.server}:3.10.2`);
     expect(ELSA_DOCKER_VERSIONED_EXAMPLE).not.toContain("elsa-studio-v3");
-    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(":3.10.1");
+    expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(":3.10.2");
     expect(ELSA_DOCKER_VERSIONED_EXAMPLE).toContain(":3.10");
     expect(ELSA_DOCKER_PULL_COMMAND).not.toContain(":latest");
   });
