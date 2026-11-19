@@ -103,7 +103,7 @@ describe("BPMN positioning copy", () => {
       expect(document.title).toBe("Get started with the workflow and BPMN engine for .NET");
     });
     expect(document.querySelector("meta[name='description']")?.getAttribute("content")).toBe(
-      "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.10.1 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
+      "Setup guides for Elsa Server, Elsa Studio, a combined host, or Docker. Elsa 3.10.2 ships Elsa.Bpmn, Elsa.Bpmn.Interchange, and User Tasks.",
     );
     expect(screen.getAllByText(new RegExp(`Elsa ${ELSA_VERSION} ships`, "i")).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Elsa.Bpmn", { selector: "code" })).toBeInTheDocument();

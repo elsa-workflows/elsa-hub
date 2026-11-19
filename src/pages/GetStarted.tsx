@@ -276,7 +276,7 @@ export default function GetStarted() {
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_CSHELLS_VERSION}</code>,
                 and generate <strong>.NET 10</strong> (
                 <code className="font-mono text-sm px-1.5 py-0.5 rounded bg-muted border">{ELSA_TEMPLATES_TARGET_FRAMEWORK}</code>)
-                projects. Elsa.Templates stays at {ELSA_TEMPLATES_VERSION} for this release; bump the generated Elsa.* packages to {ELSA_LATEST_STABLE_VERSION} if you want the latest runtime.
+                projects.
               </p>
               <p className="text-sm text-muted-foreground mt-4 rounded-md border border-border/70 bg-background p-4">
                 <strong className="text-foreground">Release status:</strong> the {ELSA_TEMPLATES_VERSION} template
@@ -299,9 +299,7 @@ export default function GetStarted() {
                 <div>
                   <h3 className="font-semibold mb-1">1. Install the templates</h3>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Template package version — independent of the Elsa runtime version.
-                    Elsa.Templates stays at {ELSA_TEMPLATES_VERSION} for this release and still
-                    references Elsa {ELSA_TEMPLATES_ELSA_VERSION}.
+                    Elsa.Templates is released separately and this version generates projects using Elsa {ELSA_TEMPLATES_ELSA_VERSION}.
                   </p>
                   <CodeBlock language="bash" code={`dotnet new install Elsa.Templates@${ELSA_TEMPLATES_VERSION}`} />
                 </div>
