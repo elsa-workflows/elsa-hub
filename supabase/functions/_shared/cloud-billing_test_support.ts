@@ -259,12 +259,51 @@ export async function captureConsoleError<T>(fn: () => Promise<T>): Promise<{ re
 }
 
 /**
- * Real JSON for Control GET /api/organizations/{id}/billing/hosted-subscription.
- * Field names and wire values come from valence-works/elsa-control main
- * (0486f2d1) HostedBillingContracts.HostedSubscriptionManagementResponse
- * and HostedSubscriptionManagementActions, serialized with camelCase
- * (JsonSerializerDefaults.Web). See OrganizationBillingService.GetHostedSubscriptionAsync
- * and Hosted_subscription_status_reports_missing_billing_linkage.
+ * Vendored Control goldens for GET /api/organizations/{id}/billing/hosted-subscription.
+ * Exact copies of valence-works/elsa-control contracts/hosted-subscription/,
+ * pinned in SOURCE.md in that folder. Prefer these over the synthesizer below
+ * whenever a golden exists for the case under test.
+ *
+ * The hand-built synthesizers stay for states Control has not published a
+ * golden for (Trial, PastDue, Constrained, Deleted) and for casing variants.
+ */
+const HOSTED_SUBSCRIPTION_GOLDEN_DIR = new URL("./contracts/hosted-subscription/", import.meta.url);
+
+export const HOSTED_SUBSCRIPTION_GOLDEN_NAMES = [
+  "active",
+  "no-billing-linkage",
+  "retained",
+  "suspended-canceled",
+  "suspended-deletion-requested",
+  "suspended-non-payment",
+] as const;
+
+export type HostedSubscriptionGoldenName = typeof HOSTED_SUBSCRIPTION_GOLDEN_NAMES[number];
+
+const GOLDEN_RESYNC_HINT =
+  "Resync with the command in supabase/functions/_shared/contracts/hosted-subscription/SOURCE.md";
+
+export function controlHostedSubscriptionGolden(
+  name: HostedSubscriptionGoldenName,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const path = new URL(`${name}.json`, HOSTED_SUBSCRIPTION_GOLDEN_DIR);
+  let raw: string;
+  try {
+    raw = Deno.readTextFileSync(path);
+  } catch (error) {
+    throw new Error(`Missing Control hosted-subscription golden ${name}.json. ${GOLDEN_RESYNC_HINT}`, {
+      cause: error,
+    });
+  }
+  const body = JSON.parse(raw) as Record<string, unknown>;
+  return { ...body, ...overrides };
+}
+
+/**
+ * Real JSON for Control GET /api/organizations/{id}/billing/hosted-subscription
+ * when no golden covers the state (or a field casing variant is under test).
+ * Field names and copy hooks follow the vendored goldens.
  *
  * Copy hooks are part of the real body; Hub matchers ignore unknown fields,
  * but stubs must include them so a missing required field cannot slip through.
@@ -281,31 +320,13 @@ const CONTROL_HOSTED_COPY_SUBSCRIPTION_CANCELLATION = {
     "Canceling the Hosted subscription ends access and billing at the end of the current period. It does not immediately delete the managed engine.",
 } as const;
 
-const CONTROL_HOSTED_COPY_MISSING_BILLING_LINKAGE = {
-  code: "billing-linkage-missing",
-  message:
-    "No Stripe billing customer is linked to this Hosted organization yet. Complete checkout, or wait for the billing webhook, before managing the subscription.",
-} as const;
-
-const CONTROL_NO_BILLING_LINKAGE_ACTION = "no-billing-linkage";
 const CONTROL_OPEN_PORTAL_ACTION = "open-portal";
 
 export function controlNeverSubscribedBody(overrides: Record<string, unknown> = {}) {
-  return {
+  return controlHostedSubscriptionGolden("no-billing-linkage", {
     organizationId: CONTROL_ORG,
-    subscriptionState: null,
-    billingLinked: false,
-    portalAvailable: false,
-    canManageSubscription: true,
-    managementAction: CONTROL_NO_BILLING_LINKAGE_ACTION,
-    copy: {
-      engineDeletion: { ...CONTROL_HOSTED_COPY_ENGINE_DELETION },
-      subscriptionCancellation: { ...CONTROL_HOSTED_COPY_SUBSCRIPTION_CANCELLATION },
-      missingBillingLinkage: { ...CONTROL_HOSTED_COPY_MISSING_BILLING_LINKAGE },
-    },
-    source: null,
     ...overrides,
-  };
+  });
 }
 
 /** Linked Hosted subscription 200 (Active, Suspended, Retained, and other enum names). */

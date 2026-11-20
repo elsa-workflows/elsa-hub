@@ -34,8 +34,8 @@ import {
   CONTROL_ORG,
   HUB_ORG,
   controlHostedSubscriptionBody,
+  controlHostedSubscriptionGolden,
   controlNeverSubscribedBody,
-  withForwardRecoveryAction,
 } from "./cloud-billing_test_support.ts";
 
 Deno.test("a Cloud request is recognized by productType or kind; Hub bodies are not", () => {
@@ -177,7 +177,7 @@ Deno.test("orgHasAnyCloudSubscription is true for any Cloud subscription, includ
 });
 
 Deno.test("Control hosted-subscription Active/Trial become a plan; ended and empty bodies do not", () => {
-  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Active", { source: "hub" })), {
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionGolden("active")), {
     planName: CLOUD_PLAN_NAME,
     status: "active",
     source: "hub",
@@ -194,8 +194,10 @@ Deno.test("Control hosted-subscription Active/Trial become a plan; ended and emp
   });
   assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("PastDue"))?.status, "past_due");
   assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Constrained"))?.status, "constrained");
-  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Suspended"))?.status, "ended");
-  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Retained"))?.status, "ended");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionGolden("suspended-deletion-requested"))?.status, "ended");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionGolden("suspended-non-payment"))?.status, "ended");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionGolden("suspended-canceled"))?.status, "ended");
+  assertEquals(normalizeControlEntitlement(controlHostedSubscriptionGolden("retained"))?.status, "ended");
   assertEquals(normalizeControlEntitlement(controlHostedSubscriptionBody("Deleted")), null);
   assertEquals(normalizeControlEntitlement({ subscriptionState: null, billingLinked: true }), null);
   assertEquals(normalizeControlEntitlement(null), null);
@@ -208,7 +210,7 @@ Deno.test("readControlEntitlement calls Control with the Control org id and retu
   const ok: ControlFetch = async (call, token) => {
     calls.push(call);
     tokens.push(token);
-    return { ok: true, status: 200, body: controlHostedSubscriptionBody("Active", { source: "hub" }) };
+    return { ok: true, status: 200, body: controlHostedSubscriptionGolden("active", { organizationId: CONTROL_ORG }) };
   };
 
   assertEquals(
@@ -302,6 +304,32 @@ Deno.test("the signed Suspended and entitlement-unavailable lines are exact", ()
     CLOUD_ENTITLEMENT_UNAVAILABLE_MESSAGE,
     "We couldn't load billing. Refresh this page to check again.",
   );
+});
+
+Deno.test("vendored Control goldens map Suspended, Retained and Canceled to the expected Hub plan status", () => {
+  const expected: Array<[Parameters<typeof controlHostedSubscriptionGolden>[0], string | null, string, string | null]> = [
+    ["active", "Active", "active", "hub"],
+    ["retained", "Retained", "ended", "hub"],
+    ["suspended-canceled", "Suspended", "ended", "hub"],
+    ["suspended-deletion-requested", "Suspended", "ended", "hub"],
+    ["suspended-non-payment", "Suspended", "ended", "hub"],
+    ["no-billing-linkage", null, "", null],
+  ];
+  for (const [name, state, status, source] of expected) {
+    const body = controlHostedSubscriptionGolden(name);
+    assertEquals(body.subscriptionState, state, name);
+    const entitlement = normalizeControlEntitlement(body);
+    if (status === "") {
+      assertEquals(entitlement, null, name);
+    } else {
+      assertEquals(entitlement, { planName: CLOUD_PLAN_NAME, status, source }, name);
+    }
+  }
+  assertEquals(controlHostedSubscriptionGolden("suspended-canceled").suspensionReason, "Canceled");
+  assertEquals(controlHostedSubscriptionGolden("suspended-canceled").recoveryAction, "Subscribe");
+  assertEquals(controlHostedSubscriptionGolden("suspended-deletion-requested").recoveryAction, "None");
+  assertEquals(controlHostedSubscriptionGolden("suspended-non-payment").recoveryAction, "UpdatePaymentMethod");
+  assertEquals(controlHostedSubscriptionGolden("retained").recoveryAction, "None");
 });
 
 Deno.test("controlSubscriptionBlocksCheckout blocks Suspended unless recoveryAction is Subscribe, and always blocks Retained", () => {
@@ -427,7 +455,7 @@ Deno.test("readControlCheckoutEntitlement returns the Control state and recovery
     return {
       ok: true,
       status: 200,
-      body: withForwardRecoveryAction(controlHostedSubscriptionBody("Suspended"), "Subscribe"),
+      body: controlHostedSubscriptionGolden("suspended-canceled", { organizationId: CONTROL_ORG }),
     };
   };
   assertEquals(
