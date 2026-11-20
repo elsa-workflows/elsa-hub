@@ -47,7 +47,7 @@ export const ACADEMY_STUB_LESSON_BODIES: Record<string, string> = {
     "3. Use the Studio journal to confirm every path.",
   ].join("\n"),
   "stub-lesson-hosting": [
-    "Host Elsa 3.9.0 in an ASP.NET Core app with SQLite persistence.",
+    "Host Elsa 3.10.2 in an ASP.NET Core app with SQLite persistence.",
     "",
     "This body is only returned when `has_academy_access` is true.",
   ].join("\n"),

@@ -81,7 +81,7 @@ export const ACADEMY_PAYMENT_SUCCESS_LINE =
 export const ACADEMY_PAYMENT_PENDING_LINE =
   "Thanks for your order. Your access appears here as soon as the payment is confirmed. Refresh in a minute if it doesn't.";
 
-const SOLO_BODY_LEAD = "Every self-paced course in the Academy, with the Elsa 3.9.0 lab kit to download and unzip.";
+const SOLO_BODY_LEAD = "Every self-paced course in the Academy, with the Elsa 3.10.2 lab kit to download and unzip.";
 
 export function academySoloBundleBody(
   launchActive: boolean = isAcademySoloLaunchPriceActive(),
