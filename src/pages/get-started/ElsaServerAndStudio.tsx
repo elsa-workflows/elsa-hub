@@ -19,6 +19,7 @@ import {
   ELSA_TEMPLATES_TARGET_FRAMEWORK,
   ELSA_TEMPLATES_CSHELLS_VERSION,
   ELSA_UPGRADE_GUIDE_URL,
+  ELSA_3_10_UPGRADE_NOTES_URL,
   ELSA_LATEST_STABLE_VERSION,
   ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL,
   ELSA_RELEASE_LINKS,
@@ -534,6 +535,10 @@ export default function ElsaServerAndStudio() {
                     produced Elsa 3.7.0 references), follow the{" "}
                     <a className="text-primary hover:underline" href={ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer">
                       upgrade guide for {ELSA_LATEST_STABLE_VERSION}
+                    </a>
+                    {" "}and the{" "}
+                    <a className="text-primary hover:underline" href={ELSA_3_10_UPGRADE_NOTES_URL} target="_blank" rel="noopener noreferrer">
+                      3.10 upgrade notes
                     </a>
                     . The manual walkthrough below was last verified against Elsa {LAST_VERIFIED_ELSA_VERSION}; see the{" "}
                     <a className="text-primary hover:underline" href={ELSA_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer">

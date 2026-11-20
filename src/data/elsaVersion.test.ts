@@ -7,6 +7,7 @@ import {
   ELSA_TEMPLATES_NUGET_URL,
   ELSA_TEMPLATES_VERSION,
   ELSA_UPGRADE_GUIDE_URL,
+  ELSA_3_10_UPGRADE_NOTES_URL,
   ELSA_VERSION,
   LAST_VERIFIED_ELSA_VERSION,
 } from "./elsaVersion";
@@ -21,6 +22,9 @@ describe("ELSA_VERSION visitor pins", () => {
     expect(ELSA_TEMPLATES_NUGET_URL).toBe("https://www.nuget.org/packages/Elsa.Templates/3.10.2");
     expect(ELSA_UPGRADE_GUIDE_URL).toBe(
       "https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.2",
+    );
+    expect(ELSA_3_10_UPGRADE_NOTES_URL).toBe(
+      "https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.1",
     );
     expect(ELSA_RELEASE_LINKS.core).toBe(
       "https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.2",

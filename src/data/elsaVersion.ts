@@ -55,12 +55,23 @@ export const ELSA_LATEST_STABLE_RELEASE_LINKS = ELSA_RELEASE_LINKS;
 /**
  * Upgrade notes for the pinned / latest stable release line.
  *
- * docs.elsaworkflows.io/getting-started/upgrading-to-3.10 returned 404
- * on 2026-11-14, so this points at the GitHub release notes,
- * which include the upgrade steps.
+ * docs.elsaworkflows.io/getting-started/upgrading-to-3.10 is still a 404
+ * (elsa-core#9290). Until that guide exists, ELSA_UPGRADE_GUIDE_URL points
+ * at the 3.10.2 release notes (the current pin, including its extra
+ * upgrade notes). ELSA_3_10_UPGRADE_NOTES_URL points at 3.10.1, the first
+ * 3.10 release, which holds the full 3.10 upgrade notes under
+ * "Upgrade notes and breaking changes". Switch both links to the real
+ * guide once the docs page is live.
  */
 export const ELSA_UPGRADE_GUIDE_URL =
   `https://github.com/elsa-workflows/elsa-core/releases/tag/${ELSA_VERSION}`;
+
+/**
+ * Full 3.10 upgrade notes, on the first 3.10 GitHub release (there is no
+ * 3.10.0 tag). See ELSA_UPGRADE_GUIDE_URL for when to retire this link.
+ */
+export const ELSA_3_10_UPGRADE_NOTES_URL =
+  "https://github.com/elsa-workflows/elsa-core/releases/tag/3.10.1";
 
 /** Upgrade guide for the latest stable release. Alias of ELSA_UPGRADE_GUIDE_URL. */
 export const ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL = ELSA_UPGRADE_GUIDE_URL;
