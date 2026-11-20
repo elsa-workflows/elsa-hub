@@ -330,6 +330,12 @@ Deno.test("vendored Control goldens map Suspended, Retained and Canceled to the 
   assertEquals(controlHostedSubscriptionGolden("suspended-deletion-requested").recoveryAction, "None");
   assertEquals(controlHostedSubscriptionGolden("suspended-non-payment").recoveryAction, "UpdatePaymentMethod");
   assertEquals(controlHostedSubscriptionGolden("retained").recoveryAction, "None");
+  for (const name of ["active", "retained", "suspended-canceled", "suspended-deletion-requested", "suspended-non-payment"] as const) {
+    assertEquals(controlHostedSubscriptionGolden(name).maxInstances, 1, name);
+    assertEquals(controlHostedSubscriptionGolden(name).activeDedicatedCount, 0, name);
+  }
+  assertEquals(controlHostedSubscriptionGolden("no-billing-linkage").maxInstances, null);
+  assertEquals(controlHostedSubscriptionGolden("no-billing-linkage").activeDedicatedCount, 0);
 });
 
 Deno.test("controlSubscriptionBlocksCheckout blocks Suspended unless recoveryAction is Subscribe, and always blocks Retained", () => {
