@@ -28,6 +28,7 @@ import {
   ELSA_TEMPLATES_CSHELLS_VERSION,
   ELSA_LATEST_STABLE_VERSION,
   ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL,
+  ELSA_3_10_UPGRADE_NOTES_URL,
 } from "@/data/elsaVersion";
 
 
@@ -324,6 +325,10 @@ export default function GetStarted() {
                     Migrating an existing solution instead of scaffolding a new one? Follow the{" "}
                     <a href={ELSA_LATEST_STABLE_UPGRADE_GUIDE_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
                       upgrade guide for {ELSA_LATEST_STABLE_VERSION}
+                    </a>
+                    {" "}and the{" "}
+                    <a href={ELSA_3_10_UPGRADE_NOTES_URL} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-4">
+                      3.10 upgrade notes
                     </a>. Older template packages (3.7.0 / 3.7.1) generated Elsa 3.7.0 references and required a
                     manual package bump; that workaround is no longer the recommended path.
                   </p>
