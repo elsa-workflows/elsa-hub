@@ -160,7 +160,7 @@ describe("Training page", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Host Elsa 3.9.0 in an ASP.NET Core app with SQLite persistence, the Workflows API, and HTTP workflows.",
+        "Host Elsa 3.10.2 in an ASP.NET Core app with SQLite persistence, the Workflows API, and HTTP workflows.",
       ),
     ).toBeInTheDocument();
     expect(
