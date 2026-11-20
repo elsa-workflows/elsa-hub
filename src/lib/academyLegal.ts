@@ -100,7 +100,7 @@ export const ACADEMY_TERMS_SECTIONS: AcademyTermsSection[] = [
     title: "1. Who you buy from",
     body: `Elsa Academy is sold by ${s.legalName}, trading as ${s.tradeName}, ${s.address}. Chamber of Commerce (KvK): ${s.kvk}. VAT: ${s.vat}. Contact: [${s.email}](mailto:${s.email}).
 
-These terms apply to every Elsa Academy purchase on www.elsaworkflows.io. They do not cover other Elsa+ products, which have their own terms.`,
+These terms apply to every Elsa Academy purchase on https://www.elsaworkflows.io. They do not cover other Elsa+ products, which have their own terms.`,
   },
   {
     id: "product",
