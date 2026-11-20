@@ -15,7 +15,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import elsaLogo from "@/assets/elsa-logo.png";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_CLOUD_PATH } from "@/lib/cloudPaths";
-import { ELSA_RUNTIME_DISPLAY_NAME, ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
+import { ELSA_RUNTIME_PATH } from "@/lib/elsaRuntime";
 
 type NavItem = { label: string; to?: string; href?: string; badge?: string; external?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
@@ -54,9 +54,9 @@ const groups: NavGroup[] = [
     label: "Elsa+",
     items: [
       { label: "Overview", to: "/elsa-plus" },
-      { label: ELSA_RUNTIME_DISPLAY_NAME, to: ELSA_RUNTIME_PATH, badge: "Early Preview" },
+      { label: "Docker Images", to: ELSA_RUNTIME_PATH, badge: "Early Preview" },
       { label: "Runtime Builder", to: "/elsa-plus/runtime-builder", badge: "Preview" },
-      { label: "Elsa Cloud", to: DASHBOARD_CLOUD_PATH, badge: "Early access" },
+      { label: "Managed Cloud", to: DASHBOARD_CLOUD_PATH, badge: "Early access" },
       { label: "Expert Services & Pricing", to: "/elsa-plus/expert-services" },
       { label: "Training", to: "/elsa-plus/training" },
       { label: "Academy", to: "/academy" },

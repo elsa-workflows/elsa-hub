@@ -55,10 +55,10 @@ describe("Navigation Cloud leaf", () => {
     expect(screen.queryByRole("link", { name: "Cloud" })).not.toBeInTheDocument();
   });
 
-  it("keeps one Elsa Cloud Early access entry pointed at the dashboard Cloud route", () => {
+  it("keeps one Managed Cloud Early access entry pointed at the dashboard Cloud route", () => {
     renderNav();
     fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
-    const cloud = screen.getAllByRole("link", { name: /elsa cloud/i });
+    const cloud = screen.getAllByRole("link", { name: /managed cloud/i });
     expect(cloud.length).toBeGreaterThanOrEqual(1);
     expect(cloud.every((link) => link.getAttribute("href") === "/dashboard/cloud")).toBe(true);
     expect(screen.queryByRole("link", { name: /managed cloud hosting/i })).not.toBeInTheDocument();
@@ -67,10 +67,10 @@ describe("Navigation Cloud leaf", () => {
     ).toHaveLength(0);
   });
 
-  it("navigates Elsa Cloud through the router without a full reload", () => {
+  it("navigates Managed Cloud through the router without a full reload", () => {
     renderNavWithRoutes("/");
     fireEvent.click(screen.getByRole("button", { name: /toggle menu/i }));
-    const cloud = screen.getAllByRole("link", { name: /elsa cloud/i })[0];
+    const cloud = screen.getAllByRole("link", { name: /managed cloud/i })[0];
     expect(cloud).toHaveAttribute("href", "/dashboard/cloud");
     expect(fireEvent.click(cloud)).toBe(false);
 
