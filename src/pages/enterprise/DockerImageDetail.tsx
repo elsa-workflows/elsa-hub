@@ -72,7 +72,7 @@ networks:
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to={`${ELSA_RUNTIME_PATH}#images`}>{ELSA_RUNTIME_DISPLAY_NAME} images</Link>
+                  <Link to={`${ELSA_RUNTIME_PATH}#images`}>{ELSA_RUNTIME_DISPLAY_NAME}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -433,7 +433,7 @@ networks:
             </li>
             <li>
               <Link to={`${ELSA_RUNTIME_PATH}#images`} className="inline-flex items-center gap-2 text-primary hover:underline">
-                ← Back to all {ELSA_RUNTIME_DISPLAY_NAME} images
+                ← Back to all {ELSA_RUNTIME_DISPLAY_NAME}
               </Link>
             </li>
           </ul>

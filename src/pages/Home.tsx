@@ -229,7 +229,7 @@ export default function Home() {
                 <p className="text-sm text-muted-foreground mb-5">
                   Run Elsa Server and Studio as a separately deployed workflow
                   system using the community quick-start image. A production-grade
-                  image is also available as part of {ELSA_RUNTIME_DISPLAY_NAME}.
+                  image is also available as part of {ELSA_RUNTIME_DISPLAY_NAME} by Valence Works.
                 </p>
 
                 <HomeCodeSample

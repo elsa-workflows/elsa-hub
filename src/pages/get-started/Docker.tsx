@@ -87,7 +87,7 @@ export default function Docker() {
                     to={ELSA_RUNTIME_PATH}
                     className="text-primary hover:underline font-medium"
                   >
-                    {ELSA_RUNTIME_DISPLAY_NAME} ready-to-deploy images
+                    ready-to-deploy {ELSA_RUNTIME_DISPLAY_NAME}
                   </Link>
                   . The Apps aliases{" "}
                   <code className="font-mono text-xs">{APPS_IMAGES.server}</code> and{" "}

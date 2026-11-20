@@ -190,7 +190,7 @@ export function RuntimeEnquiryDialog({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Enquire about an Elsa Runtime by Valence Works subscription</DialogTitle>
+              <DialogTitle>Enquire about a Docker Images subscription</DialogTitle>
               <DialogDescription>
                 Tell us what you need. We'll confirm availability and reply by email — no booking
                 required first.

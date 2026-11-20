@@ -1,6 +1,6 @@
 export const ELSA_RUNTIME_NAME = "Elsa Runtime";
 export const ELSA_RUNTIME_PROVIDER = "Valence Works";
-export const ELSA_RUNTIME_DISPLAY_NAME = `${ELSA_RUNTIME_NAME} by ${ELSA_RUNTIME_PROVIDER}`;
+export const ELSA_RUNTIME_DISPLAY_NAME = "Docker Images";
 export const ELSA_RUNTIME_SUBTITLE = "Ready-to-deploy Elsa Server and Studio Docker images.";
 
 export const ELSA_RUNTIME_PATH = "/elsa-plus/elsa-runtime";

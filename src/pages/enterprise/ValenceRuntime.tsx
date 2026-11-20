@@ -233,7 +233,7 @@ export default function ValenceRuntime() {
     <Layout>
       <Seo
         path={ELSA_RUNTIME_PATH}
-        title={`${ELSA_RUNTIME_DISPLAY_NAME} — ready-to-deploy Elsa Docker images`}
+        title={`${ELSA_RUNTIME_DISPLAY_NAME} — ready-to-deploy Elsa Server and Studio containers by Valence Works`}
         description={`${ELSA_RUNTIME_SUBTITLE} ${ELSA_RUNTIME_NAME} is an Elsa distribution provided by Valence Works, with a committed security-patch cadence and bug-triage windows on paid tiers.`}
       />
 
