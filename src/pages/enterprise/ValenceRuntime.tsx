@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/accordion";
 import { NeutralityDisclaimer } from "@/components/enterprise";
 import { DockerImageCard } from "@/components/docker-images";
+import { RuntimeQuickstart } from "@/components/docker-images/RuntimeQuickstart";
 import { dockerImages } from "@/data/dockerImages";
 import { RUNTIME_IMAGE_LINE, RUNTIME_IMAGE_TAG, RUNTIME_IMAGES_SHARE_TAG_COPY } from "@/data/runtimeImage";
 import { ELSA_COMMUNITY_DOCKER_TAG } from "@/data/canonicalSamples";
@@ -255,7 +256,7 @@ export default function ValenceRuntime() {
       </section>
 
       {/* Hero */}
-      <section className="py-12 md:py-20">
+      <section className="pt-8 pb-8 md:pt-12 md:pb-10">
         <div className="container">
           <div className="max-w-3xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
@@ -265,9 +266,9 @@ export default function ValenceRuntime() {
             <h1 className="text-4xl md:text-5xl font-bold mb-6">{ELSA_RUNTIME_DISPLAY_NAME}</h1>
             <p className="text-xl text-muted-foreground">{ELSA_RUNTIME_SUBTITLE}</p>
             <p className="text-base text-muted-foreground mt-3">
-              An Elsa distribution built, hardened and patched by the maintainer of Elsa.
-              Subscriptions add a committed security-patch cadence and a bug queue he actually
-              works.
+              Run the Elsa workflow engine and visual designer in Docker. Start with the free
+              Community image; explore production configuration and optional subscriptions when
+              you need them.
             </p>
             <p className="text-sm text-muted-foreground mt-3">
               <Link to="/elsa-plus/distributions" className="text-primary hover:underline">
@@ -277,10 +278,10 @@ export default function ValenceRuntime() {
 
             <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
               <Button asChild>
-                <Link to="/elsa-plus/expert-services/valence-works">
-                  Contact us
+                <a href="#quickstart">
+                  Run locally
                   <ArrowRight className="h-4 w-4 ml-2" />
-                </Link>
+                </a>
               </Button>
               <Button asChild variant="outline">
                 <a
@@ -293,17 +294,24 @@ export default function ValenceRuntime() {
                 </a>
               </Button>
               <Button asChild variant="ghost">
-                <a href="#images">Browse images</a>
+                <a href="#tiers">Compare subscriptions</a>
               </Button>
             </div>
           </div>
         </div>
       </section>
 
+      <RuntimeQuickstart />
+
       {/* What it is */}
       <section className="py-12 md:py-16 bg-surface-subtle">
         <div className="container max-w-4xl space-y-4">
-          <h2 className="text-3xl font-bold">What it is</h2>
+          <h2 className="text-3xl font-bold">Built for deployment. Still in Early Preview.</h2>
+          <ul className="grid gap-4 sm:grid-cols-3 border-y py-5 text-sm">
+            <li><span className="block font-semibold mb-1">Non-root containers</span><span className="text-muted-foreground">UID 1654 on a minimal chiselled base.</span></li>
+            <li><span className="block font-semibold mb-1">Scanned builds</span><span className="text-muted-foreground">Vulnerability scanning before publication.</span></li>
+            <li><span className="block font-semibold mb-1">Signed images</span><span className="text-muted-foreground">SBOM and build provenance alongside each image.</span></li>
+          </ul>
           <p className="text-muted-foreground leading-relaxed">
             Elsa Workflows itself is open source under the MIT License and always will be. Elsa
             Runtime Community images remain publicly pullable. The paid images and
@@ -372,51 +380,10 @@ export default function ValenceRuntime() {
             </Button>
           </div>
 
-          {/* Try it */}
-          <div className="space-y-4 pt-4">
-            <h3 className="text-2xl font-bold">Try it</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              Elsa Runtime Community images are public on GitHub Container Registry. No account, no
-              login — just pull. Pick the combined single-container deployment, or run server and
-              Studio separately. For the Elsa {ELSA_COMMUNITY_DOCKER_TAG} Community images on Docker Hub, see the{" "}
-              <Link to="/get-started/docker" className="text-primary hover:underline">
-                Docker get-started guide
-              </Link>
-              .
-            </p>
-
-            <div className="space-y-3">
-              <h4 className="font-semibold">Combined — server + Studio in one container</h4>
-              <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
-{`docker pull ghcr.io/valence-works/runtime-ce-combined:latest
-
-docker run -it -p 13000:8080 \\
-  -e ASPNETCORE_ENVIRONMENT=Development \\
-  ghcr.io/valence-works/runtime-ce-combined:latest`}
-              </pre>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-semibold">Separate — server + Studio</h4>
-              <pre className="rounded-xl border bg-muted/40 p-4 overflow-x-auto text-sm font-mono">
-{`docker network create elsa
-
-docker pull ghcr.io/valence-works/runtime-ce-server:latest
-docker pull ghcr.io/valence-works/runtime-ce-studio:latest
-
-docker run -d --network elsa -p 13000:8080 \\
-  -e ASPNETCORE_ENVIRONMENT=Development \\
-  --name elsa-server \\
-  ghcr.io/valence-works/runtime-ce-server:latest
-
-docker run -d --network elsa -p 14000:8080 \\
-  -e Studio__HostingModel=WebAssembly \\
-  -e Studio__Client__Backend__Url=http://localhost:13000/elsa/api \\
-  --name elsa-studio \\
-  ghcr.io/valence-works/runtime-ce-studio:latest`}
-              </pre>
-            </div>
-
+          {/* Registry and version details */}
+          <details className="border-y py-4">
+            <summary className="cursor-pointer font-semibold">Registry access &amp; version tags</summary>
+            <div className="space-y-4 pt-5">
             <div className="space-y-3">
               <h4 className="font-semibold">Paid — private registry</h4>
               <p className="text-sm text-muted-foreground">
@@ -492,9 +459,81 @@ docker pull ghcr.io/valence-works/runtime-ce-combined:${RUNTIME_IMAGE_TAG}`}
                 Setup guide
               </a>
             </div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+
+      {/* Security posture */}
+      <section className="py-12 md:py-16 bg-surface-subtle">
+        <div className="container max-w-5xl space-y-8">
+          <div className="max-w-4xl">
+            <h2 className="text-3xl font-bold">Security posture</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Runtime */}
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Runtime</h3>
+              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  <span className="font-semibold text-foreground">Read-only root filesystem.</span>{" "}
+                  Nothing is written into the image at runtime; the paths that must be writable are
+                  declared and mountable.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Non-root by default.</span> UID
+                  1654.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">
+                    Starts with no network access at all.
+                  </span>{" "}
+                  Given a package directory populated in advance, a container boots without reaching
+                  any package feed — so air-gapped deployment works, and your deployment does not
+                  depend on our supply chain being reachable at the moment you scale up.
+                </p>
+              </div>
+            </div>
+
+            {/* Supply chain */}
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Supply chain</h3>
+              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  <span className="font-semibold text-foreground">Minimal chiselled base.</span> 11
+                  OS packages, not 112 — no shell, no package manager.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Scanned before publication.</span>{" "}
+                  Vulnerability scan runs before publication and fails the build on any fixable
+                  CRITICAL or HIGH finding.
+                </p>
+              </div>
+            </div>
+
+            {/* Verification */}
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+              <h3 className="text-lg font-semibold">Verification</h3>
+              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  <span className="font-semibold text-foreground">Every image signed.</span> SBOM
+                  and build provenance published alongside.
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">
+                    Signatures verifiable by anyone.
+                  </span>{" "}
+                  Signatures are verifiable by anyone with the image, using only their own
+                  subscription credentials.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
+
 
 
       {/* How access works */}
@@ -525,7 +564,7 @@ docker pull ghcr.io/valence-works/runtime-ce-combined:${RUNTIME_IMAGE_TAG}`}
 
         <div className="container max-w-5xl space-y-6">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Tiers</h2>
+            <h2 className="text-3xl font-bold mb-2">Community &amp; production subscriptions</h2>
             <p className="text-muted-foreground">
               The paid tiers are not different software. Community runs the same build; what a
               subscription adds is commitments about it — patches, triage windows, backports and
@@ -677,77 +716,6 @@ docker pull ghcr.io/valence-works/runtime-ce-combined:${RUNTIME_IMAGE_TAG}`}
           </p>
         </div>
       </section>
-
-      {/* Security posture */}
-      <section className="py-12 md:py-16 bg-surface-subtle">
-        <div className="container max-w-5xl space-y-8">
-          <div className="max-w-4xl">
-            <h2 className="text-3xl font-bold">Security posture</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Runtime */}
-            <div className="rounded-xl border bg-card p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Runtime</h3>
-              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  <span className="font-semibold text-foreground">Read-only root filesystem.</span>{" "}
-                  Nothing is written into the image at runtime; the paths that must be writable are
-                  declared and mountable.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">Non-root by default.</span> UID
-                  1654.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">
-                    Starts with no network access at all.
-                  </span>{" "}
-                  Given a package directory populated in advance, a container boots without reaching
-                  any package feed — so air-gapped deployment works, and your deployment does not
-                  depend on our supply chain being reachable at the moment you scale up.
-                </p>
-              </div>
-            </div>
-
-            {/* Supply chain */}
-            <div className="rounded-xl border bg-card p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Supply chain</h3>
-              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  <span className="font-semibold text-foreground">Minimal chiselled base.</span> 11
-                  OS packages, not 112 — no shell, no package manager.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">Scanned before publication.</span>{" "}
-                  Vulnerability scan runs before publication and fails the build on any fixable
-                  CRITICAL or HIGH finding.
-                </p>
-              </div>
-            </div>
-
-            {/* Verification */}
-            <div className="rounded-xl border bg-card p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Verification</h3>
-              <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-                <p>
-                  <span className="font-semibold text-foreground">Every image signed.</span> SBOM
-                  and build provenance published alongside.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">
-                    Signatures verifiable by anyone.
-                  </span>{" "}
-                  Signatures are verifiable by anyone with the image, using only their own
-                  subscription credentials.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-
 
       {/* Triage */}
       <section className="py-12 md:py-16">

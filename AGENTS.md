@@ -5,6 +5,7 @@ Guidance for AI coding agents working in this repository.
 ## Provider presentation
 
 - Keep directory pricing summaries provider-scoped and optional, and link them to the provider's pricing anchor so one vendor's rates are never implied for the whole marketplace.
+- Keep Runtime first-run examples in a separate presentation data module using catalog image references; local evaluation must not change production catalog or builder configuration.
 
 ## PR reviewers
 
