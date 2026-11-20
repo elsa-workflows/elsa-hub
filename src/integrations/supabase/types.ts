@@ -2933,6 +2933,10 @@ export type Database = {
         Args: { p_provider_id: string }
         Returns: string
       }
+      get_provider_own_contact_email: {
+        Args: { p_provider_id: string }
+        Returns: string
+      }
       get_user_provider_id: { Args: never; Returns: string }
       has_academy_access: { Args: { p_course_id: string }; Returns: boolean }
       hash_invitation_token: { Args: { p_token: string }; Returns: string }

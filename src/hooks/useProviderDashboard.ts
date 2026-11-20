@@ -66,12 +66,14 @@ export function useProviderDashboard(slug: string | undefined) {
       if (!slug) return null;
       const { data, error } = await supabase
         .from("service_providers")
-        .select("id, name, slug, logo_url, accepting_new_purchases, purchase_pause_message, availability_status, estimated_lead_time_days, enforce_consumption_caps, total_available_minutes_per_month, capacity_threshold_percent, enforce_capacity_gating, contact_email, booking_url")
+        .select("id, name, slug, logo_url, accepting_new_purchases, purchase_pause_message, availability_status, estimated_lead_time_days, enforce_consumption_caps, total_available_minutes_per_month, capacity_threshold_percent, enforce_capacity_gating, booking_url")
         .eq("slug", slug)
         .maybeSingle();
       
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      const { data: contactEmail } = await supabase.rpc("get_provider_own_contact_email" as any, { p_provider_id: data.id });
+      return { ...data, contact_email: (contactEmail as string | null) ?? null };
     },
     enabled: !!slug,
   });
