@@ -2,6 +2,10 @@
 
 Guidance for AI coding agents working in this repository.
 
+## Provider presentation
+
+- Keep directory pricing summaries provider-scoped and optional, and link them to the provider's pricing anchor so one vendor's rates are never implied for the whole marketplace.
+
 ## PR reviewers
 
 - Before opening a PR, read `.github/reviewers.md` and request exactly one live advisory reviewer from the list once the PR is open. If it declines or skips, request another live one.

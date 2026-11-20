@@ -20,11 +20,13 @@ export interface ProviderTileData {
 interface ProviderTileProps {
   provider: ProviderTileData;
   tagline?: string;
+  pricingSummary?: string;
 }
 
 export function ProviderTile({
   provider,
   tagline = "Expert advisory, engineering & priority support for Elsa Workflows",
+  pricingSummary,
 }: ProviderTileProps) {
   const isDark = useIsDark();
   const brand = providerBrandAssets[provider.slug];
@@ -97,6 +99,10 @@ export function ProviderTile({
           />
         </div>
 
+        {pricingSummary && (
+          <p className="text-sm font-medium text-primary">{pricingSummary}</p>
+        )}
+
         <div className="mt-auto flex flex-wrap items-center gap-2">
           <Button asChild size="sm" className="relative z-10 gap-1.5">
             <Link to={detailHref}>
@@ -104,6 +110,14 @@ export function ProviderTile({
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </Button>
+          {pricingSummary && (
+            <Button asChild variant="outline" size="sm" className="relative z-10 gap-1.5">
+              <Link to={`${detailHref}#bundles`}>
+                View pricing & bundles
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          )}
           {provider.booking_url && (
             <Button
               asChild

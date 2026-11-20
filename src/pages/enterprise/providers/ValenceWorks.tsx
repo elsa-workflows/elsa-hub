@@ -1,6 +1,6 @@
 import { Seo } from "@/components/Seo";
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,6 +134,7 @@ interface DialogConfig {
 
 export default function ValenceWorks() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { hash } = useLocation();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
   const isDark = useIsDark();
@@ -201,6 +202,17 @@ export default function ValenceWorks() {
       });
     }
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (hash !== "#bundles" || bundlesLoading) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById("bundles")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hash, bundlesLoading]);
 
   const handleBundleClick = (bundleId: string) => {
     setSelectedBundleId(bundleId);
@@ -299,7 +311,7 @@ export default function ValenceWorks() {
               <p className="text-base text-muted-foreground italic mt-3">
                 Priority Support provides faster access to expertise — not outsourced operations.
               </p>
-              <div className="mt-8">
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
                   size="lg"
                   className="gap-2"
@@ -308,12 +320,154 @@ export default function ValenceWorks() {
                   <Calendar className="h-4 w-4" />
                   Book a Call
                 </Button>
+                <Button size="lg" variant="outline" className="gap-2" asChild>
+                  <Link to="#bundles">
+                    View Pricing &amp; Bundles
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+
+      {/* Bundles */}
+      <section id="bundles" className="scroll-mt-20 py-12 md:py-16 bg-surface-subtle">
+        <div className="container">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+              Service Credit Bundles
+            </h2>
+            <p className="text-muted-foreground text-center mb-12">
+              Prepaid expertise. 1 Service Credit = 1 hour. Choose a bundle below.
+            </p>
+            
+            {bundlesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
+                    const isPopular = index === 1;
+                    return (
+                      <Card
+                        key={bundle.id}
+                        onClick={() => handleBundleClick(bundle.id)}
+                        className={cn(
+                          "relative overflow-visible transition-all cursor-pointer",
+                          isPopular
+                            ? "border-primary shadow-lg hover:shadow-xl"
+                            : "hover:shadow-md hover:border-primary/50"
+                        )}
+                      >
+                        {isPopular && (
+                          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground">
+                            Popular
+                          </Badge>
+                        )}
+                        <CardHeader className="text-center pb-2">
+                          <CardTitle className="text-lg">{bundle.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-center">
+                          <div className="mb-2">
+                            <span className="text-3xl font-bold">
+                              {formatPrice(bundle.price_cents, bundle.currency)}
+                            </span>
+                          </div>
+                          <p className="text-xl font-semibold text-primary mb-2">
+                            {bundle.hours} Service Credits
+                          </p>
+                          <p className="text-sm font-medium mb-2">
+                            {bundle.hours > 0 ? `${formatPrice(bundle.price_cents / bundle.hours, bundle.currency)}/hour` : null}
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            {bundle.description}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <div className="mt-8 text-center text-sm text-muted-foreground space-y-1">
+                  <p>All prices exclude VAT where applicable.</p>
+                  <p>Service Credits are prepaid and non-refundable.</p>
+                  <p>Discounts apply only through bundles.</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Retained Advisory */}
+      {(() => {
+        const subscriptionBundle = bundles?.find(b => b.billing_type === "recurring");
+        if (!subscriptionBundle) return null;
+        
+        return (
+          <section className="py-16 md:py-24">
+            <div className="container">
+              <div className="max-w-4xl mx-auto">
+                <Card 
+                  className="border-2 border-primary/30 cursor-pointer transition-all hover:border-primary hover:shadow-lg"
+                  onClick={() => handleBundleClick(subscriptionBundle.id)}
+                >
+                  <CardContent className="p-8 md:p-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                      <div>
+                        <Badge variant="secondary" className="mb-4">Subscription</Badge>
+                        <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                          Retained Advisory
+                        </h2>
+                        <p className="text-muted-foreground mb-6">
+                          For teams running Elsa Workflows in production who want continuity, 
+                          retained context, and priority access.
+                        </p>
+                        <div className="text-3xl font-bold">
+                          {formatPrice(subscriptionBundle.price_cents, subscriptionBundle.currency)}
+                          <span className="text-lg font-normal text-muted-foreground">/{subscriptionBundle.recurring_interval}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <ul className="space-y-3">
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{subscriptionBundle.monthly_hours} Service Credits per month</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Priority response times (best-effort)</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Direct communication channel</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Asynchronous Q&A access</span>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>Continuity and retained architectural context</span>
+                          </li>
+                        </ul>
+                        <div className="mt-6 text-sm text-muted-foreground space-y-1">
+                          <p>Unused credits expire monthly.</p>
+                          <p>Additional Service Credits can be purchased separately.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Who This Is For */}
       <section className="py-16 md:py-24">
@@ -431,136 +585,6 @@ export default function ValenceWorks() {
           </div>
         </div>
       </section>
-
-      {/* Bundles */}
-      <section className="py-16 md:py-24 bg-surface-subtle">
-        <div className="container">
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-              Service Credit Bundles
-            </h2>
-            
-            {bundlesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {bundles?.filter(b => b.billing_type !== "recurring").map((bundle, index) => {
-                    const isPopular = index === 1;
-                    return (
-                      <Card
-                        key={bundle.id}
-                        onClick={() => handleBundleClick(bundle.id)}
-                        className={cn(
-                          "relative overflow-visible transition-all cursor-pointer",
-                          isPopular
-                            ? "border-primary shadow-lg hover:shadow-xl"
-                            : "hover:shadow-md hover:border-primary/50"
-                        )}
-                      >
-                        {isPopular && (
-                          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground">
-                            Popular
-                          </Badge>
-                        )}
-                        <CardHeader className="text-center pb-2">
-                          <CardTitle className="text-lg">{bundle.name}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                          <div className="mb-2">
-                            <span className="text-3xl font-bold">
-                              {formatPrice(bundle.price_cents, bundle.currency)}
-                            </span>
-                          </div>
-                          <p className="text-xl font-semibold text-primary mb-2">
-                            {bundle.hours} Service Credits
-                          </p>
-                          <p className="text-muted-foreground text-sm">
-                            {bundle.description}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-                <div className="mt-8 text-center text-sm text-muted-foreground space-y-1">
-                  <p>All prices exclude VAT where applicable.</p>
-                  <p>Service Credits are prepaid and non-refundable.</p>
-                  <p>Discounts apply only through bundles.</p>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Retained Advisory */}
-      {(() => {
-        const subscriptionBundle = bundles?.find(b => b.billing_type === "recurring");
-        if (!subscriptionBundle) return null;
-        
-        return (
-          <section className="py-16 md:py-24">
-            <div className="container">
-              <div className="max-w-4xl mx-auto">
-                <Card 
-                  className="border-2 border-primary/30 cursor-pointer transition-all hover:border-primary hover:shadow-lg"
-                  onClick={() => handleBundleClick(subscriptionBundle.id)}
-                >
-                  <CardContent className="p-8 md:p-12">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                      <div>
-                        <Badge variant="secondary" className="mb-4">Subscription</Badge>
-                        <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                          Retained Advisory
-                        </h2>
-                        <p className="text-muted-foreground mb-6">
-                          For teams running Elsa Workflows in production who want continuity, 
-                          retained context, and priority access.
-                        </p>
-                        <div className="text-3xl font-bold">
-                          {formatPrice(subscriptionBundle.price_cents, subscriptionBundle.currency)}
-                          <span className="text-lg font-normal text-muted-foreground">/{subscriptionBundle.recurring_interval}</span>
-                        </div>
-                      </div>
-                      <div>
-                        <ul className="space-y-3">
-                          <li className="flex items-start gap-3">
-                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>{subscriptionBundle.monthly_hours} Service Credits per month</span>
-                          </li>
-                          <li className="flex items-start gap-3">
-                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>Priority response times (best-effort)</span>
-                          </li>
-                          <li className="flex items-start gap-3">
-                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>Direct communication channel</span>
-                          </li>
-                          <li className="flex items-start gap-3">
-                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>Asynchronous Q&A access</span>
-                          </li>
-                          <li className="flex items-start gap-3">
-                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <span>Continuity and retained architectural context</span>
-                          </li>
-                        </ul>
-                        <div className="mt-6 text-sm text-muted-foreground space-y-1">
-                          <p>Unused credits expire monthly.</p>
-                          <p>Additional Service Credits can be purchased separately.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
 
       {/* Priority Support */}
       <section className="py-16 md:py-24 bg-surface-subtle">

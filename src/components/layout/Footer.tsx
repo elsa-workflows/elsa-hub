@@ -20,6 +20,9 @@ const footerLinks = {
     label: "Elsa+",
     to: "/elsa-plus"
   }, {
+    label: "Expert Services Pricing",
+    to: "/elsa-plus/expert-services"
+  }, {
     label: "Runtime Builder",
     to: "/elsa-plus/runtime-builder",
     badge: "Preview"

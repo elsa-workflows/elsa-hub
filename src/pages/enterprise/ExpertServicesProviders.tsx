@@ -90,7 +90,13 @@ export default function ExpertServicesProviders() {
                 )}
               >
                 {providers.map((provider) => (
-                  <ProviderTile key={provider.id} provider={provider as any} />
+                  <ProviderTile
+                    key={provider.id}
+                    provider={provider as any}
+                    pricingSummary={provider.slug === "valence-works"
+                      ? "Prepaid bundles: €150–€180/hour · Retained Advisory: €1,100/month. Prices exclude VAT."
+                      : undefined}
+                  />
                 ))}
               </div>
             ) : (

@@ -21,7 +21,7 @@ const servicesAndSupport = [
   {
     title: "Expert Advisory, Engineering & Support",
     description:
-      "Architecture review, workflow design, migration and upgrade assistance, training, and hands-on pairing — scoped and quoted per engagement.",
+      "Architecture reviews, workflow design, migrations, and hands-on pairing through prepaid hourly Service Credit bundles. Compare transparent tier pricing and Retained Advisory options from independent providers.",
     icon: Users,
     href: "/elsa-plus/expert-services",
     note: {
