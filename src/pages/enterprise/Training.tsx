@@ -230,6 +230,9 @@ export default function Training() {
             <p className="text-muted-foreground leading-relaxed mb-8">
               The Solo Bundle on Elsa 3.9.0 starts with Core: Modules 0-5, a lab kit you download and unzip, and Labs A-C (about 5 to 6 hours solo).
             </p>
+            <p className="text-muted-foreground leading-relaxed mb-8">
+              Courses and lab kits are pinned to Elsa 3.9.0; a 3.10 refresh is being tested.
+            </p>
 
             <h3 className="text-xl font-semibold mb-4">What you'll learn</h3>
             <h4 className="text-base font-semibold mb-3">Core</h4>
