@@ -94,6 +94,7 @@ export function formatBlogDate(iso?: string): string {
   if (!iso) return "";
   try {
     return new Date(iso).toLocaleDateString(undefined, {
+      timeZone: "UTC",
       year: "numeric",
       month: "long",
       day: "numeric",
