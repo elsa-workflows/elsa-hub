@@ -1,32 +1,33 @@
-import { provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
-import type { ManagedProvisioningProgress, ManagedProvisioningStageCode } from "@/lib/cloud/provisioningProgress";
+import type { ManagedProvisioningProgress } from "@/lib/cloud/provisioningProgress";
+import {
+  PROVISIONING_FAILURE_FALLBACK_LINE,
+  PROVISIONING_NEXT_STEP_NEITHER,
+} from "@/lib/cloud/provisioningFailureReason";
 
 export const STATE_GUIDANCE_TEMPORARILY_UNAVAILABLE =
   "Detailed provisioning progress can't be loaded. Refresh this page to check again.";
 export const STATE_GUIDANCE_CANCELLED =
   "Provisioning was cancelled before the engine was ready. Email hello@valence.works if you need help restarting.";
-export const STATE_GUIDANCE_FAILED_BEFORE_READY =
-  "Provisioning stopped before the engine was ready. Email hello@valence.works with this engine's name and we'll help during business hours.";
-export const STATE_GUIDANCE_NEEDS_ATTENTION =
-  "Provisioning needs attention. Check again or email hello@valence.works if it remains here.";
-export const STATE_GUIDANCE_NEEDS_ATTENTION_PREFIX = "Provisioning needs attention";
-export const STATE_GUIDANCE_NEEDS_ATTENTION_SUFFIX =
-  ". Check again or email hello@valence.works if it remains here.";
 
-function controlCurrentStageLabel(currentStage: string | null | undefined): string | null {
-  if (!currentStage) return null;
-  if (!Object.prototype.hasOwnProperty.call(provisioningStageLabels, currentStage)) return null;
-  return provisioningStageLabels[currentStage as ManagedProvisioningStageCode];
-}
+/**
+ * Signed #1011 fallback plus the Neither next-step line. Used when progress
+ * is failed but the signed failure table is not shown (for example a Retry
+ * in flight on a failed snapshot, or a legacy capitalised "Failed" state).
+ * Both sentences are Launch-signed verbatim; they are joined with one space
+ * and carry no interpolated values.
+ */
+export const STATE_GUIDANCE_FAILED_BEFORE_READY =
+  `${PROVISIONING_FAILURE_FALLBACK_LINE} ${PROVISIONING_NEXT_STEP_NEITHER}`;
+
+/**
+ * Signed #1011 Neither line. Replaces the old duration-implying attention
+ * copy. "Provisioning needs attention" is not a signed sentence, so it is
+ * not used as a lead-in.
+ */
+export const STATE_GUIDANCE_NEEDS_ATTENTION = PROVISIONING_NEXT_STEP_NEITHER;
 
 function isFailedProgressState(state: string): boolean {
   return state === "failed" || state === "Failed";
-}
-
-function failedStateGuidance(currentStage: string | null | undefined): string {
-  const stage = controlCurrentStageLabel(currentStage);
-  if (!stage) return STATE_GUIDANCE_FAILED_BEFORE_READY;
-  return `Provisioning stopped at this step: ${stage}. Email hello@valence.works with this engine's name and we'll help during business hours.`;
 }
 
 export function stateGuidance(progress: ManagedProvisioningProgress, temporarilyUnavailable: boolean) {
@@ -37,12 +38,10 @@ export function stateGuidance(progress: ManagedProvisioningProgress, temporarily
     return STATE_GUIDANCE_CANCELLED;
   }
   if (isFailedProgressState(progress.state)) {
-    return failedStateGuidance(progress.currentStage);
+    return STATE_GUIDANCE_FAILED_BEFORE_READY;
   }
   if (progress.state === "stale" || progress.diagnosticCode === "provisioning.requires-attention") {
-    const stage = controlCurrentStageLabel(progress.currentStage);
-    if (!stage) return STATE_GUIDANCE_NEEDS_ATTENTION;
-    return `Provisioning needs attention. Paused at this step: ${stage}. Check again or email hello@valence.works if it remains here.`;
+    return STATE_GUIDANCE_NEEDS_ATTENTION;
   }
   return null;
 }
