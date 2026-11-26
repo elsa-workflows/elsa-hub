@@ -304,6 +304,19 @@ export function normalizeEngineSummary(value: unknown): CloudEngineSummary | nul
   };
 }
 
+/**
+ * Control's value-free provisioning reason code (#1011). The key is optional
+ * on every payload: when it is missing, null, or not a code-shaped string it
+ * is omitted so existing snapshots keep exactly their current shape.
+ */
+const REASON_CODE_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+
+function reasonCodeField(value: unknown): { reasonCode?: string } {
+  const code = asString(value);
+  if (!code || code.length > 100 || !REASON_CODE_PATTERN.test(code)) return {};
+  return { reasonCode: code };
+}
+
 function actionDecision(value: unknown): CloudEngineActionDecision {
   const record = asRecord(value);
   if (!record) return { allowed: false, reasonCode: null };
@@ -367,6 +380,7 @@ function normalizeOperationProgress(value: unknown): CloudOperationProgress | nu
     attemptedStep: asString(record.attemptedStep),
     attemptNumber: attemptNumber ?? null,
     attemptStartedAt: asString(record.attemptStartedAt),
+    ...reasonCodeField(record.reasonCode),
   };
 }
 
@@ -396,6 +410,7 @@ function normalizeLastOperation(value: unknown): CloudLastOperation | null {
     state,
     completedAt: asString(record.completedAt),
     failureCode: asString(record.failureCode),
+    ...reasonCodeField(record.reasonCode),
   };
 }
 
@@ -545,6 +560,7 @@ export function normalizeProvisioningProgress(body: unknown): CloudProvisioningP
     attemptStartedAt: asString(record.attemptStartedAt),
     stages,
     activity,
+    ...reasonCodeField(record.reasonCode),
   };
 }
 

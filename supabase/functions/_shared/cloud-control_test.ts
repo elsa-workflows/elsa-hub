@@ -372,3 +372,63 @@ Deno.test("normalizeProvisioningProgress carries attempt fields and drops extras
   assertEquals(JSON.stringify(progress).includes("drop-me"), false);
 });
 
+
+Deno.test("normalizeProvisioningProgress passes a #1011 reasonCode through", () => {
+  for (const code of [
+    "provisioning.timeout.foundation",
+    "provisioning.timeout.workload",
+    "provisioning.timeout.health",
+    "provisioning.health.crash-loop",
+    "provisioning.something-new",
+  ]) {
+    const progress = normalizeProvisioningProgress({
+      state: "failed",
+      currentStage: "health-verification",
+      stages: [],
+      reasonCode: code,
+    });
+    assertEquals(progress?.reasonCode, code);
+  }
+});
+
+Deno.test("normalizeProvisioningProgress omits a missing or unsafe reasonCode", () => {
+  const legacy = normalizeProvisioningProgress({ state: "failed", currentStage: null, stages: [] });
+  assertEquals(legacy !== null, true);
+  assertEquals("reasonCode" in legacy!, false);
+  for (const reasonCode of [null, "", 42, "Exit code 139 on replica abc", "x".repeat(101), "/subscriptions/abc"]) {
+    const progress = normalizeProvisioningProgress({ state: "failed", stages: [], reasonCode });
+    assertEquals(progress !== null, true);
+    assertEquals("reasonCode" in progress!, false);
+  }
+});
+
+Deno.test("normalizeEngineOverview passes #1011 operation reason codes and keeps them optional", () => {
+  const engine = normalizeEngineOverview({
+    summary: { instanceId: OVERVIEW_ID, name: "Prod", slug: "prod", observedLifecycle: "Failed" },
+    health: { status: "Unknown" },
+    activeOperation: {
+      id: OPERATION_ID,
+      action: "Create",
+      state: "Running",
+      progress: { attemptNumber: 2, reasonCode: "provisioning.timeout.workload" },
+    },
+    lastOperation: {
+      action: "Create",
+      state: "Failed",
+      completedAt: "2026-11-26T10:30:00.000Z",
+      failureCode: "instance.failed",
+      reasonCode: "provisioning.health.crash-loop",
+    },
+  });
+  assertEquals(engine?.activeOperation?.progress?.reasonCode, "provisioning.timeout.workload");
+  assertEquals(engine?.lastOperation?.reasonCode, "provisioning.health.crash-loop");
+
+  const legacy = normalizeEngineOverview({
+    summary: { instanceId: OVERVIEW_ID, name: "Prod", slug: "prod", observedLifecycle: "Failed" },
+    health: { status: "Unknown" },
+    activeOperation: { id: OPERATION_ID, action: "Create", state: "Running", progress: { attemptNumber: 1 } },
+    lastOperation: { action: "Create", state: "Failed", completedAt: null, failureCode: null },
+  });
+  assertEquals("reasonCode" in legacy!.activeOperation!.progress!, false);
+  assertEquals("reasonCode" in legacy!.lastOperation!, false);
+});

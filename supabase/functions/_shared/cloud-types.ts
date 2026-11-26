@@ -181,6 +181,8 @@ export type CloudLastOperation = {
   state: string;
   completedAt: string | null;
   failureCode: string | null;
+  /** Value-free provisioning reason code (#1011). Optional; omitted when Control sends none. */
+  reasonCode?: string;
 };
 
 export type CloudOperationProgress = {
@@ -188,6 +190,8 @@ export type CloudOperationProgress = {
   attemptedStep: string | null;
   attemptNumber: number | null;
   attemptStartedAt: string | null;
+  /** Value-free provisioning reason code (#1011). Optional; omitted when Control sends none. */
+  reasonCode?: string;
 };
 
 export type CloudEngineOverview = CloudEngineSummary & {
@@ -261,6 +265,8 @@ export type CloudProvisioningProgress = {
   attemptStartedAt?: string | null;
   stages: CloudProvisioningStage[];
   activity?: CloudProvisioningActivity[];
+  /** Value-free provisioning reason code (#1011). Optional; omitted when Control sends none. */
+  reasonCode?: string;
 };
 
 export type CloudActivityItem = {
