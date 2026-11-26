@@ -86,8 +86,20 @@ describe("provisioningFailureCopy (#1011)", () => {
     }
   });
 
-  it("failed with no reasonCode anywhere keeps today's rendering (no table)", () => {
-    expect(provisioningFailureCopy(progress(), engine())).toBeNull();
+  it("failed with no reasonCode anywhere shows the title and the fallback line", () => {
+    expect(provisioningFailureCopy(progress(), engine())).toEqual({
+      title: "Engine setup stopped",
+      body: "Setup stopped before your engine was ready.",
+      nextStep: "For help, email hello@valence.works.",
+      showRetry: false,
+    });
+  });
+
+  it("a Failed (terminal) operation does not suppress the table", () => {
+    const copy = provisioningFailureCopy(progress(), engine({
+      activeOperation: { id: "22222222-2222-4222-8222-222222222222", action: "Create", state: "Failed" },
+    }));
+    expect(copy?.title).toBe(ENGINE_SETUP_STOPPED_TITLE);
   });
 
   it("stale with a code never shows the title", () => {
@@ -177,32 +189,36 @@ describe("provisioningFailureCopy (#1011)", () => {
     }))?.body).toBe(SIGNED["provisioning.timeout.health"]);
   });
 
-  it("payloads missing every new key resolve to no code", () => {
+  it("payloads missing every new key resolve to no code and still parse", () => {
     expect(resolveProvisioningReasonCode(undefined, undefined)).toBeNull();
     expect(resolveProvisioningReasonCode(progress(), engine())).toBeNull();
     expect(provisioningFailureCopy(undefined, engine())).toBeNull();
+    expect(provisioningFailureCopy(progress({ state: "active" }), engine())).toBeNull();
+    expect(provisioningFailureCopy(progress(), engine())?.body).toBe(PROVISIONING_FAILURE_FALLBACK_LINE);
   });
 
-  it("offers Retry only when restart is allowed and a retry handler is wired; never Delete", () => {
-    const retryable = engine({
+  it("offers the Retry-only row only when retry is explicitly allowed; never via restart; never Delete", () => {
+    const restartAllowed = engine({
       allowedActions: {
         restart: { allowed: true, reasonCode: null },
-        applyRelease: { allowed: false, reasonCode: null },
+        applyRelease: { allowed: true, reasonCode: null },
         open: { allowed: false, reasonCode: null },
         delete: { allowed: true, reasonCode: null },
       },
     });
+    // Restart/applyRelease being allowed does not turn on Retry.
+    const notMapped = provisioningFailureCopy(progress({ reasonCode: "provisioning.health.crash-loop" }), restartAllowed);
+    expect(notMapped?.nextStep).toBe(PROVISIONING_NEXT_STEP_NEITHER);
+    expect(notMapped?.showRetry).toBe(false);
     const withRetry = provisioningFailureCopy(
       progress({ reasonCode: "provisioning.health.crash-loop" }),
-      retryable,
-      { retryAvailable: true },
+      engine(),
+      { retryAllowed: true },
     );
     expect(withRetry?.nextStep).toBe("Retry setup, or email hello@valence.works.");
     expect(withRetry?.showRetry).toBe(true);
-    expect(provisioningFailureCopy(progress({ reasonCode: "provisioning.health.crash-loop" }), retryable)?.showRetry)
-      .toBe(false);
     // Delete-only shows the Neither row until #1012.
-    expect(provisioningFailureCopy(progress({ reasonCode: "x.y" }), engine(), { retryAvailable: true })?.nextStep)
+    expect(provisioningFailureCopy(progress({ reasonCode: "x.y" }), engine())?.nextStep)
       .toBe(PROVISIONING_NEXT_STEP_NEITHER);
   });
 

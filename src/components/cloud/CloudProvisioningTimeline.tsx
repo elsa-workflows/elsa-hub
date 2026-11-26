@@ -71,13 +71,18 @@ export function CloudProvisioningTimeline({
   engine,
   onRefresh,
   onRetrySetup,
+  retrySetupAllowed = false,
   retrySetupDisabled = false,
 }: {
   progress?: CloudProvisioningProgress;
   engine?: CloudEngineOverview;
   onRefresh?: () => void;
-  /** Wired only where a retry is possible; the button also needs allowedActions to permit it. */
+  /**
+   * Retry-only row (#1011). Not wired by any page until Control ships an
+   * explicit retry action; it is not mapped to restart or applyRelease.
+   */
   onRetrySetup?: () => void;
+  retrySetupAllowed?: boolean;
   retrySetupDisabled?: boolean;
 }) {
   const parkedDelete = isParkedCustomerDelete(engine?.activeOperation)
@@ -119,11 +124,11 @@ export function CloudProvisioningTimeline({
   const managed = toManagedProgress(progress);
   const unmapped = isUnmappedProvisioningSnapshot(managed);
   const recoveryRequired = isRecoveryRequired(engine?.status, engine?.activeOperation?.state);
-  // #1011: the signed "Engine setup stopped" table, only for a terminal failed
-  // snapshot with a reason code. Null keeps today's rendering.
+  // #1011: the signed "Engine setup stopped" table for a terminal failed
+  // snapshot. Null keeps today's rendering for every other state.
   const failure = hideProvisioning || parked
     ? null
-    : provisioningFailureCopy(progress, engine, { retryAvailable: Boolean(onRetrySetup) });
+    : provisioningFailureCopy(progress, engine, { retryAllowed: Boolean(onRetrySetup && retrySetupAllowed) });
   const title = parkedDelete
     ? null
     : activeDelete

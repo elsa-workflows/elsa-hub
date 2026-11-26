@@ -85,12 +85,41 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(screen.queryByText(SIGNED["provisioning.health.crash-loop"])).not.toBeInTheDocument();
   });
 
-  it("failed with no reasonCode renders exactly as today", () => {
+  it("failed with no reasonCode shows the title and the fallback line", () => {
     render(<CloudProvisioningTimeline progress={progress()} engine={engine()} />);
-    expect(screen.getByRole("heading", { name: CLOUD_PROVISIONING_HEADING })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: TITLE })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: CLOUD_PROVISIONING_HEADING })).not.toBeInTheDocument();
+    expect(screen.getByText(FALLBACK)).toBeInTheDocument();
+    expect(screen.getByText(NEITHER)).toBeInTheDocument();
+    expect(screen.queryByText(TODAY_FAILED_AT_HEALTH)).not.toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).toBeNull();
+    expect(screen.getByText("Step 5 of 7")).toBeInTheDocument();
+  });
+
+  it("a parked (RecoveryRequired) engine with failed progress keeps today's parked copy", () => {
+    render(
+      <CloudProvisioningTimeline
+        progress={progress({ reasonCode: "provisioning.timeout.health" })}
+        engine={engine({
+          status: "RecoveryRequired",
+          activeOperation: { id: "22222222-2222-4222-8222-222222222222", action: "Create", state: "RecoveryRequired" },
+        })}
+      />,
+    );
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
-    expect(screen.getByText(TODAY_FAILED_AT_HEALTH)).toBeInTheDocument();
-    expect(document.querySelector(".animate-pulse")).not.toBeNull();
+  });
+
+  it("a deleting engine with failed progress shows no table", () => {
+    render(
+      <CloudProvisioningTimeline
+        progress={progress({ reasonCode: "provisioning.timeout.health" })}
+        engine={engine({
+          status: "Deleting",
+          activeOperation: { id: "22222222-2222-4222-8222-222222222222", action: "Delete", state: "Running" },
+        })}
+      />,
+    );
+    expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
   });
 
   it("stale with a code shows no title and keeps the needs-attention guidance", () => {
@@ -166,13 +195,14 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(screen.getByText(SIGNED["provisioning.health.crash-loop"])).toBeInTheDocument();
   });
 
-  it("shows the Retry-only row and button only when restart is allowed and a retry handler is wired", () => {
+  it("shows the Retry-only row and button only when retry is explicitly allowed and wired", () => {
     const onRetrySetup = vi.fn();
     render(
       <CloudProvisioningTimeline
         progress={progress({ reasonCode: "provisioning.timeout.health" })}
-        engine={engine({}, true)}
+        engine={engine()}
         onRetrySetup={onRetrySetup}
+        retrySetupAllowed
       />,
     );
     expect(screen.getByText(RETRY_ONLY)).toBeInTheDocument();
@@ -181,21 +211,32 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
   });
 
-  it("shows the Neither row when restart is allowed but no retry handler is wired", () => {
+  it("shows the Neither row when restart is allowed and a handler is wired but retry is not allowed", () => {
     render(
       <CloudProvisioningTimeline
         progress={progress({ reasonCode: "provisioning.timeout.health" })}
         engine={engine({}, true)}
+        onRetrySetup={vi.fn()}
       />,
     );
     expect(screen.getByText(NEITHER)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry setup" })).not.toBeInTheDocument();
   });
 
-  it("payloads missing all new keys render as today", () => {
-    const { reasonCode: _unused, ...legacy } = progress();
-    void _unused;
-    render(<CloudProvisioningTimeline progress={legacy as CloudProvisioningProgress} engine={engine()} />);
+  it("non-failed payloads missing all new keys render as today", () => {
+    render(
+      <CloudProvisioningTimeline
+        progress={progress({ state: "active" })}
+        engine={engine({ status: "Provisioning" })}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: CLOUD_PROVISIONING_HEADING })).toBeInTheDocument();
+    expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
+    expect(document.querySelector(".animate-pulse")).not.toBeNull();
+  });
+
+  it("legacy capitalised Failed progress keeps today's copy", () => {
+    render(<CloudProvisioningTimeline progress={progress({ state: "Failed" })} engine={engine()} />);
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
     expect(screen.getByText(TODAY_FAILED_AT_HEALTH)).toBeInTheDocument();
   });

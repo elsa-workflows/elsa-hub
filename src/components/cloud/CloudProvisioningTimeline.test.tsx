@@ -285,7 +285,10 @@ describe("CloudProvisioningTimeline", () => {
         />,
       );
       expect(screen.getByText(`Step ${stageIndexOf("configuration")} of ${total}`)).toBeInTheDocument();
-      expect(screen.getByText(new RegExp(`Provisioning stopped at this step: ${configurationStage}\\.`))).toBeInTheDocument();
+      // #1011: a terminal failed snapshot shows the signed table; the stage stays in the list.
+      expect(screen.getByRole("heading", { name: "Engine setup stopped" })).toBeInTheDocument();
+      expect(screen.getByText("Setup stopped before your engine was ready.")).toBeInTheDocument();
+      expect(screen.getByText(configurationStage)).toBeInTheDocument();
       expect(screen.queryByText(`Step ${stageIndexOf("hosting-foundation")} of ${total}`)).not.toBeInTheDocument();
     });
 

@@ -71,24 +71,29 @@ export type ProvisioningFailureCopy = {
 };
 
 /**
- * Returns the signed failure table only for a terminal failed snapshot that
- * carries a reason code. Stale (auto-resuming) snapshots, in-flight or
- * retrying operations, and failed snapshots without any reason code return
- * null so the existing guidance renders unchanged.
+ * Returns the signed failure table for every terminal failed snapshot. A
+ * failed snapshot without a reason code, or with an unknown one, gets the
+ * fallback line. Stale (auto-resuming) snapshots and in-flight or retrying
+ * operations return null so the existing guidance renders unchanged.
+ *
+ * Retry: Control has no explicit retry action yet, so the Retry-only row is
+ * not mapped to restart or applyRelease. It shows only when a caller passes
+ * retryAllowed, which no page does until Control ships that action.
  */
 export function provisioningFailureCopy(
   progress: CloudProvisioningProgress | null | undefined,
   engine: CloudEngineOverview | null | undefined,
-  options: { retryAvailable?: boolean } = {},
+  options: { retryAllowed?: boolean } = {},
 ): ProvisioningFailureCopy | null {
   if (!progress || progress.state !== "failed") return null;
   if (engine?.activeOperation && IN_FLIGHT_OPERATION_STATES.has(engine.activeOperation.state)) return null;
   const code = resolveProvisioningReasonCode(progress, engine);
-  if (!code) return null;
-  const body = isKnownReasonCode(code) ? provisioningFailureBodyLines[code] : PROVISIONING_FAILURE_FALLBACK_LINE;
+  const body = code && isKnownReasonCode(code)
+    ? provisioningFailureBodyLines[code]
+    : PROVISIONING_FAILURE_FALLBACK_LINE;
   // Until #1012, only the Retry-only and Neither rows ship. Delete-only and
   // Retry+Delete states never offer Delete; Delete-only shows Neither.
-  const showRetry = Boolean(options.retryAvailable && engine?.allowedActions?.restart?.allowed);
+  const showRetry = Boolean(options.retryAllowed);
   return {
     title: ENGINE_SETUP_STOPPED_TITLE,
     body,
