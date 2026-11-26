@@ -19,6 +19,14 @@ const NEITHER = "For help, email hello@valence.works.";
 const RETRY_ONLY = "Retry setup, or email hello@valence.works.";
 const TODAY_FAILED_AT_HEALTH =
   "Provisioning stopped at this step: Verifying health. Email hello@valence.works with this engine's name and we'll help during business hours.";
+const SIGNED_FAILED_GUIDANCE =
+  "Setup stopped before your engine was ready. For help, email hello@valence.works.";
+const LEGACY_NEEDS_ATTENTION =
+  "Provisioning needs attention. Paused at this step: Verifying health. Check again or email hello@valence.works if it remains here.";
+
+function paragraphTexts(): string[] {
+  return Array.from(document.querySelectorAll("p")).map((el) => el.textContent ?? "");
+}
 
 const progress = (overrides: Partial<CloudProvisioningProgress> = {}): CloudProvisioningProgress => ({
   state: "failed",
@@ -70,6 +78,9 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(screen.getByText(SIGNED[code])).toBeInTheDocument();
     expect(screen.getByText(NEITHER)).toBeInTheDocument();
     expect(screen.queryByText(TODAY_FAILED_AT_HEALTH)).not.toBeInTheDocument();
+    expect(paragraphTexts().filter((text) => text === SIGNED[code])).toHaveLength(1);
+    expect(paragraphTexts().filter((text) => text === NEITHER)).toHaveLength(1);
+    expect(paragraphTexts()).not.toContain(SIGNED_FAILED_GUIDANCE);
     expect(document.querySelector(".animate-pulse")).toBeNull();
     // Current stage stays visible.
     expect(screen.getByText(provisioningStageLabels["health-verification"])).toBeInTheDocument();
@@ -93,6 +104,9 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(screen.getByText(FALLBACK)).toBeInTheDocument();
     expect(screen.getByText(NEITHER)).toBeInTheDocument();
     expect(screen.queryByText(TODAY_FAILED_AT_HEALTH)).not.toBeInTheDocument();
+    expect(paragraphTexts().filter((text) => text === FALLBACK)).toHaveLength(1);
+    expect(paragraphTexts().filter((text) => text === NEITHER)).toHaveLength(1);
+    expect(paragraphTexts()).not.toContain(SIGNED_FAILED_GUIDANCE);
     expect(document.querySelector(".animate-pulse")).toBeNull();
     expect(screen.getByText("Step 5 of 7")).toBeInTheDocument();
   });
@@ -132,7 +146,10 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     );
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
     expect(screen.queryByText(SIGNED["provisioning.timeout.workload"])).not.toBeInTheDocument();
-    expect(screen.getByText(/Provisioning needs attention\. Paused at this step: Verifying health\./)).toBeInTheDocument();
+    expect(screen.queryByText(LEGACY_NEEDS_ATTENTION)).not.toBeInTheDocument();
+    expect(screen.getByText(NEITHER)).toBeInTheDocument();
+    expect(paragraphTexts().filter((text) => text === NEITHER)).toHaveLength(1);
+    expect(paragraphTexts()).not.toContain(SIGNED_FAILED_GUIDANCE);
   });
 
   it("an active (retrying) snapshot with a timeout code shows no title", () => {
@@ -176,6 +193,10 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
       />,
     );
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
+    expect(screen.queryByText(TODAY_FAILED_AT_HEALTH)).not.toBeInTheDocument();
+    expect(screen.getByText(SIGNED_FAILED_GUIDANCE)).toBeInTheDocument();
+    expect(paragraphTexts().filter((text) => text === SIGNED_FAILED_GUIDANCE)).toHaveLength(1);
+    expect(paragraphTexts().filter((text) => text === FALLBACK)).toHaveLength(0);
   });
 
   it("reads the code from lastOperation when progress has none", () => {
@@ -236,10 +257,12 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(document.querySelector(".animate-pulse")).not.toBeNull();
   });
 
-  it("legacy capitalised Failed progress keeps today's copy", () => {
+  it("legacy capitalised Failed progress shows the signed fallback guidance, not the table or the old interpolated line", () => {
     render(<CloudProvisioningTimeline progress={progress({ state: "Failed" })} engine={engine()} />);
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
-    expect(screen.getByText(TODAY_FAILED_AT_HEALTH)).toBeInTheDocument();
+    expect(screen.queryByText(TODAY_FAILED_AT_HEALTH)).not.toBeInTheDocument();
+    expect(screen.getByText(SIGNED_FAILED_GUIDANCE)).toBeInTheDocument();
+    expect(paragraphTexts().filter((text) => text === SIGNED_FAILED_GUIDANCE)).toHaveLength(1);
   });
 
   it.each([
