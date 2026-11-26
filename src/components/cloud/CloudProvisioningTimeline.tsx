@@ -6,7 +6,12 @@ import {
   parkedDeleteGuidance,
   parkedEngineGuidance,
 } from "@/lib/cloud/parkedGuidance";
-import { mapControlPhaseToStage, stageStatusLabel } from "@/lib/cloud/provisioningPhases";
+import {
+  mapControlPhaseToStage,
+  STAGE_STATUS_IN_PROGRESS,
+  STAGE_STATUS_NEEDS_ATTENTION,
+  stageStatusLabel,
+} from "@/lib/cloud/provisioningPhases";
 import {
   provisioningActivityLabels,
   provisioningStageDescriptions,
@@ -23,6 +28,7 @@ import {
 } from "@/lib/cloud/provisioningProgress";
 import { DELETING_THIS_ENGINE_HEADING } from "@/lib/cloud/managedEngineDeletionHistory";
 import { stateGuidance } from "@/lib/cloud/stateGuidance";
+import { provisioningFailureCopy, RETRY_SETUP_BUTTON_LABEL } from "@/lib/cloud/provisioningFailureReason";
 import { NEEDS_ATTENTION_LABEL, isRecoveryRequired } from "./engineStatus";
 import { Button } from "@/components/ui/button";
 
@@ -69,10 +75,20 @@ export function CloudProvisioningTimeline({
   progress,
   engine,
   onRefresh,
+  onRetrySetup,
+  retrySetupAllowed = false,
+  retrySetupDisabled = false,
 }: {
   progress?: CloudProvisioningProgress;
   engine?: CloudEngineOverview;
   onRefresh?: () => void;
+  /**
+   * Retry-only row (#1011). Not wired by any page until Control ships an
+   * explicit retry action; it is not mapped to restart or applyRelease.
+   */
+  onRetrySetup?: () => void;
+  retrySetupAllowed?: boolean;
+  retrySetupDisabled?: boolean;
 }) {
   const parkedDelete = isParkedCustomerDelete(engine?.activeOperation)
     || isEntitlementHeldDelete(engine?.activeOperation);
@@ -113,10 +129,17 @@ export function CloudProvisioningTimeline({
   const managed = toManagedProgress(progress);
   const unmapped = isUnmappedProvisioningSnapshot(managed);
   const recoveryRequired = isRecoveryRequired(engine?.status, engine?.activeOperation?.state);
+  // #1011: the signed "Engine setup stopped" table for a terminal failed
+  // snapshot. Null keeps today's rendering for every other state.
+  const failure = hideProvisioning || parked
+    ? null
+    : provisioningFailureCopy(progress, engine, { retryAllowed: Boolean(onRetrySetup && retrySetupAllowed) });
   const title = parkedDelete
     ? null
     : activeDelete
     ? DELETING_THIS_ENGINE_HEADING
+    : failure
+    ? failure.title
     : unmapped
     ? (recoveryRequired ? NEEDS_ATTENTION_LABEL : WAITING_FOR_PROGRESS_TITLE)
     : CLOUD_PROVISIONING_HEADING;
@@ -131,8 +154,9 @@ export function CloudProvisioningTimeline({
       ? parkedDeleteGuidance(null, null, engine?.activeOperation?.id)
       : parkedEngineGuidance(null, null, engine?.activeOperation?.id))
     : null;
-  const reasonCopy = controlReason ?? parkedFallback;
-  const guidance = hideProvisioning ? null : stateGuidance(managed, progress.state === "unavailable");
+  // The signed failure table replaces Control's unavailableReason prose.
+  const reasonCopy = failure ? null : controlReason ?? parkedFallback;
+  const guidance = hideProvisioning || failure ? null : stateGuidance(managed, progress.state === "unavailable");
   const latestActivity = [...(progress.activity ?? [])].sort((a, b) => a.sequence - b.sequence).at(-1);
   const activityLabel = latestActivity?.messageCode
     ? provisioningActivityLabels[latestActivity.messageCode as ManagedProvisioningActivityMessageCode]
@@ -168,6 +192,17 @@ export function CloudProvisioningTimeline({
       )}
 
       {guidance && <p className="text-sm">{guidance}</p>}
+      {failure && (
+        <div className="space-y-2" data-testid="provisioning-failure">
+          <p className="text-sm">{failure.body}</p>
+          <p className="text-sm">{failure.nextStep}</p>
+          {failure.showRetry && onRetrySetup && (
+            <Button type="button" className="min-h-11" disabled={retrySetupDisabled} onClick={onRetrySetup}>
+              {RETRY_SETUP_BUTTON_LABEL}
+            </Button>
+          )}
+        </div>
+      )}
       {reasonCopy && <p className="text-sm">{reasonCopy}</p>}
 
       {onRefresh && (
@@ -185,6 +220,12 @@ export function CloudProvisioningTimeline({
             ? "unknown"
             : reported?.status ?? (reached ? "completed" : current ? "current" : "pending");
           const description = provisioningStageDescriptions[code];
+          // Under "Engine setup stopped" nothing is in progress: the stopped
+          // stage (and any row Control still reports as current) reads
+          // "needs attention" instead.
+          const statusLabel = failure && stageStatusLabel(status) === STAGE_STATUS_IN_PROGRESS
+            ? STAGE_STATUS_NEEDS_ATTENTION
+            : stageStatusLabel(status);
           return (
             <li
               key={code}
@@ -193,7 +234,7 @@ export function CloudProvisioningTimeline({
               <div className="min-w-0 space-y-1">
                 <p className="flex items-center gap-2">
                   <span>{provisioningStageLabels[code]}</span>
-                  {current && !unmapped && (
+                  {current && !unmapped && !failure && (
                     <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" aria-hidden />
                   )}
                 </p>
@@ -201,7 +242,7 @@ export function CloudProvisioningTimeline({
                 <p className="text-sm text-muted-foreground" aria-hidden="true">{description}</p>
               </div>
               <span className="shrink-0 text-sm text-muted-foreground">
-                {stageStatusLabel(status)}
+                {statusLabel}
               </span>
             </li>
           );
