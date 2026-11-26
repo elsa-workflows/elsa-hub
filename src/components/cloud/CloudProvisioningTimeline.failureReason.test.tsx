@@ -4,6 +4,7 @@ import { CLOUD_PROVISIONING_HEADING } from "@/lib/cloudClient";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
 import { MANAGED_PROVISIONING_STAGE_CODES } from "@/lib/cloud/provisioningProgress";
 import { provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
+import { STAGE_STATUS_IN_PROGRESS, STAGE_STATUS_NEEDS_ATTENTION } from "@/lib/cloud/provisioningPhases";
 import { CloudProvisioningTimeline } from "./CloudProvisioningTimeline";
 
 const TITLE = "Engine setup stopped";
@@ -239,5 +240,70 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     render(<CloudProvisioningTimeline progress={progress({ state: "Failed" })} engine={engine()} />);
     expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
     expect(screen.getByText(TODAY_FAILED_AT_HEALTH)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["no reported status", undefined],
+    ["a reported current status", "current"],
+  ])("failure set: the stopped stage with %s reads needs attention, never in progress", (_label, reportedStatus) => {
+    const stages = MANAGED_PROVISIONING_STAGE_CODES.slice(0, 4).map((code) => ({
+      code,
+      status: "completed",
+      startedAt: null,
+      completedAt: null,
+    }));
+    if (reportedStatus) {
+      stages.push({ code: "health-verification", status: reportedStatus, startedAt: null, completedAt: null });
+    }
+    render(
+      <CloudProvisioningTimeline
+        progress={progress({ reasonCode: "provisioning.timeout.health", stages })}
+        engine={engine()}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: TITLE })).toBeInTheDocument();
+    const row = screen.getByText(provisioningStageLabels["health-verification"]).closest("li");
+    expect(row?.textContent).toContain(STAGE_STATUS_NEEDS_ATTENTION);
+    expect(screen.queryByText(STAGE_STATUS_IN_PROGRESS)).not.toBeInTheDocument();
+  });
+
+  it("without a failure the current stage still reads in progress", () => {
+    const stages = MANAGED_PROVISIONING_STAGE_CODES.slice(0, 4).map((code) => ({
+      code,
+      status: "completed",
+      startedAt: null,
+      completedAt: null,
+    }));
+    render(
+      <CloudProvisioningTimeline
+        progress={progress({ state: "active", stages })}
+        engine={engine({ status: "Provisioning" })}
+      />,
+    );
+    const row = screen.getByText(provisioningStageLabels["health-verification"]).closest("li");
+    expect(row?.textContent).toContain(STAGE_STATUS_IN_PROGRESS);
+  });
+
+  it("failure set hides Control's unavailableReason prose", () => {
+    const prose = "Control wrote this unavailable reason.";
+    render(
+      <CloudProvisioningTimeline
+        progress={progress({ reasonCode: "provisioning.health.crash-loop" })}
+        engine={engine({ unavailableReason: prose, unavailableReasonCode: "instance.failed" })}
+      />,
+    );
+    expect(screen.getByText(SIGNED["provisioning.health.crash-loop"])).toBeInTheDocument();
+    expect(screen.queryByText(prose)).not.toBeInTheDocument();
+  });
+
+  it("without a failure the unavailableReason prose still renders", () => {
+    const prose = "Control wrote this unavailable reason.";
+    render(
+      <CloudProvisioningTimeline
+        progress={progress({ state: "active" })}
+        engine={engine({ status: "Provisioning", unavailableReason: prose, unavailableReasonCode: "instance.failed" })}
+      />,
+    );
+    expect(screen.getByText(prose)).toBeInTheDocument();
   });
 });

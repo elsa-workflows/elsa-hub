@@ -6,7 +6,12 @@ import {
   parkedDeleteGuidance,
   parkedEngineGuidance,
 } from "@/lib/cloud/parkedGuidance";
-import { mapControlPhaseToStage, stageStatusLabel } from "@/lib/cloud/provisioningPhases";
+import {
+  mapControlPhaseToStage,
+  STAGE_STATUS_IN_PROGRESS,
+  STAGE_STATUS_NEEDS_ATTENTION,
+  stageStatusLabel,
+} from "@/lib/cloud/provisioningPhases";
 import {
   provisioningActivityLabels,
   provisioningStageDescriptions,
@@ -149,7 +154,8 @@ export function CloudProvisioningTimeline({
       ? parkedDeleteGuidance(null, null, engine?.activeOperation?.id)
       : parkedEngineGuidance(null, null, engine?.activeOperation?.id))
     : null;
-  const reasonCopy = controlReason ?? parkedFallback;
+  // The signed failure table replaces Control's unavailableReason prose.
+  const reasonCopy = failure ? null : controlReason ?? parkedFallback;
   const guidance = hideProvisioning || failure ? null : stateGuidance(managed, progress.state === "unavailable");
   const latestActivity = [...(progress.activity ?? [])].sort((a, b) => a.sequence - b.sequence).at(-1);
   const activityLabel = latestActivity?.messageCode
@@ -214,6 +220,12 @@ export function CloudProvisioningTimeline({
             ? "unknown"
             : reported?.status ?? (reached ? "completed" : current ? "current" : "pending");
           const description = provisioningStageDescriptions[code];
+          // Under "Engine setup stopped" nothing is in progress: the stopped
+          // stage (and any row Control still reports as current) reads
+          // "needs attention" instead.
+          const statusLabel = failure && stageStatusLabel(status) === STAGE_STATUS_IN_PROGRESS
+            ? STAGE_STATUS_NEEDS_ATTENTION
+            : stageStatusLabel(status);
           return (
             <li
               key={code}
@@ -230,7 +242,7 @@ export function CloudProvisioningTimeline({
                 <p className="text-sm text-muted-foreground" aria-hidden="true">{description}</p>
               </div>
               <span className="shrink-0 text-sm text-muted-foreground">
-                {stageStatusLabel(status)}
+                {statusLabel}
               </span>
             </li>
           );
