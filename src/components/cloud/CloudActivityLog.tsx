@@ -8,31 +8,22 @@ import {
 import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 
 /**
- * Control's ClassifyCustomerActivity writes `diagnosticCode`, `severity`, and
- * `message` onto each activity item. For the two customer messages it sets
- * diagnosticCode to null and puts the line in message:
- *   - Warning + no code → Control "Deployment status unclear…"
- *   - Informational + no code is also the empty default, so "Checking
- *     deployment status" is recognized by matching Control's classified
- *     message, then replaced with the signed constant (same bytes).
- * The signed path never renders item.message verbatim.
+ * Signed activity copy is keyed only on diagnosticCode. The two codes arrive
+ * with valence-works/elsa-control#1067 and are not shipped yet:
+ *   deployment.result-unconfirmed → Deployment result not confirmed.
+ *   deployment.status-checking → Checking deployment status
+ * Message and severity are never used to choose a line. A missing or unmapped
+ * code falls back to Change requested (lifecycle.accepted) or Engine activity.
  */
-const CONTROL_ACTIVITY_UNCLEAR_MESSAGE =
-  "Deployment status unclear. We're still confirming the result.";
+const SIGNED_ACTIVITY_BY_CODE: Record<string, string> = {
+  "deployment.result-unconfirmed": CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED,
+  "deployment.status-checking": CLOUD_ACTIVITY_CHECKING_DEPLOYMENT,
+};
 
 function signedActivityLabel(item: CloudActivityItem): string {
   const code = item.diagnosticCode?.trim() ?? "";
-  const severity = item.severity?.trim();
-  if (!code && severity === "Warning") {
-    return CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED;
-  }
-  const message = item.message?.trim() ?? "";
-  if (!code && message === CLOUD_ACTIVITY_CHECKING_DEPLOYMENT) {
-    return CLOUD_ACTIVITY_CHECKING_DEPLOYMENT;
-  }
-  if (message === CONTROL_ACTIVITY_UNCLEAR_MESSAGE) {
-    return CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED;
-  }
+  const mapped = code ? SIGNED_ACTIVITY_BY_CODE[code] : undefined;
+  if (mapped) return mapped;
   if (item.eventType === "lifecycle.accepted") return CLOUD_ACTIVITY_CHANGE_REQUESTED;
   return CLOUD_ACTIVITY_FALLBACK;
 }
