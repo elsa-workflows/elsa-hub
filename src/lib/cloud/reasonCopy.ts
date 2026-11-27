@@ -212,19 +212,24 @@ export function reasonCopyForCode(
     return { body: parkedDeleteLine(operationId) };
   }
 
-  if (engine?.status === "RecoveryRequired") {
-    return { body: parkedChangeBody(operationId) };
-  }
-
   if (engine?.status === "Deleting" || deleteOp) {
     return { body: CLOUD_REASON_DELETING_BODY, nextStep: null };
+  }
+
+  if (engine?.status === "RecoveryRequired") {
+    return { body: parkedChangeBody(operationId) };
   }
 
   if (engine && IN_PROGRESS_STATUSES.has(engine.status)) {
     return { body: CLOUD_REASON_IN_PROGRESS_CHANGE, nextStep: null };
   }
 
-  if (!resolved) return null;
+  if (!resolved) {
+    // Only a healthy Ready engine (or no engine) has no line. Unknown and
+    // Degraded still need the generic fallback when Control sends no code.
+    if (!engine || engine.status === "Ready") return null;
+    return { body: CLOUD_REASON_GENERIC_FALLBACK };
+  }
 
   const mapped = REASON_BY_CODE[resolved];
   if (mapped) return mapped(ctx);

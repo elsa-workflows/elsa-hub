@@ -123,8 +123,6 @@ describe("reasonCopyForCode with Control overview shapes", () => {
     setCloudSignedCopyEnabledForTests(true);
     expect(reasonCopyForCode("identity-unavailable")?.body).toBe(CLOUD_REASON_IDENTITY_UNAVAILABLE);
   });
-});
-
 
   it("shows no reason line for a healthy Ready engine when there is no code, flag on or off", () => {
     const ready = controlDeletedOverview({
@@ -155,6 +153,49 @@ describe("reasonCopyForCode with Control overview shapes", () => {
     setCloudSignedCopyEnabledForTests(false);
     expect(overviewReasonCopy(ready)).toBeNull();
   });
+
+  it("uses the generic fallback for Unknown or Degraded when Control sends no code", () => {
+    const unknown = controlDeletedOverview({
+      status: "Unknown",
+      health: "Unknown",
+      unavailableReason: undefined,
+      unavailableReasonCode: undefined,
+      lastOperation: null,
+    });
+    const degraded = controlDeletedOverview({
+      status: "Degraded",
+      health: "Degraded",
+      unavailableReason: undefined,
+      unavailableReasonCode: undefined,
+      lastOperation: null,
+    });
+    expect(overviewReasonCopy(unknown)).toEqual({ body: CLOUD_REASON_GENERIC_FALLBACK });
+    expect(overviewReasonCopy(degraded)).toEqual({ body: CLOUD_REASON_GENERIC_FALLBACK });
+    setCloudSignedCopyEnabledForTests(true);
+    expect(overviewReasonCopy(unknown)).toEqual({ body: CLOUD_REASON_GENERIC_FALLBACK });
+    expect(overviewReasonCopy(degraded)).toEqual({ body: CLOUD_REASON_GENERIC_FALLBACK });
+  });
+
+  it("uses the deleting body when status is RecoveryRequired and a Delete is in flight", () => {
+    const engine = controlDeletedOverview({
+      status: "RecoveryRequired",
+      health: "Unknown",
+      unavailableReason: undefined,
+      unavailableReasonCode: undefined,
+      lastOperation: null,
+      activeOperation: {
+        id: "22222222-2222-4222-8222-222222222222",
+        action: "Delete",
+        state: "Accepted",
+      },
+    });
+    expect(overviewReasonCopy(engine)).toEqual({
+      body: CLOUD_REASON_DELETING_BODY,
+      nextStep: null,
+    });
+    expect(overviewReasonCopy(engine)?.body).not.toContain("didn't finish on its own");
+  });
+});
 
 describe("signedActionErrorLine", () => {
   it("uses Launch's permission lines only when the setting is on", () => {
