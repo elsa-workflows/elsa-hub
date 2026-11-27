@@ -148,9 +148,7 @@ export default function CloudEngineOverviewPage() {
     if (hadTrackedDelete || trackingDelete || isDeletingEngine(engine)) return true;
     try {
       const refreshed = await refetch();
-      if (refreshed && typeof refreshed === "object" && "ok" in refreshed && refreshed.ok && "engine" in refreshed) {
-        return isDeletingEngine(refreshed.engine as Parameters<typeof isDeletingEngine>[0]);
-      }
+      if (hasOverviewEngine(refreshed)) return isDeletingEngine(refreshed.engine);
     } catch {
       // A failed refetch falls back to the expired-confirmation line.
     }
@@ -340,4 +338,13 @@ function isDeletingEngine(
 ): boolean {
   if (!engine) return false;
   return engine.status === "Deleting" || engine.activeOperation?.action === "Delete";
+}
+
+type DeleteStateEngine = { status?: string | null; activeOperation?: { action?: string | null } | null };
+
+function hasOverviewEngine(value: unknown): value is { ok: true; engine: DeleteStateEngine } {
+  if (!value || typeof value !== "object" || !("ok" in value) || value.ok !== true) return false;
+  if (!("engine" in value)) return false;
+  const engine = (value as { engine: unknown }).engine;
+  return Boolean(engine && typeof engine === "object" && !Array.isArray(engine));
 }

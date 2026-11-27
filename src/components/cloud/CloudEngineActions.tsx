@@ -53,6 +53,24 @@ function resultError(result: unknown): string | null {
   return "That action could not be completed.";
 }
 
+function hasDeleteConfirmation(
+  result: unknown,
+): result is { ok: true; confirmation: CloudDeleteConfirmation } {
+  if (!result || typeof result !== "object" || !("ok" in result) || result.ok !== true) return false;
+  if (!("confirmation" in result)) return false;
+  const confirmation = (result as { confirmation: unknown }).confirmation;
+  return Boolean(
+    confirmation &&
+      typeof confirmation === "object" &&
+      "id" in confirmation &&
+      typeof (confirmation as { id: unknown }).id === "string",
+  );
+}
+
+function isCode(result: unknown, code: string): boolean {
+  return Boolean(result && typeof result === "object" && "code" in result && result.code === code);
+}
+
 function deleteStartError(result: unknown): string | null {
   if (!result || typeof result !== "object" || !("ok" in result) || result.ok) {
     return null;
@@ -155,15 +173,17 @@ export function CloudEngineActions({
     setDeleteError(null);
     setConfirmation(null);
     setDeleteOpen(true);
+    const error = await loadConfirmation();
+    if (error) setDeleteError(error);
+  }
+
+  // Fetches a delete confirmation and stores it; returns the error line to show, if any.
+  async function loadConfirmation(): Promise<string | null> {
     const result = await onConfirmDelete();
     const error = deleteStartError(result);
-    if (error) {
-      setDeleteError(error);
-      return;
-    }
-    if (result && typeof result === "object" && "ok" in result && result.ok && "confirmation" in result) {
-      setConfirmation((result as { confirmation: CloudDeleteConfirmation }).confirmation);
-    }
+    if (error) return error;
+    if (hasDeleteConfirmation(result)) setConfirmation(result.confirmation);
+    return null;
   }
 
   async function finishDelete(event: MouseEvent) {
@@ -186,6 +206,13 @@ export function CloudEngineActions({
     const error = deleteStartError(result);
     if (error) {
       setDeleteError(error);
+      if (isCode(result, CLOUD_DELETE_CONFIRMATION_INVALID_CODE)) {
+        // The confirmation expired: drop it and fetch a fresh one so the next
+        // Delete press works without a page reload.
+        setConfirmation(null);
+        const refreshError = await loadConfirmation();
+        if (refreshError) setDeleteError(refreshError);
+      }
       return;
     }
     toast.message(cloudDeletingToast(engine.name));
