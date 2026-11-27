@@ -1449,12 +1449,12 @@ Deno.test("a Control 409 operation-active on delete becomes 409 delete_in_progre
   });
 });
 
-Deno.test("Control changed-since-read (409 or 412) becomes 409 changed_since_read", async () => {
+Deno.test("Control changed-since-read keeps Control's 409 or 412 and aliases to changed_since_read", async () => {
   for (const status of [409, 412]) {
     const response = await signedIn(DELETE_REQUEST, {
       [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.changed-since-read", status },
     });
-    assertEquals(response.status, 409);
+    assertEquals(response.status, status);
     assertEquals(await readJson(response), {
       ok: false,
       code: "changed_since_read",
@@ -1463,27 +1463,68 @@ Deno.test("Control changed-since-read (409 or 412) becomes 409 changed_since_rea
   }
 });
 
-Deno.test("other Control conflicts keep the generic invalid_request", async () => {
+Deno.test("a Control 409 idempotency-conflict on delete stays 409 with Control's problem code", async () => {
   const response = await signedIn(DELETE_REQUEST, {
     [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.idempotency-conflict", status: 409 },
   });
-  assertEquals(response.status, 400);
-  assertEquals((await readJson(response)).code, "invalid_request");
-
-  const restart = await signedIn({
-    action: "restartEngine",
-    workspaceId: WORKSPACE_ID,
-    engineId: ENGINE_ID,
-    idempotencyKey: IDEMPOTENCY_KEY,
-    ifMatch: '"1"',
-  }, {
-    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/restart`]: {
-      ok: false,
-      kind: "invalid",
-      code: "instance.operation-active",
-      status: 409,
-    },
+  assertEquals(response.status, 409);
+  assertEquals(await readJson(response), {
+    ok: false,
+    code: "instance.idempotency-conflict",
+    error: "The request could not be completed.",
   });
-  assertEquals(restart.status, 400);
-  assertEquals((await readJson(restart)).code, "invalid_request");
+});
+
+const RESTART_PATH = `POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/restart`;
+const RESTART_REQUEST = {
+  action: "restartEngine",
+  workspaceId: WORKSPACE_ID,
+  engineId: ENGINE_ID,
+  idempotencyKey: IDEMPOTENCY_KEY,
+  ifMatch: '"1"',
+};
+const CREATE_PATH = `POST /api/workspaces/${WORKSPACE_ID}/instances`;
+const CREATE_REQUEST = {
+  action: "createEngine",
+  workspaceId: WORKSPACE_ID,
+  name: "Prod",
+  slug: "prod",
+  intent: INTENT,
+  idempotencyKey: IDEMPOTENCY_KEY,
+};
+
+Deno.test("a Control 409 operation-active on restart stays 409 with Control's problem code", async () => {
+  const restart = await signedIn(RESTART_REQUEST, {
+    [RESTART_PATH]: { ok: false, kind: "invalid", code: "instance.operation-active", status: 409 },
+  });
+  assertEquals(restart.status, 409);
+  assertEquals(await readJson(restart), {
+    ok: false,
+    code: "instance.operation-active",
+    error: "The request could not be completed.",
+  });
+});
+
+Deno.test("a Control 412 changed-since-read on restart stays 412 changed_since_read", async () => {
+  const restart = await signedIn(RESTART_REQUEST, {
+    [RESTART_PATH]: { ok: false, kind: "invalid", code: "instance.changed-since-read", status: 412 },
+  });
+  assertEquals(restart.status, 412);
+  assertEquals(await readJson(restart), {
+    ok: false,
+    code: "changed_since_read",
+    error: "This engine changed since you opened it.",
+  });
+});
+
+Deno.test("a Control 422 shape-invalid on create stays 422 with Control's problem code", async () => {
+  const created = await signedIn(CREATE_REQUEST, {
+    [CREATE_PATH]: { ok: false, kind: "invalid", code: "instance.shape-invalid", status: 422 },
+  });
+  assertEquals(created.status, 422);
+  assertEquals(await readJson(created), {
+    ok: false,
+    code: "instance.shape-invalid",
+    error: "The request could not be completed.",
+  });
 });

@@ -293,7 +293,8 @@ export type CloudBffErrorCode =
 
 export type CloudBffClientError = {
   ok: false;
-  code: CloudBffErrorCode;
+  // Known Hub codes, or a Control problem code passed through (#227).
+  code: CloudBffErrorCode | string;
   error: string;
   currentInstances?: number;
   maxInstances?: number;

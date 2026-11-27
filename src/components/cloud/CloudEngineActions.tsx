@@ -33,6 +33,7 @@ import {
   CLOUD_DELETE_IN_PROGRESS_CODE,
   CLOUD_DELETE_START_ERROR,
   CLOUD_OPEN_STUDIO,
+  cloudActionErrorLine,
   cloudDeletingToast,
   CLOUD_RESTART,
   CLOUD_RESTART_CONFIRM,
@@ -44,13 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function resultError(result: unknown): string | null {
-  if (!result || typeof result !== "object" || !("ok" in result) || result.ok) {
-    return null;
-  }
-  if ("error" in result && typeof result.error === "string" && result.error) {
-    return result.error;
-  }
-  return "That action could not be completed.";
+  return cloudActionErrorLine(result);
 }
 
 function hasDeleteConfirmation(
