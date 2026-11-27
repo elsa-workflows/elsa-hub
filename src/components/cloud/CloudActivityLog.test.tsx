@@ -27,7 +27,6 @@ function item(overrides: Partial<CloudActivityItem> = {}): CloudActivityItem {
 
 describe("CloudActivityLog", () => {
   it("maps deployment.result-unconfirmed to Deployment result not confirmed.", () => {
-    setCloudSignedCopyEnabledForTests(true);
     render(<CloudActivityLog items={[item({
       eventType: "lifecycle.failed",
       diagnosticCode: "deployment.result-unconfirmed",
@@ -40,7 +39,6 @@ describe("CloudActivityLog", () => {
   });
 
   it("maps deployment.status-checking to Checking deployment status", () => {
-    setCloudSignedCopyEnabledForTests(true);
     render(<CloudActivityLog items={[item({
       eventType: "lifecycle.reconciled",
       diagnosticCode: "deployment.status-checking",
@@ -52,7 +50,6 @@ describe("CloudActivityLog", () => {
   });
 
   it("falls back when there is no diagnosticCode: Change requested or Engine activity", () => {
-    setCloudSignedCopyEnabledForTests(true);
     const { unmount } = render(<CloudActivityLog items={[item()]} />);
     expect(screen.getByText(CLOUD_ACTIVITY_CHANGE_REQUESTED)).toBeInTheDocument();
     expect(screen.queryByText("lifecycle.accepted")).not.toBeInTheDocument();
@@ -67,7 +64,6 @@ describe("CloudActivityLog", () => {
   });
 
   it("never selects a signed line from message or severity alone", () => {
-    setCloudSignedCopyEnabledForTests(true);
     const { unmount } = render(<CloudActivityLog items={[item({
       eventType: "lifecycle.failed",
       severity: "Warning",
@@ -100,7 +96,6 @@ describe("CloudActivityLog", () => {
   });
 
   it("falls back for an unmapped diagnosticCode and does not render item.message", () => {
-    setCloudSignedCopyEnabledForTests(true);
     render(<CloudActivityLog items={[item({
       eventType: "lifecycle.failed",
       diagnosticCode: "health.failed",
@@ -112,12 +107,35 @@ describe("CloudActivityLog", () => {
     expect(screen.queryByText("lifecycle.failed")).not.toBeInTheDocument();
   });
 
-  it("on the flag-off path still uses message ?? eventType", () => {
+  it("never renders item.message or eventType when the signed-copy setting is off", () => {
     setCloudSignedCopyEnabledForTests(false);
-    const { unmount } = render(<CloudActivityLog items={[item({ message: "Accepted the change." })]} />);
-    expect(screen.getByText("Accepted the change.")).toBeInTheDocument();
+    const { unmount } = render(<CloudActivityLog items={[item({
+      eventType: "lifecycle.accepted",
+      diagnosticCode: null,
+      message: "Accepted the change.",
+    })]} />);
+    expect(screen.getByText(CLOUD_ACTIVITY_CHANGE_REQUESTED)).toBeInTheDocument();
+    expect(screen.queryByText("Accepted the change.")).not.toBeInTheDocument();
+    expect(screen.queryByText("lifecycle.accepted")).not.toBeInTheDocument();
     unmount();
-    render(<CloudActivityLog items={[item({ message: null })]} />);
-    expect(screen.getByText("lifecycle.accepted")).toBeInTheDocument();
+    const second = render(<CloudActivityLog items={[item({
+      eventType: "lifecycle.failed",
+      diagnosticCode: null,
+      message: "Deployment status unclear. We're still confirming the result.",
+      sequence: 2,
+    })]} />);
+    expect(screen.getByText(CLOUD_ACTIVITY_FALLBACK)).toBeInTheDocument();
+    expect(screen.queryByText("Deployment status unclear. We're still confirming the result.")).not.toBeInTheDocument();
+    expect(screen.queryByText("lifecycle.failed")).not.toBeInTheDocument();
+    second.unmount();
+    render(<CloudActivityLog items={[item({
+      eventType: "lifecycle.reconciled",
+      diagnosticCode: "deployment.status-checking",
+      message: "Checking deployment status from Control",
+      sequence: 3,
+    })]} />);
+    expect(screen.getByText(CLOUD_ACTIVITY_CHECKING_DEPLOYMENT)).toBeInTheDocument();
+    expect(screen.queryByText("Checking deployment status from Control")).not.toBeInTheDocument();
+    expect(screen.queryByText("lifecycle.reconciled")).not.toBeInTheDocument();
   });
 });

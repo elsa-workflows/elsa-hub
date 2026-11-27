@@ -4,10 +4,10 @@
  * cites an earlier signature. Straight apostrophes (U+0027) and straight
  * quotes (U+0022) only. Do not add the rejected Failed chip or body for a non-setup failure.
  *
- * Deleted-engine strings, delete toasts, Previous deletions grouping, and the
- * code-to-copy mapping are always on (Lead exception, 27 Nov 2026). Status and
- * health labels, Launch A/B/E, activity-log copy, parked-change lines, and the
- * #948 limit line stay behind `VITE_CLOUD_SIGNED_COPY`.
+ * Deleted-engine strings, delete toasts, Previous deletions grouping, the
+ * code-to-copy mapping, and activity-log copy are always on (Lead exception,
+ * 27 Nov 2026). Status and health labels, Launch A/B/E, parked-change lines,
+ * and the #948 limit line stay behind `VITE_CLOUD_SIGNED_COPY`.
  */
 
 export const CLOUD_ENGINE_DELETED_TOAST_UNNAMED = "Engine deleted.";
