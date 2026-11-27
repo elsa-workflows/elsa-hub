@@ -481,3 +481,47 @@ Deno.test("normalizeDeleteConfirmation reads confirmationId and falls back to id
 
   assertEquals(normalizeDeleteConfirmation({ expiresAt: "2026-10-15T01:00:00Z" }), null);
 });
+
+Deno.test("createControlFetch keeps the Control status and logs only status and problem code", async () => {
+  const lines: string[] = [];
+  const original = console.info;
+  console.info = (...args: unknown[]) => {
+    lines.push(args.map(String).join(" "));
+  };
+  let result;
+  try {
+    const env = {
+      get(key: string) {
+        return key === "ELSA_CONTROL_API_BASE_URL" ? "https://control.example.test" : undefined;
+      },
+    };
+    result = await createControlFetch(env, async () =>
+      new Response(
+        JSON.stringify({
+          title: "The delete confirmation is invalid or unavailable.",
+          status: 409,
+          code: "instance.delete-confirmation-invalid",
+          detail: "user@example.com",
+        }),
+        { status: 409, headers: { "Content-Type": "application/problem+json" } },
+      ))(
+      { method: "POST", path: "/api/workspaces/w/instances/e/delete", action: "deleteEngine" },
+      "hub-session",
+    );
+  } finally {
+    console.info = original;
+  }
+  assertEquals(result, {
+    ok: false,
+    kind: "invalid",
+    code: "instance.delete-confirmation-invalid",
+    status: 409,
+  });
+  assertEquals(
+    lines.includes("control_status=409 action=deleteEngine problem_code=instance.delete-confirmation-invalid"),
+    true,
+  );
+  const output = lines.join("\n");
+  assertFalse(output.includes("hub-session"));
+  assertFalse(output.includes("user@example.com"));
+});

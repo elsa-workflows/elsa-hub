@@ -28,6 +28,7 @@ import { useOrganizations } from "@/hooks/useOrganizations";
 import { deletionCompletedAt, isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
 import { CLOUD_LINK_CHECK_ERROR, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
+import { useEffect, useRef, useState } from "react";
 
 export default function CloudEngineOverviewPage() {
   const { engineId, slug } = useParams<{ engineId: string; slug?: string }>();
@@ -85,6 +86,45 @@ export default function CloudEngineOverviewPage() {
     ? engine.unavailableReason
     : null;
 
+  const [trackingDelete, setTrackingDelete] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  async function trackDelete(
+    accepted: { operation: { id: string; acceptedAt?: string | null } },
+    tracked: { workspaceId: string; engine: NonNullable<typeof engine> } | null,
+  ) {
+    try {
+      const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
+      if (tracked && terminal.ok && "operation" in terminal) {
+        upsertDeletionHistoryRecord(tracked.workspaceId, {
+          phase: "tracking",
+          instanceId: tracked.engine.id,
+          instanceName: tracked.engine.name,
+          operationId: terminal.operation.id ?? accepted.operation.id,
+          acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
+          completedAt: deletionCompletedAt(terminal.operation, tracked.engine.lastOperation),
+          state: terminal.operation.state,
+          lastOperation: terminal.operation,
+        });
+      } else if (tracked) {
+        forgetControlDeletionState(tracked.workspaceId, tracked.engine.id);
+      }
+      if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
+        if (terminal.operation.state === "Succeeded" && mounted.current) navigate(home);
+      }
+    } catch {
+      if (tracked) forgetControlDeletionState(tracked.workspaceId, tracked.engine.id);
+    } finally {
+      if (mounted.current) setTrackingDelete(false);
+    }
+  }
+
   async function handleDelete(
     input: { deleteConfirmationId: string; idempotencyKey: string; ifMatch: string },
   ) {
@@ -111,26 +151,12 @@ export default function CloudEngineOverviewPage() {
         lastOperation: accepted.operation,
       });
     }
-    const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
-    if (workspaceId && engine && terminal.ok && "operation" in terminal) {
-      upsertDeletionHistoryRecord(workspaceId, {
-        phase: "tracking",
-        instanceId: engine.id,
-        instanceName: engine.name,
-        operationId: terminal.operation.id ?? accepted.operation.id,
-        acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
-        completedAt: deletionCompletedAt(terminal.operation, engine.lastOperation),
-        state: terminal.operation.state,
-        lastOperation: terminal.operation,
-      });
-    } else if (workspaceId && engine) {
-      forgetControlDeletionState(workspaceId, engine.id);
-    }
-    if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
-      if (terminal.operation.state === "Succeeded") navigate(home);
-    }
-    // After Control accepts the delete, polling failures are not start failures.
-    return terminal.ok ? terminal : accepted;
+    // Control accepted the delete (202): close the dialog now and follow the
+    // operation in the background. Polling failures are not start failures.
+    setTrackingDelete(true);
+    void Promise.resolve(refetch()).catch(() => undefined);
+    void trackDelete(accepted, workspaceId && engine ? { workspaceId, engine } : null);
+    return accepted;
   }
 
   return (
@@ -237,7 +263,7 @@ export default function CloudEngineOverviewPage() {
                   disabled={updating || mutationsPaused}
                   restarting={lifecycle.restarting}
                   applying={lifecycle.applying}
-                  deleting={lifecycle.deleting}
+                  deleting={lifecycle.deleting || trackingDelete}
                   openingStudio={lifecycle.openingStudio}
                   onRestart={lifecycle.restart}
                   onApplyRelease={lifecycle.applyRelease}

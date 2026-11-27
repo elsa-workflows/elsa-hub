@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_ENGINE,
+  CLOUD_DELETE_IN_PROGRESS,
   CLOUD_DELETE_START_ERROR,
   CLOUD_ERROR_HEADING,
   CLOUD_LINK_CHECK_ERROR,
@@ -86,6 +87,9 @@ const lifecycle = vi.hoisted(() => ({
   openingStudio: false,
   pollDeleteOperation: vi.fn(),
 }));
+
+const { toastMessage } = vi.hoisted(() => ({ toastMessage: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { message: toastMessage, success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("@/hooks/useCloudEngineOverview", () => ({
   useCloudEngineOverview: () => ({
@@ -426,6 +430,68 @@ describe("CloudEngineOverview", () => {
     await waitFor(() => expect(readDeletionHistory(viewState.workspaceId)).toEqual([]));
     expect(screen.getByText(CLOUD_DELETE_START_ERROR)).toBeInTheDocument();
     expect(screen.queryByText("Delete failed.")).not.toBeInTheDocument();
+  });
+
+  it("closes the dialog right after Control accepts the delete and never re-enables Delete mid-submit", async () => {
+    viewState.current = { kind: "ready", engine };
+    toastMessage.mockClear();
+    viewState.refetch.mockClear();
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    let accept!: (value: unknown) => void;
+    lifecycle.deleteEngine.mockImplementation(() => new Promise((resolve) => {
+      accept = resolve;
+    }));
+    // The status check never finishes during this test (Control can take minutes).
+    lifecycle.pollDeleteOperation.mockImplementation(() => new Promise(() => undefined));
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await screen.findByText("notice");
+    const confirm = screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!;
+    fireEvent.click(confirm);
+    await waitFor(() => expect(lifecycle.deleteEngine).toHaveBeenCalled());
+    expect(confirm).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    accept({
+      ok: true,
+      operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Accepted" },
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: /delete this engine/i })).not.toBeInTheDocument()
+    );
+    expect(toastMessage).toHaveBeenCalledWith("Deleting Production… this can take a few minutes.");
+    expect(lifecycle.pollDeleteOperation).toHaveBeenCalled();
+    expect(viewState.refetch).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE })).toBeDisabled();
+  });
+
+  it("says the engine is already being deleted when Control reports delete_in_progress", async () => {
+    viewState.current = { kind: "ready", engine };
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    lifecycle.deleteEngine.mockResolvedValue({
+      ok: false,
+      code: "delete_in_progress",
+      error: "This engine is already being deleted.",
+    });
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await screen.findByText("notice");
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    expect(await screen.findByText(CLOUD_DELETE_IN_PROGRESS)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_START_ERROR)).not.toBeInTheDocument();
   });
 
   it("runs confirmed delete through to a terminal operation", async () => {

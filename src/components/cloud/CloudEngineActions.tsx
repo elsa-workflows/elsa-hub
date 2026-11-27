@@ -1,4 +1,5 @@
 import { useState, type MouseEvent } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -24,8 +25,13 @@ import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_CONFIRM,
   CLOUD_DELETE_ENGINE,
+  CLOUD_CHANGED_SINCE_READ_CODE,
+  CLOUD_DELETE_CHANGED_SINCE_READ,
+  CLOUD_DELETE_IN_PROGRESS,
+  CLOUD_DELETE_IN_PROGRESS_CODE,
   CLOUD_DELETE_START_ERROR,
   CLOUD_OPEN_STUDIO,
+  cloudDeletingToast,
   CLOUD_RESTART,
   CLOUD_RESTART_CONFIRM,
   CLOUD_STRUCTURED_LOGS,
@@ -49,6 +55,9 @@ function deleteStartError(result: unknown): string | null {
   if (!result || typeof result !== "object" || !("ok" in result) || result.ok) {
     return null;
   }
+  const code = "code" in result ? result.code : undefined;
+  if (code === CLOUD_DELETE_IN_PROGRESS_CODE) return CLOUD_DELETE_IN_PROGRESS;
+  if (code === CLOUD_CHANGED_SINCE_READ_CODE) return CLOUD_DELETE_CHANGED_SINCE_READ;
   return CLOUD_DELETE_START_ERROR;
 }
 
@@ -100,6 +109,8 @@ export function CloudEngineActions({
   const [restartError, setRestartError] = useState<string | null>(null);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const deleteBusy = deleting || deleteSubmitting;
   const ifMatch = engine.etag ?? (engine.version !== null ? `"${engine.version}"` : "");
   const canRestart = engine.allowedActions.restart.allowed && !disabled && Boolean(ifMatch);
   const canApply = engine.allowedActions.applyRelease.allowed && !disabled && Boolean(ifMatch) && releases.length > 0;
@@ -137,7 +148,7 @@ export function CloudEngineActions({
   }
 
   async function startDelete() {
-    if (!canDelete) return;
+    if (!canDelete || deleteBusy) return;
     setDeleteError(null);
     setConfirmation(null);
     setDeleteOpen(true);
@@ -154,18 +165,29 @@ export function CloudEngineActions({
 
   async function finishDelete(event: MouseEvent) {
     event.preventDefault();
-    if (!confirmation || !canDelete) return;
+    if (!confirmation || !canDelete || deleteSubmitting) return;
     setDeleteError(null);
-    const error = deleteStartError(await onDelete({
-      deleteConfirmationId: confirmation.id,
-      idempotencyKey: crypto.randomUUID(),
-      ifMatch,
-    }));
+    setDeleteSubmitting(true);
+    let result: unknown;
+    try {
+      result = await onDelete({
+        deleteConfirmationId: confirmation.id,
+        idempotencyKey: crypto.randomUUID(),
+        ifMatch,
+      });
+    } catch {
+      result = { ok: false };
+    } finally {
+      setDeleteSubmitting(false);
+    }
+    const error = deleteStartError(result);
     if (error) {
       setDeleteError(error);
       return;
     }
+    toast.message(cloudDeletingToast(engine.name));
     setDeleteOpen(false);
+    setConfirmation(null);
   }
 
   async function openStudio() {
@@ -224,7 +246,7 @@ export function CloudEngineActions({
       <Button
         variant="destructive"
         className={cn(CLOUD_TAP_TARGET)}
-        disabled={!canDelete || deleting}
+        disabled={!canDelete || deleteBusy}
         onClick={() => void startDelete()}
       >
         {CLOUD_DELETE_ENGINE}
@@ -292,7 +314,7 @@ export function CloudEngineActions({
       <AlertDialog
         open={deleteOpen}
         onOpenChange={(open) => {
-          if (!open && deleting) return;
+          if (!open && deleteBusy) return;
           setDeleteOpen(open);
           if (!open) {
             setDeleteError(null);
@@ -309,10 +331,10 @@ export function CloudEngineActions({
             {deleteError && <AlertDialogDescription>{deleteError}</AlertDialogDescription>}
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className={CLOUD_TAP_TARGET} disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className={CLOUD_TAP_TARGET} disabled={deleteBusy}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className={cn(CLOUD_TAP_TARGET, "bg-destructive text-destructive-foreground")}
-              disabled={deleting || !confirmation}
+              disabled={deleteBusy || !confirmation}
               onClick={(event) => void finishDelete(event)}
             >
               {CLOUD_DELETE_ENGINE}

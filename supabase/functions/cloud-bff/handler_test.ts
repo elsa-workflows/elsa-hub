@@ -1414,3 +1414,72 @@ Deno.test("linkCloudAccount refuses a missing Cloud token and never calls Contro
   assertEquals((await readJson(missing)).code, "invalid_request");
   assertEquals(calls, 0);
 });
+
+const DELETE_PATH = `POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete`;
+const DELETE_REQUEST = {
+  action: "deleteEngine",
+  workspaceId: WORKSPACE_ID,
+  engineId: ENGINE_ID,
+  deleteConfirmationId: CONFIRMATION_ID,
+  idempotencyKey: IDEMPOTENCY_KEY,
+  ifMatch: '"1"',
+};
+
+Deno.test("a Control 409 delete-confirmation-invalid on delete becomes 409 delete_in_progress", async () => {
+  const response = await signedIn(DELETE_REQUEST, {
+    [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.delete-confirmation-invalid", status: 409 },
+  });
+  assertEquals(response.status, 409);
+  assertEquals(await readJson(response), {
+    ok: false,
+    code: "delete_in_progress",
+    error: "This engine is already being deleted.",
+  });
+});
+
+Deno.test("a Control 409 operation-active on delete becomes 409 delete_in_progress", async () => {
+  const response = await signedIn(DELETE_REQUEST, {
+    [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.operation-active", status: 409 },
+  });
+  assertEquals(response.status, 409);
+  assertEquals((await readJson(response)).code, "delete_in_progress");
+});
+
+Deno.test("Control changed-since-read (409 or 412) becomes 409 changed_since_read", async () => {
+  for (const status of [409, 412]) {
+    const response = await signedIn(DELETE_REQUEST, {
+      [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.changed-since-read", status },
+    });
+    assertEquals(response.status, 409);
+    assertEquals(await readJson(response), {
+      ok: false,
+      code: "changed_since_read",
+      error: "This engine changed since you opened it.",
+    });
+  }
+});
+
+Deno.test("other Control conflicts keep the generic invalid_request", async () => {
+  const response = await signedIn(DELETE_REQUEST, {
+    [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.idempotency-conflict", status: 409 },
+  });
+  assertEquals(response.status, 400);
+  assertEquals((await readJson(response)).code, "invalid_request");
+
+  const restart = await signedIn({
+    action: "restartEngine",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    idempotencyKey: IDEMPOTENCY_KEY,
+    ifMatch: '"1"',
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/restart`]: {
+      ok: false,
+      kind: "invalid",
+      code: "instance.operation-active",
+      status: 409,
+    },
+  });
+  assertEquals(restart.status, 400);
+  assertEquals((await readJson(restart)).code, "invalid_request");
+});

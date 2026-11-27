@@ -36,6 +36,13 @@ export function logControlStatus(status: number, action: string | undefined) {
   console.info(`control_status=${status} action=${action ?? "unknown"}`);
 }
 
+// Logs only Control's status and problem code (a fixed Control string), never
+// bodies, tokens or user data.
+export function logControlProblem(status: number, action: string | undefined, code: string | undefined) {
+  const safeCode = code && /^[A-Za-z0-9._-]{1,100}$/.test(code) ? code : "none";
+  console.info(`control_status=${status} action=${action ?? "unknown"} problem_code=${safeCode}`);
+}
+
 export type ControlResult = {
   ok: true;
   status: number;
@@ -45,6 +52,7 @@ export type ControlResult = {
   ok: false;
   kind: "updating" | "forbidden" | "not_found" | "invalid" | "limit" | "unauthorized";
   code?: string;
+  status?: number;
   staleSession?: "hub" | "cloud" | "both";
   currentInstances?: number;
   maxInstances?: number;
@@ -103,6 +111,7 @@ export function createControlFetch(
       if (res.status === 403) return { ok: false, kind: "forbidden" };
       if (res.status === 404) return { ok: false, kind: "not_found" };
       const problem = problemFrom(parsed);
+      if (res.status >= 400) logControlProblem(res.status, call.action, problem?.code);
       if (problem?.code === CLOUD_LIMIT_CODE) {
         return {
           ok: false,
@@ -113,7 +122,7 @@ export function createControlFetch(
         };
       }
       if (res.status === 400 || res.status === 409 || res.status === 412 || res.status === 422 || res.status === 428) {
-        return { ok: false, kind: "invalid", code: problem?.code };
+        return { ok: false, kind: "invalid", code: problem?.code, status: res.status };
       }
       if (res.status < 200 || res.status >= 300) {
         return { ok: false, kind: "updating" };
