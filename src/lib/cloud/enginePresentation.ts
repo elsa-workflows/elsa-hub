@@ -3,7 +3,7 @@ import {
   CLOUD_HEALTH_NOT_RESPONDING,
   CLOUD_STATUS_NOT_FULLY_HEALTHY,
 } from "@/lib/cloudClient/signedCopy";
-import type { CloudEngineOverview, CloudLastOperation } from "@/lib/cloud/actions";
+import type { CloudEngineOverview } from "@/lib/cloud/actions";
 
 export const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
@@ -23,7 +23,7 @@ export function usableOperationId(value?: string | null): string | null {
 
 export function isSetupFailure(
   status?: string | null,
-  lastOperation?: Pick<CloudLastOperation, "action"> | null,
+  lastOperation?: { action?: string | null } | null,
 ): boolean {
   if (status !== "Failed") return false;
   const action = lastOperation?.action;
@@ -50,14 +50,6 @@ export function partitionCloudEngines<T extends { status: string }>(engines: rea
     else live.push(engine);
   }
   return { live, deleted };
-}
-
-export function deletedOperationId(engine: Pick<CloudEngineOverview, "lastOperation" | "activeOperation">): string | null {
-  const last = engine.lastOperation;
-  if (last && last.action === "Delete") {
-    // lastOperation has no id on the Hub type; callers also pass activeOperation
-  }
-  return usableOperationId(engine.activeOperation?.id);
 }
 
 export function deletedCompletedAt(

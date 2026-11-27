@@ -173,7 +173,7 @@ vi.mock("@/hooks/useCloudBilling", () => ({
 
 import CloudEngineOverviewPage from "./CloudEngineOverview";
 import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
-import { cloudEngineDeletingToast, cloudEngineDeletedToast, CLOUD_DELETED_BANNER_HEADING, CLOUD_DELETED_BANNER_SECOND_LINE, CLOUD_REASON_GENERIC_FALLBACK, CLOUD_REASON_DELETING_BODY, CLOUD_STATUS_SETUP_STOPPED, CLOUD_DELETE_START_FALLBACK, CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT, CLOUD_ACTION_DELETE_CONFIRMATION_INVALID, CLOUD_ACTION_CHANGED_SINCE_READ } from "@/lib/cloudClient/signedCopy";
+import { cloudEngineDeletingToast, cloudEngineDeletedToast, CLOUD_DELETED_BANNER_HEADING, CLOUD_DELETED_BANNER_SECOND_LINE, CLOUD_REASON_GENERIC_FALLBACK, CLOUD_REASON_DELETING_BODY, CLOUD_STATUS_SETUP_STOPPED, CLOUD_DELETE_START_FALLBACK, CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT, CLOUD_ACTION_DELETE_CONFIRMATION_INVALID, CLOUD_ACTION_CHANGED_SINCE_READ, CLOUD_ACTION_CHANGE_IN_PROGRESS } from "@/lib/cloudClient/signedCopy";
 import {
   controlDeletedOverview,
   controlFailedAfterReadyOverview,
@@ -575,14 +575,14 @@ describe("CloudEngineOverview", () => {
     expect(await screen.findByText(DELETE_CHANGED_LINE)).toBeInTheDocument();
   });
 
-  it("shows the generic fallback when restart is refused as instance.operation-active", async () => {
+  it("shows the signed in-progress line when restart is refused as instance.operation-active", async () => {
     viewState.current = { kind: "ready", engine };
     await submitRestartWith({
       ok: false,
       code: "instance.operation-active",
       error: "The request could not be completed.",
     });
-    expect(await screen.findByText("The request could not be completed.")).toBeInTheDocument();
+    expect(await screen.findByText(CLOUD_ACTION_CHANGE_IN_PROGRESS)).toBeInTheDocument();
     expect(screen.queryByText(DELETE_IN_PROGRESS_LINE)).not.toBeInTheDocument();
     expect(screen.queryByText(DELETE_START_ERROR_LINE)).not.toBeInTheDocument();
   });
