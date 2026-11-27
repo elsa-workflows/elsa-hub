@@ -34,8 +34,6 @@ import {
   TRAINING_INTRO_AFTER,
   TRAINING_INTRO_BEFORE,
   TRAINING_INTRO_EMPHASIS,
-  TRAINING_LAUNCH_PRICE_EUR,
-  TRAINING_LAUNCH_UNTIL_LABEL,
   TRAINING_OG_IMAGE_URL,
   TRAINING_PATH,
   TRAINING_POST_LAUNCH_PRICE_EUR,
@@ -215,7 +213,7 @@ export default function Training() {
               </Button>
             </div>
             <p className="text-sm font-medium mb-3">
-              Solo Bundle <strong>€{TRAINING_LAUNCH_PRICE_EUR}</strong> incl. VAT at launch (until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT) · Team packs from <strong>€349</strong> and private team workshops from <strong>€3,200</strong>, both excl. VAT.
+              Solo Bundle <strong>€{TRAINING_POST_LAUNCH_PRICE_EUR}</strong> incl. VAT · Team packs from <strong>€349</strong> and private team workshops from <strong>€3,200</strong>, both excl. VAT.
             </p>
           </div>
         </div>
@@ -322,7 +320,7 @@ export default function Training() {
                       </li>
                     </ul>
                     <p className="text-sm font-medium mb-6">
-                      €{TRAINING_LAUNCH_PRICE_EUR} incl. VAT at launch until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT.
+                      €{TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT.
                     </p>
                     <BuySoloBundleButton />
                     <div className="mt-2 space-y-1">
@@ -457,9 +455,9 @@ export default function Training() {
                     <p className="text-sm font-medium text-muted-foreground mb-2">
                       Solo Bundle
                     </p>
-                    <p className="text-2xl font-bold mb-2">€{TRAINING_LAUNCH_PRICE_EUR}</p>
+                    <p className="text-2xl font-bold mb-2">€{TRAINING_POST_LAUNCH_PRICE_EUR}</p>
                     <p className="text-sm text-muted-foreground">
-                      Launch price incl. VAT until {TRAINING_LAUNCH_UNTIL_LABEL}, then €{TRAINING_POST_LAUNCH_PRICE_EUR} incl. VAT · Elsa 3.9.0
+                      Incl. VAT · Elsa 3.9.0
                     </p>
                   </div>
                   <div>
