@@ -1,4 +1,7 @@
 /** UI copy for the Elsa Cloud shell. Not part of the #53 action contract. */
+import { isCloudSignedCopyEnabled } from "./signedCopyFlag";
+import { CLOUD_LIMIT_MESSAGE_SIGNED, cloudEngineDeletingToast } from "./signedCopy";
+import { CLOUD_LIMIT_MESSAGE as CLOUD_LIMIT_MESSAGE_SHIPPED } from "@/lib/cloud";
 export const CLOUD_PAGE_TITLE = "Elsa Cloud";
 export const CLOUD_ENGINES_INTRO = "Your Elsa Cloud engines in this workspace.";
 export const CLOUD_EMPTY_MESSAGE = "No engines yet";
@@ -79,7 +82,12 @@ export const CLOUD_DELETE_CONFIRMATION_EXPIRED =
 export const CLOUD_DELETE_CHANGED_SINCE_READ =
   "This engine changed since you opened it. Refresh and try again.";
 export function cloudDeletingToast(name: string): string {
+  if (isCloudSignedCopyEnabled()) return cloudEngineDeletingToast(name);
   return `Deleting ${name}… this can take a few minutes.`;
+}
+
+export function cloudLimitMessage(): string {
+  return isCloudSignedCopyEnabled() ? CLOUD_LIMIT_MESSAGE_SIGNED : CLOUD_LIMIT_MESSAGE_SHIPPED;
 }
 export const CLOUD_STRUCTURED_LOGS = "Structured logs";
 export const CLOUD_PROVISIONING_HEADING = "Provisioning";

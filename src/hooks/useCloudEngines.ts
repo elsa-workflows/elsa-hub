@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cloudClient,
   isCloudBffError,
-  CLOUD_LIMIT_MESSAGE,
+  cloudLimitMessage,
   CLOUD_UPDATING_MESSAGE,
   isCloudLimitReached,
   isCloudUpdating,
@@ -126,7 +126,7 @@ export function useCloudEngines() {
         return {
           ok: false as const,
           code: "instance_limit_reached" as const,
-          error: CLOUD_LIMIT_MESSAGE,
+          error: cloudLimitMessage(),
         };
       }
       return cloudClient.invoke({

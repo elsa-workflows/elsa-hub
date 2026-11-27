@@ -22,10 +22,13 @@ import { isHubOrgAdmin } from "@/lib/cloud";
 import {
   CLOUD_ACCOUNT_LINK_HELP,
   CLOUD_ENGINES_INTRO,
-  CLOUD_LIMIT_MESSAGE,
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_PAGE_TITLE,
+  cloudLimitMessage,
 } from "@/lib/cloudClient";
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
+import { partitionCloudEngines } from "@/lib/cloud/enginePresentation";
+import { mergeControlDeletedEngines } from "@/lib/cloud/managedEngineDeletionHistory";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 import { Button } from "@/components/ui/button";
 import { usePaymentReturnToast } from "@/hooks/usePaymentReturnToast";
@@ -106,7 +109,7 @@ export default function CloudHome() {
             </div>
 
             {atLimit && (
-              <p className="rounded-lg border px-3 py-3 text-sm">{CLOUD_LIMIT_MESSAGE}</p>
+              <p className="rounded-lg border px-3 py-3 text-sm">{cloudLimitMessage()}</p>
             )}
 
             {orgLink.kind === "pending" && <CloudLoadingState />}
@@ -153,18 +156,33 @@ export default function CloudHome() {
                 planStatus={billing.snapshot?.entitlement?.status ?? null}
               />
             )}
-            {showConsole && view.kind === "empty" && <CloudEmptyState action={createAction} />}
-            {showConsole && view.kind === "list" && <CloudEngineList engines={view.engines} />}
-            {showConsole && selectedWorkspace && (
-              <CloudDeletionHistory
-                records={deletionRecords}
-                liveInstances={(view.kind === "list" ? view.engines : []).map((engine) => ({
-                  id: engine.id,
-                  name: engine.name,
-                  slug: engine.slug,
-                }))}
-              />
-            )}
+            {showConsole && (() => {
+              const allEngines = view.kind === "list" ? view.engines : [];
+              const signed = isCloudSignedCopyEnabled();
+              const { live, deleted } = signed
+                ? partitionCloudEngines(allEngines)
+                : { live: allEngines, deleted: [] };
+              const showEmpty = view.kind === "empty" || (view.kind === "list" && live.length === 0);
+              const historyRecords = signed
+                ? mergeControlDeletedEngines(deletionRecords, deleted)
+                : deletionRecords;
+              return (
+                <>
+                  {showEmpty && <CloudEmptyState action={createAction} />}
+                  {view.kind === "list" && live.length > 0 && <CloudEngineList engines={live} />}
+                  {selectedWorkspace && (
+                    <CloudDeletionHistory
+                      records={historyRecords}
+                      liveInstances={live.map((engine) => ({
+                        id: engine.id,
+                        name: engine.name,
+                        slug: engine.slug,
+                      }))}
+                    />
+                  )}
+                </>
+              );
+            })()}
 
             {showConsole && (
               <p className="text-sm text-muted-foreground break-words">

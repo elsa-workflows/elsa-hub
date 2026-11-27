@@ -1,4 +1,15 @@
 import { CLOUD_STRUCTURED_LOGS, type CloudActivityItem } from "@/lib/cloudClient";
+import {
+  CLOUD_ACTIVITY_CHANGE_REQUESTED,
+  CLOUD_ACTIVITY_FALLBACK,
+} from "@/lib/cloudClient/signedCopy";
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
+
+function activityLabel(item: CloudActivityItem): string {
+  if (!isCloudSignedCopyEnabled()) return item.message ?? item.eventType;
+  if (item.eventType === "lifecycle.accepted") return CLOUD_ACTIVITY_CHANGE_REQUESTED;
+  return CLOUD_ACTIVITY_FALLBACK;
+}
 
 export function CloudActivityLog({ items }: { items: CloudActivityItem[] }) {
   return (
@@ -10,7 +21,7 @@ export function CloudActivityLog({ items }: { items: CloudActivityItem[] }) {
         <ol className="space-y-2">
           {items.map((item) => (
             <li key={item.sequence} className="rounded-lg border px-3 py-2 text-sm">
-              <p className="font-medium">{item.message ?? item.eventType}</p>
+              <p className="font-medium">{activityLabel(item)}</p>
               <p className="text-muted-foreground">{item.occurredAt}</p>
             </li>
           ))}

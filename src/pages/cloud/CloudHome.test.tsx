@@ -9,6 +9,7 @@ import {
   CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
   CLOUD_LIMIT_MESSAGE,
+  cloudLimitMessage,
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ERROR,
@@ -256,7 +257,7 @@ describe("CloudHome", () => {
     viewState.atLimit = true;
     viewState.canCreate = false;
     renderHome();
-    expect(screen.getByText(CLOUD_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByText(cloudLimitMessage())).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_CREATE_ENGINE })).not.toBeInTheDocument();
     expect(viewState.createEngine).not.toHaveBeenCalled();
   });

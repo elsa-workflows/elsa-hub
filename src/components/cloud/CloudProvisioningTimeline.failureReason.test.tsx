@@ -319,14 +319,15 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(screen.queryByText(prose)).not.toBeInTheDocument();
   });
 
-  it("without a failure the unavailableReason prose still renders", () => {
+  it("without a failure still never renders Control unavailableReason prose", () => {
     const prose = "Control wrote this unavailable reason.";
     render(
       <CloudProvisioningTimeline
         progress={progress({ state: "active" })}
-        engine={engine({ status: "Provisioning", unavailableReason: prose, unavailableReasonCode: "instance.failed" })}
+        engine={engine({ status: "Provisioning", unavailableReason: prose, unavailableReasonCode: "instance.provisioning" })}
       />,
     );
-    expect(screen.getByText(prose)).toBeInTheDocument();
+    expect(screen.queryByText(prose)).not.toBeInTheDocument();
+    expect(screen.getByText("A change to this engine is in progress, so Studio isn't available.")).toBeInTheDocument();
   });
 });

@@ -34,6 +34,7 @@ import {
   CLOUD_DELETE_START_ERROR,
   CLOUD_OPEN_STUDIO,
   cloudActionErrorLine,
+  type CloudActionKind,
   cloudDeletingToast,
   CLOUD_RESTART,
   CLOUD_RESTART_CONFIRM,
@@ -43,9 +44,11 @@ import {
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import { cn } from "@/lib/utils";
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
+import { CLOUD_DELETE_START_FALLBACK } from "@/lib/cloudClient/signedCopy";
 
-function resultError(result: unknown): string | null {
-  return cloudActionErrorLine(result);
+function resultError(result: unknown, kind: CloudActionKind = "other"): string | null {
+  return cloudActionErrorLine(result, kind);
 }
 
 function hasDeleteConfirmation(
@@ -67,6 +70,7 @@ function isCode(result: unknown, code: string): boolean {
 }
 
 function deleteStartError(result: unknown): string | null {
+  if (isCloudSignedCopyEnabled()) return cloudActionErrorLine(result, "delete");
   if (!result || typeof result !== "object" || !("ok" in result) || result.ok) {
     return null;
   }
@@ -139,7 +143,7 @@ export function CloudEngineActions({
     event.preventDefault();
     if (!canRestart) return;
     setRestartError(null);
-    const error = resultError(await onRestart({ idempotencyKey: crypto.randomUUID(), ifMatch }));
+    const error = resultError(await onRestart({ idempotencyKey: crypto.randomUUID(), ifMatch }), "restart");
     if (error) {
       setRestartError(error);
       return;
@@ -155,7 +159,7 @@ export function CloudEngineActions({
       version: selectedRelease,
       idempotencyKey: crypto.randomUUID(),
       ifMatch,
-    }));
+    }), "apply");
     if (error) {
       setApplyError(error);
       return;
@@ -179,7 +183,7 @@ export function CloudEngineActions({
       result = await onConfirmDelete();
     } catch {
       // A rejected request must still explain why Confirm is unavailable.
-      return CLOUD_DELETE_START_ERROR;
+      return isCloudSignedCopyEnabled() ? CLOUD_DELETE_START_FALLBACK : CLOUD_DELETE_START_ERROR;
     }
     const error = deleteStartError(result);
     if (error) return error;

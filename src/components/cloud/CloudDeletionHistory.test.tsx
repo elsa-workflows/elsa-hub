@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
 import {
   PREVIOUS_DELETIONS_HEADING,
   UNFINISHED_DELETE_STATE_CANCELLED,
@@ -33,7 +34,11 @@ describe("CloudDeletionHistory", () => {
         liveInstances={[{ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", createdAt: "2026-10-21T00:00:00.000Z" }]}
       />,
     );
-    expect(screen.getByText(PREVIOUS_DELETIONS_HEADING)).toBeInTheDocument();
+    const heading = screen.getByRole("button", { name: previousDeletionsHeading(1) });
+    expect(heading).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(`Prod deleted on ${whenLabel}`)).not.toBeInTheDocument();
+    fireEvent.click(heading);
+    expect(heading).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(`Prod deleted on ${whenLabel}`)).toBeInTheDocument();
   });
 
@@ -160,6 +165,7 @@ describe("CloudDeletionHistory", () => {
         liveInstances={[]}
       />,
     );
+    fireEvent.click(screen.getByRole("button", { name: previousDeletionsHeading(1) }));
     expect(screen.getByText("Prod deleted.")).toBeInTheDocument();
     expect(screen.queryByText(`Prod deleted on ${formatDeletionWhen(createCompleted)}`)).not.toBeInTheDocument();
     expect(screen.queryByText(/deleted on/i)).not.toBeInTheDocument();

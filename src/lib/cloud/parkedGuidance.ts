@@ -1,3 +1,6 @@
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
+import { parkedChangeLine, parkedDeleteLine } from "@/lib/cloudClient/signedCopy";
+
 export const EMPTY_OPERATION_ID = "00000000-0000-0000-0000-000000000000";
 
 export const PARKED_ENGINE_GUIDANCE_WITH_REFERENCE =
@@ -30,6 +33,7 @@ function formatParkedGuidance(
 }
 
 export function formatParkedEngineGuidance(operationId?: string | null): string {
+  if (isCloudSignedCopyEnabled()) return parkedChangeLine(isUsableOperationId(operationId) ? operationId.trim() : null);
   return formatParkedGuidance(
     PARKED_ENGINE_GUIDANCE_WITH_REFERENCE,
     PARKED_ENGINE_GUIDANCE_WITHOUT_REFERENCE,
@@ -38,6 +42,7 @@ export function formatParkedEngineGuidance(operationId?: string | null): string 
 }
 
 export function formatParkedDeleteGuidance(operationId?: string | null): string {
+  if (isCloudSignedCopyEnabled()) return parkedDeleteLine(isUsableOperationId(operationId) ? operationId.trim() : null);
   return formatParkedGuidance(
     PARKED_DELETE_GUIDANCE_WITH_REFERENCE,
     PARKED_DELETE_GUIDANCE_WITHOUT_REFERENCE,

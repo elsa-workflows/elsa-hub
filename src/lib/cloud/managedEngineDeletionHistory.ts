@@ -230,3 +230,70 @@ export function partitionDeletionRecords<T extends DeletionHistoryRecord>(
   }
   return { livePanel, history };
 }
+
+export type ControlDeletedEngine = {
+  id: string;
+  name?: string | null;
+  lastOperation?: DeletionOperationStamp | { action?: string | null; state?: string | null; completedAt?: string | null; id?: string | null } | null;
+};
+
+function recordHasCompletionDate(record: DeletionHistoryRecord): boolean {
+  return Boolean(record.completedAt || (record.lastOperation?.action === "Delete" && record.lastOperation.completedAt));
+}
+
+/** Builds a succeeded history row from a Control engine whose status is Deleted. */
+export function recordFromControlDeletedEngine(engine: ControlDeletedEngine): DeletionHistoryRecord {
+  const last = engine.lastOperation;
+  const completedAt = last?.action === "Delete" && last.state === "Succeeded"
+    ? last.completedAt ?? null
+    : last?.completedAt ?? null;
+  const operationId = last && "id" in last ? (typeof last.id === "string" ? last.id : undefined) : undefined;
+  return {
+    phase: "tracking",
+    instanceId: engine.id,
+    instanceName: engine.name,
+    operationId,
+    completedAt,
+    state: "Succeeded",
+    lastOperation: last
+      ? { action: last.action ?? "Delete", state: last.state ?? "Succeeded", completedAt: last.completedAt ?? null }
+      : { action: "Delete", state: "Succeeded", completedAt: completedAt ?? null },
+  };
+}
+
+/**
+ * Merge Control Deleted engines with local deletion records. Dedupe by engine
+ * id and prefer the record that has a completion date.
+ */
+export function mergeControlDeletedEngines(
+  records: readonly DeletionHistoryRecord[],
+  deletedEngines: readonly ControlDeletedEngine[],
+): DeletionHistoryRecord[] {
+  const byId = new Map<string, DeletionHistoryRecord>();
+  for (const record of records) {
+    const existing = byId.get(record.instanceId);
+    if (!existing || (recordHasCompletionDate(record) && !recordHasCompletionDate(existing))) {
+      byId.set(record.instanceId, record);
+    }
+  }
+  for (const engine of deletedEngines) {
+    const incoming = recordFromControlDeletedEngine(engine);
+    const existing = byId.get(engine.id);
+    if (!existing || (recordHasCompletionDate(incoming) && !recordHasCompletionDate(existing))) {
+      // Keep a local operation id when Control's lastOperation has none.
+      if (existing?.operationId && !incoming.operationId) {
+        incoming.operationId = existing.operationId;
+      }
+      if (existing && recordHasCompletionDate(existing) && recordHasCompletionDate(incoming)) {
+        // Both dated: keep the existing row but fill any missing name/id.
+        if (!existing.instanceName && incoming.instanceName) existing.instanceName = incoming.instanceName;
+        if (!existing.operationId && incoming.operationId) existing.operationId = incoming.operationId;
+        continue;
+      }
+      byId.set(engine.id, incoming);
+    } else if (existing && !existing.operationId && incoming.operationId) {
+      existing.operationId = incoming.operationId;
+    }
+  }
+  return [...byId.values()];
+}

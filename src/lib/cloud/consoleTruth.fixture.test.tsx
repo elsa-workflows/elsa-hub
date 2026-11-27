@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
 import { CloudDeletionHistory } from "@/components/cloud/CloudDeletionHistory";
 import { CloudProvisioningTimeline } from "@/components/cloud/CloudProvisioningTimeline";
 import { NEEDS_ATTENTION_LABEL } from "@/components/cloud/engineStatus";
@@ -96,7 +97,8 @@ describe("#605 console fixture", () => {
       </>,
     );
 
-    expect(screen.getByText(PREVIOUS_DELETIONS_HEADING)).toBeInTheDocument();
+    const heading = screen.getByRole("button", { name: previousDeletionsHeading(1) });
+    fireEvent.click(heading);
     expect(screen.getByText(`Old prod deleted on ${formatDeletionWhen(deleted.completedAt)}`)).toBeInTheDocument();
     expect(screen.getByText("Deploying Elsa runtime")).toBeInTheDocument();
     expect(screen.getAllByText("complete").length).toBeGreaterThan(0);

@@ -22,12 +22,19 @@ import {
   upsertDeletionHistoryRecord,
   upsertSubmittingDeletionRecord,
 } from "@/lib/cloud/deletionHistoryStore";
+import { useCloudBilling } from "@/hooks/useCloudBilling";
 import { useCloudCompatibility } from "@/hooks/useCloudCompatibility";
 import { useCloudEngineLifecycle } from "@/hooks/useCloudEngineLifecycle";
 import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { deletionCompletedAt, isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
+import { overviewReasonCopy } from "@/lib/cloud/reasonCopy";
+import { shouldHideHealth, cloudHealthLabel } from "@/lib/cloud/enginePresentation";
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
+import { cloudEngineDeletedToast } from "@/lib/cloudClient/signedCopy";
+import { CloudDeletedEngineCard } from "@/components/cloud/CloudDeletedEngineCard";
+import { toast } from "sonner";
 import {
   CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
   CLOUD_DELETE_IN_PROGRESS_CODE,
@@ -57,6 +64,7 @@ export default function CloudEngineOverviewPage() {
     selectWorkspace,
     selectedWorkspace,
   } = useCloudEngineOverview(engineId);
+  const billing = useCloudBilling();
   const compatibility = useCloudCompatibility();
   const orgLink = useCloudOrganizationLinkView(hubOrganizationId, isHubOrgAdmin(currentOrg?.role));
   const showConsole = orgLink.kind === "idle" || orgLink.kind === "linked";
@@ -86,12 +94,16 @@ export default function CloudEngineOverviewPage() {
     || engine.activeOperation?.state === "RecoveryRequired"
     || lifecycle.progress
   ));
-  const overviewReason = engine
-    && !showTimeline
-    && engine.unavailableReason
-    && engine.unavailableReasonCode !== "not-authorized"
-    ? engine.unavailableReason
-    : null;
+  const signedEnabled = isCloudSignedCopyEnabled();
+  const isDeletedEngine = engine?.status === "Deleted";
+  const overviewReason = signedEnabled
+    ? (engine && !isDeletedEngine && !showTimeline ? overviewReasonCopy(engine, lifecycle.progress) : null)
+    : (engine
+      && !showTimeline
+      && engine.unavailableReason
+      && engine.unavailableReasonCode !== "not-authorized"
+      ? engine.unavailableReason
+      : null);
 
   const [trackingDelete, setTrackingDelete] = useState(false);
   const mounted = useRef(true);
@@ -123,7 +135,13 @@ export default function CloudEngineOverviewPage() {
         forgetControlDeletionState(tracked.workspaceId, tracked.engine.id);
       }
       if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
-        if (terminal.operation.state === "Succeeded" && mounted.current) navigate(home);
+        if (terminal.operation.state === "Succeeded") {
+          // Toast whenever the app is still running; do not gate it on the page staying mounted.
+          if (isCloudSignedCopyEnabled()) {
+            toast.success(cloudEngineDeletedToast(tracked?.engine.name ?? engine?.name));
+          }
+          if (mounted.current) navigate(home);
+        }
       }
     } catch {
       if (tracked) forgetControlDeletionState(tracked.workspaceId, tracked.engine.id);
@@ -264,14 +282,29 @@ export default function CloudEngineOverviewPage() {
             {showConsole && view.kind === "missing" && (
               <p className="text-muted-foreground">This engine could not be found.</p>
             )}
-            {showConsole && view.kind === "ready" && (
+            {showConsole && view.kind === "ready" && signedEnabled && view.engine.status === "Deleted" && (
+              <CloudDeletedEngineCard
+                engine={view.engine}
+                homeHref={home}
+                localCompletedAt={workspaceId
+                  ? readDeletionHistory(workspaceId).find((record) => record.instanceId === view.engine.id)?.completedAt
+                  : null}
+                localOperationId={workspaceId
+                  ? readDeletionHistory(workspaceId).find((record) => record.instanceId === view.engine.id)?.operationId
+                  : null}
+                showInvoices={billing.billingAccount === "linked"}
+                invoicesPending={billing.openPortal.isPending}
+                onViewInvoices={() => billing.openPortal.mutate()}
+              />
+            )}
+            {showConsole && view.kind === "ready" && !(signedEnabled && view.engine.status === "Deleted") && (
               <>
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex flex-wrap items-center gap-3">
                       <span>{view.engine.name}</span>
                       <Badge variant={cloudEngineStatusVariant(view.engine.status, view.engine.activeOperation?.state)}>
-                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state)}
+                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state, view.engine.lastOperation)}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
@@ -279,7 +312,7 @@ export default function CloudEngineOverviewPage() {
                     <div>
                       <p className="text-muted-foreground">Status</p>
                       <p className="font-medium" role="status" aria-live="polite">
-                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state)}
+                        {cloudEngineStatusLabel(view.engine.status, view.engine.activeOperation?.state, view.engine.lastOperation)}
                       </p>
                     </div>
                     <div>
@@ -290,10 +323,14 @@ export default function CloudEngineOverviewPage() {
                       <p className="text-muted-foreground">Slug</p>
                       <p className="font-medium">{view.engine.slug}</p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Health</p>
-                      <p className="font-medium">{view.engine.health}</p>
-                    </div>
+                    {!(signedEnabled && shouldHideHealth(view.engine.status, view.engine.health)) && (
+                      <div>
+                        <p className="text-muted-foreground">Health</p>
+                        <p className="font-medium">
+                          {signedEnabled ? (cloudHealthLabel(view.engine.health) ?? view.engine.health) : view.engine.health}
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -312,8 +349,16 @@ export default function CloudEngineOverviewPage() {
                   onOpenStudio={lifecycle.openStudio}
                 />
 
-                {overviewReason && <p className="text-sm">{overviewReason}</p>}
-                {showTimeline && (
+                {overviewReason && typeof overviewReason === "string" && (
+                  <p className="text-sm">{overviewReason}</p>
+                )}
+                {overviewReason && typeof overviewReason !== "string" && (
+                  <div className="space-y-2">
+                    <p className="text-sm">{overviewReason.body}</p>
+                    {overviewReason.nextStep ? <p className="text-sm">{overviewReason.nextStep}</p> : null}
+                  </div>
+                )}
+                {showTimeline && !(signedEnabled && view.engine.status === "Deleted") && (
                   <CloudProvisioningTimeline
                     progress={lifecycle.progress}
                     engine={view.engine}

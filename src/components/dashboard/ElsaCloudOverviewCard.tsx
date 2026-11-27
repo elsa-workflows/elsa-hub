@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CloudErrorState } from "@/components/cloud/CloudErrorState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
-import { cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
+import { partitionCloudEngines } from "@/lib/cloud/enginePresentation";
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
 import {
   CLOUD_EMPTY_MESSAGE,
@@ -54,19 +56,29 @@ export function ElsaCloudOverviewCard({ orgSlug }: { orgSlug?: string | null }) 
         {view.kind === "empty" && (
           <p className="text-sm text-muted-foreground">{CLOUD_EMPTY_MESSAGE}</p>
         )}
-        {view.kind === "list" && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">{cloudEngineCountLabel(view.engines.length)}</p>
-            <ul className="space-y-1.5">
-              {view.engines.slice(0, 3).map((engine) => (
-                <li key={engine.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="truncate">{engine.name}</span>
-                  <Badge variant={cloudEngineStatusVariant(engine.status)}>{engine.status}</Badge>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {view.kind === "list" && (() => {
+          const engines = isCloudSignedCopyEnabled()
+            ? partitionCloudEngines(view.engines).live
+            : view.engines;
+          if (engines.length === 0) {
+            return <p className="text-sm text-muted-foreground">{CLOUD_EMPTY_MESSAGE}</p>;
+          }
+          return (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{cloudEngineCountLabel(engines.length)}</p>
+              <ul className="space-y-1.5">
+                {engines.slice(0, 3).map((engine) => (
+                  <li key={engine.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate">{engine.name}</span>
+                    <Badge variant={cloudEngineStatusVariant(engine.status)}>
+                      {cloudEngineStatusLabel(engine.status)}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
