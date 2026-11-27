@@ -38,6 +38,9 @@ import {
   CLOUD_ORG_LINK_CONFLICT,
   CLOUD_ORG_LINK_CONFLICT_CODE,
   CLOUD_ORG_LINK_FORBIDDEN,
+  CLOUD_CHANGED_SINCE_READ_CODE,
+  CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
+  CLOUD_DELETE_IN_PROGRESS_CODE,
   type CloudBffAction,
   type CloudBffRequest,
 } from "./cloud-types.ts";
@@ -206,7 +209,45 @@ function persistLinkFailure(
   return jsonResponse(503, updatingBody());
 }
 
-function failedControl(result: Extract<ControlResult, { ok: false }>): Response {
+// Control problem codes, verified against valence-works/elsa-control
+// ManagedElsaInstanceEndpoints (ConflictCode and the delete endpoint).
+const CONTROL_DELETE_CONFIRMATION_INVALID = "instance.delete-confirmation-invalid";
+const CONTROL_OPERATION_ACTIVE = "instance.operation-active";
+const CONTROL_CHANGED_SINCE_READ = "instance.changed-since-read";
+
+const DELETE_ACTIONS: ReadonlySet<CloudBffAction> = new Set(["confirmDelete", "deleteEngine"]);
+
+function failedControl(
+  result: Extract<ControlResult, { ok: false }>,
+  action?: CloudBffAction,
+): Response {
+  if (result.kind === "invalid") {
+    // Control sends changed-since-read as 412 on delete and 409 elsewhere.
+    if (result.code === CONTROL_CHANGED_SINCE_READ && (result.status === 409 || result.status === 412)) {
+      return jsonResponse(409, {
+        ok: false,
+        code: CLOUD_CHANGED_SINCE_READ_CODE,
+        error: "This engine changed since you opened it.",
+      });
+    }
+    const deleteAction = result.status === 409 && action !== undefined && DELETE_ACTIONS.has(action);
+    if (deleteAction && result.code === CONTROL_OPERATION_ACTIVE) {
+      return jsonResponse(409, {
+        ok: false,
+        code: CLOUD_DELETE_IN_PROGRESS_CODE,
+        error: "This engine is already being deleted.",
+      });
+    }
+    // Kept distinct: the UI decides from the engine state whether this means
+    // "already being deleted" or "confirmation expired".
+    if (deleteAction && result.code === CONTROL_DELETE_CONFIRMATION_INVALID) {
+      return jsonResponse(409, {
+        ok: false,
+        code: CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
+        error: "This delete confirmation is no longer valid.",
+      });
+    }
+  }
   if (result.kind === "limit") {
     return jsonResponse(422, limitBody(result.currentInstances, result.maxInstances));
   }
@@ -356,7 +397,7 @@ export async function dispatchCloudAction(
   const result = await callControl(ctx, request.action, request);
   if (!result.ok) {
     if (request.action === "linkCloudAccount") return accountLinkFailure(result);
-    return failedControl(result);
+    return failedControl(result, request.action);
   }
 
   switch (request.action) {

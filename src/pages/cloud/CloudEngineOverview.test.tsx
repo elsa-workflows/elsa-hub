@@ -5,6 +5,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_ENGINE,
+  CLOUD_DELETE_CONFIRMATION_EXPIRED,
+  CLOUD_DELETE_IN_PROGRESS,
   CLOUD_DELETE_START_ERROR,
   CLOUD_ERROR_HEADING,
   CLOUD_LINK_CHECK_ERROR,
@@ -28,6 +30,7 @@ import type { CloudOrganizationLinkView } from "@/lib/cloud";
 import {
   readDeletionHistory,
   readPersistedDeletionHistory,
+  upsertDeletionHistoryRecord,
   resetDeletionHistoryStore,
 } from "@/lib/cloud/deletionHistoryStore";
 import {
@@ -86,6 +89,9 @@ const lifecycle = vi.hoisted(() => ({
   openingStudio: false,
   pollDeleteOperation: vi.fn(),
 }));
+
+const { toastMessage } = vi.hoisted(() => ({ toastMessage: vi.fn() }));
+vi.mock("sonner", () => ({ toast: { message: toastMessage, success: vi.fn(), error: vi.fn() } }));
 
 vi.mock("@/hooks/useCloudEngineOverview", () => ({
   useCloudEngineOverview: () => ({
@@ -426,6 +432,136 @@ describe("CloudEngineOverview", () => {
     await waitFor(() => expect(readDeletionHistory(viewState.workspaceId)).toEqual([]));
     expect(screen.getByText(CLOUD_DELETE_START_ERROR)).toBeInTheDocument();
     expect(screen.queryByText("Delete failed.")).not.toBeInTheDocument();
+  });
+
+  it("closes the dialog right after Control accepts the delete and never re-enables Delete mid-submit", async () => {
+    viewState.current = { kind: "ready", engine };
+    toastMessage.mockClear();
+    viewState.refetch.mockClear();
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    let accept!: (value: unknown) => void;
+    lifecycle.deleteEngine.mockImplementation(() => new Promise((resolve) => {
+      accept = resolve;
+    }));
+    // The status check never finishes during this test (Control can take minutes).
+    lifecycle.pollDeleteOperation.mockImplementation(() => new Promise(() => undefined));
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await screen.findByText("notice");
+    const confirm = screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!;
+    fireEvent.click(confirm);
+    await waitFor(() => expect(lifecycle.deleteEngine).toHaveBeenCalled());
+    expect(confirm).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    accept({
+      ok: true,
+      operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Accepted" },
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: /delete this engine/i })).not.toBeInTheDocument()
+    );
+    expect(toastMessage).toHaveBeenCalledWith("Deleting Production… this can take a few minutes.");
+    expect(lifecycle.pollDeleteOperation).toHaveBeenCalled();
+    expect(viewState.refetch).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE })).toBeDisabled();
+  });
+
+  async function submitDeleteWith(result: unknown) {
+    lifecycle.confirmDelete.mockResolvedValue({
+      ok: true,
+      confirmation: {
+        id: "66666666-6666-6666-6666-666666666666",
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+      },
+    });
+    lifecycle.deleteEngine.mockResolvedValue(result);
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await screen.findByText("notice");
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    await waitFor(() => expect(lifecycle.deleteEngine).toHaveBeenCalled());
+  }
+
+  const CONFIRMATION_INVALID = {
+    ok: false,
+    code: "delete_confirmation_invalid",
+    error: "This delete confirmation is no longer valid.",
+  };
+
+  it("says the engine is already being deleted when Control reports operation-active", async () => {
+    viewState.current = { kind: "ready", engine };
+    viewState.refetch.mockClear();
+    await submitDeleteWith({
+      ok: false,
+      code: "delete_in_progress",
+      error: "This engine is already being deleted.",
+    });
+    expect(await screen.findByText(CLOUD_DELETE_IN_PROGRESS)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_START_ERROR)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_CONFIRMATION_EXPIRED)).not.toBeInTheDocument();
+  });
+
+  it("treats an invalid confirmation on a Deleting engine as already being deleted, without a refetch", async () => {
+    viewState.current = { kind: "ready", engine: { ...engine, status: "Deleting" } };
+    viewState.refetch.mockClear();
+    await submitDeleteWith(CONFIRMATION_INVALID);
+    expect(await screen.findByText(CLOUD_DELETE_IN_PROGRESS)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_CONFIRMATION_EXPIRED)).not.toBeInTheDocument();
+    expect(viewState.refetch).not.toHaveBeenCalled();
+  });
+
+  it("treats an invalid confirmation with a tracked delete operation as already being deleted and keeps the row", async () => {
+    viewState.current = { kind: "ready", engine };
+    viewState.refetch.mockClear();
+    upsertDeletionHistoryRecord(viewState.workspaceId, {
+      phase: "tracking",
+      instanceId: engine.id,
+      instanceName: engine.name,
+      operationId: "77777777-7777-7777-7777-777777777777",
+      acceptedAt: "2026-11-27T11:57:39Z",
+    });
+    await submitDeleteWith(CONFIRMATION_INVALID);
+    expect(await screen.findByText(CLOUD_DELETE_IN_PROGRESS)).toBeInTheDocument();
+    expect(viewState.refetch).not.toHaveBeenCalled();
+    expect(readDeletionHistory(viewState.workspaceId)).toEqual([
+      expect.objectContaining({
+        phase: "tracking",
+        instanceId: engine.id,
+        operationId: "77777777-7777-7777-7777-777777777777",
+      }),
+    ]);
+  });
+
+  it("refetches once and says the confirmation expired when the engine is not being deleted", async () => {
+    viewState.current = { kind: "ready", engine };
+    viewState.refetch.mockReset();
+    viewState.refetch.mockResolvedValue({ ok: true, state: "ready", engine });
+    await submitDeleteWith(CONFIRMATION_INVALID);
+    expect(await screen.findByText(CLOUD_DELETE_CONFIRMATION_EXPIRED)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_IN_PROGRESS)).not.toBeInTheDocument();
+    expect(viewState.refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("refetches once and says already being deleted when the refreshed engine shows a delete", async () => {
+    viewState.current = { kind: "ready", engine };
+    viewState.refetch.mockReset();
+    viewState.refetch.mockResolvedValue({
+      ok: true,
+      state: "ready",
+      engine: { ...engine, activeOperation: { id: "op", action: "Delete", state: "Running" } },
+    });
+    await submitDeleteWith(CONFIRMATION_INVALID);
+    expect(await screen.findByText(CLOUD_DELETE_IN_PROGRESS)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_CONFIRMATION_EXPIRED)).not.toBeInTheDocument();
+    expect(viewState.refetch).toHaveBeenCalledTimes(1);
   });
 
   it("runs confirmed delete through to a terminal operation", async () => {

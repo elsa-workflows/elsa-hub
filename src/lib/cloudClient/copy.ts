@@ -72,6 +72,15 @@ export const CLOUD_DELETE_ENGINE = "Delete engine";
 export const CLOUD_DELETE_CONFIRM = "Delete this engine?";
 export const CLOUD_DELETE_START_ERROR =
   "We couldn't start deleting this engine. Please try again. If it keeps failing, email hello@valence.works with this engine's name and we'll help during business hours.";
+// Neutral placeholder copy for #219 delete feedback; Launch may polish it.
+export const CLOUD_DELETE_IN_PROGRESS = "This engine is already being deleted.";
+export const CLOUD_DELETE_CONFIRMATION_EXPIRED =
+  "This confirmation has expired. Refresh the page and try again.";
+export const CLOUD_DELETE_CHANGED_SINCE_READ =
+  "This engine changed since you opened it. Refresh and try again.";
+export function cloudDeletingToast(name: string): string {
+  return `Deleting ${name}… this can take a few minutes.`;
+}
 export const CLOUD_STRUCTURED_LOGS = "Structured logs";
 export const CLOUD_PROVISIONING_HEADING = "Provisioning";
 export { CLOUD_LIMIT_MESSAGE, CLOUD_ORG_LINK_CONFLICT } from "@/lib/cloud";

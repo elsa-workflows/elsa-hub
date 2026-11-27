@@ -16,6 +16,8 @@ import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import {
   forgetControlDeletionState,
+  isControlAcceptedDeletionRecord,
+  readDeletionHistory,
   removeDeletionHistoryRecord,
   upsertDeletionHistoryRecord,
   upsertSubmittingDeletionRecord,
@@ -26,8 +28,14 @@ import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { deletionCompletedAt, isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
-import { CLOUD_LINK_CHECK_ERROR, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
+import {
+  CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
+  CLOUD_DELETE_IN_PROGRESS_CODE,
+  CLOUD_LINK_CHECK_ERROR,
+  CLOUD_PAGE_TITLE,
+} from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
+import { useEffect, useRef, useState } from "react";
 
 export default function CloudEngineOverviewPage() {
   const { engineId, slug } = useParams<{ engineId: string; slug?: string }>();
@@ -85,9 +93,74 @@ export default function CloudEngineOverviewPage() {
     ? engine.unavailableReason
     : null;
 
+  const [trackingDelete, setTrackingDelete] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  async function trackDelete(
+    accepted: { operation: { id: string; acceptedAt?: string | null } },
+    tracked: { workspaceId: string; engine: NonNullable<typeof engine> } | null,
+  ) {
+    try {
+      const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
+      if (tracked && terminal.ok && "operation" in terminal) {
+        upsertDeletionHistoryRecord(tracked.workspaceId, {
+          phase: "tracking",
+          instanceId: tracked.engine.id,
+          instanceName: tracked.engine.name,
+          operationId: terminal.operation.id ?? accepted.operation.id,
+          acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
+          completedAt: deletionCompletedAt(terminal.operation, tracked.engine.lastOperation),
+          state: terminal.operation.state,
+          lastOperation: terminal.operation,
+        });
+      } else if (tracked) {
+        forgetControlDeletionState(tracked.workspaceId, tracked.engine.id);
+      }
+      if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
+        if (terminal.operation.state === "Succeeded" && mounted.current) navigate(home);
+      }
+    } catch {
+      if (tracked) forgetControlDeletionState(tracked.workspaceId, tracked.engine.id);
+    } finally {
+      if (mounted.current) setTrackingDelete(false);
+    }
+  }
+
+  function trackedDeleteRecord() {
+    if (!workspaceId || !engine) return undefined;
+    return readDeletionHistory(workspaceId).find((record) =>
+      record.instanceId === engine.id &&
+      isControlAcceptedDeletionRecord(record) &&
+      !(record.state && isCloudTerminalOperationState(record.state))
+    );
+  }
+
+  // Control's delete-confirmation-invalid means either "already being deleted"
+  // or "confirmation expired". Decide from the engine state we have, refetching
+  // the overview once when that state does not already show a delete.
+  async function confirmationInvalidMeansDeleting(hadTrackedDelete: boolean): Promise<boolean> {
+    if (hadTrackedDelete || trackingDelete || isDeletingEngine(engine)) return true;
+    try {
+      const refreshed = await refetch();
+      if (refreshed && typeof refreshed === "object" && "ok" in refreshed && refreshed.ok && "engine" in refreshed) {
+        return isDeletingEngine(refreshed.engine as Parameters<typeof isDeletingEngine>[0]);
+      }
+    } catch {
+      // A failed refetch falls back to the expired-confirmation line.
+    }
+    return false;
+  }
+
   async function handleDelete(
     input: { deleteConfirmationId: string; idempotencyKey: string; ifMatch: string },
   ) {
+    const priorTracked = trackedDeleteRecord();
     if (workspaceId && engine) {
       upsertSubmittingDeletionRecord(workspaceId, {
         instanceId: engine.id,
@@ -96,7 +169,16 @@ export default function CloudEngineOverviewPage() {
     }
     const accepted = await lifecycle.deleteEngine(input);
     if (isCloudUpdating(accepted) || !accepted.ok || !("operation" in accepted)) {
-      if (workspaceId && engine) removeDeletionHistoryRecord(workspaceId, engine.id);
+      if (workspaceId && engine) {
+        removeDeletionHistoryRecord(workspaceId, engine.id);
+        // A refused start must not drop a delete Control already accepted.
+        if (priorTracked) upsertDeletionHistoryRecord(workspaceId, priorTracked);
+      }
+      if (!accepted.ok && "code" in accepted && accepted.code === CLOUD_DELETE_CONFIRMATION_INVALID_CODE) {
+        if (await confirmationInvalidMeansDeleting(Boolean(priorTracked))) {
+          return { ...accepted, code: CLOUD_DELETE_IN_PROGRESS_CODE };
+        }
+      }
       return accepted;
     }
     if (workspaceId && engine) {
@@ -111,26 +193,12 @@ export default function CloudEngineOverviewPage() {
         lastOperation: accepted.operation,
       });
     }
-    const terminal = await lifecycle.pollDeleteOperation(accepted.operation.id);
-    if (workspaceId && engine && terminal.ok && "operation" in terminal) {
-      upsertDeletionHistoryRecord(workspaceId, {
-        phase: "tracking",
-        instanceId: engine.id,
-        instanceName: engine.name,
-        operationId: terminal.operation.id ?? accepted.operation.id,
-        acceptedAt: accepted.operation.acceptedAt ?? terminal.operation.acceptedAt,
-        completedAt: deletionCompletedAt(terminal.operation, engine.lastOperation),
-        state: terminal.operation.state,
-        lastOperation: terminal.operation,
-      });
-    } else if (workspaceId && engine) {
-      forgetControlDeletionState(workspaceId, engine.id);
-    }
-    if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
-      if (terminal.operation.state === "Succeeded") navigate(home);
-    }
-    // After Control accepts the delete, polling failures are not start failures.
-    return terminal.ok ? terminal : accepted;
+    // Control accepted the delete (202): close the dialog now and follow the
+    // operation in the background. Polling failures are not start failures.
+    setTrackingDelete(true);
+    void Promise.resolve(refetch()).catch(() => undefined);
+    void trackDelete(accepted, workspaceId && engine ? { workspaceId, engine } : null);
+    return accepted;
   }
 
   return (
@@ -237,7 +305,7 @@ export default function CloudEngineOverviewPage() {
                   disabled={updating || mutationsPaused}
                   restarting={lifecycle.restarting}
                   applying={lifecycle.applying}
-                  deleting={lifecycle.deleting}
+                  deleting={lifecycle.deleting || trackingDelete}
                   openingStudio={lifecycle.openingStudio}
                   onRestart={lifecycle.restart}
                   onApplyRelease={lifecycle.applyRelease}
@@ -265,4 +333,11 @@ export default function CloudEngineOverviewPage() {
       </>
     </OrgCloudMembershipGate>
   );
+}
+
+function isDeletingEngine(
+  engine: { status?: string | null; activeOperation?: { action?: string | null } | null } | undefined,
+): boolean {
+  if (!engine) return false;
+  return engine.status === "Deleting" || engine.activeOperation?.action === "Delete";
 }
