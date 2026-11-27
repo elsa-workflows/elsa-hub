@@ -613,7 +613,9 @@ export function normalizeAvailableReleases(body: unknown): CloudAvailableRelease
 export function normalizeDeleteConfirmation(body: unknown): CloudDeleteConfirmation | null {
   const record = asRecord(body);
   if (!record) return null;
-  const id = asString(record.id);
+  // Control serializes ConfirmationId as confirmationId. The id fallback is
+  // temporary for older Hub stubs; remove it once those are gone.
+  const id = asString(record.confirmationId) ?? asString(record.id);
   const expiresAt = asString(record.expiresAt);
   if (!isGuid(id) || !expiresAt) return null;
   const notice = asRecord(record.billingNotice);

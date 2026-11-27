@@ -2,6 +2,7 @@ import { assertEquals, assertFalse } from "https://deno.land/std@0.224.0/assert/
 import {
   createControlFetch,
   isCompatibleControl,
+  normalizeDeleteConfirmation,
   normalizeEngineOverview,
   normalizeProvisioningProgress,
 } from "./cloud-control.ts";
@@ -431,4 +432,52 @@ Deno.test("normalizeEngineOverview passes #1011 operation reason codes and keeps
   });
   assertEquals("reasonCode" in legacy!.activeOperation!.progress!, false);
   assertEquals("reasonCode" in legacy!.lastOperation!, false);
+});
+
+const CONFIRMATION_ID = "66666666-6666-6666-6666-666666666666";
+const LEGACY_CONFIRMATION_ID = "77777777-7777-7777-7777-777777777777";
+const CONTROL_BILLING_NOTICE = {
+  code: "engine-deletion-leaves-subscription-active",
+  message:
+    "Deleting a managed engine does not cancel the Hosted subscription. Billing continues until the customer cancels it in the subscription portal.",
+};
+
+Deno.test("normalizeDeleteConfirmation reads confirmationId and falls back to id", () => {
+  assertEquals(
+    normalizeDeleteConfirmation({
+      confirmationId: CONFIRMATION_ID,
+      expiresAt: "2026-10-15T01:00:00Z",
+      billingNotice: CONTROL_BILLING_NOTICE,
+    }),
+    {
+      id: CONFIRMATION_ID,
+      expiresAt: "2026-10-15T01:00:00Z",
+      billingNotice: CONTROL_BILLING_NOTICE,
+    },
+  );
+
+  assertEquals(
+    normalizeDeleteConfirmation({
+      id: CONFIRMATION_ID,
+      expiresAt: "2026-10-15T01:00:00Z",
+      billingNotice: null,
+    }),
+    {
+      id: CONFIRMATION_ID,
+      expiresAt: "2026-10-15T01:00:00Z",
+      billingNotice: null,
+    },
+  );
+
+  assertEquals(
+    normalizeDeleteConfirmation({
+      confirmationId: CONFIRMATION_ID,
+      id: LEGACY_CONFIRMATION_ID,
+      expiresAt: "2026-10-15T01:00:00Z",
+      billingNotice: CONTROL_BILLING_NOTICE,
+    })?.id,
+    CONFIRMATION_ID,
+  );
+
+  assertEquals(normalizeDeleteConfirmation({ expiresAt: "2026-10-15T01:00:00Z" }), null);
 });
