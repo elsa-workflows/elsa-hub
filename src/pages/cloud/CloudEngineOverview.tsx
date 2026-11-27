@@ -333,14 +333,12 @@ export default function CloudEngineOverviewPage() {
   );
 }
 
-function isDeletingEngine(
-  engine: { status?: string | null; activeOperation?: { action?: string | null } | null } | undefined,
-): boolean {
+type DeleteStateEngine = { status?: string | null; activeOperation?: { action?: string | null } | null };
+
+function isDeletingEngine(engine: DeleteStateEngine | undefined): boolean {
   if (!engine) return false;
   return engine.status === "Deleting" || engine.activeOperation?.action === "Delete";
 }
-
-type DeleteStateEngine = { status?: string | null; activeOperation?: { action?: string | null } | null };
 
 function hasOverviewEngine(value: unknown): value is { ok: true; engine: DeleteStateEngine } {
   if (!value || typeof value !== "object" || !("ok" in value) || value.ok !== true) return false;

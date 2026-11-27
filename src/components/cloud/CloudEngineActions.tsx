@@ -179,7 +179,13 @@ export function CloudEngineActions({
 
   // Fetches a delete confirmation and stores it; returns the error line to show, if any.
   async function loadConfirmation(): Promise<string | null> {
-    const result = await onConfirmDelete();
+    let result: unknown;
+    try {
+      result = await onConfirmDelete();
+    } catch {
+      // A rejected request must still explain why Confirm is unavailable.
+      return CLOUD_DELETE_START_ERROR;
+    }
     const error = deleteStartError(result);
     if (error) return error;
     if (hasDeleteConfirmation(result)) setConfirmation(result.confirmation);
