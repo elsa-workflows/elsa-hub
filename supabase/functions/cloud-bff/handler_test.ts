@@ -462,6 +462,19 @@ const IDEMPOTENCY_KEY = "44444444-4444-4444-4444-444444444444";
 const OPERATION_ID = "55555555-5555-5555-5555-555555555555";
 const CONFIRMATION_ID = "66666666-6666-6666-6666-666666666666";
 
+// Control's ManagedElsaInstanceDeleteConfirmationResponse as ASP.NET HttpJson
+// serializes it (camelCase, no `id`). Replace with the golden from
+// valence-works/elsa-control#1056 once that lands.
+const CONTROL_DELETE_CONFIRMATION = {
+  confirmationId: CONFIRMATION_ID,
+  expiresAt: "2026-10-15T01:00:00Z",
+  billingNotice: {
+    code: "engine-deletion-leaves-subscription-active",
+    message:
+      "Deleting a managed engine does not cancel the Hosted subscription. Billing continues until the customer cancels it in the subscription portal.",
+  },
+};
+
 const INTENT = {
   release: {
     distributionId: "valence-runtime",
@@ -642,11 +655,7 @@ Deno.test("lifecycle actions map to one Control endpoint and return normalized s
     [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete-confirmations`]: {
       ok: true,
       status: 200,
-      body: {
-        id: CONFIRMATION_ID,
-        expiresAt: "2026-10-15T01:00:00Z",
-        billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
-      },
+      body: CONTROL_DELETE_CONFIRMATION,
     },
   });
   const confirmBody = await readJson(confirm);
@@ -707,6 +716,93 @@ Deno.test("lifecycle actions map to one Control endpoint and return normalized s
   });
   assertEquals(handoff.status, 200);
   assertEquals((await readJson(handoff)).state, "ready");
+});
+
+Deno.test("confirmDelete accepts Control's confirmationId body and forwards that id on delete", async () => {
+  const confirm = await signedIn({
+    action: "confirmDelete",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete-confirmations`]: {
+      ok: true,
+      status: 200,
+      body: CONTROL_DELETE_CONFIRMATION,
+    },
+  });
+  assertEquals(confirm.status, 200);
+  const confirmBody = await readJson(confirm);
+  assertEquals(confirmBody, {
+    ok: true,
+    state: "ready",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+    confirmation: {
+      id: CONFIRMATION_ID,
+      expiresAt: CONTROL_DELETE_CONFIRMATION.expiresAt,
+      billingNotice: CONTROL_DELETE_CONFIRMATION.billingNotice,
+    },
+  });
+
+  const confirmationId = (confirmBody.confirmation as { id: string }).id;
+  const deleteBodies: unknown[] = [];
+  resetCloudCompatibilityCache();
+  const deleted = await handleCloudBff(
+    request({
+      action: "deleteEngine",
+      workspaceId: WORKSPACE_ID,
+      engineId: ENGINE_ID,
+      deleteConfirmationId: confirmationId,
+      idempotencyKey: IDEMPOTENCY_KEY,
+      ifMatch: '"1"',
+    }),
+    {
+      resolveHubUser: signedInResolver(USER),
+      controlFetch: async (call, accessToken) => {
+        assertEquals(accessToken, USER.accessToken);
+        if (call.path === "/api/cloud/compatibility") {
+          return { ok: true, status: 200, body: COMPATIBLE };
+        }
+        assertEquals(call.method, "POST");
+        assertEquals(
+          call.path,
+          `/api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete`,
+        );
+        deleteBodies.push(call.body);
+        return {
+          ok: true,
+          status: 202,
+          body: { operationId: OPERATION_ID, action: "Delete", state: "Accepted" },
+        };
+      },
+    },
+  );
+  assertEquals(deleted.status, 202);
+  assertEquals(deleteBodies, [{ deleteConfirmationId: confirmationId }]);
+});
+
+Deno.test("confirmDelete still accepts a legacy Control body that only has id", async () => {
+  const confirm = await signedIn({
+    action: "confirmDelete",
+    workspaceId: WORKSPACE_ID,
+    engineId: ENGINE_ID,
+  }, {
+    [`POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete-confirmations`]: {
+      ok: true,
+      status: 200,
+      body: {
+        id: CONFIRMATION_ID,
+        expiresAt: "2026-10-15T01:00:00Z",
+        billingNotice: {
+          code: "engine-deletion-leaves-subscription-active",
+          message: "notice",
+        },
+      },
+    },
+  });
+  assertEquals(confirm.status, 200);
+  const confirmBody = await readJson(confirm);
+  assertEquals((confirmBody.confirmation as { id: string }).id, CONFIRMATION_ID);
 });
 
 Deno.test("a create at the plan limit is sanitized and does not forward the Control body", async () => {
