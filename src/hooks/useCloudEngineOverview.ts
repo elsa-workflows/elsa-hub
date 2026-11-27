@@ -101,7 +101,8 @@ export function useCloudEngineOverview(engineId: string | undefined) {
     setupMessage: workspace.setupMessage,
     refetch: async () => {
       await workspace.refetch();
-      if (workspaceId && engineId) await query.refetch();
+      if (workspaceId && engineId) return (await query.refetch()).data;
+      return undefined;
     },
   };
 }

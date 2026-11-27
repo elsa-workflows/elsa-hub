@@ -39,6 +39,7 @@ import {
   CLOUD_ORG_LINK_CONFLICT_CODE,
   CLOUD_ORG_LINK_FORBIDDEN,
   CLOUD_CHANGED_SINCE_READ_CODE,
+  CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
   CLOUD_DELETE_IN_PROGRESS_CODE,
   type CloudBffAction,
   type CloudBffRequest,
@@ -229,16 +230,21 @@ function failedControl(
         error: "This engine changed since you opened it.",
       });
     }
-    if (
-      result.status === 409 &&
-      action !== undefined &&
-      DELETE_ACTIONS.has(action) &&
-      (result.code === CONTROL_DELETE_CONFIRMATION_INVALID || result.code === CONTROL_OPERATION_ACTIVE)
-    ) {
+    const deleteAction = result.status === 409 && action !== undefined && DELETE_ACTIONS.has(action);
+    if (deleteAction && result.code === CONTROL_OPERATION_ACTIVE) {
       return jsonResponse(409, {
         ok: false,
         code: CLOUD_DELETE_IN_PROGRESS_CODE,
         error: "This engine is already being deleted.",
+      });
+    }
+    // Kept distinct: the UI decides from the engine state whether this means
+    // "already being deleted" or "confirmation expired".
+    if (deleteAction && result.code === CONTROL_DELETE_CONFIRMATION_INVALID) {
+      return jsonResponse(409, {
+        ok: false,
+        code: CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
+        error: "This delete confirmation is no longer valid.",
       });
     }
   }

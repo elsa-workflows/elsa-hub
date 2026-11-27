@@ -16,6 +16,8 @@ import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import {
   forgetControlDeletionState,
+  isControlAcceptedDeletionRecord,
+  readDeletionHistory,
   removeDeletionHistoryRecord,
   upsertDeletionHistoryRecord,
   upsertSubmittingDeletionRecord,
@@ -26,7 +28,12 @@ import { useCloudEngineOverview } from "@/hooks/useCloudEngineOverview";
 import { useCloudOrganizationLinkView } from "@/hooks/useCloudOrganizationLink";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { deletionCompletedAt, isCloudTerminalOperationState, isCloudUpdating, isHubOrgAdmin } from "@/lib/cloud";
-import { CLOUD_LINK_CHECK_ERROR, CLOUD_PAGE_TITLE } from "@/lib/cloudClient";
+import {
+  CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
+  CLOUD_DELETE_IN_PROGRESS_CODE,
+  CLOUD_LINK_CHECK_ERROR,
+  CLOUD_PAGE_TITLE,
+} from "@/lib/cloudClient";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
 import { useEffect, useRef, useState } from "react";
 
@@ -125,9 +132,35 @@ export default function CloudEngineOverviewPage() {
     }
   }
 
+  function trackedDeleteRecord() {
+    if (!workspaceId || !engine) return undefined;
+    return readDeletionHistory(workspaceId).find((record) =>
+      record.instanceId === engine.id &&
+      isControlAcceptedDeletionRecord(record) &&
+      !(record.state && isCloudTerminalOperationState(record.state))
+    );
+  }
+
+  // Control's delete-confirmation-invalid means either "already being deleted"
+  // or "confirmation expired". Decide from the engine state we have, refetching
+  // the overview once when that state does not already show a delete.
+  async function confirmationInvalidMeansDeleting(hadTrackedDelete: boolean): Promise<boolean> {
+    if (hadTrackedDelete || trackingDelete || isDeletingEngine(engine)) return true;
+    try {
+      const refreshed = await refetch();
+      if (refreshed && typeof refreshed === "object" && "ok" in refreshed && refreshed.ok && "engine" in refreshed) {
+        return isDeletingEngine(refreshed.engine as Parameters<typeof isDeletingEngine>[0]);
+      }
+    } catch {
+      // A failed refetch falls back to the expired-confirmation line.
+    }
+    return false;
+  }
+
   async function handleDelete(
     input: { deleteConfirmationId: string; idempotencyKey: string; ifMatch: string },
   ) {
+    const priorTracked = trackedDeleteRecord();
     if (workspaceId && engine) {
       upsertSubmittingDeletionRecord(workspaceId, {
         instanceId: engine.id,
@@ -136,7 +169,16 @@ export default function CloudEngineOverviewPage() {
     }
     const accepted = await lifecycle.deleteEngine(input);
     if (isCloudUpdating(accepted) || !accepted.ok || !("operation" in accepted)) {
-      if (workspaceId && engine) removeDeletionHistoryRecord(workspaceId, engine.id);
+      if (workspaceId && engine) {
+        removeDeletionHistoryRecord(workspaceId, engine.id);
+        // A refused start must not drop a delete Control already accepted.
+        if (priorTracked) upsertDeletionHistoryRecord(workspaceId, priorTracked);
+      }
+      if (!accepted.ok && "code" in accepted && accepted.code === CLOUD_DELETE_CONFIRMATION_INVALID_CODE) {
+        if (await confirmationInvalidMeansDeleting(Boolean(priorTracked))) {
+          return { ...accepted, code: CLOUD_DELETE_IN_PROGRESS_CODE };
+        }
+      }
       return accepted;
     }
     if (workspaceId && engine) {
@@ -291,4 +333,11 @@ export default function CloudEngineOverviewPage() {
       </>
     </OrgCloudMembershipGate>
   );
+}
+
+function isDeletingEngine(
+  engine: { status?: string | null; activeOperation?: { action?: string | null } | null } | undefined,
+): boolean {
+  if (!engine) return false;
+  return engine.status === "Deleting" || engine.activeOperation?.action === "Delete";
 }

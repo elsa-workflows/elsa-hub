@@ -1425,15 +1425,15 @@ const DELETE_REQUEST = {
   ifMatch: '"1"',
 };
 
-Deno.test("a Control 409 delete-confirmation-invalid on delete becomes 409 delete_in_progress", async () => {
+Deno.test("a Control 409 delete-confirmation-invalid on delete stays distinct as 409 delete_confirmation_invalid", async () => {
   const response = await signedIn(DELETE_REQUEST, {
     [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.delete-confirmation-invalid", status: 409 },
   });
   assertEquals(response.status, 409);
   assertEquals(await readJson(response), {
     ok: false,
-    code: "delete_in_progress",
-    error: "This engine is already being deleted.",
+    code: "delete_confirmation_invalid",
+    error: "This delete confirmation is no longer valid.",
   });
 });
 
@@ -1442,7 +1442,11 @@ Deno.test("a Control 409 operation-active on delete becomes 409 delete_in_progre
     [DELETE_PATH]: { ok: false, kind: "invalid", code: "instance.operation-active", status: 409 },
   });
   assertEquals(response.status, 409);
-  assertEquals((await readJson(response)).code, "delete_in_progress");
+  assertEquals(await readJson(response), {
+    ok: false,
+    code: "delete_in_progress",
+    error: "This engine is already being deleted.",
+  });
 });
 
 Deno.test("Control changed-since-read (409 or 412) becomes 409 changed_since_read", async () => {

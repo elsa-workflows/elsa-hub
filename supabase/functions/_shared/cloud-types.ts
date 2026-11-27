@@ -83,6 +83,7 @@ export const CLOUD_ACCOUNT_LINK_HAS_ENGINES_CODE = "hub_account_has_engines" as 
 export const CLOUD_ACCOUNT_LINK_HAS_STATE_CODE = "hub_account_has_state" as const;
 
 export const CLOUD_DELETE_IN_PROGRESS_CODE = "delete_in_progress" as const;
+export const CLOUD_DELETE_CONFIRMATION_INVALID_CODE = "delete_confirmation_invalid" as const;
 export const CLOUD_CHANGED_SINCE_READ_CODE = "changed_since_read" as const;
 
 export const CLOUD_ACCOUNT_LINK_ALREADY =
@@ -340,6 +341,7 @@ export type CloudClientErrorBody = {
     | typeof CLOUD_ACCOUNT_LINK_HAS_ENGINES_CODE
     | typeof CLOUD_ACCOUNT_LINK_HAS_STATE_CODE
     | typeof CLOUD_DELETE_IN_PROGRESS_CODE
+    | typeof CLOUD_DELETE_CONFIRMATION_INVALID_CODE
     | typeof CLOUD_CHANGED_SINCE_READ_CODE;
   error: string;
   currentInstances?: number;
