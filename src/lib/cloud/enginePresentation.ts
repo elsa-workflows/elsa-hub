@@ -4,11 +4,13 @@ import {
   CLOUD_STATUS_NOT_FULLY_HEALTHY,
 } from "@/lib/cloudClient/signedCopy";
 import type { CloudEngineOverview } from "@/lib/cloud/actions";
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 
 export const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
 const SETUP_FAILURE_ACTIONS = new Set(["Create", "Retry"]);
-const HIDDEN_HEALTH_STATUSES = new Set(["Deleted", "Deleting", "Provisioning", "Failed"]);
+const ALWAYS_HIDDEN_HEALTH_STATUSES = new Set(["Deleted", "Deleting"]);
+const SIGNED_HIDDEN_HEALTH_STATUSES = new Set(["Provisioning", "Failed"]);
 const SHOWN_HEALTH_VALUES: Record<string, string> = {
   Healthy: CLOUD_HEALTH_HEALTHY,
   Degraded: CLOUD_STATUS_NOT_FULLY_HEALTHY,
@@ -31,7 +33,9 @@ export function isSetupFailure(
 }
 
 export function shouldHideHealth(status?: string | null, health?: string | null): boolean {
-  if (status && HIDDEN_HEALTH_STATUSES.has(status)) return true;
+  if (status && ALWAYS_HIDDEN_HEALTH_STATUSES.has(status)) return true;
+  if (!isCloudSignedCopyEnabled()) return false;
+  if (status && SIGNED_HIDDEN_HEALTH_STATUSES.has(status)) return true;
   return !health || !(health in SHOWN_HEALTH_VALUES);
 }
 

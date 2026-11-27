@@ -1,12 +1,17 @@
 /**
- * Feature setting for the signed Cloud copy and deleted-engine UX (#237).
+ * Feature setting for the remaining signed Cloud copy (#237 / Lead exception).
  *
- * Defaults OFF in production. The setting is on only when
+ * The deleted-engine UX (deleted page, list grouping, toasts, and the
+ * code-to-copy mapping that hides raw codes and unavailableReason) is always
+ * on and does not read this setting.
+ *
+ * Everything else from the signed copy (status/health labels, Launch A/B/E,
+ * activity-log copy, parked-change lines, and the #948 limit line) stays
+ * behind this setting. It defaults OFF in production and is on only when
  * `VITE_CLOUD_SIGNED_COPY` is explicitly `1`, `true`, or `on` (any case,
  * trimmed). Turning it on is a separate step that needs Control goldens
  * from #230 / valence-works/elsa-control#1056 in place. Rollback is to
  * unset the variable (or set anything other than 1/true/on) and redeploy.
- * Nothing new from the signed copy module may show while the setting is off.
  */
 const ON_VALUES = new Set(["1", "true", "on"]);
 

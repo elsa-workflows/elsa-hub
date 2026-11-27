@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CLOUD_LIMIT_MESSAGE } from "@/lib/cloud";
-import { CLOUD_DELETE_CHANGED_SINCE_READ } from "./copy";
 import { CLOUD_ACTION_CHANGED_SINCE_READ, CLOUD_ACTION_FALLBACK, CLOUD_LIMIT_MESSAGE_SIGNED, CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT } from "./signedCopy";
 import { cloudActionErrorLine } from "./actionError";
 import { setCloudSignedCopyEnabledForTests } from "./signedCopyFlag";
@@ -44,13 +43,13 @@ describe("cloudActionErrorLine (signed copy on)", () => {
 });
 
 describe("cloudActionErrorLine (signed copy off)", () => {
-  it("keeps the shipped lines when the setting is off", () => {
+  it("still maps codes and never returns raw error prose, while keeping Launch A and the #948 line flagged", () => {
     setCloudSignedCopyEnabledForTests(false);
     expect(cloudActionErrorLine({
       ok: false,
       code: "changed_since_read",
       error: "This engine changed since you opened it.",
-    })).toBe(CLOUD_DELETE_CHANGED_SINCE_READ);
+    })).toBe(CLOUD_ACTION_CHANGED_SINCE_READ);
     expect(cloudActionErrorLine({
       ok: false,
       code: "instance_limit_reached",
@@ -60,10 +59,16 @@ describe("cloudActionErrorLine (signed copy off)", () => {
       ok: false,
       code: "instance.operation-active",
       error: "The request could not be completed.",
-    })).toBe("The request could not be completed.");
+    }, "delete")).toBe(CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT);
     expect(cloudActionErrorLine({
       ok: false,
       code: "instance.shape-invalid",
-    })).toBe("That action could not be completed.");
+      error: "raw control prose",
+    })).toBe(CLOUD_ACTION_FALLBACK);
+    expect(cloudActionErrorLine({
+      ok: false,
+      code: "instance.delete-permission-required",
+      error: "forbidden",
+    }, "delete")).toBe(CLOUD_ACTION_FALLBACK);
   });
 });

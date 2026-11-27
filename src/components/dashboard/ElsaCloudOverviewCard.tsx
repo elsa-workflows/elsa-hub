@@ -6,7 +6,6 @@ import { CloudErrorState } from "@/components/cloud/CloudErrorState";
 import { CloudUpdatingState } from "@/components/cloud/CloudUpdatingState";
 import { cloudEngineStatusLabel, cloudEngineStatusVariant } from "@/components/cloud/engineStatus";
 import { partitionCloudEngines } from "@/lib/cloud/enginePresentation";
-import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 import { useCloudEngines } from "@/hooks/useCloudEngines";
 import {
   CLOUD_EMPTY_MESSAGE,
@@ -57,9 +56,7 @@ export function ElsaCloudOverviewCard({ orgSlug }: { orgSlug?: string | null }) 
           <p className="text-sm text-muted-foreground">{CLOUD_EMPTY_MESSAGE}</p>
         )}
         {view.kind === "list" && (() => {
-          const engines = isCloudSignedCopyEnabled()
-            ? partitionCloudEngines(view.engines).live
-            : view.engines;
+          const engines = partitionCloudEngines(view.engines).live;
           if (engines.length === 0) {
             return <p className="text-sm text-muted-foreground">{CLOUD_EMPTY_MESSAGE}</p>;
           }

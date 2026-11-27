@@ -23,7 +23,6 @@ import {
   CLOUD_ACTION_VERSION_CONFLICT,
   CLOUD_CHIP_NO_ACTIVE_PLAN,
   CLOUD_DELETE_START_FALLBACK,
-  CLOUD_LIMIT_MESSAGE_SIGNED,
   CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT,
   CLOUD_REASON_DELETING_BODY,
   CLOUD_REASON_GENERIC_FALLBACK,
@@ -42,7 +41,9 @@ import {
   parkedChangeLine,
   parkedDeleteLine,
 } from "@/lib/cloudClient/signedCopy";
-import { CLOUD_DELETE_IN_PROGRESS } from "@/lib/cloudClient/copy";
+import { CLOUD_DELETE_IN_PROGRESS, cloudLimitMessage } from "@/lib/cloudClient/copy";
+import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
+import { formatParkedEngineGuidance } from "@/lib/cloud/parkedGuidance";
 
 export type CloudActionKind = "delete" | "restart" | "apply" | "create" | "other";
 
@@ -70,13 +71,15 @@ const COMMERCIAL_CODES = new Set([
 
 const LIMIT_CODES = new Set(["instance.instance-limit-reached", "instance_limit_reached"]);
 
-function restartNext(engine?: Pick<CloudEngineOverview, "allowedActions"> | null): string {
+function restartNext(engine?: Pick<CloudEngineOverview, "allowedActions"> | null): string | null {
+  // Launch E stays behind the signed-copy setting.
+  if (!isCloudSignedCopyEnabled()) return null;
   return engine?.allowedActions.restart.allowed ? CLOUD_REASON_RESTART_NEXT : CLOUD_REASON_NEITHER_NEXT;
 }
 
-/** Launch E: Restart next-step only when restart is allowed. Otherwise generic only. */
+/** Non-setup Failed: generic fallback always; Launch E next-step only when the setting is on. */
 function nonSetupFailedCopy(engine?: Pick<CloudEngineOverview, "allowedActions"> | null): ReasonCopy {
-  if (engine?.allowedActions.restart.allowed) {
+  if (isCloudSignedCopyEnabled() && engine?.allowedActions.restart.allowed) {
     return { body: CLOUD_REASON_GENERIC_FALLBACK, nextStep: CLOUD_REASON_RESTART_NEXT };
   }
   return { body: CLOUD_REASON_GENERIC_FALLBACK };
@@ -153,7 +156,11 @@ export function reasonCopyForCode(
   }
 
   if (engine?.status === "RecoveryRequired" && engine.activeOperation?.action !== "Delete") {
-    return { body: parkedChangeLine(operationId) };
+    return {
+      body: isCloudSignedCopyEnabled()
+        ? parkedChangeLine(operationId)
+        : formatParkedEngineGuidance(operationId),
+    };
   }
 
   if (engine?.status === "Deleting" || engine?.activeOperation?.action === "Delete") {
@@ -210,7 +217,11 @@ export function reasonCopyForCode(
   }
 
   if (resolved === "instance.recovery-required") {
-    return { body: parkedChangeLine(operationId) };
+    return {
+      body: isCloudSignedCopyEnabled()
+        ? parkedChangeLine(operationId)
+        : formatParkedEngineGuidance(operationId),
+    };
   }
 
   if (resolved === "instance.unknown") {
@@ -222,7 +233,11 @@ export function reasonCopyForCode(
   }
 
   if (resolved === "identity-unavailable") {
-    return { body: CLOUD_REASON_IDENTITY_UNAVAILABLE };
+    return {
+      body: isCloudSignedCopyEnabled()
+        ? CLOUD_REASON_IDENTITY_UNAVAILABLE
+        : CLOUD_REASON_GENERIC_FALLBACK,
+    };
   }
 
   if (resolved === "lifecycle.deletion.blocked-by-operation-in-flight") {
@@ -239,7 +254,7 @@ export function reasonCopyForCode(
   }
 
   if (LIMIT_CODES.has(resolved)) {
-    return { body: CLOUD_LIMIT_MESSAGE_SIGNED };
+    return { body: cloudLimitMessage() };
   }
 
   return { body: CLOUD_REASON_GENERIC_FALLBACK };
@@ -278,6 +293,7 @@ export function signedActionErrorLine(
     return CLOUD_ACTION_CHANGED_SINCE_READ;
   }
   if (code === "instance.delete-permission-required" || code === "forbidden") {
+    if (!isCloudSignedCopyEnabled()) return CLOUD_ACTION_FALLBACK;
     return kind === "delete" ? CLOUD_ACTION_PERMISSION_DELETE : CLOUD_ACTION_PERMISSION;
   }
   if (code === "instance.idempotency-conflict") return CLOUD_ACTION_IDEMPOTENCY_CONFLICT;
@@ -285,7 +301,7 @@ export function signedActionErrorLine(
   if (code === "instance.version-conflict") return CLOUD_ACTION_VERSION_CONFLICT;
   if (code === "instance.catalog-selection-unavailable") return CLOUD_ACTION_CATALOG_UNAVAILABLE;
   if (code === "rate-limit.exceeded") return CLOUD_ACTION_RATE_LIMIT;
-  if (LIMIT_CODES.has(code)) return CLOUD_LIMIT_MESSAGE_SIGNED;
+  if (LIMIT_CODES.has(code)) return cloudLimitMessage();
   if (code === "unauthorized" || code === "sessions_required" || code === "reauthentication_required") {
     return CLOUD_ACTION_SIGN_IN_AGAIN;
   }

@@ -43,7 +43,8 @@ describe("parkedGuidance", () => {
     );
     expect(formatParkedEngineGuidance(EMPTY_OPERATION_ID)).toBe(PARKED_ENGINE_GUIDANCE_WITHOUT_REFERENCE);
     expect(formatParkedEngineGuidance("")).toBe(PARKED_ENGINE_GUIDANCE_WITHOUT_REFERENCE);
-    expect(formatParkedDeleteGuidance(null)).toBe(PARKED_DELETE_GUIDANCE_WITHOUT_REFERENCE);
+    expect(formatParkedDeleteGuidance(null)).toBe(parkedDeleteLine(null));
+    expect(formatParkedDeleteGuidance(null)).not.toContain("business hours");
   });
 
   it("treats RecoveryRequired lifecycle or a parked delete as parked", () => {
@@ -88,10 +89,12 @@ describe("parkedGuidance", () => {
     expect(parkedDeleteGuidance(null, null, OPERATION_ID)).toBe(formatParkedDeleteGuidance(OPERATION_ID));
   });
 
-  it("uses the signed parked lines without business hours when the setting is on", () => {
+  it("always uses the signed parked-delete line, and the signed parked-change line only when the setting is on", () => {
+    expect(formatParkedDeleteGuidance(OPERATION_ID)).toBe(parkedDeleteLine(OPERATION_ID));
+    expect(formatParkedDeleteGuidance(OPERATION_ID)).not.toContain("business hours");
+    expect(formatParkedEngineGuidance(OPERATION_ID)).toContain("business hours");
     setCloudSignedCopyEnabledForTests(true);
     expect(formatParkedEngineGuidance(OPERATION_ID)).toBe(parkedChangeLine(OPERATION_ID));
-    expect(formatParkedDeleteGuidance(OPERATION_ID)).toBe(parkedDeleteLine(OPERATION_ID));
     expect(formatParkedEngineGuidance(OPERATION_ID)).not.toContain("business hours");
   });
 });

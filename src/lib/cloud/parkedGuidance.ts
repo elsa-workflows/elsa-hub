@@ -42,12 +42,7 @@ export function formatParkedEngineGuidance(operationId?: string | null): string 
 }
 
 export function formatParkedDeleteGuidance(operationId?: string | null): string {
-  if (isCloudSignedCopyEnabled()) return parkedDeleteLine(isUsableOperationId(operationId) ? operationId.trim() : null);
-  return formatParkedGuidance(
-    PARKED_DELETE_GUIDANCE_WITH_REFERENCE,
-    PARKED_DELETE_GUIDANCE_WITHOUT_REFERENCE,
-    operationId,
-  );
+  return parkedDeleteLine(isUsableOperationId(operationId) ? operationId.trim() : null);
 }
 
 export function isParkedLifecycle(observedLifecycle?: string | null): boolean {

@@ -655,6 +655,37 @@ describe("CloudHome", () => {
     expect(screen.queryByText("Failed")).not.toBeInTheDocument();
   });
 
+  it("groups Deleted engines under Previous deletions even when the signed-copy setting is off", async () => {
+    setCloudSignedCopyEnabledForTests(false);
+    const deletedId = "22222222-2222-4222-8222-222222222222";
+    viewState.current = {
+      kind: "list",
+      engines: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          name: "Production",
+          slug: "production",
+          status: "Ready",
+          release: "3.8.4",
+        },
+        {
+          id: deletedId,
+          name: "Test engine",
+          slug: "test-engine",
+          status: "Deleted",
+          release: null,
+        },
+      ],
+    };
+    viewState.selectedWorkspace = { id: WORKSPACE_ID, name: "Acme" };
+    renderHome();
+    expect(screen.getByRole("link", { name: /production/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /test engine/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Test engine deleted/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: previousDeletionsHeading(1) }));
+    expect(await screen.findByText(/Test engine deleted/)).toBeInTheDocument();
+  });
+
   it("moves Control Deleted engines into Previous deletions and leaves Deleting in the main list", async () => {
     const deletedId = "22222222-2222-4222-8222-222222222222";
     const liveId = "11111111-1111-4111-8111-111111111111";

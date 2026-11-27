@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { CLOUD_LIMIT_MESSAGE } from "@/lib/cloud";
 import { overviewReasonCopy, reasonCopyForCode, signedActionErrorLine } from "./reasonCopy";
 import {
   controlDeletedOverview,
@@ -9,6 +10,7 @@ import {
   controlParkedDeleteOverview,
 } from "./controlOverview.fixtures";
 import {
+  CLOUD_ACTION_FALLBACK,
   CLOUD_ACTION_PERMISSION,
   CLOUD_ACTION_PERMISSION_DELETE,
   CLOUD_LIMIT_MESSAGE_SIGNED,
@@ -33,7 +35,7 @@ describe("reasonCopyForCode with Control overview shapes", () => {
     expect(overviewReasonCopy(engine)).toBeNull();
   });
 
-  it("maps instance.unavailable on a non-deleted engine and offers Restart only when allowed", () => {
+  it("maps instance.unavailable on a non-deleted engine and offers Restart only when the setting is on and allowed", () => {
     const engine = controlDeletedOverview({
       status: "Ready",
       health: "Degraded",
@@ -45,6 +47,12 @@ describe("reasonCopyForCode with Control overview shapes", () => {
         delete: { allowed: true, reasonCode: null },
       },
     });
+    expect(overviewReasonCopy(engine)).toEqual({
+      chip: "Not available",
+      body: CLOUD_REASON_UNAVAILABLE_BODY,
+      nextStep: null,
+    });
+    setCloudSignedCopyEnabledForTests(true);
     expect(overviewReasonCopy(engine)).toEqual({
       chip: "Not available",
       body: CLOUD_REASON_UNAVAILABLE_BODY,
@@ -62,13 +70,17 @@ describe("reasonCopyForCode with Control overview shapes", () => {
     expect(copy?.body).not.toBe(engine.unavailableReason);
   });
 
-  it("treats Failed + lastOperation Restart, or no lastOperation, as Needs attention with the generic fallback", () => {
+  it("treats Failed + lastOperation Restart, or no lastOperation, as the generic fallback, with Launch E only when the setting is on", () => {
     expect(overviewReasonCopy(controlFailedAfterReadyOverview())).toEqual({
       body: CLOUD_REASON_GENERIC_FALLBACK,
-      nextStep: CLOUD_REASON_RESTART_NEXT,
     });
     expect(overviewReasonCopy(controlFailedWithoutOperationOverview())).toEqual({
       body: CLOUD_REASON_GENERIC_FALLBACK,
+    });
+    setCloudSignedCopyEnabledForTests(true);
+    expect(overviewReasonCopy(controlFailedAfterReadyOverview())).toEqual({
+      body: CLOUD_REASON_GENERIC_FALLBACK,
+      nextStep: CLOUD_REASON_RESTART_NEXT,
     });
     expect(overviewReasonCopy(controlFailedAfterReadyOverview({
       allowedActions: {
@@ -110,19 +122,25 @@ describe("reasonCopyForCode with Control overview shapes", () => {
     expect(reasonCopyForCode("not-a-real-code")?.body).toBe(CLOUD_REASON_GENERIC_FALLBACK);
   });
 
-  it("maps identity-unavailable to Launch's signed line", () => {
+  it("maps identity-unavailable to Launch's signed line only when the setting is on", () => {
+    expect(reasonCopyForCode("identity-unavailable")?.body).toBe(CLOUD_REASON_GENERIC_FALLBACK);
+    setCloudSignedCopyEnabledForTests(true);
     expect(reasonCopyForCode("identity-unavailable")?.body).toBe(CLOUD_REASON_IDENTITY_UNAVAILABLE);
   });
 });
 
 describe("signedActionErrorLine", () => {
-  it("uses Launch's permission lines and drops Ask a workspace admin", () => {
+  it("uses Launch's permission lines only when the setting is on", () => {
+    expect(signedActionErrorLine({ ok: false, code: "forbidden" }, "restart")).toBe(CLOUD_ACTION_FALLBACK);
+    setCloudSignedCopyEnabledForTests(true);
     expect(signedActionErrorLine({ ok: false, code: "forbidden" }, "restart")).toBe(CLOUD_ACTION_PERMISSION);
     expect(signedActionErrorLine({ ok: false, code: "forbidden" }, "delete")).toBe(CLOUD_ACTION_PERMISSION_DELETE);
     expect(signedActionErrorLine({ ok: false, code: "forbidden" }, "delete")).not.toContain("Ask a workspace admin");
   });
 
-  it("uses the signed #948 v2 limit line", () => {
+  it("uses the signed #948 v2 limit line only when the setting is on", () => {
+    expect(signedActionErrorLine({ ok: false, code: "instance_limit_reached" })).not.toBe(CLOUD_LIMIT_MESSAGE_SIGNED);
+    setCloudSignedCopyEnabledForTests(true);
     expect(signedActionErrorLine({ ok: false, code: "instance_limit_reached" })).toBe(CLOUD_LIMIT_MESSAGE_SIGNED);
   });
 });

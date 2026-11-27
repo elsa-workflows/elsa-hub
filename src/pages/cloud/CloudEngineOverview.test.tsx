@@ -8,7 +8,6 @@ import {
   CLOUD_DELETE_CHANGED_SINCE_READ,
   CLOUD_DELETE_CONFIRMATION_EXPIRED,
   CLOUD_DELETE_IN_PROGRESS,
-  CLOUD_DELETE_START_ERROR,
   CLOUD_RESTART_CONFIRM,
   CLOUD_ERROR_HEADING,
   CLOUD_LINK_CHECK_ERROR,
@@ -1039,5 +1038,78 @@ describe("CloudEngineOverview", () => {
     fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith(cloudEngineDeletedToast("Production")));
     expect(await screen.findByText("cloud home")).toBeInTheDocument();
+  });
+
+  describe("deleted-engine UX with the signed-copy setting off", () => {
+    beforeEach(() => setCloudSignedCopyEnabledForTests(false));
+
+    it("renders the deleted page when opening a Deleted URL, without redirecting or showing raw Control prose", () => {
+      viewState.current = { kind: "ready", engine: controlDeletedOverview({ name: "Test" }) };
+      billingState.billingAccount = "linked";
+      renderOverview();
+      expect(screen.getByText(CLOUD_DELETED_BANNER_HEADING)).toBeInTheDocument();
+      expect(screen.getByText(CLOUD_DELETED_BANNER_SECOND_LINE)).toBeInTheDocument();
+      expect(screen.getByText("test")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: CLOUD_OPEN_STUDIO })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: CLOUD_DELETE_ENGINE })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: CLOUD_RESTART })).not.toBeInTheDocument();
+      expect(screen.queryByText(CLOUD_STRUCTURED_LOGS)).not.toBeInTheDocument();
+      expect(screen.queryByText("Health")).not.toBeInTheDocument();
+      expect(screen.queryByText("Status")).not.toBeInTheDocument();
+      expect(screen.queryByText("Release")).not.toBeInTheDocument();
+      expect(screen.queryByText("instance.unavailable")).not.toBeInTheDocument();
+      expect(screen.queryByText("This instance is not currently available.")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "View invoices" })).toBeInTheDocument();
+      expect(screen.queryByText("cloud home")).not.toBeInTheDocument();
+      expect(toastSuccess).not.toHaveBeenCalled();
+    });
+
+    it("toasts Engine \"{name}\" deleted. when Control reports Delete Succeeded", async () => {
+      viewState.current = { kind: "ready", engine };
+      lifecycle.confirmDelete.mockResolvedValue({
+        ok: true,
+        confirmation: {
+          id: "66666666-6666-6666-6666-666666666666",
+          expiresAt: "2026-10-15T01:00:00Z",
+          billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+        },
+      });
+      lifecycle.deleteEngine.mockResolvedValue({
+        ok: true,
+        operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Accepted" },
+      });
+      lifecycle.pollDeleteOperation.mockResolvedValue({
+        ok: true,
+        operation: { id: "55555555-5555-5555-5555-555555555555", action: "Delete", state: "Succeeded" },
+      });
+      renderOverview();
+      fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+      await waitFor(() => expect(lifecycle.confirmDelete).toHaveBeenCalled());
+      fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+      await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith(cloudEngineDeletedToast("Production")));
+      expect(await screen.findByText("cloud home")).toBeInTheDocument();
+    });
+
+    it("hides Health and Control prose while a delete is in progress", () => {
+      viewState.current = {
+        kind: "ready",
+        engine: {
+          ...engine,
+          status: "Deleting",
+          unavailableReason: "This instance is still being provisioned. Refresh to update its observed state.",
+          unavailableReasonCode: "instance.provisioning",
+          activeOperation: {
+            id: "55555555-5555-5555-5555-555555555555",
+            action: "Delete",
+            state: "Accepted",
+          },
+        },
+      };
+      renderOverview();
+      expect(screen.queryByText("This instance is still being provisioned. Refresh to update its observed state.")).not.toBeInTheDocument();
+      expect(screen.getByText(CLOUD_REASON_DELETING_BODY)).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Deleting this engine" })).toBeInTheDocument();
+      expect(screen.queryByText("Health")).not.toBeInTheDocument();
+    });
   });
 });

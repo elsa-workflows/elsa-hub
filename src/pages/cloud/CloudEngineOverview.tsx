@@ -96,14 +96,9 @@ export default function CloudEngineOverviewPage() {
   ));
   const signedEnabled = isCloudSignedCopyEnabled();
   const isDeletedEngine = engine?.status === "Deleted";
-  const overviewReason = signedEnabled
-    ? (engine && !isDeletedEngine && !showTimeline ? overviewReasonCopy(engine, lifecycle.progress) : null)
-    : (engine
-      && !showTimeline
-      && engine.unavailableReason
-      && engine.unavailableReasonCode !== "not-authorized"
-      ? engine.unavailableReason
-      : null);
+  const overviewReason = engine && !isDeletedEngine && !showTimeline
+    ? overviewReasonCopy(engine, lifecycle.progress)
+    : null;
 
   const [trackingDelete, setTrackingDelete] = useState(false);
   const mounted = useRef(true);
@@ -137,9 +132,7 @@ export default function CloudEngineOverviewPage() {
       if (terminal.ok && "operation" in terminal && isCloudTerminalOperationState(terminal.operation.state)) {
         if (terminal.operation.state === "Succeeded") {
           // Toast whenever the app is still running; do not gate it on the page staying mounted.
-          if (isCloudSignedCopyEnabled()) {
-            toast.success(cloudEngineDeletedToast(tracked?.engine.name ?? engine?.name));
-          }
+          toast.success(cloudEngineDeletedToast(tracked?.engine.name ?? engine?.name));
           if (mounted.current) navigate(home);
         }
       }
@@ -282,7 +275,7 @@ export default function CloudEngineOverviewPage() {
             {showConsole && view.kind === "missing" && (
               <p className="text-muted-foreground">This engine could not be found.</p>
             )}
-            {showConsole && view.kind === "ready" && signedEnabled && view.engine.status === "Deleted" && (
+            {showConsole && view.kind === "ready" && view.engine.status === "Deleted" && (
               <CloudDeletedEngineCard
                 engine={view.engine}
                 homeHref={home}
@@ -297,7 +290,7 @@ export default function CloudEngineOverviewPage() {
                 onViewInvoices={() => billing.openPortal.mutate()}
               />
             )}
-            {showConsole && view.kind === "ready" && !(signedEnabled && view.engine.status === "Deleted") && (
+            {showConsole && view.kind === "ready" && view.engine.status !== "Deleted" && (
               <>
                 <Card>
                   <CardHeader>
@@ -323,7 +316,7 @@ export default function CloudEngineOverviewPage() {
                       <p className="text-muted-foreground">Slug</p>
                       <p className="font-medium">{view.engine.slug}</p>
                     </div>
-                    {!(signedEnabled && shouldHideHealth(view.engine.status, view.engine.health)) && (
+                    {!shouldHideHealth(view.engine.status, view.engine.health) && (
                       <div>
                         <p className="text-muted-foreground">Health</p>
                         <p className="font-medium">
@@ -349,16 +342,13 @@ export default function CloudEngineOverviewPage() {
                   onOpenStudio={lifecycle.openStudio}
                 />
 
-                {overviewReason && typeof overviewReason === "string" && (
-                  <p className="text-sm">{overviewReason}</p>
-                )}
-                {overviewReason && typeof overviewReason !== "string" && (
+                {overviewReason && (
                   <div className="space-y-2">
                     <p className="text-sm">{overviewReason.body}</p>
                     {overviewReason.nextStep ? <p className="text-sm">{overviewReason.nextStep}</p> : null}
                   </div>
                 )}
-                {showTimeline && !(signedEnabled && view.engine.status === "Deleted") && (
+                {showTimeline && (
                   <CloudProvisioningTimeline
                     progress={lifecycle.progress}
                     engine={view.engine}

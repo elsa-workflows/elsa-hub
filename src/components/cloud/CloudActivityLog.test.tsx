@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CloudActivityLog } from "./CloudActivityLog";
-import { CLOUD_ACTIVITY_CHANGE_REQUESTED, CLOUD_ACTIVITY_FALLBACK } from "@/lib/cloudClient/signedCopy";
+import {
+  CLOUD_ACTIVITY_CHANGE_REQUESTED,
+  CLOUD_ACTIVITY_CHECKING_DEPLOYMENT,
+  CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED,
+  CLOUD_ACTIVITY_FALLBACK,
+} from "@/lib/cloudClient/signedCopy";
 import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 import type { CloudActivityItem } from "@/lib/cloudClient";
 
@@ -21,25 +26,47 @@ function item(overrides: Partial<CloudActivityItem> = {}): CloudActivityItem {
 }
 
 describe("CloudActivityLog", () => {
-  it("on the signed path keeps a Control customer message and never falls back to eventType", () => {
+  it("maps Control's warning classification to Deployment result not confirmed. and never shows the Control prose", () => {
     setCloudSignedCopyEnabledForTests(true);
     render(<CloudActivityLog items={[item({
       eventType: "lifecycle.failed",
+      severity: "Warning",
+      diagnosticCode: null,
       message: "Deployment status unclear. We're still confirming the result.",
     })]} />);
-    expect(screen.getByText("Deployment status unclear. We're still confirming the result.")).toBeInTheDocument();
+    expect(screen.getByText(CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED)).toBeInTheDocument();
+    expect(screen.queryByText("Deployment status unclear. We're still confirming the result.")).not.toBeInTheDocument();
     expect(screen.queryByText("lifecycle.failed")).not.toBeInTheDocument();
-    expect(screen.queryByText(CLOUD_ACTIVITY_FALLBACK)).not.toBeInTheDocument();
   });
 
-  it("maps lifecycle.accepted to Change requested when there is no message, and other eventTypes to Engine activity", () => {
+  it("maps Control's checking classification to the signed Checking deployment status line", () => {
     setCloudSignedCopyEnabledForTests(true);
-    const { unmount } = render(<CloudActivityLog items={[item({ message: null })]} />);
+    render(<CloudActivityLog items={[item({
+      eventType: "lifecycle.reconciled",
+      severity: "Informational",
+      diagnosticCode: null,
+      message: "Checking deployment status",
+    })]} />);
+    expect(screen.getByText(CLOUD_ACTIVITY_CHECKING_DEPLOYMENT)).toBeInTheDocument();
+    expect(screen.queryByText("lifecycle.reconciled")).not.toBeInTheDocument();
+  });
+
+  it("does not render an unmapped item.message, and uses Change requested or Engine activity", () => {
+    setCloudSignedCopyEnabledForTests(true);
+    const { unmount } = render(<CloudActivityLog items={[item({ message: "Accepted the change." })]} />);
     expect(screen.getByText(CLOUD_ACTIVITY_CHANGE_REQUESTED)).toBeInTheDocument();
+    expect(screen.queryByText("Accepted the change.")).not.toBeInTheDocument();
     expect(screen.queryByText("lifecycle.accepted")).not.toBeInTheDocument();
     unmount();
-    render(<CloudActivityLog items={[item({ eventType: "lifecycle.failed", message: null, sequence: 2 })]} />);
+    render(<CloudActivityLog items={[item({
+      eventType: "lifecycle.failed",
+      diagnosticCode: "health.failed",
+      severity: "Failed",
+      message: "raw classification prose",
+      sequence: 2,
+    })]} />);
     expect(screen.getByText(CLOUD_ACTIVITY_FALLBACK)).toBeInTheDocument();
+    expect(screen.queryByText("raw classification prose")).not.toBeInTheDocument();
     expect(screen.queryByText("lifecycle.failed")).not.toBeInTheDocument();
   });
 

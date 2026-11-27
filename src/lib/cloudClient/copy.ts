@@ -82,8 +82,7 @@ export const CLOUD_DELETE_CONFIRMATION_EXPIRED =
 export const CLOUD_DELETE_CHANGED_SINCE_READ =
   "This engine changed since you opened it. Refresh and try again.";
 export function cloudDeletingToast(name: string): string {
-  if (isCloudSignedCopyEnabled()) return cloudEngineDeletingToast(name);
-  return `Deleting ${name}… this can take a few minutes.`;
+  return cloudEngineDeletingToast(name);
 }
 
 export function cloudLimitMessage(): string {

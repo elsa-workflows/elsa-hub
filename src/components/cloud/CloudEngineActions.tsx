@@ -25,13 +25,7 @@ import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_CONFIRM,
   CLOUD_DELETE_ENGINE,
-  CLOUD_CHANGED_SINCE_READ_CODE,
-  CLOUD_DELETE_CHANGED_SINCE_READ,
-  CLOUD_DELETE_CONFIRMATION_EXPIRED,
   CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
-  CLOUD_DELETE_IN_PROGRESS,
-  CLOUD_DELETE_IN_PROGRESS_CODE,
-  CLOUD_DELETE_START_ERROR,
   CLOUD_OPEN_STUDIO,
   cloudActionErrorLine,
   type CloudActionKind,
@@ -44,7 +38,6 @@ import {
   type CloudEngineOverview,
 } from "@/lib/cloudClient";
 import { cn } from "@/lib/utils";
-import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 import { CLOUD_DELETE_START_FALLBACK } from "@/lib/cloudClient/signedCopy";
 
 function resultError(result: unknown, kind: CloudActionKind = "other"): string | null {
@@ -70,15 +63,7 @@ function isCode(result: unknown, code: string): boolean {
 }
 
 function deleteStartError(result: unknown): string | null {
-  if (isCloudSignedCopyEnabled()) return cloudActionErrorLine(result, "delete");
-  if (!result || typeof result !== "object" || !("ok" in result) || result.ok) {
-    return null;
-  }
-  const code = "code" in result ? result.code : undefined;
-  if (code === CLOUD_DELETE_IN_PROGRESS_CODE) return CLOUD_DELETE_IN_PROGRESS;
-  if (code === CLOUD_DELETE_CONFIRMATION_INVALID_CODE) return CLOUD_DELETE_CONFIRMATION_EXPIRED;
-  if (code === CLOUD_CHANGED_SINCE_READ_CODE) return CLOUD_DELETE_CHANGED_SINCE_READ;
-  return CLOUD_DELETE_START_ERROR;
+  return cloudActionErrorLine(result, "delete");
 }
 
 export function CloudEngineActions({
@@ -132,6 +117,8 @@ export function CloudEngineActions({
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const deleteBusy = deleting || deleteSubmitting;
   const ifMatch = engine.etag ?? (engine.version !== null ? `"${engine.version}"` : "");
+  if (engine.status === "Deleted") return null;
+
   const canRestart = engine.allowedActions.restart.allowed && !disabled && Boolean(ifMatch);
   const canApply = engine.allowedActions.applyRelease.allowed && !disabled && Boolean(ifMatch) && releases.length > 0;
   const canOpen = engine.allowedActions.open.allowed &&
@@ -183,7 +170,7 @@ export function CloudEngineActions({
       result = await onConfirmDelete();
     } catch {
       // A rejected request must still explain why Confirm is unavailable.
-      return isCloudSignedCopyEnabled() ? CLOUD_DELETE_START_FALLBACK : CLOUD_DELETE_START_ERROR;
+      return CLOUD_DELETE_START_FALLBACK;
     }
     const error = deleteStartError(result);
     if (error) return error;

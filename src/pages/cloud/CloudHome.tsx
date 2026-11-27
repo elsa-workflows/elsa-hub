@@ -26,7 +26,6 @@ import {
   CLOUD_PAGE_TITLE,
   cloudLimitMessage,
 } from "@/lib/cloudClient";
-import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 import { partitionCloudEngines } from "@/lib/cloud/enginePresentation";
 import { mergeControlDeletedEngines } from "@/lib/cloud/managedEngineDeletionHistory";
 import { useCloudConsolePaths } from "@/lib/cloudPaths";
@@ -158,14 +157,9 @@ export default function CloudHome() {
             )}
             {showConsole && (() => {
               const allEngines = view.kind === "list" ? view.engines : [];
-              const signed = isCloudSignedCopyEnabled();
-              const { live, deleted } = signed
-                ? partitionCloudEngines(allEngines)
-                : { live: allEngines, deleted: [] };
+              const { live, deleted } = partitionCloudEngines(allEngines);
               const showEmpty = view.kind === "empty" || (view.kind === "list" && live.length === 0);
-              const historyRecords = signed
-                ? mergeControlDeletedEngines(deletionRecords, deleted)
-                : deletionRecords;
+              const historyRecords = mergeControlDeletedEngines(deletionRecords, deleted);
               return (
                 <>
                   {showEmpty && <CloudEmptyState action={createAction} />}

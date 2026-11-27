@@ -4,8 +4,10 @@
  * cites an earlier signature. Straight apostrophes (U+0027) and straight
  * quotes (U+0022) only. Do not add the rejected Failed chip or body for a non-setup failure.
  *
- * Callers must not render these strings while `isCloudSignedCopyEnabled()` is
- * false. Rollback is turning that setting off.
+ * Deleted-engine strings, delete toasts, Previous deletions grouping, and the
+ * code-to-copy mapping are always on (Lead exception, 27 Nov 2026). Status and
+ * health labels, Launch A/B/E, activity-log copy, parked-change lines, and the
+ * #948 limit line stay behind `VITE_CLOUD_SIGNED_COPY`.
  */
 
 export const CLOUD_ENGINE_DELETED_TOAST_UNNAMED = "Engine deleted.";
@@ -108,6 +110,8 @@ export const CLOUD_DELETE_START_FALLBACK =
 
 export const CLOUD_ACTIVITY_CHANGE_REQUESTED = "Change requested";
 export const CLOUD_ACTIVITY_FALLBACK = "Engine activity";
+export const CLOUD_ACTIVITY_CHECKING_DEPLOYMENT = "Checking deployment status";
+export const CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED = "Deployment result not confirmed.";
 
 export function previousDeletionsHeading(count: number): string {
   return `Previous deletions (${count})`;

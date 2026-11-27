@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 import {
   cloudHealthLabel,
   isSetupFailure,
@@ -25,13 +26,22 @@ describe("isSetupFailure", () => {
 });
 
 describe("health visibility", () => {
-  it("hides Health on Failed because Control forces Unreachable", () => {
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
+
+  it("always hides Health on Deleted and Deleting", () => {
+    setCloudSignedCopyEnabledForTests(false);
+    expect(shouldHideHealth(controlDeletedOverview().status, "Unknown")).toBe(true);
+    expect(shouldHideHealth("Deleting", "Healthy")).toBe(true);
+  });
+
+  it("hides Health on Failed or Unknown only when signed copy is on", () => {
+    setCloudSignedCopyEnabledForTests(false);
+    expect(shouldHideHealth(controlFailedSetupOverview().status, controlFailedSetupOverview().health)).toBe(false);
+    expect(shouldHideHealth("Ready", "Unknown")).toBe(false);
+    setCloudSignedCopyEnabledForTests(true);
     expect(shouldHideHealth(controlFailedSetupOverview().status, controlFailedSetupOverview().health)).toBe(true);
     expect(shouldHideHealth(controlFailedAfterReadyOverview().status, "Unreachable")).toBe(true);
     expect(shouldHideHealth(controlFailedWithoutOperationOverview().status, "Unreachable")).toBe(true);
-  });
-
-  it("hides Health when it is Unknown, and shows signed labels otherwise", () => {
     expect(shouldHideHealth("Ready", "Unknown")).toBe(true);
     expect(shouldHideHealth("Ready", "Healthy")).toBe(false);
     expect(cloudHealthLabel("Degraded")).toBe("Not fully healthy");

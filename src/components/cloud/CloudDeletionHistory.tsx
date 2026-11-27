@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  PREVIOUS_DELETIONS_HEADING,
   deletionEngineDisplayName,
   deletionRecordClock,
   isSucceededDeletion,
@@ -10,7 +9,6 @@ import {
   type DeletionHistoryInstance,
   type DeletionHistoryRecord,
 } from "@/lib/cloud/managedEngineDeletionHistory";
-import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 import { previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
 
 export function CloudDeletionHistory({
@@ -23,8 +21,7 @@ export function CloudDeletionHistory({
   const { livePanel, history } = partitionDeletionRecords(records, liveInstances);
   const visibleLive = livePanel.filter((record) => !isSucceededDeletion(record));
   const historyRows = [...history, ...livePanel.filter(isSucceededDeletion)];
-  const signed = isCloudSignedCopyEnabled();
-  const [expanded, setExpanded] = useState(!signed);
+  const [expanded, setExpanded] = useState(false);
 
   if (visibleLive.length === 0 && historyRows.length === 0) return null;
 
@@ -43,19 +40,15 @@ export function CloudDeletionHistory({
       )}
       {historyRows.length > 0 && (
         <section className="space-y-2">
-          {signed ? (
-            <button
-              type="button"
-              className="text-sm font-semibold min-h-11"
-              aria-expanded={expanded}
-              onClick={() => setExpanded((value) => !value)}
-            >
-              {previousDeletionsHeading(historyRows.length)}
-            </button>
-          ) : (
-            <h2 className="text-sm font-semibold">{PREVIOUS_DELETIONS_HEADING}</h2>
-          )}
-          {(!signed || expanded) && (
+          <button
+            type="button"
+            className="text-sm font-semibold min-h-11"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {previousDeletionsHeading(historyRows.length)}
+          </button>
+          {expanded && (
             <ul className="space-y-2">
               {historyRows.map((record) => (
                 <DeletionRow
