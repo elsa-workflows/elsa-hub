@@ -20,6 +20,7 @@ import {
 import {
   CLOUD_CREATE_ENGINE,
   CLOUD_ENGINE_NAME_LABEL,
+  cloudActionErrorLine,
   isCloudBffError,
   isCloudLimitReached,
   isCloudUpdating,
@@ -64,7 +65,7 @@ export function CloudCreateEngineDialog({
       idempotencyKey: crypto.randomUUID(),
     });
     if (isCloudUpdating(result) || isCloudLimitReached(result) || isCloudBffError(result)) {
-      setError(result.error);
+      setError(cloudActionErrorLine(result) ?? result.error);
       return;
     }
     if (result.ok && "engine" in result && result.engine) {

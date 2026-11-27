@@ -79,3 +79,4 @@ export {
   hasCloudSetupMarker,
   setCloudSetupMarker,
 } from "./setupMarker";
+export { cloudActionErrorLine } from "./actionError";

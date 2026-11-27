@@ -5,9 +5,11 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import {
   CLOUD_APPLY_RELEASE,
   CLOUD_DELETE_ENGINE,
+  CLOUD_DELETE_CHANGED_SINCE_READ,
   CLOUD_DELETE_CONFIRMATION_EXPIRED,
   CLOUD_DELETE_IN_PROGRESS,
   CLOUD_DELETE_START_ERROR,
+  CLOUD_RESTART_CONFIRM,
   CLOUD_ERROR_HEADING,
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
@@ -507,6 +509,48 @@ describe("CloudEngineOverview", () => {
     expect(await screen.findByText(CLOUD_DELETE_IN_PROGRESS)).toBeInTheDocument();
     expect(screen.queryByText(CLOUD_DELETE_START_ERROR)).not.toBeInTheDocument();
     expect(screen.queryByText(CLOUD_DELETE_CONFIRMATION_EXPIRED)).not.toBeInTheDocument();
+  });
+
+  it("shows the existing changed-since-read line for a 412 changed_since_read delete", async () => {
+    viewState.current = { kind: "ready", engine };
+    await submitDeleteWith({
+      ok: false,
+      code: "changed_since_read",
+      error: "This engine changed since you opened it.",
+    });
+    expect(await screen.findByText(CLOUD_DELETE_CHANGED_SINCE_READ)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_START_ERROR)).not.toBeInTheDocument();
+  });
+
+  async function submitRestartWith(result: unknown) {
+    lifecycle.restart.mockResolvedValue(result);
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_RESTART }));
+    await screen.findByRole("heading", { name: CLOUD_RESTART_CONFIRM });
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_RESTART }).at(-1)!);
+    await waitFor(() => expect(lifecycle.restart).toHaveBeenCalled());
+  }
+
+  it("shows the existing changed-since-read line when restart is refused as changed_since_read", async () => {
+    viewState.current = { kind: "ready", engine };
+    await submitRestartWith({
+      ok: false,
+      code: "changed_since_read",
+      error: "This engine changed since you opened it.",
+    });
+    expect(await screen.findByText(CLOUD_DELETE_CHANGED_SINCE_READ)).toBeInTheDocument();
+  });
+
+  it("shows the generic fallback when restart is refused as instance.operation-active", async () => {
+    viewState.current = { kind: "ready", engine };
+    await submitRestartWith({
+      ok: false,
+      code: "instance.operation-active",
+      error: "The request could not be completed.",
+    });
+    expect(await screen.findByText("The request could not be completed.")).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_IN_PROGRESS)).not.toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_START_ERROR)).not.toBeInTheDocument();
   });
 
   it("treats an invalid confirmation on a Deleting engine as already being deleted, without a refetch", async () => {

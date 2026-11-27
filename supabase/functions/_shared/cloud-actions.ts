@@ -209,44 +209,38 @@ function persistLinkFailure(
   return jsonResponse(503, updatingBody());
 }
 
-// Control problem codes, verified against valence-works/elsa-control
-// ManagedElsaInstanceEndpoints (ConflictCode and the delete endpoint).
+// Control problem codes, verified read-only against valence-works/elsa-control
+// @ 9b176ae36956827c4c2d8b8993cd3ba32c9ac7b0,
+// src/Hosting/ElsaControl.Api/Workspace/ManagedElsaInstanceEndpoints.cs
+// (ConflictCode, ConflictStatusCode, and the delete / create / operation endpoints).
 const CONTROL_DELETE_CONFIRMATION_INVALID = "instance.delete-confirmation-invalid";
 const CONTROL_OPERATION_ACTIVE = "instance.operation-active";
 const CONTROL_CHANGED_SINCE_READ = "instance.changed-since-read";
 
 const DELETE_ACTIONS: ReadonlySet<CloudBffAction> = new Set(["confirmDelete", "deleteEngine"]);
 
+// Already used for generic invalid_request bodies. Reused as the neutral
+// fallback when a Control 409/412/422 is passed through. Do not substitute
+// Control problem titles: those are unsigned and Launch owns the copy.
+const CONTROL_PASSTHROUGH_ERROR = "The request could not be completed.";
+
+const CONTROL_PROBLEM_CODE = /^[A-Za-z0-9._-]{1,100}$/;
+
+function controlProblemCode(code: string | undefined): string | undefined {
+  return code && CONTROL_PROBLEM_CODE.test(code) ? code : undefined;
+}
+
+function invalidControlBody(code: string, error: string): { ok: false; code: string; error: string } {
+  return { ok: false, code, error };
+}
+
 function failedControl(
   result: Extract<ControlResult, { ok: false }>,
   action?: CloudBffAction,
 ): Response {
   if (result.kind === "invalid") {
-    // Control sends changed-since-read as 412 on delete and 409 elsewhere.
-    if (result.code === CONTROL_CHANGED_SINCE_READ && (result.status === 409 || result.status === 412)) {
-      return jsonResponse(409, {
-        ok: false,
-        code: CLOUD_CHANGED_SINCE_READ_CODE,
-        error: "This engine changed since you opened it.",
-      });
-    }
-    const deleteAction = result.status === 409 && action !== undefined && DELETE_ACTIONS.has(action);
-    if (deleteAction && result.code === CONTROL_OPERATION_ACTIVE) {
-      return jsonResponse(409, {
-        ok: false,
-        code: CLOUD_DELETE_IN_PROGRESS_CODE,
-        error: "This engine is already being deleted.",
-      });
-    }
-    // Kept distinct: the UI decides from the engine state whether this means
-    // "already being deleted" or "confirmation expired".
-    if (deleteAction && result.code === CONTROL_DELETE_CONFIRMATION_INVALID) {
-      return jsonResponse(409, {
-        ok: false,
-        code: CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
-        error: "This delete confirmation is no longer valid.",
-      });
-    }
+    const mapped = mapInvalidControl(result, action);
+    if (mapped) return mapped;
   }
   if (result.kind === "limit") {
     return jsonResponse(422, limitBody(result.currentInstances, result.maxInstances));
@@ -266,13 +260,54 @@ function failedControl(
     });
   }
   if (result.kind === "invalid") {
-    return jsonResponse(400, {
-      ok: false,
-      code: "invalid_request",
-      error: "The request could not be completed.",
-    });
+    return jsonResponse(400, invalidControlBody("invalid_request", CONTROL_PASSTHROUGH_ERROR));
   }
   return jsonResponse(503, updatingBody());
+}
+
+// Pass Control's 409, 412 and 422 through as those statuses, with the problem
+// code, for every action. Never collapse them to 400 invalid_request.
+// #224 aliases stay on the delete (and changed-since-read) paths so the UI
+// can keep branching on delete_in_progress, delete_confirmation_invalid and
+// changed_since_read. A Control 412 stays 412.
+function mapInvalidControl(
+  result: Extract<ControlResult, { ok: false }>,
+  action?: CloudBffAction,
+): Response | null {
+  const status = result.status;
+  const code = result.code;
+  if (code === CONTROL_CHANGED_SINCE_READ && (status === 409 || status === 412)) {
+    return jsonResponse(status, invalidControlBody(
+      CLOUD_CHANGED_SINCE_READ_CODE,
+      "This engine changed since you opened it.",
+    ));
+  }
+  const deleteAction = action !== undefined && DELETE_ACTIONS.has(action);
+  if (deleteAction && status === 409 && code === CONTROL_OPERATION_ACTIVE) {
+    return jsonResponse(409, invalidControlBody(
+      CLOUD_DELETE_IN_PROGRESS_CODE,
+      "This engine is already being deleted.",
+    ));
+  }
+  // Kept distinct: the UI decides from the engine state whether this means
+  // "already being deleted" or "confirmation expired".
+  if (deleteAction && status === 409 && code === CONTROL_DELETE_CONFIRMATION_INVALID) {
+    return jsonResponse(409, invalidControlBody(
+      CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
+      "This delete confirmation is no longer valid.",
+    ));
+  }
+  if (status === 409 || status === 412 || status === 422) {
+    return jsonResponse(status, invalidControlBody(
+      controlProblemCode(code) ?? "invalid_request",
+      CONTROL_PASSTHROUGH_ERROR,
+    ));
+  }
+  const passed = controlProblemCode(code);
+  if (passed && (status === 400 || status === 428)) {
+    return jsonResponse(status, invalidControlBody(passed, CONTROL_PASSTHROUGH_ERROR));
+  }
+  return null;
 }
 
 function instancePath(request: CloudBffRequest, suffix = "") {
