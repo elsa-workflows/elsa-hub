@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 import {
   PREVIOUS_DELETIONS_HEADING,
   UNFINISHED_DELETE_STATE_CANCELLED,
@@ -27,6 +28,8 @@ function record(overrides: Partial<DeletionHistoryRecord> = {}): DeletionHistory
 }
 
 describe("CloudDeletionHistory", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
   it("shows Previous deletions and the completed sentence", () => {
     render(
       <CloudDeletionHistory

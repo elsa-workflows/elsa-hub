@@ -19,13 +19,29 @@ import {
   cloudEngineDeletingToast,
   previousDeletionsHeading,
 } from "./signedCopy";
-import { setCloudSignedCopyEnabledForTests } from "./signedCopyFlag";
+import { cloudSignedCopyEnabledFromEnv, isCloudSignedCopyEnabled, setCloudSignedCopyEnabledForTests } from "./signedCopyFlag";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
 afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
 
 describe("signed Cloud copy (#237)", () => {
+  it("defaults off unless VITE_CLOUD_SIGNED_COPY is 1, true, or on", () => {
+    expect(cloudSignedCopyEnabledFromEnv(undefined)).toBe(false);
+    expect(cloudSignedCopyEnabledFromEnv("")).toBe(false);
+    expect(cloudSignedCopyEnabledFromEnv("0")).toBe(false);
+    expect(cloudSignedCopyEnabledFromEnv("false")).toBe(false);
+    expect(cloudSignedCopyEnabledFromEnv("off")).toBe(false);
+    expect(cloudSignedCopyEnabledFromEnv("yes")).toBe(false);
+    expect(cloudSignedCopyEnabledFromEnv("1")).toBe(true);
+    expect(cloudSignedCopyEnabledFromEnv("TRUE")).toBe(true);
+    expect(cloudSignedCopyEnabledFromEnv(" On ")).toBe(true);
+    setCloudSignedCopyEnabledForTests(undefined);
+    expect(isCloudSignedCopyEnabled()).toBe(cloudSignedCopyEnabledFromEnv(
+      (import.meta.env.VITE_CLOUD_SIGNED_COPY as string | undefined) ?? "",
+    ));
+  });
+
   it("uses straight quotes in the completion and in-progress toasts", () => {
     expect(cloudEngineDeletedToast("Test")).toBe('Engine "Test" deleted.');
     expect(cloudEngineDeletedToast("")).toBe(CLOUD_ENGINE_DELETED_TOAST_UNNAMED);

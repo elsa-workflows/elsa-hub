@@ -7,6 +7,11 @@ import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 
 function activityLabel(item: CloudActivityItem): string {
   if (!isCloudSignedCopyEnabled()) return item.message ?? item.eventType;
+  // Control already classifies `message` for customers (not raw operator prose).
+  // The signed table is `item.message ?? item.eventType`: keep the message when
+  // present, and never fall back to a raw eventType.
+  const message = item.message?.trim();
+  if (message) return message;
   if (item.eventType === "lifecycle.accepted") return CLOUD_ACTIVITY_CHANGE_REQUESTED;
   return CLOUD_ACTIVITY_FALLBACK;
 }

@@ -4,6 +4,8 @@ import {
   isCompatibleControl,
   normalizeDeleteConfirmation,
   normalizeEngineOverview,
+  normalizeEngineSummary,
+  normalizeEngines,
   normalizeProvisioningProgress,
 } from "./cloud-control.ts";
 import {
@@ -432,6 +434,44 @@ Deno.test("normalizeEngineOverview passes #1011 operation reason codes and keeps
   });
   assertEquals("reasonCode" in legacy!.activeOperation!.progress!, false);
   assertEquals("reasonCode" in legacy!.lastOperation!, false);
+});
+
+
+Deno.test("normalizeEngineSummary passes lastOperation through when Control sends it on a list item", () => {
+  const listed = normalizeEngineSummary({
+    instanceId: OVERVIEW_ID,
+    name: "Prod",
+    slug: "prod",
+    observedLifecycle: "Failed",
+    lastOperation: {
+      action: "Create",
+      state: "Failed",
+      completedAt: "2026-11-27T13:00:00.000Z",
+      failureCode: null,
+    },
+  });
+  assertEquals(listed?.status, "Failed");
+  assertEquals(listed?.lastOperation?.action, "Create");
+  assertEquals(listed?.lastOperation?.state, "Failed");
+
+  const bare = normalizeEngineSummary({
+    instanceId: OVERVIEW_ID,
+    name: "Prod",
+    slug: "prod",
+    observedLifecycle: "Ready",
+  });
+  assertEquals("lastOperation" in bare!, false);
+
+  const engines = normalizeEngines({
+    items: [{
+      instanceId: OVERVIEW_ID,
+      name: "Prod",
+      slug: "prod",
+      observedLifecycle: "Failed",
+      lastOperation: { action: "Retry", state: "Failed", completedAt: null, failureCode: null },
+    }],
+  });
+  assertEquals(engines?.[0]?.lastOperation?.action, "Retry");
 });
 
 const CONFIRMATION_ID = "66666666-6666-6666-6666-666666666666";

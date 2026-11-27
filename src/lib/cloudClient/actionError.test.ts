@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CLOUD_LIMIT_MESSAGE } from "@/lib/cloud";
 import { CLOUD_DELETE_CHANGED_SINCE_READ } from "./copy";
 import { CLOUD_ACTION_CHANGED_SINCE_READ, CLOUD_ACTION_FALLBACK, CLOUD_LIMIT_MESSAGE_SIGNED, CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT } from "./signedCopy";
 import { cloudActionErrorLine } from "./actionError";
 import { setCloudSignedCopyEnabledForTests } from "./signedCopyFlag";
 
+beforeEach(() => setCloudSignedCopyEnabledForTests(true));
 afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
 
 describe("cloudActionErrorLine (signed copy on)", () => {

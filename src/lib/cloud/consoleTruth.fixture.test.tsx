@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 import { CloudDeletionHistory } from "@/components/cloud/CloudDeletionHistory";
 import { CloudProvisioningTimeline } from "@/components/cloud/CloudProvisioningTimeline";
 import { NEEDS_ATTENTION_LABEL } from "@/components/cloud/engineStatus";
@@ -86,6 +87,8 @@ const progress: CloudProvisioningProgress = {
 };
 
 describe("#605 console fixture", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
   it("shows the workload step, attempt 2 clock, and the prior deletion row", () => {
     render(
       <>

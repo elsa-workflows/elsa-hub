@@ -65,8 +65,19 @@ describe("reasonCopyForCode with Control overview shapes", () => {
   it("treats Failed + lastOperation Restart, or no lastOperation, as Needs attention with the generic fallback", () => {
     expect(overviewReasonCopy(controlFailedAfterReadyOverview())).toEqual({
       body: CLOUD_REASON_GENERIC_FALLBACK,
+      nextStep: CLOUD_REASON_RESTART_NEXT,
     });
     expect(overviewReasonCopy(controlFailedWithoutOperationOverview())).toEqual({
+      body: CLOUD_REASON_GENERIC_FALLBACK,
+    });
+    expect(overviewReasonCopy(controlFailedAfterReadyOverview({
+      allowedActions: {
+        restart: { allowed: false, reasonCode: "instance.failed" },
+        applyRelease: { allowed: false, reasonCode: "instance.failed" },
+        open: { allowed: false, reasonCode: "instance.failed" },
+        delete: { allowed: false, reasonCode: "instance.failed" },
+      },
+    }))).toEqual({
       body: CLOUD_REASON_GENERIC_FALLBACK,
     });
   });

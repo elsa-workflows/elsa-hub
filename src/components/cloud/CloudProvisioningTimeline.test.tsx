@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CLOUD_PROVISIONING_HEADING, CLOUD_UPDATING_RETRY } from "@/lib/cloudClient";
 import { heldDeleteLine } from "@/lib/cloudClient/signedCopy";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
 import { MANAGED_PROVISIONING_STAGE_CODES, UNKNOWN_ATTEMPT_CLOCK_LABEL } from "@/lib/cloud/provisioningProgress";
 import { provisioningActivityLabels, provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
@@ -60,6 +61,8 @@ const engine = (status: string, operationState?: string): CloudEngineOverview =>
 });
 
 describe("CloudProvisioningTimeline", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
   it("hides the step count and pulse for an unmapped snapshot", () => {
     render(<CloudProvisioningTimeline progress={unknownProgress} engine={engine("Provisioning")} />);
     expect(screen.getByText(WAITING_FOR_PROGRESS_TITLE)).toBeInTheDocument();

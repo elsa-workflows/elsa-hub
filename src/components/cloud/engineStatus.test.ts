@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   NEEDS_ATTENTION_LABEL,
   cloudEngineStatusLabel,
@@ -8,6 +8,7 @@ import {
 import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 import { CLOUD_STATUS_NOT_FULLY_HEALTHY, CLOUD_STATUS_SETTING_UP, CLOUD_STATUS_SETUP_STOPPED, CLOUD_STATUS_UNAVAILABLE } from "@/lib/cloudClient/signedCopy";
 
+beforeEach(() => setCloudSignedCopyEnabledForTests(true));
 afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
 
 describe("engineStatus", () => {

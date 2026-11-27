@@ -71,7 +71,7 @@ export function ElsaCloudOverviewCard({ orgSlug }: { orgSlug?: string | null }) 
                   <li key={engine.id} className="flex items-center justify-between gap-3 text-sm">
                     <span className="truncate">{engine.name}</span>
                     <Badge variant={cloudEngineStatusVariant(engine.status)}>
-                      {cloudEngineStatusLabel(engine.status)}
+                      {cloudEngineStatusLabel(engine.status, undefined, engine.lastOperation)}
                     </Badge>
                   </li>
                 ))}

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -207,6 +207,7 @@ const DELETE_CONFIRMATION_LINE = CLOUD_ACTION_DELETE_CONFIRMATION_INVALID;
 const DELETE_CHANGED_LINE = CLOUD_ACTION_CHANGED_SINCE_READ;
 
 describe("CloudEngineOverview", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
   afterEach(() => {
     document.querySelectorAll("meta[name='robots']").forEach((node) => node.remove());
     viewState.setupCloud.mockReset();
@@ -1003,6 +1004,7 @@ describe("CloudEngineOverview", () => {
     const { unmount } = renderOverview();
     expect(screen.getAllByText("Needs attention").length).toBeGreaterThan(0);
     expect(screen.getByText(CLOUD_REASON_GENERIC_FALLBACK)).toBeInTheDocument();
+    expect(screen.getByText("Restart this engine, or email hello@valence.works.")).toBeInTheDocument();
     expect(screen.queryByText("Not running")).not.toBeInTheDocument();
     expect(screen.queryByText("This engine isn't running.")).not.toBeInTheDocument();
     expect(screen.queryByText("Health")).not.toBeInTheDocument();

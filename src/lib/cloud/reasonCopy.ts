@@ -74,6 +74,14 @@ function restartNext(engine?: Pick<CloudEngineOverview, "allowedActions"> | null
   return engine?.allowedActions.restart.allowed ? CLOUD_REASON_RESTART_NEXT : CLOUD_REASON_NEITHER_NEXT;
 }
 
+/** Launch E: Restart next-step only when restart is allowed. Otherwise generic only. */
+function nonSetupFailedCopy(engine?: Pick<CloudEngineOverview, "allowedActions"> | null): ReasonCopy {
+  if (engine?.allowedActions.restart.allowed) {
+    return { body: CLOUD_REASON_GENERIC_FALLBACK, nextStep: CLOUD_REASON_RESTART_NEXT };
+  }
+  return { body: CLOUD_REASON_GENERIC_FALLBACK };
+}
+
 function operationIdFrom(engine?: Pick<CloudEngineOverview, "activeOperation"> | null): string | null {
   return usableOperationId(engine?.activeOperation?.id);
 }
@@ -129,7 +137,7 @@ export function reasonCopyForCode(
         ?? (isKnownProvisioningReason(resolved) || isSetupStageCode(resolved) ? resolved : null);
       return setupFailureCopy(reasonCode, false);
     }
-    return { chip: undefined, body: CLOUD_REASON_GENERIC_FALLBACK };
+    return nonSetupFailedCopy(engine);
   }
 
   if (resolved === "delete-held" || (engine?.activeOperation?.action === "Delete" && engine.activeOperation.state === "EntitlementHeld")) {
@@ -178,7 +186,7 @@ export function reasonCopyForCode(
         ?? null;
       return setupFailureCopy(reasonCode, false);
     }
-    return { body: CLOUD_REASON_GENERIC_FALLBACK };
+    return nonSetupFailedCopy(engine);
   }
 
   if (resolved === "provider-timeout") {

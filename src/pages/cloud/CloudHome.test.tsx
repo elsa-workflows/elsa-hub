@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
@@ -25,7 +25,9 @@ import {
   CLOUD_UPDATING_RETRY,
   type CloudOnboardingOptions,
 } from "@/lib/cloudClient";
-import { previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
+import { CLOUD_STATUS_SETUP_STOPPED, previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
+import { NEEDS_ATTENTION_LABEL } from "@/components/cloud/engineStatus";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
 import type { CloudEngineListView } from "@/hooks/useCloudEngines";
 
@@ -192,6 +194,7 @@ function renderHome(path = "/dashboard/org/acme/cloud") {
 }
 
 describe("CloudHome", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
   afterEach(() => {
     document.querySelectorAll("meta[name='robots']").forEach((node) => node.remove());
     viewState.setupCloud.mockReset();
@@ -217,6 +220,7 @@ describe("CloudHome", () => {
     invoke.mockReset();
     resetDeletionHistoryStore();
     localStorage.clear();
+    setCloudSignedCopyEnabledForTests(undefined);
   });
 
   it("shows a loading state", () => {
@@ -620,6 +624,35 @@ describe("CloudHome", () => {
     expect(await screen.findByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).toBeInTheDocument();
     expect(screen.queryByText(UNFINISHED_DELETE_STATE_DELETING)).not.toBeInTheDocument();
     expect(screen.getByText("Prod")).toBeInTheDocument();
+  });
+
+
+  it("labels a Failed setup Setup stopped on the list, and a Failed Restart Needs attention", () => {
+    viewState.current = {
+      kind: "list",
+      engines: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          name: "Setup",
+          slug: "setup",
+          status: "Failed",
+          release: null,
+          lastOperation: { action: "Create", state: "Failed", completedAt: "2026-11-27T13:00:00.000Z", failureCode: null },
+        },
+        {
+          id: "22222222-2222-4222-8222-222222222222",
+          name: "Restarted",
+          slug: "restarted",
+          status: "Failed",
+          release: "3.8.4",
+          lastOperation: { action: "Restart", state: "Failed", completedAt: "2026-11-27T13:30:00.000Z", failureCode: null },
+        },
+      ],
+    };
+    renderHome();
+    expect(screen.getByText("Setup").closest("li")).toHaveTextContent(CLOUD_STATUS_SETUP_STOPPED);
+    expect(screen.getByText("Restarted").closest("li")).toHaveTextContent(NEEDS_ATTENTION_LABEL);
+    expect(screen.queryByText("Failed")).not.toBeInTheDocument();
   });
 
   it("moves Control Deleted engines into Previous deletions and leaves Deleting in the main list", async () => {

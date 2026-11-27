@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CLOUD_PROVISIONING_HEADING } from "@/lib/cloudClient";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
@@ -6,6 +6,7 @@ import { MANAGED_PROVISIONING_STAGE_CODES } from "@/lib/cloud/provisioningProgre
 import { provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
 import { STAGE_STATUS_IN_PROGRESS, STAGE_STATUS_NEEDS_ATTENTION } from "@/lib/cloud/provisioningPhases";
 import { CloudProvisioningTimeline } from "./CloudProvisioningTimeline";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 
 const TITLE = "Engine setup stopped";
 const SIGNED: Record<string, string> = {
@@ -72,6 +73,8 @@ const engine = (
 });
 
 describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
   it.each(Object.keys(SIGNED))("failed + %s shows the signed table and stops the spinner", (code) => {
     render(<CloudProvisioningTimeline progress={progress({ reasonCode: code })} engine={engine()} />);
     expect(screen.getByRole("heading", { name: TITLE })).toBeInTheDocument();
