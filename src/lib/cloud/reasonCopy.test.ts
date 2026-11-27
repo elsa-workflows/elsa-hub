@@ -194,6 +194,24 @@ describe("reasonCopyForCode with Control overview shapes", () => {
       nextStep: null,
     });
     expect(overviewReasonCopy(engine)?.body).not.toContain("didn't finish on its own");
+    expect(overviewReasonCopy(engine)?.body).not.toContain("last change didn't finish");
+  });
+
+  it("uses the generic fallback for inherited-key codes such as constructor, toString and __proto__", () => {
+    const ready = controlDeletedOverview({
+      status: "Ready",
+      health: "Healthy",
+      unavailableReason: undefined,
+      unavailableReasonCode: undefined,
+      lastOperation: null,
+    });
+    for (const code of ["constructor", "toString", "__proto__"]) {
+      const copy = reasonCopyForCode(code, { engine: ready });
+      expect(copy).toEqual({ body: CLOUD_REASON_GENERIC_FALLBACK });
+      expect(typeof copy?.body).toBe("string");
+      ready.unavailableReasonCode = code;
+      expect(overviewReasonCopy(ready)).toEqual({ body: CLOUD_REASON_GENERIC_FALLBACK });
+    }
   });
 });
 

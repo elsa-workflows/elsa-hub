@@ -16,14 +16,14 @@ import {
  * code falls back to Change requested (lifecycle.accepted) or Engine activity.
  * item.message and eventType are never rendered.
  */
-const SIGNED_ACTIVITY_BY_CODE: Record<string, string> = {
-  "deployment.result-unconfirmed": CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED,
-  "deployment.status-checking": CLOUD_ACTIVITY_CHECKING_DEPLOYMENT,
-};
+const SIGNED_ACTIVITY_BY_CODE = new Map<string, string>([
+  ["deployment.result-unconfirmed", CLOUD_ACTIVITY_DEPLOYMENT_RESULT_NOT_CONFIRMED],
+  ["deployment.status-checking", CLOUD_ACTIVITY_CHECKING_DEPLOYMENT],
+]);
 
 function activityLabel(item: CloudActivityItem): string {
   const code = item.diagnosticCode?.trim() ?? "";
-  const mapped = code ? SIGNED_ACTIVITY_BY_CODE[code] : undefined;
+  const mapped = code ? SIGNED_ACTIVITY_BY_CODE.get(code) : undefined;
   if (mapped) return mapped;
   if (item.eventType === "lifecycle.accepted") return CLOUD_ACTIVITY_CHANGE_REQUESTED;
   return CLOUD_ACTIVITY_FALLBACK;

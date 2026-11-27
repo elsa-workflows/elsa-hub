@@ -138,4 +138,23 @@ describe("CloudActivityLog", () => {
     expect(screen.queryByText("Checking deployment status from Control")).not.toBeInTheDocument();
     expect(screen.queryByText("lifecycle.reconciled")).not.toBeInTheDocument();
   });
+
+  it("uses the signed fallback for inherited-key diagnosticCodes such as constructor, toString and __proto__", () => {
+    for (const [code, eventType, expected] of [
+      ["constructor", "lifecycle.accepted", CLOUD_ACTIVITY_CHANGE_REQUESTED],
+      ["toString", "lifecycle.failed", CLOUD_ACTIVITY_FALLBACK],
+      ["__proto__", "lifecycle.reconciled", CLOUD_ACTIVITY_FALLBACK],
+    ] as const) {
+      const { unmount } = render(<CloudActivityLog items={[item({
+        eventType,
+        diagnosticCode: code,
+        message: "should not render",
+      })]} />);
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      expect(screen.queryByText("should not render")).not.toBeInTheDocument();
+      expect(screen.queryByText(eventType)).not.toBeInTheDocument();
+      expect(screen.queryByText(code)).not.toBeInTheDocument();
+      unmount();
+    }
+  });
 });

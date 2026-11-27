@@ -48,7 +48,7 @@ export type ReasonCopy = {
   nextStep?: string | null;
 };
 
-const PROVISIONING_REASON: Record<string, string> = { ...provisioningFailureBodyLines };
+const PROVISIONING_REASON = new Map<string, string>(Object.entries(provisioningFailureBodyLines));
 const SETUP_STAGE_PREFIXES = ["azure.", "provider.submission.rejected", "provisioning."];
 
 const PARKED_DELETE_CODES = new Set([
@@ -84,7 +84,7 @@ function operationIdFrom(engine?: Pick<CloudEngineOverview, "activeOperation"> |
 }
 
 function isKnownProvisioningReason(code: string): code is ProvisioningReasonCode {
-  return code in PROVISIONING_REASON;
+  return PROVISIONING_REASON.has(code);
 }
 
 function setupFailureCopy(
@@ -92,7 +92,7 @@ function setupFailureCopy(
   retryAllowed?: boolean,
 ): ReasonCopy {
   const body = reasonCode && isKnownProvisioningReason(reasonCode)
-    ? PROVISIONING_REASON[reasonCode]
+    ? PROVISIONING_REASON.get(reasonCode) ?? PROVISIONING_FAILURE_FALLBACK_LINE
     : PROVISIONING_FAILURE_FALLBACK_LINE;
   return {
     body,
@@ -144,30 +144,30 @@ function instanceFailedCopy({ engine, progress }: ReasonContext): ReasonCopy {
   return nonSetupFailedCopy(engine);
 }
 
-const REASON_BY_CODE: Record<string, (ctx: ReasonContext) => ReasonCopy> = {
-  "instance.unavailable": ({ engine }) => ({
+const REASON_BY_CODE = new Map<string, (ctx: ReasonContext) => ReasonCopy>([
+  ["instance.unavailable", ({ engine }) => ({
     body: CLOUD_REASON_UNAVAILABLE_BODY,
     nextStep: restartNext(engine),
-  }),
-  "instance.failed": instanceFailedCopy,
-  "provider-timeout": () => ({ body: CLOUD_REASON_STATUS_CANT_BE_LOADED }),
-  "delete-pending": () => ({ body: CLOUD_REASON_DELETING_BODY, nextStep: null }),
-  "instance.provisioning": () => ({ body: CLOUD_REASON_IN_PROGRESS_CHANGE, nextStep: null }),
-  "instance.recovery-required": ({ operationId }) => ({ body: parkedChangeBody(operationId) }),
-  "instance.unknown": () => ({ body: CLOUD_REASON_STATUS_CANT_BE_DETERMINED }),
-  "handoff-unavailable": () => ({ body: CLOUD_REASON_HANDOFF_UNAVAILABLE }),
-  "identity-unavailable": () => ({ body: identityUnavailableBody() }),
-  "lifecycle.deletion.blocked-by-operation-in-flight": () => ({
+  })],
+  ["instance.failed", instanceFailedCopy],
+  ["provider-timeout", () => ({ body: CLOUD_REASON_STATUS_CANT_BE_LOADED })],
+  ["delete-pending", () => ({ body: CLOUD_REASON_DELETING_BODY, nextStep: null })],
+  ["instance.provisioning", () => ({ body: CLOUD_REASON_IN_PROGRESS_CHANGE, nextStep: null })],
+  ["instance.recovery-required", ({ operationId }) => ({ body: parkedChangeBody(operationId) })],
+  ["instance.unknown", () => ({ body: CLOUD_REASON_STATUS_CANT_BE_DETERMINED })],
+  ["handoff-unavailable", () => ({ body: CLOUD_REASON_HANDOFF_UNAVAILABLE })],
+  ["identity-unavailable", () => ({ body: identityUnavailableBody() })],
+  ["lifecycle.deletion.blocked-by-operation-in-flight", () => ({
     body: CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT,
     nextStep: null,
-  }),
-};
+  })],
+]);
 
 for (const code of COMMERCIAL_CODES) {
-  REASON_BY_CODE[code] = () => ({ body: CLOUD_REASON_NO_ACTIVE_PLAN });
+  REASON_BY_CODE.set(code, () => ({ body: CLOUD_REASON_NO_ACTIVE_PLAN }));
 }
 for (const code of LIMIT_CODES) {
-  REASON_BY_CODE[code] = () => ({ body: cloudLimitMessage() });
+  REASON_BY_CODE.set(code, () => ({ body: cloudLimitMessage() }));
 }
 
 export function reasonCopyForCode(
@@ -231,7 +231,7 @@ export function reasonCopyForCode(
     return { body: CLOUD_REASON_GENERIC_FALLBACK };
   }
 
-  const mapped = REASON_BY_CODE[resolved];
+  const mapped = REASON_BY_CODE.get(resolved);
   if (mapped) return mapped(ctx);
 
   if ((isKnownProvisioningReason(resolved) || isSetupStageCode(resolved))
