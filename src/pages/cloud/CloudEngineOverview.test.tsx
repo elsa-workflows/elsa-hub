@@ -622,6 +622,32 @@ describe("CloudEngineOverview", () => {
     expect(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)).toBeDisabled();
   });
 
+  it("shows the start error when the fresh confirmation request rejects after an expired one", async () => {
+    viewState.current = { kind: "ready", engine };
+    viewState.refetch.mockReset();
+    viewState.refetch.mockResolvedValue({ ok: true, state: "ready", engine });
+    lifecycle.confirmDelete
+      .mockResolvedValueOnce({
+        ok: true,
+        confirmation: {
+          id: "66666666-6666-6666-6666-666666666666",
+          expiresAt: "2026-10-15T01:00:00Z",
+          billingNotice: { code: "engine-deletion-leaves-subscription-active", message: "notice" },
+        },
+      })
+      .mockRejectedValueOnce(new Error("network down"));
+    lifecycle.deleteEngine.mockResolvedValueOnce(CONFIRMATION_INVALID);
+    renderOverview();
+    fireEvent.click(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE }));
+    await screen.findByText("notice");
+    fireEvent.click(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)!);
+    expect(await screen.findByText(CLOUD_DELETE_START_ERROR)).toBeInTheDocument();
+    expect(screen.queryByText(CLOUD_DELETE_CONFIRMATION_EXPIRED)).not.toBeInTheDocument();
+    expect(lifecycle.confirmDelete).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByRole("button", { name: CLOUD_DELETE_ENGINE }).at(-1)).toBeDisabled();
+    expect(screen.queryByText("network down")).not.toBeInTheDocument();
+  });
+
   it("refetches once and says already being deleted when the refreshed engine shows a delete", async () => {
     viewState.current = { kind: "ready", engine };
     viewState.refetch.mockReset();
