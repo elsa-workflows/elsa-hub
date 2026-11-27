@@ -27,6 +27,15 @@ describe("cloudEngineOverviewView", () => {
       ),
     ).toEqual({ kind: "error", message: "This workspace is not available." });
   });
+
+  it("treats contract_mismatch as an error with the generic line, not as unreachable", () => {
+    expect(
+      cloudEngineOverviewView(
+        { ok: false, code: "contract_mismatch", error: "The request could not be completed." },
+        false,
+      ),
+    ).toEqual({ kind: "error", message: "The request could not be completed." });
+  });
 });
 
 describe("resolveCloudEngineOverviewView", () => {

@@ -39,4 +39,16 @@ describe("cloudActionErrorLine", () => {
       code: "instance.shape-invalid",
     })).toBe("That action could not be completed.");
   });
+
+  it("shows the existing generic line for contract_mismatch, not the unreachable copy", () => {
+    expect(cloudActionErrorLine({
+      ok: false,
+      code: "contract_mismatch",
+      error: "The request could not be completed.",
+    })).toBe("The request could not be completed.");
+    expect(cloudActionErrorLine({
+      ok: false,
+      code: "contract_mismatch",
+    })).toBe("That action could not be completed.");
+  });
 });

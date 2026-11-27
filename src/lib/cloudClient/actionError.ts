@@ -1,4 +1,9 @@
-import { CLOUD_CHANGED_SINCE_READ_CODE, CLOUD_LIMIT_CODE, CLOUD_LIMIT_MESSAGE } from "@/lib/cloud";
+import {
+  CLOUD_CHANGED_SINCE_READ_CODE,
+  CLOUD_CONTRACT_MISMATCH_CODE,
+  CLOUD_LIMIT_CODE,
+  CLOUD_LIMIT_MESSAGE,
+} from "@/lib/cloud";
 import { CLOUD_DELETE_CHANGED_SINCE_READ } from "./copy";
 
 // Maps a cloud-bff error to a line the UI can show. Reuses signed or already
@@ -11,6 +16,11 @@ export function cloudActionErrorLine(result: unknown): string | null {
   const code = "code" in result ? result.code : undefined;
   if (code === CLOUD_CHANGED_SINCE_READ_CODE) return CLOUD_DELETE_CHANGED_SINCE_READ;
   if (code === CLOUD_LIMIT_CODE) return CLOUD_LIMIT_MESSAGE;
+  if (code === CLOUD_CONTRACT_MISMATCH_CODE) {
+    return "error" in result && typeof result.error === "string" && result.error
+      ? result.error
+      : "That action could not be completed.";
+  }
   if ("error" in result && typeof result.error === "string" && result.error) {
     return result.error;
   }

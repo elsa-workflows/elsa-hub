@@ -6,9 +6,11 @@ import {
   type CompatibilityCache,
 } from "./cloud-compatibility.ts";
 import { jsonResponse } from "./cloud-http.ts";
-import type { ControlCall, ControlFetch, ControlResult } from "./cloud-control.ts";
+import type { ControlCall, ControlFetch, ControlResult, NormalizeKind } from "./cloud-control.ts";
 import {
   isCompatibleControl,
+  logControlHubResponse,
+  missingNormalizedField,
   normalizeActivity,
   normalizeAcceptedCreate,
   normalizeAvailableReleases,
@@ -39,6 +41,7 @@ import {
   CLOUD_ORG_LINK_CONFLICT_CODE,
   CLOUD_ORG_LINK_FORBIDDEN,
   CLOUD_CHANGED_SINCE_READ_CODE,
+  CLOUD_CONTRACT_MISMATCH_CODE,
   CLOUD_DELETE_CONFIRMATION_INVALID_CODE,
   CLOUD_DELETE_IN_PROGRESS_CODE,
   type CloudBffAction,
@@ -416,6 +419,48 @@ async function callControl(
   }
 }
 
+function controlStatusOf(result: ControlResult): number | undefined {
+  return result.status;
+}
+
+function respond(
+  controlStatus: number | undefined,
+  action: string,
+  status: number,
+  body: unknown,
+  missingField?: string,
+): Response {
+  logControlHubResponse(controlStatus, action, status, missingField);
+  return jsonResponse(status, body);
+}
+
+function finish(controlStatus: number | undefined, action: string, response: Response): Response {
+  logControlHubResponse(controlStatus, action, response.status);
+  return response;
+}
+
+// 502 Bad Gateway: cloud-bff is the gateway to Control. Control answered 2xx,
+// but the body did not match the contract Hub needs, so this is a bad upstream
+// response, not an outage (503 updating) and not a client error (4xx).
+function contractMismatch(
+  controlStatus: number | undefined,
+  action: string,
+  kind: NormalizeKind,
+  body: unknown,
+): Response {
+  return respond(
+    controlStatus,
+    action,
+    502,
+    {
+      ok: false,
+      code: CLOUD_CONTRACT_MISMATCH_CODE,
+      error: CONTROL_PASSTHROUGH_ERROR,
+    },
+    missingNormalizedField(kind, body),
+  );
+}
+
 export async function dispatchCloudAction(
   ctx: CloudActionContext,
   request: CloudBffRequest,
@@ -430,18 +475,21 @@ export async function dispatchCloudAction(
   }
 
   const result = await callControl(ctx, request.action, request);
+  const controlStatus = controlStatusOf(result);
+  const action = request.action;
   if (!result.ok) {
-    if (request.action === "linkCloudAccount") return accountLinkFailure(result);
-    return failedControl(result, request.action);
+    if (action === "linkCloudAccount") return finish(controlStatus, action, accountLinkFailure(result));
+    return finish(controlStatus, action, failedControl(result, action));
   }
 
   switch (request.action) {
     case "compatibility": {
+      const normalized = normalizeCompatibility(result.body);
+      if (!normalized) return contractMismatch(controlStatus, action, "compatibility", result.body);
       if (!isCompatibleControl(result.body)) {
-        return jsonResponse(503, updatingBody());
+        return respond(controlStatus, action, 503, updatingBody());
       }
-      const normalized = normalizeCompatibility(result.body)!;
-      return jsonResponse(200, {
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "compatible",
         contractVersion: normalized.contractVersion,
@@ -450,11 +498,11 @@ export async function dispatchCloudAction(
     }
     case "bootstrap": {
       const normalized = normalizeBootstrap(result.body);
-      if (!normalized) return jsonResponse(503, updatingBody());
+      if (!normalized) return contractMismatch(controlStatus, action, "bootstrap", result.body);
       if (request.hubOrganizationId) {
         const persist = ctx.persistLink ?? persistLinkFromValidatedBootstrap;
         if (!ctx.userClient || !ctx.serviceClient) {
-          return jsonResponse(503, updatingBody());
+          return respond(controlStatus, action, 503, updatingBody());
         }
         const persisted = await persist({
           userClient: ctx.userClient,
@@ -462,32 +510,32 @@ export async function dispatchCloudAction(
           hubOrganizationId: request.hubOrganizationId,
           bootstrap: normalized,
         });
-        if (!persisted.ok) return persistLinkFailure(persisted);
+        if (!persisted.ok) return finish(controlStatus, action, persistLinkFailure(persisted));
       }
-      return jsonResponse(200, { ok: true, state: "ready", ...normalized });
+      return respond(controlStatus, action, 200, { ok: true, state: "ready", ...normalized });
     }
     case "listWorkspaces": {
       const workspaces = normalizeWorkspaces(result.body);
-      if (!workspaces) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, { ok: true, state: "ready", workspaces });
+      if (!workspaces) return contractMismatch(controlStatus, action, "workspaces", result.body);
+      return respond(controlStatus, action, 200, { ok: true, state: "ready", workspaces });
     }
     case "selectWorkspace": {
       const workspaces = normalizeWorkspaces(result.body);
-      if (!workspaces) return jsonResponse(503, updatingBody());
+      if (!workspaces) return contractMismatch(controlStatus, action, "workspaces", result.body);
       const workspace = workspaces.find((item) => item.id === request.workspaceId);
       if (!workspace) {
-        return jsonResponse(403, {
+        return respond(controlStatus, action, 403, {
           ok: false,
           code: "forbidden",
           error: "This workspace is not available.",
         });
       }
-      return jsonResponse(200, { ok: true, state: "ready", workspace });
+      return respond(controlStatus, action, 200, { ok: true, state: "ready", workspace });
     }
     case "listEngines": {
       const engines = normalizeEngines(result.body);
-      if (!engines) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!engines) return contractMismatch(controlStatus, action, "engines", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: engines.length === 0 ? "empty" : "ready",
         workspaceId: request.workspaceId,
@@ -496,8 +544,8 @@ export async function dispatchCloudAction(
     }
     case "engineOverview": {
       const engine = normalizeEngineOverview(result.body, result.etag);
-      if (!engine) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!engine) return contractMismatch(controlStatus, action, "engineOverview", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "ready",
         workspaceId: request.workspaceId,
@@ -506,8 +554,8 @@ export async function dispatchCloudAction(
     }
     case "onboardingOptions": {
       const options = normalizeOnboardingOptions(result.body);
-      if (!options) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!options) return contractMismatch(controlStatus, action, "onboardingOptions", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "ready",
         workspaceId: request.workspaceId,
@@ -516,8 +564,8 @@ export async function dispatchCloudAction(
     }
     case "createEngine": {
       const accepted = normalizeAcceptedCreate(result.body);
-      if (!accepted) return jsonResponse(503, updatingBody());
-      return jsonResponse(202, {
+      if (!accepted) return contractMismatch(controlStatus, action, "acceptedCreate", result.body);
+      return respond(controlStatus, action, 202, {
         ok: true,
         state: "accepted",
         workspaceId: request.workspaceId,
@@ -527,8 +575,8 @@ export async function dispatchCloudAction(
     }
     case "provisioningProgress": {
       const progress = normalizeProvisioningProgress(result.body);
-      if (!progress) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!progress) return contractMismatch(controlStatus, action, "provisioningProgress", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "ready",
         workspaceId: request.workspaceId,
@@ -538,8 +586,8 @@ export async function dispatchCloudAction(
     }
     case "engineActivity": {
       const activity = normalizeActivity(result.body);
-      if (!activity) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!activity) return contractMismatch(controlStatus, action, "activity", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "ready",
         workspaceId: request.workspaceId,
@@ -549,8 +597,8 @@ export async function dispatchCloudAction(
     }
     case "availableReleases": {
       const releases = normalizeAvailableReleases(result.body);
-      if (!releases) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!releases) return contractMismatch(controlStatus, action, "availableReleases", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "ready",
         workspaceId: request.workspaceId,
@@ -564,8 +612,8 @@ export async function dispatchCloudAction(
       const operation = normalizeOperation(result.body) ??
         normalizeAcceptedCreate(result.body)?.operation ??
         null;
-      if (!operation) return jsonResponse(503, updatingBody());
-      return jsonResponse(202, {
+      if (!operation) return contractMismatch(controlStatus, action, "operation", result.body);
+      return respond(controlStatus, action, 202, {
         ok: true,
         state: "accepted",
         workspaceId: request.workspaceId,
@@ -575,8 +623,8 @@ export async function dispatchCloudAction(
     }
     case "confirmDelete": {
       const confirmation = normalizeDeleteConfirmation(result.body);
-      if (!confirmation) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!confirmation) return contractMismatch(controlStatus, action, "deleteConfirmation", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "ready",
         workspaceId: request.workspaceId,
@@ -586,8 +634,8 @@ export async function dispatchCloudAction(
     }
     case "deleteOperationStatus": {
       const operation = normalizeOperation(result.body);
-      if (!operation) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!operation) return contractMismatch(controlStatus, action, "operation", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: "ready",
         workspaceId: request.workspaceId,
@@ -597,13 +645,13 @@ export async function dispatchCloudAction(
     }
     case "issueStudioHandoff": {
       const handoff = normalizeStudioHandoff(result.body);
-      if (!handoff) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, { ok: true, state: "ready", handoff });
+      if (!handoff) return contractMismatch(controlStatus, action, "studioHandoff", result.body);
+      return respond(controlStatus, action, 200, { ok: true, state: "ready", handoff });
     }
     case "linkCloudAccount": {
       const linked = normalizeAccountLink(result.body);
-      if (!linked) return jsonResponse(503, updatingBody());
-      return jsonResponse(200, {
+      if (!linked) return contractMismatch(controlStatus, action, "accountLink", result.body);
+      return respond(controlStatus, action, 200, {
         ok: true,
         state: linked.alreadyLinked ? "already_linked" : "linked",
         accountId: linked.accountId,

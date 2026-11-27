@@ -43,6 +43,29 @@ export function logControlProblem(status: number, action: string | undefined, co
   console.info(`control_status=${status} action=${action ?? "unknown"} problem_code=${safeCode}`);
 }
 
+// Final Hub status for a Control-backed response. Never logs bodies, tokens
+// or user data. missing_field is only set for a 2xx parse failure.
+export function logControlHubResponse(
+  controlStatus: number | undefined,
+  action: string | undefined,
+  hubStatus: number,
+  missingField?: string,
+) {
+  const control = typeof controlStatus === "number" && Number.isFinite(controlStatus)
+    ? String(controlStatus)
+    : "none";
+  const parts = [
+    `control_status=${control}`,
+    `action=${action ?? "unknown"}`,
+    `hub_status=${hubStatus}`,
+  ];
+  if (missingField) {
+    const safe = /^[A-Za-z0-9._-]{1,100}$/.test(missingField) ? missingField : "shape";
+    parts.push(`missing_field=${safe}`);
+  }
+  console.info(parts.join(" "));
+}
+
 export type ControlResult = {
   ok: true;
   status: number;
@@ -648,4 +671,117 @@ export function normalizeStudioHandoff(body: unknown): CloudStudioHandoff | null
   const expiresAt = asString(record.expiresAt);
   if (!token || !tokenType || !audience || !redirectUri || !issuedAt || !expiresAt) return null;
   return { token, tokenType, audience, redirectUri, issuedAt, expiresAt };
+}
+
+
+export type NormalizeKind =
+  | "compatibility"
+  | "bootstrap"
+  | "workspaces"
+  | "engines"
+  | "engineOverview"
+  | "onboardingOptions"
+  | "acceptedCreate"
+  | "operation"
+  | "provisioningProgress"
+  | "activity"
+  | "availableReleases"
+  | "deleteConfirmation"
+  | "studioHandoff"
+  | "accountLink";
+
+// First required field a normalizer rejected. Field names are fixed tokens
+// only, never values from the body.
+export function missingNormalizedField(kind: NormalizeKind, body: unknown): string {
+  const record = asRecord(body);
+  if (kind === "compatibility") {
+    if (!record) return "body";
+    if (typeof record.contractVersion !== "number" || !Number.isInteger(record.contractVersion)) {
+      return "contractVersion";
+    }
+    if (!Array.isArray(record.capabilities) || record.capabilities.some((item) => typeof item !== "string")) {
+      return "capabilities";
+    }
+    return "shape";
+  }
+  if (kind === "bootstrap") {
+    if (!record) return "body";
+    if (!isGuid(asString(record.organizationId))) return "organizationId";
+    if (!isGuid(asString(record.workspaceId))) return "workspaceId";
+    return "shape";
+  }
+  if (kind === "workspaces") {
+    if (!record || !Array.isArray(record.workspaces)) return "workspaces";
+    return "workspaces.item";
+  }
+  if (kind === "engines") {
+    if (!record || !Array.isArray(record.items)) return "items";
+    return "items.item";
+  }
+  if (kind === "engineOverview") {
+    if (!record) return "body";
+    return missingEngineSummaryField(asRecord(record.summary) ?? record);
+  }
+  if (kind === "onboardingOptions") {
+    if (!record) return "body";
+    if (!record.launchProfile) return "launchProfile";
+    return "launchProfile";
+  }
+  if (kind === "acceptedCreate") {
+    if (!record) return "body";
+    if (!normalizeEngineSummary(record.instance ?? record)) {
+      return missingEngineSummaryField(asRecord(record.instance) ?? record);
+    }
+    if (!normalizeOperation(record.operation ?? record)) return "operation";
+    return "shape";
+  }
+  if (kind === "operation") {
+    if (!record) return "body";
+    if (!isGuid(asString(record.id) ?? asString(record.operationId))) return "id";
+    if (!asString(record.state)) return "state";
+    return "shape";
+  }
+  if (kind === "provisioningProgress") {
+    if (!record) return "body";
+    if (!asString(record.state)) return "state";
+    return "stages";
+  }
+  if (kind === "activity") {
+    if (!record || !Array.isArray(record.items)) return "items";
+    return "items.item";
+  }
+  if (kind === "availableReleases") {
+    const source = Array.isArray(record?.items) ? record!.items : Array.isArray(body) ? body : null;
+    if (!source) return "items";
+    return "items.item";
+  }
+  if (kind === "deleteConfirmation") {
+    if (!record) return "body";
+    if (!isGuid(asString(record.confirmationId) ?? asString(record.id))) return "confirmationId";
+    if (!asString(record.expiresAt)) return "expiresAt";
+    return "shape";
+  }
+  if (kind === "studioHandoff") {
+    if (!record) return "body";
+    if (!asString(record.token)) return "token";
+    if (!asString(record.tokenType)) return "tokenType";
+    if (!asString(record.audience)) return "audience";
+    if (!asString(record.redirectUri)) return "redirectUri";
+    if (!asString(record.issuedAt)) return "issuedAt";
+    if (!asString(record.expiresAt)) return "expiresAt";
+    return "shape";
+  }
+  if (kind === "accountLink") {
+    if (!record) return "body";
+    return "accountId";
+  }
+  return "shape";
+}
+
+function missingEngineSummaryField(value: Record<string, unknown> | null): string {
+  if (!value) return "body";
+  if (!isGuid(engineIdFrom(value))) return "id";
+  if (!asString(value.name)) return "name";
+  if (!asString(value.slug)) return "slug";
+  return "shape";
 }

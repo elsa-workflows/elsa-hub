@@ -31,6 +31,7 @@ import {
   CLOUD_REQUIRED_CAPABILITIES,
   CLOUD_REQUIRED_READ_CAPABILITIES,
   CLOUD_REQUIRED_WRITE_CAPABILITIES,
+  CLOUD_CONTRACT_MISMATCH_CODE,
   CLOUD_UPDATING_CODE,
   CLOUD_UPDATING_MESSAGE,
   CLOUD_WRITE_ACTIONS,
@@ -289,7 +290,7 @@ Deno.test("each read action returns the normalized shape for a signed-in user", 
   });
 });
 
-Deno.test("selectWorkspace treats a malformed memberships body as updating", async () => {
+Deno.test("selectWorkspace treats a malformed memberships body as contract_mismatch", async () => {
   const malformed = await signedIn({
     action: "selectWorkspace",
     workspaceId: WORKSPACE_ID,
@@ -300,8 +301,14 @@ Deno.test("selectWorkspace treats a malformed memberships body as updating", asy
       body: { error: "nope" },
     },
   });
-  assertEquals(malformed.status, 503);
-  assertEquals((await readJson(malformed)).code, CLOUD_UPDATING_CODE);
+  const body = await readJson(malformed);
+  assertEquals(malformed.status, 502);
+  assertEquals(body, {
+    ok: false,
+    code: CLOUD_CONTRACT_MISMATCH_CODE,
+    error: "The request could not be completed.",
+  });
+  assertFalse(JSON.stringify(body).includes("nope"));
 });
 
 Deno.test("no file under supabase/functions calls retired Control list routes", async () => {
@@ -443,8 +450,9 @@ Deno.test("Control outage or incompatible version returns the sanitized updating
     }),
   });
   const sanitized = await readJson(rawUpstream);
-  assertEquals(rawUpstream.status, 503);
-  assertEquals(sanitized.code, CLOUD_UPDATING_CODE);
+  assertEquals(rawUpstream.status, 502);
+  assertEquals(sanitized.code, CLOUD_CONTRACT_MISMATCH_CODE);
+  assertEquals(sanitized.error, "The request could not be completed.");
   const serialized = JSON.stringify(sanitized);
   assertFalse(serialized.includes("stack trace"));
   assertFalse(serialized.includes("connectionString"));
@@ -1012,8 +1020,8 @@ Deno.test("a failed Control bootstrap does not persist a link", async () => {
       body: { organizationId: "not-a-guid", workspaceId: WORKSPACE_ID },
     },
   }, extra);
-  assertEquals(invalid.status, 503);
-  assertEquals((await readJson(invalid)).code, CLOUD_UPDATING_CODE);
+  assertEquals(invalid.status, 502);
+  assertEquals((await readJson(invalid)).code, CLOUD_CONTRACT_MISMATCH_CODE);
   assertEquals(persistCalls, 0);
 });
 
@@ -1527,4 +1535,331 @@ Deno.test("a Control 422 shape-invalid on create stays 422 with Control's proble
     code: "instance.shape-invalid",
     error: "The request could not be completed.",
   });
+});
+
+Deno.test("a Control 400 with a safe problem code stays 400 with that code", async () => {
+  const response = await signedIn(RESTART_REQUEST, {
+    [RESTART_PATH]: {
+      ok: false,
+      kind: "invalid",
+      code: "instance.delete-confirmation-required",
+      status: 400,
+    },
+  });
+  assertEquals(response.status, 400);
+  assertEquals(await readJson(response), {
+    ok: false,
+    code: "instance.delete-confirmation-required",
+    error: "The request could not be completed.",
+  });
+});
+
+Deno.test("a Control 428 with a safe problem code stays 428 with that code", async () => {
+  const response = await signedIn(RESTART_REQUEST, {
+    [RESTART_PATH]: {
+      ok: false,
+      kind: "invalid",
+      code: "instance.precondition-required",
+      status: 428,
+    },
+  });
+  assertEquals(response.status, 428);
+  assertEquals(await readJson(response), {
+    ok: false,
+    code: "instance.precondition-required",
+    error: "The request could not be completed.",
+  });
+});
+
+Deno.test("a Control 409 with a missing or unsafe code stays 409 invalid_request", async () => {
+  const missing = await signedIn(DELETE_REQUEST, {
+    [DELETE_PATH]: { ok: false, kind: "invalid", status: 409 },
+  });
+  assertEquals(missing.status, 409);
+  assertEquals(await readJson(missing), {
+    ok: false,
+    code: "invalid_request",
+    error: "The request could not be completed.",
+  });
+
+  const unsafe = await signedIn(DELETE_REQUEST, {
+    [DELETE_PATH]: {
+      ok: false,
+      kind: "invalid",
+      code: "instance.operation-active<script>",
+      status: 409,
+    },
+  });
+  assertEquals(unsafe.status, 409);
+  const unsafeBody = await readJson(unsafe);
+  assertEquals(unsafeBody, {
+    ok: false,
+    code: "invalid_request",
+    error: "The request could not be completed.",
+  });
+  assertFalse(JSON.stringify(unsafeBody).includes("<script>"));
+});
+
+function captureInfo(): { lines: string[]; restore: () => void } {
+  const lines: string[] = [];
+  const original = console.info;
+  console.info = (...args: unknown[]) => {
+    lines.push(args.map(String).join(" "));
+  };
+  return {
+    lines,
+    restore: () => {
+      console.info = original;
+    },
+  };
+}
+
+const MISMATCH_ERROR = {
+  ok: false,
+  code: CLOUD_CONTRACT_MISMATCH_CODE,
+  error: "The request could not be completed.",
+} as const;
+
+async function assertContractMismatch(
+  action: string,
+  requestBody: unknown,
+  route: string,
+  controlBody: unknown,
+  missingField: string,
+  controlStatus = 200,
+) {
+  const log = captureInfo();
+  try {
+    const response = await signedIn(requestBody, {
+      [route]: { ok: true, status: controlStatus, body: controlBody },
+    });
+    const body = await readJson(response);
+    assertEquals(response.status, 502, action);
+    assertEquals(body, MISMATCH_ERROR, action);
+    assertFalse("state" in body, action);
+    const line = log.lines.find((item) =>
+      item.includes(`action=${action}`) && item.includes("hub_status=502")
+    );
+    assert(line, `${action}: missing hub_status log, had: ${log.lines.join(" | ")}`);
+    assertEquals(
+      line.includes(`control_status=${controlStatus}`),
+      true,
+      `${action}: ${line}`,
+    );
+    assertEquals(
+      line.includes(`missing_field=${missingField}`),
+      true,
+      `${action}: ${line}`,
+    );
+    assertFalse(line.includes("hub-session-token"), action);
+    assertFalse(JSON.stringify(body).includes("hub-session-token"), action);
+  } finally {
+    log.restore();
+  }
+}
+
+Deno.test("a 2xx parse failure is contract_mismatch for every action with a 2xx parse path", async () => {
+  await assertContractMismatch(
+    "compatibility",
+    { action: "compatibility" },
+    "GET /api/cloud/compatibility",
+    { capabilities: [...CLOUD_REQUIRED_CAPABILITIES] },
+    "contractVersion",
+  );
+  await assertContractMismatch(
+    "bootstrap",
+    { action: "bootstrap" },
+    "POST /api/cloud/bootstrap",
+    { organizationId: ORGANIZATION_ID },
+    "workspaceId",
+  );
+  await assertContractMismatch(
+    "listWorkspaces",
+    { action: "listWorkspaces" },
+    "GET /api/me/workspace-memberships",
+    { error: "nope" },
+    "workspaces",
+  );
+  await assertContractMismatch(
+    "selectWorkspace",
+    { action: "selectWorkspace", workspaceId: WORKSPACE_ID },
+    "GET /api/me/workspace-memberships",
+    { error: "nope" },
+    "workspaces",
+  );
+  await assertContractMismatch(
+    "listEngines",
+    { action: "listEngines", workspaceId: WORKSPACE_ID },
+    `GET /api/workspaces/${WORKSPACE_ID}/instances`,
+    {},
+    "items",
+  );
+  await assertContractMismatch(
+    "engineOverview",
+    { action: "engineOverview", workspaceId: WORKSPACE_ID, engineId: ENGINE_ID },
+    `GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/overview`,
+    { name: "Prod", slug: "prod" },
+    "id",
+  );
+  await assertContractMismatch(
+    "onboardingOptions",
+    { action: "onboardingOptions", workspaceId: WORKSPACE_ID },
+    `GET /api/workspaces/${WORKSPACE_ID}/instances/onboarding-options`,
+    {},
+    "launchProfile",
+  );
+  await assertContractMismatch(
+    "createEngine",
+    CREATE_REQUEST,
+    CREATE_PATH,
+    { name: "Prod" },
+    "id",
+    201,
+  );
+  await assertContractMismatch(
+    "provisioningProgress",
+    { action: "provisioningProgress", workspaceId: WORKSPACE_ID, engineId: ENGINE_ID },
+    `GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/provisioning-progress`,
+    {},
+    "state",
+  );
+  await assertContractMismatch(
+    "engineActivity",
+    { action: "engineActivity", workspaceId: WORKSPACE_ID, engineId: ENGINE_ID },
+    `GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/activity`,
+    {},
+    "items",
+  );
+  await assertContractMismatch(
+    "availableReleases",
+    { action: "availableReleases", workspaceId: WORKSPACE_ID, engineId: ENGINE_ID },
+    `GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/available-releases`,
+    {},
+    "items",
+  );
+  await assertContractMismatch(
+    "restartEngine",
+    RESTART_REQUEST,
+    RESTART_PATH,
+    { action: "Restart" },
+    "id",
+    202,
+  );
+  await assertContractMismatch(
+    "applyRelease",
+    {
+      action: "applyRelease",
+      workspaceId: WORKSPACE_ID,
+      engineId: ENGINE_ID,
+      version: "3.8.5",
+      idempotencyKey: IDEMPOTENCY_KEY,
+      ifMatch: '"1"',
+    },
+    `POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/apply-release`,
+    { action: "ApplyRelease" },
+    "id",
+    202,
+  );
+  await assertContractMismatch(
+    "confirmDelete",
+    { action: "confirmDelete", workspaceId: WORKSPACE_ID, engineId: ENGINE_ID },
+    `POST /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete-confirmations`,
+    { expiresAt: "2026-10-15T01:00:00Z" },
+    "confirmationId",
+  );
+  await assertContractMismatch(
+    "deleteEngine",
+    DELETE_REQUEST,
+    DELETE_PATH,
+    { action: "Delete" },
+    "id",
+    202,
+  );
+  await assertContractMismatch(
+    "deleteOperationStatus",
+    {
+      action: "deleteOperationStatus",
+      workspaceId: WORKSPACE_ID,
+      engineId: ENGINE_ID,
+      operationId: OPERATION_ID,
+    },
+    `GET /api/workspaces/${WORKSPACE_ID}/instances/${ENGINE_ID}/delete-operations/${OPERATION_ID}`,
+    { action: "Delete" },
+    "id",
+  );
+  await assertContractMismatch(
+    "issueStudioHandoff",
+    {
+      action: "issueStudioHandoff",
+      organizationId: ORGANIZATION_ID,
+      engineId: ENGINE_ID,
+      audience: "https://studio.example",
+      redirectUri: "https://studio.example/handoff",
+      codeChallenge: "challenge",
+    },
+    "POST /api/managed-elsa/handoff/issue",
+    {
+      tokenType: "Bearer",
+      audience: "https://studio.example",
+      redirectUri: "https://studio.example/handoff",
+      issuedAt: "2026-10-15T00:00:00Z",
+      expiresAt: "2026-10-15T00:05:00Z",
+    },
+    "token",
+  );
+  await assertContractMismatch(
+    "linkCloudAccount",
+    { action: "linkCloudAccount", cloudAccessToken: "cloud-session-token" },
+    "POST /api/cloud/account-links",
+    {},
+    "accountId",
+  );
+});
+
+Deno.test("a successful Control-backed response logs hub_status next to control_status", async () => {
+  const log = captureInfo();
+  try {
+    const response = await signedIn({ action: "compatibility" }, {
+      "GET /api/cloud/compatibility": { ok: true, status: 200, body: COMPATIBLE },
+    });
+    assertEquals(response.status, 200);
+    const line = log.lines.find((item) =>
+      item.includes("action=compatibility") && item.includes("hub_status=200")
+    );
+    assert(line, `missing hub_status log, had: ${log.lines.join(" | ")}`);
+    assertEquals(line.includes("control_status=200"), true, line);
+    assertFalse(line.includes("missing_field="), line);
+  } finally {
+    log.restore();
+  }
+});
+
+Deno.test("a genuine Control outage still returns the updating state", async () => {
+  const log = captureInfo();
+  try {
+    const response = await signedIn({ action: "listEngines", workspaceId: WORKSPACE_ID }, {}, {
+      controlFetch: async (call) => {
+        if (call.path === "/api/cloud/compatibility") {
+          return { ok: true, status: 200, body: COMPATIBLE };
+        }
+        return { ok: false, kind: "updating" };
+      },
+    });
+    const body = await readJson(response);
+    assertEquals(response.status, 503);
+    assertEquals(body, {
+      ok: false,
+      state: "updating",
+      code: CLOUD_UPDATING_CODE,
+      error: CLOUD_UPDATING_MESSAGE,
+    });
+    const line = log.lines.find((item) =>
+      item.includes("action=listEngines") && item.includes("hub_status=503")
+    );
+    assert(line, `missing hub_status log, had: ${log.lines.join(" | ")}`);
+    assertEquals(line.includes("control_status=none"), true, line);
+    assertFalse(line.includes("missing_field="), line);
+  } finally {
+    log.restore();
+  }
 });
