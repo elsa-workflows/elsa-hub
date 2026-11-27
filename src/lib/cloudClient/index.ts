@@ -79,4 +79,12 @@ export {
   hasCloudSetupMarker,
   setCloudSetupMarker,
 } from "./setupMarker";
-export { cloudActionErrorLine } from "./actionError";
+export { cloudActionErrorLine, type CloudActionKind } from "./actionError";
+export { isCloudSignedCopyEnabled, setCloudSignedCopyEnabledForTests, CLOUD_SIGNED_COPY_ENV } from "./signedCopyFlag";
+export {
+  CLOUD_LIMIT_MESSAGE_SIGNED,
+  cloudEngineDeletedToast,
+  cloudEngineDeletingToast,
+  previousDeletionsHeading,
+} from "./signedCopy";
+export { cloudLimitMessage } from "./copy";

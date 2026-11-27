@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CLOUD_PROVISIONING_HEADING, CLOUD_UPDATING_RETRY } from "@/lib/cloudClient";
+import { heldDeleteLine } from "@/lib/cloudClient/signedCopy";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
 import { MANAGED_PROVISIONING_STAGE_CODES, UNKNOWN_ATTEMPT_CLOCK_LABEL } from "@/lib/cloud/provisioningProgress";
 import { provisioningActivityLabels, provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
@@ -59,6 +61,8 @@ const engine = (status: string, operationState?: string): CloudEngineOverview =>
 });
 
 describe("CloudProvisioningTimeline", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
   it("hides the step count and pulse for an unmapped snapshot", () => {
     render(<CloudProvisioningTimeline progress={unknownProgress} engine={engine("Provisioning")} />);
     expect(screen.getByText(WAITING_FOR_PROGRESS_TITLE)).toBeInTheDocument();
@@ -96,8 +100,8 @@ describe("CloudProvisioningTimeline", () => {
         engine={deleting}
       />,
     );
-    expect(screen.getByText("Deletion of this engine is in progress.")).toBeInTheDocument();
-    expect(screen.getAllByText("Deletion of this engine is in progress.")).toHaveLength(1);
+    expect(screen.queryByText("Deletion of this engine is in progress.")).not.toBeInTheDocument();
+    expect(screen.getByText("This engine is being deleted. Studio and changes aren't available.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: DELETING_THIS_ENGINE_HEADING })).toBeInTheDocument();
     expect(screen.queryByText(CLOUD_PROVISIONING_HEADING)).not.toBeInTheDocument();
     expect(screen.queryByText(WAITING_FOR_PROGRESS_TITLE)).not.toBeInTheDocument();
@@ -147,8 +151,8 @@ describe("CloudProvisioningTimeline", () => {
         engine={parked}
       />,
     );
-    expect(screen.getByText("A human is finishing this deletion.")).toBeInTheDocument();
-    expect(screen.getAllByText("A human is finishing this deletion.")).toHaveLength(1);
+    expect(screen.queryByText("A human is finishing this deletion.")).not.toBeInTheDocument();
+    expect(screen.getByText(formatParkedDeleteGuidance("22222222-2222-4222-8222-222222222222"))).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: DELETING_THIS_ENGINE_HEADING })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: NEEDS_ATTENTION_LABEL })).not.toBeInTheDocument();
     expect(screen.queryByText(CLOUD_PROVISIONING_HEADING)).not.toBeInTheDocument();
@@ -209,8 +213,8 @@ describe("CloudProvisioningTimeline", () => {
         engine={held}
       />,
     );
-    expect(screen.getByText("Deletion of this engine is waiting for a human.")).toBeInTheDocument();
-    expect(screen.getAllByText("Deletion of this engine is waiting for a human.")).toHaveLength(1);
+    expect(screen.queryByText("Deletion of this engine is waiting for a human.")).not.toBeInTheDocument();
+    expect(screen.getByText(heldDeleteLine("22222222-2222-4222-8222-222222222222"))).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: DELETING_THIS_ENGINE_HEADING })).not.toBeInTheDocument();
     expect(screen.queryByText(provisioningActivityLabels["provisioning.requires-attention"])).not.toBeInTheDocument();
     expect(screen.queryByText(UNKNOWN_ATTEMPT_CLOCK_LABEL)).not.toBeInTheDocument();
@@ -228,7 +232,7 @@ describe("CloudProvisioningTimeline", () => {
       },
     };
     render(<CloudProvisioningTimeline engine={heldWithoutReason} />);
-    expect(screen.getByText(formatParkedDeleteGuidance(heldWithoutReason.activeOperation.id))).toBeInTheDocument();
+    expect(screen.getByText(heldDeleteLine(heldWithoutReason.activeOperation.id))).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: DELETING_THIS_ENGINE_HEADING })).not.toBeInTheDocument();
     expect(screen.queryByText(/entitlement/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/billing/i)).not.toBeInTheDocument();

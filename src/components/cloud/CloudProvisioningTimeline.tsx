@@ -3,8 +3,6 @@ import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud
 import {
   isParkedCustomerDelete,
   isParkedEngine,
-  parkedDeleteGuidance,
-  parkedEngineGuidance,
 } from "@/lib/cloud/parkedGuidance";
 import {
   mapControlPhaseToStage,
@@ -30,9 +28,28 @@ import { DELETING_THIS_ENGINE_HEADING } from "@/lib/cloud/managedEngineDeletionH
 import { stateGuidance } from "@/lib/cloud/stateGuidance";
 import { provisioningFailureCopy, RETRY_SETUP_BUTTON_LABEL } from "@/lib/cloud/provisioningFailureReason";
 import { NEEDS_ATTENTION_LABEL, isRecoveryRequired } from "./engineStatus";
+import { overviewReasonCopy } from "@/lib/cloud/reasonCopy";
 import { Button } from "@/components/ui/button";
 
 export const WAITING_FOR_PROGRESS_TITLE = "Waiting for progress";
+
+function TimelineReason({
+  engine,
+  progress,
+}: {
+  engine?: CloudEngineOverview;
+  progress?: CloudProvisioningProgress | null;
+}) {
+  const copy = engine ? overviewReasonCopy(engine, progress) : null;
+  if (!copy) return null;
+  return (
+    <>
+      <p className="text-sm">{copy.body}</p>
+      {copy.nextStep ? <p className="text-sm">{copy.nextStep}</p> : null}
+    </>
+  );
+}
+
 
 function isActiveDelete(engine?: CloudEngineOverview): boolean {
   return engine?.activeOperation?.action === "Delete" || engine?.status === "Deleting";
@@ -98,14 +115,6 @@ export function CloudProvisioningTimeline({
   const activeDelete = isActiveDelete(engine);
   const hideProvisioning = parkedDelete || activeDelete;
   if (!progress) {
-    const controlReason = engine?.unavailableReason && engine.unavailableReasonCode !== "not-authorized"
-      ? engine.unavailableReason
-      : null;
-    const parkedFallback = parked
-      ? (parkedDelete
-        ? parkedDeleteGuidance(null, null, engine?.activeOperation?.id)
-        : parkedEngineGuidance(null, null, engine?.activeOperation?.id))
-      : null;
     const title = parkedDelete
       ? null
       : activeDelete
@@ -116,9 +125,7 @@ export function CloudProvisioningTimeline({
     return (
       <section className="space-y-3">
         {title && <h2 className="text-lg font-semibold">{title}</h2>}
-        {(controlReason ?? parkedFallback) && (
-          <p className="text-sm">{controlReason ?? parkedFallback}</p>
-        )}
+        <TimelineReason engine={engine} />
         {!parked && !activeDelete && (
           <p className="text-sm text-muted-foreground">{WAITING_FOR_PROGRESS_TITLE}</p>
         )}
@@ -146,16 +153,8 @@ export function CloudProvisioningTimeline({
   const stageCode = currentStageCode(progress);
   const stageIndex = stageCode ? MANAGED_PROVISIONING_STAGE_CODES.indexOf(stageCode) : -1;
   const clock = presentProvisioningAttemptClock(managed);
-  const controlReason = engine?.unavailableReason && engine.unavailableReasonCode !== "not-authorized"
-    ? engine.unavailableReason
-    : null;
-  const parkedFallback = parked
-    ? (parkedDelete
-      ? parkedDeleteGuidance(null, null, engine?.activeOperation?.id)
-      : parkedEngineGuidance(null, null, engine?.activeOperation?.id))
-    : null;
   // The signed failure table replaces Control's unavailableReason prose.
-  const reasonCopy = failure ? null : controlReason ?? parkedFallback;
+  const showSignedOrControlReason = !failure;
   const guidance = hideProvisioning || failure ? null : stateGuidance(managed, progress.state === "unavailable");
   const latestActivity = [...(progress.activity ?? [])].sort((a, b) => a.sequence - b.sequence).at(-1);
   const activityLabel = latestActivity?.messageCode
@@ -203,7 +202,7 @@ export function CloudProvisioningTimeline({
           )}
         </div>
       )}
-      {reasonCopy && <p className="text-sm">{reasonCopy}</p>}
+      {showSignedOrControlReason && <TimelineReason engine={engine} progress={progress} />}
 
       {onRefresh && (
         <Button type="button" variant="outline" className="min-h-11" onClick={onRefresh}>

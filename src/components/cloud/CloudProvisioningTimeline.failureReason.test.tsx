@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CLOUD_PROVISIONING_HEADING } from "@/lib/cloudClient";
 import type { CloudEngineOverview, CloudProvisioningProgress } from "@/lib/cloud/actions";
@@ -6,6 +6,7 @@ import { MANAGED_PROVISIONING_STAGE_CODES } from "@/lib/cloud/provisioningProgre
 import { provisioningStageLabels } from "@/lib/cloud/provisioningLabels";
 import { STAGE_STATUS_IN_PROGRESS, STAGE_STATUS_NEEDS_ATTENTION } from "@/lib/cloud/provisioningPhases";
 import { CloudProvisioningTimeline } from "./CloudProvisioningTimeline";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
 
 const TITLE = "Engine setup stopped";
 const SIGNED: Record<string, string> = {
@@ -72,6 +73,8 @@ const engine = (
 });
 
 describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
   it.each(Object.keys(SIGNED))("failed + %s shows the signed table and stops the spinner", (code) => {
     render(<CloudProvisioningTimeline progress={progress({ reasonCode: code })} engine={engine()} />);
     expect(screen.getByRole("heading", { name: TITLE })).toBeInTheDocument();
@@ -319,14 +322,15 @@ describe("CloudProvisioningTimeline failure reasons (#1011)", () => {
     expect(screen.queryByText(prose)).not.toBeInTheDocument();
   });
 
-  it("without a failure the unavailableReason prose still renders", () => {
+  it("without a failure still never renders Control unavailableReason prose", () => {
     const prose = "Control wrote this unavailable reason.";
     render(
       <CloudProvisioningTimeline
         progress={progress({ state: "active" })}
-        engine={engine({ status: "Provisioning", unavailableReason: prose, unavailableReasonCode: "instance.failed" })}
+        engine={engine({ status: "Provisioning", unavailableReason: prose, unavailableReasonCode: "instance.provisioning" })}
       />,
     );
-    expect(screen.getByText(prose)).toBeInTheDocument();
+    expect(screen.queryByText(prose)).not.toBeInTheDocument();
+    expect(screen.getByText("A change to this engine is in progress, so Studio isn't available.")).toBeInTheDocument();
   });
 });

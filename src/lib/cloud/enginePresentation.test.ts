@@ -1,0 +1,122 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
+import {
+  cloudHealthLabel,
+  isSetupFailure,
+  partitionCloudEngines,
+  shouldHideHealth,
+  usableOperationId,
+} from "./enginePresentation";
+import { mergeControlDeletedEngines } from "./managedEngineDeletionHistory";
+import {
+  controlDeletedOverview,
+  controlFailedAfterReadyOverview,
+  controlFailedSetupOverview,
+  controlFailedWithoutOperationOverview,
+} from "./controlOverview.fixtures";
+
+describe("isSetupFailure", () => {
+  it("is true only for Failed with lastOperation Create or Retry", () => {
+    expect(isSetupFailure("Failed", { action: "Create" })).toBe(true);
+    expect(isSetupFailure("Failed", { action: "Retry" })).toBe(true);
+    expect(isSetupFailure("Failed", { action: "Restart" })).toBe(false);
+    expect(isSetupFailure("Failed", null)).toBe(false);
+    expect(isSetupFailure("Ready", { action: "Create" })).toBe(false);
+  });
+});
+
+describe("health visibility", () => {
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
+
+  it("always hides Health on Deleted and Deleting", () => {
+    setCloudSignedCopyEnabledForTests(false);
+    expect(shouldHideHealth(controlDeletedOverview().status, "Unknown")).toBe(true);
+    expect(shouldHideHealth("Deleting", "Healthy")).toBe(true);
+  });
+
+  it("hides Health on Failed or Unknown only when signed copy is on", () => {
+    setCloudSignedCopyEnabledForTests(false);
+    expect(shouldHideHealth(controlFailedSetupOverview().status, controlFailedSetupOverview().health)).toBe(false);
+    expect(shouldHideHealth("Ready", "Unknown")).toBe(false);
+    setCloudSignedCopyEnabledForTests(true);
+    expect(shouldHideHealth(controlFailedSetupOverview().status, controlFailedSetupOverview().health)).toBe(true);
+    expect(shouldHideHealth(controlFailedAfterReadyOverview().status, "Unreachable")).toBe(true);
+    expect(shouldHideHealth(controlFailedWithoutOperationOverview().status, "Unreachable")).toBe(true);
+    expect(shouldHideHealth("Ready", "Unknown")).toBe(true);
+    expect(shouldHideHealth("Ready", "Healthy")).toBe(false);
+    expect(cloudHealthLabel("Degraded")).toBe("Not fully healthy");
+    expect(cloudHealthLabel("Unreachable")).toBe("Not responding");
+    expect(cloudHealthLabel("Unknown")).toBeNull();
+  });
+});
+
+describe("usableOperationId", () => {
+  it("rejects empty and Guid.Empty", () => {
+    expect(usableOperationId(null)).toBeNull();
+    expect(usableOperationId("00000000-0000-0000-0000-000000000000")).toBeNull();
+    expect(usableOperationId("22222222-2222-4222-8222-222222222222")).toBe(
+      "22222222-2222-4222-8222-222222222222",
+    );
+  });
+});
+
+describe("mergeControlDeletedEngines", () => {
+  it("merges Control Deleted engines with local records and dedupes by id, preferring a completion date", () => {
+    const deleted = controlDeletedOverview();
+    const merged = mergeControlDeletedEngines(
+      [{
+        phase: "tracking",
+        instanceId: deleted.id,
+        instanceName: "Local name",
+        operationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        state: "Succeeded",
+      }],
+      [deleted],
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0].completedAt).toBe("2026-11-27T14:05:00.000Z");
+    expect(merged[0].operationId).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  });
+
+  it("does not mutate its input records, and fills a missing local operation id on a new result", () => {
+    const instanceId = "11111111-1111-4111-8111-111111111111";
+    const local = {
+      phase: "tracking" as const,
+      instanceId,
+      instanceName: "Local name",
+      operationId: undefined,
+      completedAt: "2026-11-27T12:00:00.000Z",
+      state: "Succeeded",
+    };
+    const localSnapshot = structuredClone(local);
+    const deleted = {
+      id: instanceId,
+      name: "Control name",
+      lastOperation: {
+        action: "Delete",
+        state: "Succeeded",
+        completedAt: "2026-11-27T14:05:00.000Z",
+        id: "op-1",
+      },
+    };
+    const deletedSnapshot = structuredClone(deleted);
+    const merged = mergeControlDeletedEngines([local], [deleted]);
+    expect(local).toEqual(localSnapshot);
+    expect(deleted).toEqual(deletedSnapshot);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).not.toBe(local);
+    expect(merged[0].operationId).toBe("op-1");
+    expect(merged[0].instanceName).toBe("Local name");
+    expect(merged[0].completedAt).toBe("2026-11-27T12:00:00.000Z");
+  });
+
+  it("leaves Deleting engines out of the Deleted partition", () => {
+    const { live, deleted } = partitionCloudEngines([
+      { status: "Ready", id: "1" },
+      { status: "Deleting", id: "2" },
+      { status: "Deleted", id: "3" },
+    ]);
+    expect(live.map((engine) => engine.id)).toEqual(["1", "2"]);
+    expect(deleted.map((engine) => engine.id)).toEqual(["3"]);
+  });
+});

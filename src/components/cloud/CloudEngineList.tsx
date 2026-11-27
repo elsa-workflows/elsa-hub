@@ -25,7 +25,7 @@ export function CloudEngineList({ engines }: { engines: CloudEngineSummary[] }) 
                   </p>
                 </div>
                 <Badge variant={cloudEngineStatusVariant(engine.status)}>
-                  {cloudEngineStatusLabel(engine.status)}
+                  {cloudEngineStatusLabel(engine.status, undefined, engine.lastOperation)}
                 </Badge>
                 <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
               </CardContent>

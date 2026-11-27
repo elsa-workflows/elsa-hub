@@ -230,3 +230,71 @@ export function partitionDeletionRecords<T extends DeletionHistoryRecord>(
   }
   return { livePanel, history };
 }
+
+export type ControlDeletedEngine = {
+  id: string;
+  name?: string | null;
+  lastOperation?: DeletionOperationStamp | { action?: string | null; state?: string | null; completedAt?: string | null; id?: string | null } | null;
+};
+
+function recordHasCompletionDate(record: DeletionHistoryRecord): boolean {
+  return Boolean(record.completedAt || (record.lastOperation?.action === "Delete" && record.lastOperation.completedAt));
+}
+
+/** Builds a succeeded history row from a Control engine whose status is Deleted. */
+export function recordFromControlDeletedEngine(engine: ControlDeletedEngine): DeletionHistoryRecord {
+  const last = engine.lastOperation;
+  const completedAt = last?.action === "Delete" && last.state === "Succeeded"
+    ? last.completedAt ?? null
+    : last?.completedAt ?? null;
+  const operationId = last && "id" in last ? (typeof last.id === "string" ? last.id : undefined) : undefined;
+  return {
+    phase: "tracking",
+    instanceId: engine.id,
+    instanceName: engine.name,
+    operationId,
+    completedAt,
+    state: "Succeeded",
+    lastOperation: last
+      ? { action: last.action ?? "Delete", state: last.state ?? "Succeeded", completedAt: last.completedAt ?? null }
+      : { action: "Delete", state: "Succeeded", completedAt: completedAt ?? null },
+  };
+}
+
+/**
+ * Merge Control Deleted engines with local deletion records. Dedupe by engine
+ * id and prefer the record that has a completion date.
+ */
+function fillMissingFields(preferred: DeletionHistoryRecord, other: DeletionHistoryRecord): DeletionHistoryRecord {
+  return {
+    ...preferred,
+    instanceName: preferred.instanceName || other.instanceName,
+    operationId: preferred.operationId || other.operationId,
+  };
+}
+
+export function mergeControlDeletedEngines(
+  records: readonly DeletionHistoryRecord[],
+  deletedEngines: readonly ControlDeletedEngine[],
+): DeletionHistoryRecord[] {
+  const byId = new Map<string, DeletionHistoryRecord>();
+  for (const record of records) {
+    const existing = byId.get(record.instanceId);
+    if (!existing || (recordHasCompletionDate(record) && !recordHasCompletionDate(existing))) {
+      byId.set(record.instanceId, { ...record });
+    }
+  }
+  for (const engine of deletedEngines) {
+    const incoming = recordFromControlDeletedEngine(engine);
+    const existing = byId.get(engine.id);
+    if (!existing) {
+      byId.set(engine.id, incoming);
+      continue;
+    }
+    const preferIncoming = recordHasCompletionDate(incoming) && !recordHasCompletionDate(existing);
+    const preferred = preferIncoming ? incoming : existing;
+    const other = preferIncoming ? existing : incoming;
+    byId.set(engine.id, fillMissingFields(preferred, other));
+  }
+  return [...byId.values()];
+}

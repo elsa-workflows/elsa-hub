@@ -317,6 +317,8 @@ export type CloudEngineSummary = {
   slug: string;
   status: string;
   release: string | null;
+  /** Present when Control sends lastOperation on the list item. */
+  lastOperation?: CloudLastOperation | null;
 };
 
 export type CloudEngineActionDecision = {

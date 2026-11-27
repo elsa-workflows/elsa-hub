@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
+import { parkedChangeLine, parkedDeleteLine } from "@/lib/cloudClient/signedCopy";
 import {
   EMPTY_OPERATION_ID,
   PARKED_DELETE_GUIDANCE_WITH_REFERENCE,
@@ -17,6 +19,9 @@ import {
 const OPERATION_ID = "11111111-1111-4111-8111-111111111111";
 
 describe("parkedGuidance", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(false));
+  afterEach(() => setCloudSignedCopyEnabledForTests(undefined));
+
   it("keeps the four signed parked strings", () => {
     expect(PARKED_ENGINE_GUIDANCE_WITH_REFERENCE).toBe(
       "The last change to this engine didn't finish on its own. Email hello@valence.works with reference {operationId} and we'll help during business hours.",
@@ -38,7 +43,8 @@ describe("parkedGuidance", () => {
     );
     expect(formatParkedEngineGuidance(EMPTY_OPERATION_ID)).toBe(PARKED_ENGINE_GUIDANCE_WITHOUT_REFERENCE);
     expect(formatParkedEngineGuidance("")).toBe(PARKED_ENGINE_GUIDANCE_WITHOUT_REFERENCE);
-    expect(formatParkedDeleteGuidance(null)).toBe(PARKED_DELETE_GUIDANCE_WITHOUT_REFERENCE);
+    expect(formatParkedDeleteGuidance(null)).toBe(parkedDeleteLine(null));
+    expect(formatParkedDeleteGuidance(null)).not.toContain("business hours");
   });
 
   it("treats RecoveryRequired lifecycle or a parked delete as parked", () => {
@@ -81,5 +87,14 @@ describe("parkedGuidance", () => {
       formatParkedEngineGuidance(OPERATION_ID),
     );
     expect(parkedDeleteGuidance(null, null, OPERATION_ID)).toBe(formatParkedDeleteGuidance(OPERATION_ID));
+  });
+
+  it("always uses the signed parked-delete line, and the signed parked-change line only when the setting is on", () => {
+    expect(formatParkedDeleteGuidance(OPERATION_ID)).toBe(parkedDeleteLine(OPERATION_ID));
+    expect(formatParkedDeleteGuidance(OPERATION_ID)).not.toContain("business hours");
+    expect(formatParkedEngineGuidance(OPERATION_ID)).toContain("business hours");
+    setCloudSignedCopyEnabledForTests(true);
+    expect(formatParkedEngineGuidance(OPERATION_ID)).toBe(parkedChangeLine(OPERATION_ID));
+    expect(formatParkedEngineGuidance(OPERATION_ID)).not.toContain("business hours");
   });
 });

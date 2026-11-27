@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
@@ -9,6 +9,7 @@ import {
   CLOUD_ENGINES_INTRO,
   CLOUD_ERROR_HEADING,
   CLOUD_LIMIT_MESSAGE,
+  cloudLimitMessage,
   CLOUD_LINK_CHECK_ERROR,
   CLOUD_LINK_ORG_ACTION,
   CLOUD_LINK_ORG_ERROR,
@@ -24,6 +25,9 @@ import {
   CLOUD_UPDATING_RETRY,
   type CloudOnboardingOptions,
 } from "@/lib/cloudClient";
+import { CLOUD_STATUS_SETUP_STOPPED, previousDeletionsHeading } from "@/lib/cloudClient/signedCopy";
+import { setCloudSignedCopyEnabledForTests } from "@/lib/cloudClient/signedCopyFlag";
+import { NEEDS_ATTENTION_LABEL } from "@/components/cloud/engineStatus";
 import type { CloudOrganizationLinkView } from "@/lib/cloud";
 import type { CloudEngineListView } from "@/hooks/useCloudEngines";
 
@@ -190,6 +194,7 @@ function renderHome(path = "/dashboard/org/acme/cloud") {
 }
 
 describe("CloudHome", () => {
+  beforeEach(() => setCloudSignedCopyEnabledForTests(true));
   afterEach(() => {
     document.querySelectorAll("meta[name='robots']").forEach((node) => node.remove());
     viewState.setupCloud.mockReset();
@@ -215,6 +220,7 @@ describe("CloudHome", () => {
     invoke.mockReset();
     resetDeletionHistoryStore();
     localStorage.clear();
+    setCloudSignedCopyEnabledForTests(undefined);
   });
 
   it("shows a loading state", () => {
@@ -256,7 +262,7 @@ describe("CloudHome", () => {
     viewState.atLimit = true;
     viewState.canCreate = false;
     renderHome();
-    expect(screen.getByText(CLOUD_LIMIT_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByText(cloudLimitMessage())).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: CLOUD_CREATE_ENGINE })).not.toBeInTheDocument();
     expect(viewState.createEngine).not.toHaveBeenCalled();
   });
@@ -618,6 +624,127 @@ describe("CloudHome", () => {
     expect(await screen.findByText(UNFINISHED_DELETE_STATE_UNAVAILABLE)).toBeInTheDocument();
     expect(screen.queryByText(UNFINISHED_DELETE_STATE_DELETING)).not.toBeInTheDocument();
     expect(screen.getByText("Prod")).toBeInTheDocument();
+  });
+
+
+  it("labels a Failed setup Setup stopped on the list, and a Failed Restart Needs attention", () => {
+    viewState.current = {
+      kind: "list",
+      engines: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          name: "Setup",
+          slug: "setup",
+          status: "Failed",
+          release: null,
+          lastOperation: { action: "Create", state: "Failed", completedAt: "2026-11-27T13:00:00.000Z", failureCode: null },
+        },
+        {
+          id: "22222222-2222-4222-8222-222222222222",
+          name: "Restarted",
+          slug: "restarted",
+          status: "Failed",
+          release: "3.8.4",
+          lastOperation: { action: "Restart", state: "Failed", completedAt: "2026-11-27T13:30:00.000Z", failureCode: null },
+        },
+      ],
+    };
+    renderHome();
+    expect(screen.getByText("Setup").closest("li")).toHaveTextContent(CLOUD_STATUS_SETUP_STOPPED);
+    expect(screen.getByText("Restarted").closest("li")).toHaveTextContent(NEEDS_ATTENTION_LABEL);
+    expect(screen.queryByText("Failed")).not.toBeInTheDocument();
+  });
+
+  it("groups Deleted engines under Previous deletions even when the signed-copy setting is off", async () => {
+    setCloudSignedCopyEnabledForTests(false);
+    const deletedId = "22222222-2222-4222-8222-222222222222";
+    viewState.current = {
+      kind: "list",
+      engines: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          name: "Production",
+          slug: "production",
+          status: "Ready",
+          release: "3.8.4",
+        },
+        {
+          id: deletedId,
+          name: "Test engine",
+          slug: "test-engine",
+          status: "Deleted",
+          release: null,
+        },
+      ],
+    };
+    viewState.selectedWorkspace = { id: WORKSPACE_ID, name: "Acme" };
+    renderHome();
+    expect(screen.getByRole("link", { name: /production/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /test engine/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Test engine deleted/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: previousDeletionsHeading(1) }));
+    expect(await screen.findByText(/Test engine deleted/)).toBeInTheDocument();
+  });
+
+  it("moves Control Deleted engines into Previous deletions and leaves Deleting in the main list", async () => {
+    const deletedId = "22222222-2222-4222-8222-222222222222";
+    const liveId = "11111111-1111-4111-8111-111111111111";
+    viewState.current = {
+      kind: "list",
+      engines: [
+        {
+          id: liveId,
+          name: "Production",
+          slug: "production",
+          status: "Ready",
+          release: "3.8.4",
+        },
+        {
+          id: deletedId,
+          name: "Test engine",
+          slug: "test-engine",
+          status: "Deleted",
+          release: null,
+        },
+        {
+          id: "33333333-3333-4333-8333-333333333333",
+          name: "Leaving",
+          slug: "leaving",
+          status: "Deleting",
+          release: null,
+        },
+      ],
+    };
+    viewState.selectedWorkspace = { id: WORKSPACE_ID, name: "Acme" };
+    renderHome();
+    expect(screen.getByRole("link", { name: /production/i })).toBeInTheDocument();
+    expect(screen.getByText("Leaving")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /test engine/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Test engine deleted/)).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: previousDeletionsHeading(1) });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByText(/Test engine deleted/)).toBeInTheDocument();
+  });
+
+  it("shows the empty state when every engine is Deleted, with Previous deletions underneath", async () => {
+    viewState.current = {
+      kind: "list",
+      engines: [{
+        id: "22222222-2222-4222-8222-222222222222",
+        name: "Test engine",
+        slug: "test-engine",
+        status: "Deleted",
+        release: null,
+      }],
+    };
+    viewState.selectedWorkspace = { id: WORKSPACE_ID, name: "Acme" };
+    renderHome();
+    expect(screen.getByText(CLOUD_EMPTY_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /test engine/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: previousDeletionsHeading(1) }));
+    expect(await screen.findByText(/Test engine deleted/)).toBeInTheDocument();
   });
 
   it("does not show a plan on /cloud before Control reports the entitlement", () => {

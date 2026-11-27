@@ -304,12 +304,14 @@ export function normalizeEngineSummary(value: unknown): CloudEngineSummary | nul
   const name = asString(record.name);
   const slug = asString(record.slug);
   if (!isGuid(id) || !name || !slug) return null;
+  const lastOperation = normalizeLastOperation(record.lastOperation);
   return {
     id,
     name,
     slug,
     status: asString(record.observedLifecycle) ?? asString(record.status) ?? "Unknown",
     release: releaseFrom(record),
+    ...(lastOperation ? { lastOperation } : {}),
   };
 }
 
