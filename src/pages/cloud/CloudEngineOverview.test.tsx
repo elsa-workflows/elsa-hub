@@ -250,6 +250,13 @@ describe("CloudEngineOverview", () => {
     expect(screen.getByRole("button", { name: CLOUD_DELETE_ENGINE })).toBeEnabled();
   });
 
+  it("does not show a reason line for a healthy Ready engine when the setting is on", () => {
+    viewState.current = { kind: "ready", engine };
+    renderOverview();
+    expect(screen.queryByText(CLOUD_REASON_GENERIC_FALLBACK)).not.toBeInTheDocument();
+    expect(screen.queryByText("This engine isn't available. For help, email hello@valence.works.")).not.toBeInTheDocument();
+  });
+
   it("disables actions when allowedActions forbids them", () => {
     viewState.current = {
       kind: "ready",
@@ -1042,6 +1049,14 @@ describe("CloudEngineOverview", () => {
 
   describe("deleted-engine UX with the signed-copy setting off", () => {
     beforeEach(() => setCloudSignedCopyEnabledForTests(false));
+
+    it("does not show a reason line for a healthy Ready engine when the setting is off", () => {
+      viewState.current = { kind: "ready", engine };
+      renderOverview();
+      expect(screen.getByText("Production")).toBeInTheDocument();
+      expect(screen.queryByText(CLOUD_REASON_GENERIC_FALLBACK)).not.toBeInTheDocument();
+      expect(screen.queryByText("This engine isn't available. For help, email hello@valence.works.")).not.toBeInTheDocument();
+    });
 
     it("renders the deleted page when opening a Deleted URL, without redirecting or showing raw Control prose", () => {
       viewState.current = { kind: "ready", engine: controlDeletedOverview({ name: "Test" }) };

@@ -1,7 +1,6 @@
 import { isSetupFailure } from "@/lib/cloud/enginePresentation";
 import { isCloudSignedCopyEnabled } from "@/lib/cloudClient/signedCopyFlag";
 import {
-  CLOUD_STATUS_NOT_AVAILABLE,
   CLOUD_STATUS_NOT_FULLY_HEALTHY,
   CLOUD_STATUS_SETTING_UP,
   CLOUD_STATUS_SETUP_STOPPED,
@@ -44,7 +43,8 @@ export function cloudEngineStatusVariant(status: string, operationState?: string
   if (isRecoveryRequired(status, operationState)) return "warning" as const;
   if (status === "Ready") return "default" as const;
   if (status === "Failed" || status === "Degraded") return "destructive" as const;
-  if (status === "Provisioning" || status === "Updating" || status === "Pending" || status === "Stopping" || status === "Deleting") {
+  if (status === "Provisioning" || status === "Updating") return "warning" as const;
+  if (isCloudSignedCopyEnabled() && (status === "Pending" || status === "Stopping" || status === "Deleting")) {
     return "warning" as const;
   }
   return "secondary" as const;
@@ -57,4 +57,3 @@ export function shouldPollCloudEngine(status?: string | null, operationState?: s
     isRecoveryRequired(status, operationState);
 }
 
-export { CLOUD_STATUS_NOT_AVAILABLE };

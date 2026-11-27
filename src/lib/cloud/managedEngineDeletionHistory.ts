@@ -265,6 +265,14 @@ export function recordFromControlDeletedEngine(engine: ControlDeletedEngine): De
  * Merge Control Deleted engines with local deletion records. Dedupe by engine
  * id and prefer the record that has a completion date.
  */
+function fillMissingFields(preferred: DeletionHistoryRecord, other: DeletionHistoryRecord): DeletionHistoryRecord {
+  return {
+    ...preferred,
+    instanceName: preferred.instanceName || other.instanceName,
+    operationId: preferred.operationId || other.operationId,
+  };
+}
+
 export function mergeControlDeletedEngines(
   records: readonly DeletionHistoryRecord[],
   deletedEngines: readonly ControlDeletedEngine[],
@@ -273,27 +281,20 @@ export function mergeControlDeletedEngines(
   for (const record of records) {
     const existing = byId.get(record.instanceId);
     if (!existing || (recordHasCompletionDate(record) && !recordHasCompletionDate(existing))) {
-      byId.set(record.instanceId, record);
+      byId.set(record.instanceId, { ...record });
     }
   }
   for (const engine of deletedEngines) {
     const incoming = recordFromControlDeletedEngine(engine);
     const existing = byId.get(engine.id);
-    if (!existing || (recordHasCompletionDate(incoming) && !recordHasCompletionDate(existing))) {
-      // Keep a local operation id when Control's lastOperation has none.
-      if (existing?.operationId && !incoming.operationId) {
-        incoming.operationId = existing.operationId;
-      }
-      if (existing && recordHasCompletionDate(existing) && recordHasCompletionDate(incoming)) {
-        // Both dated: keep the existing row but fill any missing name/id.
-        if (!existing.instanceName && incoming.instanceName) existing.instanceName = incoming.instanceName;
-        if (!existing.operationId && incoming.operationId) existing.operationId = incoming.operationId;
-        continue;
-      }
+    if (!existing) {
       byId.set(engine.id, incoming);
-    } else if (existing && !existing.operationId && incoming.operationId) {
-      existing.operationId = incoming.operationId;
+      continue;
     }
+    const preferIncoming = recordHasCompletionDate(incoming) && !recordHasCompletionDate(existing);
+    const preferred = preferIncoming ? incoming : existing;
+    const other = preferIncoming ? existing : incoming;
+    byId.set(engine.id, fillMissingFields(preferred, other));
   }
   return [...byId.values()];
 }

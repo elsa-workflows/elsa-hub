@@ -46,4 +46,17 @@ describe("engineStatus", () => {
     expect(cloudEngineStatusLabel("Provisioning")).toBe("Provisioning");
     expect(cloudEngineStatusLabel("Failed")).toBe("Failed");
   });
+
+  it("keeps Deleting, Pending and Stopping as secondary when the setting is off, and uses warning when it is on", () => {
+    setCloudSignedCopyEnabledForTests(false);
+    expect(cloudEngineStatusVariant("Deleting")).toBe("secondary");
+    expect(cloudEngineStatusVariant("Pending")).toBe("secondary");
+    expect(cloudEngineStatusVariant("Stopping")).toBe("secondary");
+    expect(cloudEngineStatusVariant("Provisioning")).toBe("warning");
+    expect(cloudEngineStatusVariant("Updating")).toBe("warning");
+    setCloudSignedCopyEnabledForTests(true);
+    expect(cloudEngineStatusVariant("Deleting")).toBe("warning");
+    expect(cloudEngineStatusVariant("Pending")).toBe("warning");
+    expect(cloudEngineStatusVariant("Stopping")).toBe("warning");
+  });
 });

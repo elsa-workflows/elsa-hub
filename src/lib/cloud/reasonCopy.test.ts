@@ -19,7 +19,6 @@ import {
   CLOUD_REASON_IDENTITY_UNAVAILABLE,
   CLOUD_REASON_RESTART_NEXT,
   CLOUD_REASON_UNAVAILABLE_BODY,
-  CLOUD_STATUS_SETUP_STOPPED,
   heldDeleteLine,
   parkedDeleteLine,
 } from "@/lib/cloudClient/signedCopy";
@@ -48,13 +47,11 @@ describe("reasonCopyForCode with Control overview shapes", () => {
       },
     });
     expect(overviewReasonCopy(engine)).toEqual({
-      chip: "Not available",
       body: CLOUD_REASON_UNAVAILABLE_BODY,
       nextStep: null,
     });
     setCloudSignedCopyEnabledForTests(true);
     expect(overviewReasonCopy(engine)).toEqual({
-      chip: "Not available",
       body: CLOUD_REASON_UNAVAILABLE_BODY,
       nextStep: CLOUD_REASON_RESTART_NEXT,
     });
@@ -65,7 +62,6 @@ describe("reasonCopyForCode with Control overview shapes", () => {
   it("treats Failed + lastOperation Create as a setup failure with the #1011 line", () => {
     const engine = controlFailedSetupOverview();
     const copy = overviewReasonCopy(engine);
-    expect(copy?.chip).toBe(CLOUD_STATUS_SETUP_STOPPED);
     expect(copy?.body).toBe(provisioningFailureBodyLines["provisioning.timeout.workload"]);
     expect(copy?.body).not.toBe(engine.unavailableReason);
   });
@@ -128,6 +124,37 @@ describe("reasonCopyForCode with Control overview shapes", () => {
     expect(reasonCopyForCode("identity-unavailable")?.body).toBe(CLOUD_REASON_IDENTITY_UNAVAILABLE);
   });
 });
+
+
+  it("shows no reason line for a healthy Ready engine when there is no code, flag on or off", () => {
+    const ready = controlDeletedOverview({
+      status: "Ready",
+      health: "Healthy",
+      canOpen: true,
+      unavailableReason: undefined,
+      unavailableReasonCode: undefined,
+      lastOperation: null,
+      allowedActions: {
+        restart: { allowed: true, reasonCode: null },
+        applyRelease: { allowed: true, reasonCode: null },
+        open: { allowed: true, reasonCode: null },
+        delete: { allowed: true, reasonCode: null },
+      },
+    });
+    expect(overviewReasonCopy(ready)).toBeNull();
+    expect(reasonCopyForCode(null, { engine: ready })).toBeNull();
+    setCloudSignedCopyEnabledForTests(true);
+    expect(overviewReasonCopy(ready)).toBeNull();
+    ready.lastOperation = {
+      action: "Restart",
+      state: "Succeeded",
+      completedAt: "2026-11-27T14:05:00.000Z",
+      failureCode: null,
+    };
+    expect(overviewReasonCopy(ready)).toBeNull();
+    setCloudSignedCopyEnabledForTests(false);
+    expect(overviewReasonCopy(ready)).toBeNull();
+  });
 
 describe("signedActionErrorLine", () => {
   it("uses Launch's permission lines only when the setting is on", () => {

@@ -1,5 +1,4 @@
 import {
-  ENGINE_SETUP_STOPPED_TITLE,
   PROVISIONING_FAILURE_FALLBACK_LINE,
   PROVISIONING_NEXT_STEP_NEITHER,
   PROVISIONING_NEXT_STEP_RETRY_ONLY,
@@ -21,7 +20,6 @@ import {
   CLOUD_ACTION_SIGN_IN_AGAIN,
   CLOUD_ACTION_SLUG_CONFLICT,
   CLOUD_ACTION_VERSION_CONFLICT,
-  CLOUD_CHIP_NO_ACTIVE_PLAN,
   CLOUD_DELETE_START_FALLBACK,
   CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT,
   CLOUD_REASON_DELETING_BODY,
@@ -35,8 +33,6 @@ import {
   CLOUD_REASON_STATUS_CANT_BE_DETERMINED,
   CLOUD_REASON_STATUS_CANT_BE_LOADED,
   CLOUD_REASON_UNAVAILABLE_BODY,
-  CLOUD_STATUS_NOT_AVAILABLE,
-  CLOUD_STATUS_SETUP_STOPPED,
   heldDeleteLine,
   parkedChangeLine,
   parkedDeleteLine,
@@ -48,8 +44,6 @@ import { formatParkedEngineGuidance } from "@/lib/cloud/parkedGuidance";
 export type CloudActionKind = "delete" | "restart" | "apply" | "create" | "other";
 
 export type ReasonCopy = {
-  chip?: string;
-  title?: string;
   body: string;
   nextStep?: string | null;
 };
@@ -101,8 +95,6 @@ function setupFailureCopy(
     ? PROVISIONING_REASON[reasonCode]
     : PROVISIONING_FAILURE_FALLBACK_LINE;
   return {
-    chip: CLOUD_STATUS_SETUP_STOPPED,
-    title: ENGINE_SETUP_STOPPED_TITLE,
     body,
     nextStep: retryAllowed ? PROVISIONING_NEXT_STEP_RETRY_ONLY : PROVISIONING_NEXT_STEP_NEITHER,
   };
@@ -115,8 +107,69 @@ function isSetupStageCode(code: string): boolean {
 /**
  * Maps a Control `unavailableReasonCode` (or a customer-safe operation code)
  * to signed copy. Never returns Control prose or the code itself. Returns
- * null when no line should be shown (Deleted banner, not-authorized).
+ * null when no line should be shown (Deleted banner, not-authorized, or a
+ * healthy engine with no unavailable/problem code).
+ *
+ * Two passes: engine-state rules first, then one flat code lookup. A missing
+ * code produces a line only when the engine state calls for one.
  */
+const IN_PROGRESS_STATUSES = new Set(["Pending", "Provisioning", "Updating", "Stopping"]);
+
+function parkedChangeBody(operationId: string | null): string {
+  return isCloudSignedCopyEnabled()
+    ? parkedChangeLine(operationId)
+    : formatParkedEngineGuidance(operationId);
+}
+
+function identityUnavailableBody(): string {
+  return isCloudSignedCopyEnabled()
+    ? CLOUD_REASON_IDENTITY_UNAVAILABLE
+    : CLOUD_REASON_GENERIC_FALLBACK;
+}
+
+type ReasonContext = {
+  engine?: CloudEngineOverview | null;
+  progress?: CloudProvisioningProgress | null;
+  operationId: string | null;
+};
+
+function instanceFailedCopy({ engine, progress }: ReasonContext): ReasonCopy {
+  if (isSetupFailure(engine?.status, engine?.lastOperation) || progress?.state === "failed") {
+    const reasonCode = progress?.reasonCode
+      ?? engine?.lastOperation?.reasonCode
+      ?? engine?.activeOperation?.progress?.reasonCode
+      ?? null;
+    return setupFailureCopy(reasonCode, false);
+  }
+  return nonSetupFailedCopy(engine);
+}
+
+const REASON_BY_CODE: Record<string, (ctx: ReasonContext) => ReasonCopy> = {
+  "instance.unavailable": ({ engine }) => ({
+    body: CLOUD_REASON_UNAVAILABLE_BODY,
+    nextStep: restartNext(engine),
+  }),
+  "instance.failed": instanceFailedCopy,
+  "provider-timeout": () => ({ body: CLOUD_REASON_STATUS_CANT_BE_LOADED }),
+  "delete-pending": () => ({ body: CLOUD_REASON_DELETING_BODY, nextStep: null }),
+  "instance.provisioning": () => ({ body: CLOUD_REASON_IN_PROGRESS_CHANGE, nextStep: null }),
+  "instance.recovery-required": ({ operationId }) => ({ body: parkedChangeBody(operationId) }),
+  "instance.unknown": () => ({ body: CLOUD_REASON_STATUS_CANT_BE_DETERMINED }),
+  "handoff-unavailable": () => ({ body: CLOUD_REASON_HANDOFF_UNAVAILABLE }),
+  "identity-unavailable": () => ({ body: identityUnavailableBody() }),
+  "lifecycle.deletion.blocked-by-operation-in-flight": () => ({
+    body: CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT,
+    nextStep: null,
+  }),
+};
+
+for (const code of COMMERCIAL_CODES) {
+  REASON_BY_CODE[code] = () => ({ body: CLOUD_REASON_NO_ACTIVE_PLAN });
+}
+for (const code of LIMIT_CODES) {
+  REASON_BY_CODE[code] = () => ({ body: cloudLimitMessage() });
+}
+
 export function reasonCopyForCode(
   code: string | null | undefined,
   options: {
@@ -128,6 +181,7 @@ export function reasonCopyForCode(
   const { engine, progress } = options;
   const operationId = options.operationId ?? operationIdFrom(engine);
   const resolved = code?.trim() || "";
+  const ctx: ReasonContext = { engine, progress, operationId };
 
   if (engine?.status === "Deleted") return null;
   if (resolved === "not-authorized") return null;
@@ -143,118 +197,41 @@ export function reasonCopyForCode(
     return nonSetupFailedCopy(engine);
   }
 
-  if (resolved === "delete-held" || (engine?.activeOperation?.action === "Delete" && engine.activeOperation.state === "EntitlementHeld")) {
+  const deleteOp = engine?.activeOperation?.action === "Delete";
+  const deleteState = deleteOp ? engine?.activeOperation?.state : undefined;
+
+  if (resolved === "delete-held" || deleteState === "EntitlementHeld") {
     return { body: heldDeleteLine(operationId) };
   }
 
   if (
     PARKED_DELETE_CODES.has(resolved)
-    || (resolved === "instance.recovery-required" && engine?.activeOperation?.action === "Delete")
-    || (engine?.activeOperation?.action === "Delete" && engine.activeOperation.state === "RecoveryRequired")
+    || (resolved === "instance.recovery-required" && deleteOp)
+    || deleteState === "RecoveryRequired"
   ) {
     return { body: parkedDeleteLine(operationId) };
   }
 
-  if (engine?.status === "RecoveryRequired" && engine.activeOperation?.action !== "Delete") {
-    return {
-      body: isCloudSignedCopyEnabled()
-        ? parkedChangeLine(operationId)
-        : formatParkedEngineGuidance(operationId),
-    };
+  if (engine?.status === "RecoveryRequired") {
+    return { body: parkedChangeBody(operationId) };
   }
 
-  if (engine?.status === "Deleting" || engine?.activeOperation?.action === "Delete") {
-    if (engine.activeOperation?.state !== "EntitlementHeld" && engine.activeOperation?.state !== "RecoveryRequired") {
-      return { title: "Deleting this engine", body: CLOUD_REASON_DELETING_BODY, nextStep: null };
-    }
+  if (engine?.status === "Deleting" || deleteOp) {
+    return { body: CLOUD_REASON_DELETING_BODY, nextStep: null };
   }
 
-  if (engine && ["Pending", "Provisioning", "Updating", "Stopping"].includes(engine.status)) {
+  if (engine && IN_PROGRESS_STATUSES.has(engine.status)) {
     return { body: CLOUD_REASON_IN_PROGRESS_CHANGE, nextStep: null };
   }
 
-  if (!resolved) {
-    return { body: CLOUD_REASON_GENERIC_FALLBACK };
-  }
+  if (!resolved) return null;
 
-  if (resolved === "instance.unavailable") {
-    return {
-      chip: CLOUD_STATUS_NOT_AVAILABLE,
-      body: CLOUD_REASON_UNAVAILABLE_BODY,
-      nextStep: restartNext(engine),
-    };
-  }
-
-  if (resolved === "instance.failed") {
-    if (isSetupFailure(engine?.status, engine?.lastOperation) || progress?.state === "failed") {
-      const reasonCode = progress?.reasonCode
-        ?? engine?.lastOperation?.reasonCode
-        ?? engine?.activeOperation?.progress?.reasonCode
-        ?? null;
-      return setupFailureCopy(reasonCode, false);
-    }
-    return nonSetupFailedCopy(engine);
-  }
-
-  if (resolved === "provider-timeout") {
-    return { body: CLOUD_REASON_STATUS_CANT_BE_LOADED };
-  }
-
-  if (resolved === "delete-pending" || (engine?.status === "Deleting" && resolved === "instance.provisioning")) {
-    return { title: "Deleting this engine", body: CLOUD_REASON_DELETING_BODY, nextStep: null };
-  }
-
-  if (resolved === "delete-held" || (engine?.activeOperation?.action === "Delete" && engine.activeOperation.state === "EntitlementHeld")) {
-    return { body: heldDeleteLine(operationId) };
-  }
-
-  if (PARKED_DELETE_CODES.has(resolved) || (resolved === "instance.recovery-required" && engine?.activeOperation?.action === "Delete")) {
-    return { body: parkedDeleteLine(operationId) };
-  }
-
-  if (resolved === "instance.provisioning") {
-    return { body: CLOUD_REASON_IN_PROGRESS_CHANGE, nextStep: null };
-  }
-
-  if (resolved === "instance.recovery-required") {
-    return {
-      body: isCloudSignedCopyEnabled()
-        ? parkedChangeLine(operationId)
-        : formatParkedEngineGuidance(operationId),
-    };
-  }
-
-  if (resolved === "instance.unknown") {
-    return { body: CLOUD_REASON_STATUS_CANT_BE_DETERMINED };
-  }
-
-  if (resolved === "handoff-unavailable") {
-    return { body: CLOUD_REASON_HANDOFF_UNAVAILABLE };
-  }
-
-  if (resolved === "identity-unavailable") {
-    return {
-      body: isCloudSignedCopyEnabled()
-        ? CLOUD_REASON_IDENTITY_UNAVAILABLE
-        : CLOUD_REASON_GENERIC_FALLBACK,
-    };
-  }
-
-  if (resolved === "lifecycle.deletion.blocked-by-operation-in-flight") {
-    return { body: CLOUD_REASON_DELETE_BLOCKED_IN_FLIGHT, nextStep: null };
-  }
+  const mapped = REASON_BY_CODE[resolved];
+  if (mapped) return mapped(ctx);
 
   if ((isKnownProvisioningReason(resolved) || isSetupStageCode(resolved))
     && (progress?.state === "failed" || isSetupFailure(engine?.status, engine?.lastOperation))) {
     return setupFailureCopy(resolved, false);
-  }
-
-  if (COMMERCIAL_CODES.has(resolved)) {
-    return { chip: CLOUD_CHIP_NO_ACTIVE_PLAN, body: CLOUD_REASON_NO_ACTIVE_PLAN };
-  }
-
-  if (LIMIT_CODES.has(resolved)) {
-    return { body: cloudLimitMessage() };
   }
 
   return { body: CLOUD_REASON_GENERIC_FALLBACK };
