@@ -85,6 +85,7 @@ export const CLOUD_ACCOUNT_LINK_HAS_STATE_CODE = "hub_account_has_state" as cons
 export const CLOUD_DELETE_IN_PROGRESS_CODE = "delete_in_progress" as const;
 export const CLOUD_DELETE_CONFIRMATION_INVALID_CODE = "delete_confirmation_invalid" as const;
 export const CLOUD_CHANGED_SINCE_READ_CODE = "changed_since_read" as const;
+export const CLOUD_CONTRACT_MISMATCH_CODE = "contract_mismatch" as const;
 
 export const CLOUD_ACCOUNT_LINK_ALREADY =
   "This Hub account is already linked to this Elsa Cloud account.";
@@ -342,7 +343,9 @@ export type CloudClientErrorBody = {
     | typeof CLOUD_ACCOUNT_LINK_HAS_STATE_CODE
     | typeof CLOUD_DELETE_IN_PROGRESS_CODE
     | typeof CLOUD_DELETE_CONFIRMATION_INVALID_CODE
-    | typeof CLOUD_CHANGED_SINCE_READ_CODE;
+    | typeof CLOUD_CHANGED_SINCE_READ_CODE
+    | typeof CLOUD_CONTRACT_MISMATCH_CODE
+    | (string & {});
   error: string;
   currentInstances?: number;
   maxInstances?: number;
