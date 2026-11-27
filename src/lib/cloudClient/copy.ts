@@ -75,7 +75,7 @@ export const CLOUD_DELETE_START_ERROR =
 // Neutral placeholder copy for #219 delete feedback; Launch may polish it.
 export const CLOUD_DELETE_IN_PROGRESS = "This engine is already being deleted.";
 export const CLOUD_DELETE_CONFIRMATION_EXPIRED =
-  "This confirmation has expired. Refresh the page and try again.";
+  "This confirmation has expired. Press Delete again to confirm.";
 export const CLOUD_DELETE_CHANGED_SINCE_READ =
   "This engine changed since you opened it. Refresh and try again.";
 export function cloudDeletingToast(name: string): string {
