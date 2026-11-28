@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   CheckCircle2,
+  Container,
   Download,
   Info,
   Loader2,
@@ -23,11 +24,25 @@ import {
 } from "@/lib/runtime-builder/control-api";
 import { buildIntent, useConfigurator } from "@/lib/runtime-builder/configurator-store";
 
+function imageBuildUrl(value?: string) {
+  if (!value) return undefined;
+  try {
+    const origin = new URL(value);
+    const local = import.meta.env.DEV && origin.protocol === "http:"
+      && (origin.hostname === "localhost" || origin.hostname === "127.0.0.1");
+    if (!local && origin.protocol !== "https:") return undefined;
+    return new URL("/admin/runtime-builder/image-builds/open", origin.origin);
+  } catch {
+    return undefined;
+  }
+}
+
 export function StepReview() {
   const { data: catalog } = useControlCatalog();
   const { state } = useConfigurator();
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
+  const buildUrl = imageBuildUrl(import.meta.env.VITE_ELSA_CONTROL_IMAGE_BUILD_URL);
 
   const intent = useMemo(() => buildIntent(state, catalog), [state, catalog]);
 
@@ -42,6 +57,17 @@ export function StepReview() {
   const errors = findings.filter((f) => f.level === "error");
   const warnings = findings.filter((f) => f.level === "warning");
   const autoAdded = plan.data?.autoAdded;
+  const resolvedProfile = plan.data?.resolved?.packages;
+  const transfer = resolvedProfile && JSON.stringify(resolvedProfile.map(item => {
+    const version = catalog?.packages
+      .find(pkg => pkg.source.id === item.sourceId && pkg.packageId.toLowerCase() === item.packageId.toLowerCase())
+      ?.versions.find(candidate => candidate.version === item.version);
+    const features = item.selectedFeatures.map(id =>
+      version?.features.find(feature => feature.featureId.toLowerCase() === id.toLowerCase())?.cshellsFeatureName ?? id);
+    return { id: item.packageId, version: item.version, features };
+  }));
+  if (buildUrl && transfer) buildUrl.hash = new URLSearchParams({ profile: transfer }).toString();
+  const profileFits = resolvedProfile !== undefined && resolvedProfile.length <= 24 && Boolean(buildUrl && buildUrl.href.length <= 7500);
 
   function timestamp() {
     const d = new Date();
@@ -118,6 +144,25 @@ export function StepReview() {
           )}
         </div>
       </header>
+
+      {buildUrl && (
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-5">
+          <div>
+            <h3 className="font-display text-base font-semibold">Hosted Docker image pilot</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Review your packages and features in Elsa Control, then build an image on the Essentials baseline.
+            </p>
+          </div>
+          {plan.isSuccess && errors.length === 0 && profileFits ? (
+            <Button asChild variant="outline">
+              <a href={buildUrl.href}><Container className="mr-2 h-4 w-4" /> Build image</a>
+            </Button>
+          ) : <Button variant="outline" disabled>Build image</Button>}
+          {resolvedProfile && !profileFits && (
+            <p className="text-xs text-muted-foreground">Reduce the package selection to open it in the hosted builder.</p>
+          )}
+        </section>
+      )}
 
       {plan.isLoading && <Skeleton className="h-24 rounded-2xl" />}
 

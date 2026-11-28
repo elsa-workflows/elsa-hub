@@ -72,6 +72,7 @@ export interface FeatureInfraRequirement {
 
 export interface CatalogFeature {
   featureId: string;
+  cshellsFeatureName?: string;
   displayName: string;
   description?: string | null;
   category?: string | null;
@@ -208,8 +209,10 @@ function normalizeFeature(raw: Record<string, unknown>): CatalogFeature | null {
   const featureId = typeof raw.featureId === "string" ? raw.featureId : null;
   if (!featureId) return null;
   const categories = asStrings(raw.categories);
+  const shellName = (raw.extensions as { cshellsFeatureName?: unknown } | null)?.cshellsFeatureName;
   return {
     featureId,
+    cshellsFeatureName: typeof shellName === "string" ? shellName.trim() || undefined : undefined,
     displayName:
       typeof raw.displayName === "string" && raw.displayName ? raw.displayName : featureId,
     description: typeof raw.description === "string" ? raw.description : null,
