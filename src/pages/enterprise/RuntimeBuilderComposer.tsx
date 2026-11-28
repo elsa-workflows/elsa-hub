@@ -66,9 +66,7 @@ function ComposerInner() {
     setImage(image);
   }, [params, catalog, setImage]);
 
-  const hasImage = Boolean(state.imageSlug);
-  const hasFeatures = Object.keys(state.features).length > 0;
-  const furthestUnlocked = !hasImage ? 1 : !hasFeatures ? 2 : maxStep;
+  const furthestUnlocked = state.imageSlug ? maxStep : 1;
 
   function goTo(id: number) {
     setParams({ step: String(id) }, { replace: false });
