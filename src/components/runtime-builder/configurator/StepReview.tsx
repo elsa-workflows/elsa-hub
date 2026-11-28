@@ -31,7 +31,7 @@ function imageBuildUrl(value?: string) {
     const local = import.meta.env.DEV && origin.protocol === "http:"
       && (origin.hostname === "localhost" || origin.hostname === "127.0.0.1");
     if (!local && origin.protocol !== "https:") return undefined;
-    return new URL("/admin/runtime-builder/image-builds", origin.origin);
+    return new URL("/admin/runtime-builder/image-builds/open", origin.origin);
   } catch {
     return undefined;
   }
@@ -66,7 +66,7 @@ export function StepReview() {
       version?.features.find(feature => feature.featureId.toLowerCase() === id.toLowerCase())?.cshellsFeatureName ?? id);
     return { id: item.packageId, version: item.version, features };
   }));
-  if (buildUrl && transfer) buildUrl.searchParams.set("profile", transfer);
+  if (buildUrl && transfer) buildUrl.hash = new URLSearchParams({ profile: transfer }).toString();
   const profileFits = resolvedProfile !== undefined && resolvedProfile.length <= 24 && Boolean(buildUrl && buildUrl.href.length <= 7500);
 
   function timestamp() {
