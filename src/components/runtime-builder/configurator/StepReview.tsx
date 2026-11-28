@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   CheckCircle2,
+  Container,
   Download,
   Info,
   Loader2,
@@ -23,11 +24,25 @@ import {
 } from "@/lib/runtime-builder/control-api";
 import { buildIntent, useConfigurator } from "@/lib/runtime-builder/configurator-store";
 
+function imageBuildUrl(value?: string) {
+  if (!value) return undefined;
+  try {
+    const origin = new URL(value);
+    const local = import.meta.env.DEV && origin.protocol === "http:"
+      && (origin.hostname === "localhost" || origin.hostname === "127.0.0.1");
+    if (!local && origin.protocol !== "https:") return undefined;
+    return new URL("/admin/runtime-builder/image-builds", origin.origin).href;
+  } catch {
+    return undefined;
+  }
+}
+
 export function StepReview() {
   const { data: catalog } = useControlCatalog();
   const { state } = useConfigurator();
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
+  const buildUrl = imageBuildUrl(import.meta.env.VITE_ELSA_CONTROL_IMAGE_BUILD_URL);
 
   const intent = useMemo(() => buildIntent(state, catalog), [state, catalog]);
 
@@ -118,6 +133,20 @@ export function StepReview() {
           )}
         </div>
       </header>
+
+      {buildUrl && (
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-5">
+          <div>
+            <h3 className="font-display text-base font-semibold">Hosted Docker image pilot</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sign in to Elsa Control to build the Essentials or Elsa 3 Import preset.
+            </p>
+          </div>
+          <Button asChild variant="outline">
+            <a href={buildUrl}><Container className="mr-2 h-4 w-4" /> Build image</a>
+          </Button>
+        </section>
+      )}
 
       {plan.isLoading && <Skeleton className="h-24 rounded-2xl" />}
 
